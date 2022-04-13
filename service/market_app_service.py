@@ -110,8 +110,8 @@ class MarketAppService(object):
         app_ids = [app.app_id for app in apps]
         versions = center_app_repo.get_wutong_app_version_by_app_ids(session, eid, app_ids, is_complete,
                                                                      rm_template_field=True)
-        if not versions:
-            return
+        # if not versions:
+        #     return
 
         app_with_versions = dict()
         # Save the version numbers of release and normal versions for sorting
