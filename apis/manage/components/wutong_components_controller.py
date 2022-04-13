@@ -16,6 +16,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
     AccountOverdueException, AbortRequest, CallRegionAPIException
+from models.users.users import Users
 from repository.component.group_service_repo import service_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -26,6 +27,7 @@ from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_log_service
+from service.compose_service import compose_service
 from service.market_app_service import market_app_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.user_service import user_svc
@@ -543,4 +545,43 @@ async def get_app_visit_info(
     if code != 200:
         return JSONResponse(general_message(code, "update service info error", msg), status_code=code)
     result = general_message(200, "success", "修改成功")
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/apps/docker_compose", response_model=Response, name="docker_compose创建组件")
+async def docker_compose_components(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team),
+        user: Users = Depends(deps.get_current_user)) -> Any:
+    data = await request.json()
+    group_name = data.get("group_name", None)
+    k8s_app = data.get("k8s_app", None)
+    hub_user = data.get("user_name", "")
+    hub_pass = data.get("password", "")
+    yaml_content = data.get("yaml_content", "")
+    group_note = data.get("group_note", "")
+    if group_note and len(group_note) > 2048:
+        return JSONResponse(general_message(400, "node too long", "应用备注长度限制2048"), status_code=400)
+    if not group_name:
+        return JSONResponse(general_message(400, 'params error', "请指明需要创建的compose组名"), status_code=400)
+    if not yaml_content:
+        return JSONResponse(general_message(400, "params error", "未指明yaml内容"), status_code=400)
+    # Parsing yaml determines whether the input is illegal
+    code, msg, json_data = compose_service.yaml_to_json(yaml_content)
+    if code != 200:
+        return JSONResponse(general_message(code, "parse yaml error", msg), status_code=code)
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    # 创建组
+    group_info = application_service.create_app(
+        session, team, region.region_name, group_name, group_note, user.get_username(), k8s_app=k8s_app)
+    code, msg, group_compose = compose_service.create_group_compose(
+        session, team, region.region_name, group_info["group_id"], yaml_content, hub_user, hub_pass)
+    if code != 200:
+        return JSONResponse(general_message(code, "create group compose error", msg), status_code=code)
+    bean = dict()
+    bean["group_id"] = group_compose.group_id
+    bean["compose_id"] = group_compose.compose_id
+    bean["app_name"] = group_info["application_name"]
+    result = general_message(200, "operation success", "compose组创建成功", bean=bean)
     return JSONResponse(result, status_code=result["code"])

@@ -17,10 +17,12 @@ from core.utils.return_message import general_message, error_message, general_da
 from core.utils.validation import is_qualified_name
 from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrLastRecordUnfinished
-from exceptions.main import ServiceHandleException, AbortRequest
+from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException
 from models.application.models import Application, ComponentApplicationRelation, ApplicationUpgradeRecordType
 from models.component.models import TeamComponentInfo
+from models.users.users import Users
 from repository.application.application_repo import application_repo
+from repository.component.compose_repo import compose_repo
 from repository.component.group_service_repo import service_repo
 from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo
@@ -33,6 +35,8 @@ from schemas.wutong_team_app import TeamAppCreateRequest
 from service.app_actions.app_manage import app_manage_service
 from service.app_config_group import app_config_group_service
 from service.application_service import application_service
+from service.component_service import component_check_service
+from service.compose_service import compose_service
 from service.helm_app_service import helm_app_service
 from service.market_app_service import market_app_service
 from service.share_services import share_service
@@ -733,3 +737,123 @@ async def get_app_releases(team_name: Optional[str] = None,
     region_name = region.region_name
     releases = application_service.list_releases(session, region_name, team_name, app_id)
     return JSONResponse(general_message(200, "success", "查询成功", list=releases), status_code=200)
+
+
+@router.get("/teams/{team_name}/groups/{group_id}/get_check_uuid", response_model=Response, name="获取应用检测uuid")
+async def get_check_uuid(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+) -> Any:
+    compose_id = request.query_params.get("compose_id", None)
+    if not compose_id:
+        return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status_code=400)
+    group_compose = compose_service.get_group_compose_by_compose_id(session, compose_id)
+    if group_compose:
+        result = general_message(200, "success", "获取成功", bean={"check_uuid": group_compose.check_uuid})
+    else:
+        result = general_message(404, "success", "compose不存在", bean={"check_uuid": ""})
+    return JSONResponse(result, status_code=200)
+
+
+@router.post("/teams/{team_name}/groups/{group_id}/check", response_model=Response, name="检测任务发送")
+async def send_check_task(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    compose_id = data.get("compose_id", None)
+    if not compose_id:
+        return JSONResponse(general_message(400, "params error", "需要检测的compose ID "), status_code=400)
+
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    response_region = region.region_name
+    code, msg, compose_bean = compose_service.check_compose(session, response_region, team, compose_id)
+    if code != 200:
+        return JSONResponse(general_message(code, "check compose error", msg))
+    result = general_message(code, "compose check task send success", "检测任务发送成功", bean=compose_bean)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/teams/{team_name}/groups/{group_id}/check", response_model=Response, name="获取compose文件检测信息")
+async def get_compose_check_info(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team),
+        user: Users = Depends(deps.get_current_user)) -> Any:
+    sid = None
+    try:
+        check_uuid = request.query_params.get("check_uuid", None)
+        compose_id = request.query_params.get("compose_id", None)
+        if not check_uuid:
+            return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status_code=400)
+        if not compose_id:
+            return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status_code=400)
+
+        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        if not region:
+            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+        response_region = region.region_name
+
+        group_compose = compose_service.get_group_compose_by_compose_id(session, compose_id)
+        code, msg, data = component_check_service.get_service_check_info(session, team, response_region, check_uuid)
+        logger.debug("start save compose info ! {0}".format(group_compose.create_status))
+        save_code, save_msg, service_list = compose_service.save_compose_services(session,
+                                                                                  team, user,
+                                                                                  response_region, group_compose,
+                                                                                  data)
+        if save_code != 200:
+            data["check_status"] = "failure"
+            save_error = {
+                "error_type": "check info save error",
+                "solve_advice": "修改相关信息后重新尝试",
+                "error_info": "{}".format(save_msg)
+            }
+            if data["error_infos"]:
+                data["error_infos"].append(save_error)
+            else:
+                data["error_infos"] = [save_error]
+        compose_check_brief = compose_service.wrap_compose_check_info(data)
+        result = general_message(200, "success", "请求成功", bean=compose_check_brief,
+                                 list=[jsonable_encoder(s) for s in service_list])
+    except ResourceNotEnoughException as re:
+        raise re
+    except AccountOverdueException as re:
+        logger.exception(re)
+        return JSONResponse(general_message(10410, "resource is not enough", "失败"), status_code=412)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.delete("/teams/{team_name}/groups/{group_id}/delete", response_model=Response, name="放弃compose创建应用")
+async def delete_compose_create(
+        request: Request,
+        group_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    compose_id = data.get("compose_id", None)
+    try:
+        group_id = int(group_id)
+    except ValueError:
+        raise ServiceHandleException(msg="group id is invalid", msg_show="参数不合法")
+    if group_id:
+        if group_id < 1:
+            return JSONResponse(general_message(400, "params error", "所在组参数错误 "), status_code=400)
+    else:
+        return JSONResponse(general_message(400, "params error", "请指明需要删除的组标识 "), status_code=400)
+    if not compose_id:
+        return JSONResponse(general_message(400, "params error", "请指明需要删除的compose ID "), status_code=400)
+    compose_service.give_up_compose_create(session, team, group_id, compose_id)
+    result = general_message(200, "compose delete success", "删除成功")
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/teams/{team_name}/compose/{compose_id}/content", response_model=Response, name="获取compose文件内容")
+async def get_compose_info(
+        compose_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    group_compose = compose_repo.get_group_compose_by_compose_id(session, compose_id)
+    result = general_message(200, "success", "查询成功", bean=jsonable_encoder(group_compose))
+    return JSONResponse(result, status_code=result["code"])
