@@ -44,3 +44,12 @@ jobs:
       
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
+
+      - name: Deploy console to dev paas
+        id: dev_deploy
+        uses: actions-hub/kubectl@master
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        with:
+          args: rollout restart deployment -n wt-system wutong-console      
+          # args: set image deployment/wutong-console -n wt-system console=swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-console:v1.0.0-stable
