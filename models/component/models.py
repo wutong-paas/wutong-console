@@ -92,7 +92,7 @@ class TeamComponentInfo(Base):
     service_name = Column(String(100), comment="组件名称", nullable=True, default='')
     oauth_service_id = Column(Integer, comment="拉取源码所用的OAuth服务id", nullable=True, default=None)
     git_full_name = Column(String(64), comment="git项目的fullname", nullable=True, default=None)
-    k8s_component_name = Column(String(100), comment="集群组件名称", nullable=False)
+    k8s_component_name = Column(String(100), comment="集群组件名称", nullable=True)
 
     def __unicode__(self):
         return self.service_alias

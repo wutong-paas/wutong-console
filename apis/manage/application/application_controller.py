@@ -857,3 +857,13 @@ async def get_compose_info(
     group_compose = compose_repo.get_group_compose_by_compose_id(session, compose_id)
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(group_compose))
     return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/teams/{team_name}/compose/{compose_id}/services", response_model=Response, name="获取compose组下的组件")
+async def get_compose_services(
+        compose_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    services = compose_service.get_compose_services(session, compose_id)
+    s_list = [jsonable_encoder(s) for s in services]
+    result = general_message(200, "success", "查询成功", list=s_list)
+    return JSONResponse(result, status_code=result["code"])
