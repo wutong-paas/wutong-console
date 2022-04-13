@@ -12,14 +12,15 @@ from core import deps
 from core.enum.component_enum import is_support
 from core.utils.constants import PluginCategoryConstants
 from core.utils.reqparse import parse_argument
-from core.utils.return_message import general_message
+from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
-    AccountOverdueException, AbortRequest, CallRegionAPIException
+    AccountOverdueException, AbortRequest, CallRegionAPIException, ErrInsufficientResource
 from models.users.users import Users
 from repository.component.group_service_repo import service_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
+from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.app_relation_service import dependency_service
 from service.app_config.port_service import port_service
@@ -30,6 +31,7 @@ from service.component_service import component_log_service
 from service.compose_service import compose_service
 from service.market_app_service import market_app_service
 from service.plugin.app_plugin_service import app_plugin_service
+from service.probe_service import probe_service
 from service.user_service import user_svc
 
 router = APIRouter()
@@ -584,4 +586,57 @@ async def docker_compose_components(
     bean["compose_id"] = group_compose.compose_id
     bean["app_name"] = group_info["application_name"]
     result = general_message(200, "operation success", "compose组创建成功", bean=bean)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/groups/{group_id}/compose_build", response_model=Response, name="compose应用构建")
+async def compose_build(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team),
+        user: Users = Depends(deps.get_current_user)) -> Any:
+    probe_map = dict()
+    services = None
+    data = await request.json()
+    oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
+    try:
+        compose_id = data.get("compose_id", None)
+        if not compose_id:
+            return JSONResponse(general_message(400, "params error", "参数异常"), status_code=400)
+        group_compose = compose_service.get_group_compose_by_compose_id(session, compose_id)
+        services = compose_service.get_compose_services(session, compose_id)
+        # 数据中心创建组件
+        new_app_list = []
+        for service in services:
+            new_service = application_service.create_region_service(session, team, service, user.nick_name)
+            new_app_list.append(new_service)
+        group_compose.create_status = "complete"
+        # group_compose.save()
+        for s in new_app_list:
+            try:
+                app_manage_service.deploy(session, team, s, user, oauth_instance=oauth_instance)
+            except ErrInsufficientResource as e:
+                result = general_message(e.error_code, e.msg, e.msg_show)
+                return JSONResponse(result, status_code=e.status_code)
+            except Exception as e:
+                logger.exception(e)
+                continue
+
+        result = general_message(200, "success", "构建成功")
+    except Exception as e:
+        logger.exception(e)
+        result = error_message("failed")
+        if services:
+            for service in services:
+                if probe_map:
+                    probe_id = probe_map.get(service.service_id)
+                    probe_service.delete_service_probe(session, team, service, probe_id)
+                event_service.delete_service_events(session, service)
+                port_service.delete_region_port(session, team, service)
+                volume_service.delete_region_volumes(session, team, service)
+                env_var_service.delete_region_env(session, team, service)
+                dependency_service.delete_region_dependency(session, team, service)
+                app_manage_service.delete_region_service(session, team, service)
+                service.create_status = "checked"
+        raise e
     return JSONResponse(result, status_code=result["code"])

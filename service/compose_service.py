@@ -106,7 +106,7 @@ class ComposeService(object):
         tenant_service.service_id = make_uuid()
         tenant_service.service_cname = service_cname
         tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
-        tenant_service.creater = user.pk
+        tenant_service.creater = user.user_id
         tenant_service.image = image
         tenant_service.service_region = region
         tenant_service.service_key = "0000"
@@ -159,7 +159,7 @@ class ComposeService(object):
                 if group_compose.create_status == "checking":
                     logger.debug("checking compose service install,save info into database")
                 # 先删除原来创建的组件
-                self.__delete_created_compose_info(tenant, group_compose.compose_id)
+                self.__delete_created_compose_info(session, tenant, group_compose.compose_id)
                 # 保存compose检测结果
                 if data["check_status"] == "success":
                     service_info_list = data["service_info"]
