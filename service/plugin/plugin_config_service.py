@@ -2,13 +2,49 @@ from fastapi.encoders import jsonable_encoder
 
 from core.utils.constants import PluginMetaType
 from database.session import SessionClass
-from models.application.plugin import PluginConfigItems
+from models.application.plugin import PluginConfigItems, PluginConfigGroup
 from repository.component.group_service_repo import service_repo
 from repository.component.service_config_repo import dep_relation_repo
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 
 
 class PluginConfigService(object):
+
+    def delete_config_group_by_meta_type(self, session, plugin_id, build_version, service_meta_type):
+        config_group_repo.delete_config_group_by_meta_type(session, plugin_id, build_version, service_meta_type)
+        config_item_repo.delete_config_items(session, plugin_id, build_version, service_meta_type)
+
+    def create_config_groups(self, session, plugin_id, build_version, config_group):
+        plugin_config_meta_list = []
+        config_items_list = []
+        if config_group:
+            for config in config_group:
+                options = config["options"]
+                plugin_config_meta = PluginConfigGroup(
+                    plugin_id=plugin_id,
+                    build_version=build_version,
+                    config_name=config["config_name"],
+                    service_meta_type=config["service_meta_type"],
+                    injection=config["injection"])
+                plugin_config_meta_list.append(plugin_config_meta)
+
+                for option in options:
+                    config_item = PluginConfigItems(
+                        plugin_id=plugin_id,
+                        build_version=build_version,
+                        service_meta_type=config["service_meta_type"],
+                        attr_name=option.get("attr_name", ""),
+                        attr_alt_value=option.get("attr_alt_value", ""),
+                        attr_type=option.get("attr_type", "string"),
+                        attr_default_value=option.get("attr_default_value", None),
+                        is_change=option.get("is_change", False),
+                        attr_info=option.get("attr_info", ""),
+                        protocol=option.get("protocol", ""))
+                    config_items_list.append(config_item)
+
+        config_group_repo.bulk_create_plugin_config_group(session, plugin_config_meta_list)
+        config_item_repo.bulk_create_items(session, config_items_list)
+
     def get_config_group(self, session: SessionClass, plugin_id, build_version):
         return config_group_repo.get_config_group_by_id_and_version(session=session, plugin_id=plugin_id,
                                                                     build_version=build_version)
