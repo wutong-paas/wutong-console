@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from loguru import logger
 from sqlalchemy import select, update, not_, delete
 
 from exceptions.main import ServiceHandleException

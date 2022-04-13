@@ -9,6 +9,10 @@ from service.base_services import base_service
 
 class GroupServiceRelationRepository(BaseRepository[ComponentApplicationRelation]):
 
+    def delete_relation_by_group_id(self, session, group_id):
+        session.execute(delete(ComponentApplicationRelation).where(
+            ComponentApplicationRelation.group_id == group_id))
+
     def add_service_group_relation(self, session, group_id, service_id, tenant_id, region_name):
         sgr = ComponentApplicationRelation(
             service_id=service_id, group_id=group_id, tenant_id=tenant_id, region_name=region_name)
