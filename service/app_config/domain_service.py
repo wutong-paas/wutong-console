@@ -288,7 +288,8 @@ class DomainService(object):
             if isinstance(search_conditions, bytes):
                 search_conditions = search_conditions.decode('utf-8')
             # 获取总数
-            domain_count = domain_repo.get_domain_count_search_conditions(tenant.tenant_id, region.region_id,
+            domain_count = domain_repo.get_domain_count_search_conditions(session,
+                                                                          tenant.tenant_id, region.region_id,
                                                                           search_conditions, app_id)
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -296,7 +297,8 @@ class DomainService(object):
             end = page_size
             if remaining_num < page_size:
                 end = remaining_num
-            tenant_tuples = domain_repo.get_tenant_tuples_search_conditions(tenant.tenant_id, region.region_id,
+            tenant_tuples = domain_repo.get_tenant_tuples_search_conditions(session,
+                                                                            tenant.tenant_id, region.region_id,
                                                                             search_conditions, start, end, app_id)
         else:
             # 获取总数

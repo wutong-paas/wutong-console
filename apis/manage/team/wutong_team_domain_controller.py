@@ -39,7 +39,7 @@ async def get_domain_query(request: Request,
     # 查询分页排序
     if search_conditions:
         # 获取总数
-        session.execute("select count(sd.domain_name) \
+        res = session.execute("select count(sd.domain_name) \
             from service_domain sd \
                 left join service_group_relation sgr on sd.service_id = sgr.service_id \
                 left join service_group sg on sgr.group_id = sg.id  \
@@ -47,7 +47,7 @@ async def get_domain_query(request: Request,
                 and (sd.domain_name like '%{2}%' \
                     or sd.service_alias like '%{2}%' \
                     or sg.group_name like '%{2}%');".format(team.tenant_id, region.region_id, search_conditions))
-        domain_count = session.fetchall()
+        domain_count = res.fetchall()
 
         total = domain_count[0][0]
         start = (page - 1) * page_size
