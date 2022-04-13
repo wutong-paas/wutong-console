@@ -377,12 +377,12 @@ async def add_enterprise_admin(
         user=Depends(deps.get_current_user)) -> Any:
     roles = await parse_item(request, "roles", required=True, error="at least one role needs to be specified")
     if not set(roles).issubset(EnterpriseRolesEnum.names()):
-        raise AbortRequest("invalid roles", msg_show="角色不正确")
+        return JSONResponse(general_message(400, "invalid roles", "角色不正确"), status_code=400)
 
     data = await request.json()
     user_id = data.get("user_id")
     if user_id == user.user_id:
-        raise AbortRequest("cannot edit your own role", msg_show="不可操作自己的角色")
+        return JSONResponse(general_message(400, "cannot edit your own role", "不可操作自己的角色"), status_code=400)
 
     ent = enterprise_repo.get_enterprise_by_enterprise_id(session, enterprise_id)
     if ent is None:
