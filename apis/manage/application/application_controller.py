@@ -666,7 +666,10 @@ async def app_governance_mode(request: Request,
     if not region:
         return general_message(400, "not found region", "数据中心不存在")
     region_name = region.region_name
-    application_service.check_governance_mode(session, team, region_name, app_id, governance_mode)
+    try:
+        application_service.check_governance_mode(session, team, region_name, app_id, governance_mode)
+    except ServiceHandleException as e:
+        return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
     result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
     return JSONResponse(result, status_code=200)
 
