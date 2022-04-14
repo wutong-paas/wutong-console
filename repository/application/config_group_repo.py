@@ -6,6 +6,13 @@ from repository.base import BaseRepository
 
 
 class ApplicationConfigGroupServiceRepository(BaseRepository[ConfigGroupService]):
+
+    def create(self, session, **data):
+        cgs = ConfigGroupService(**data)
+        session.add(cgs)
+        session.flush()
+        return cgs
+
     @staticmethod
     def bulk_create_or_update(session, config_group_components):
         cgc_ids = [cgc.ID for cgc in config_group_components]
