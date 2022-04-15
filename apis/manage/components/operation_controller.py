@@ -524,8 +524,8 @@ async def delete_component_graphs(
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team)) -> Any:
     service = service_repo.get_service(session, service_alias, team.tenant_id)
-    graph = component_graph_repo.get_graph(service.service_id, graph_id)
-    graphs = component_graph_service.delete_component_graph(graph)
+    graph = component_graph_repo.get_graph(session, service.service_id, graph_id)
+    graphs = component_graph_service.delete_component_graph(session, graph)
     result = general_message(200, "success", "删除成功", list=graphs)
     return JSONResponse(result, status_code=result["code"])
 
@@ -539,7 +539,8 @@ async def modify_component_graphs(
         team=Depends(deps.get_current_team)) -> Any:
     data = await request.json()
     service = service_repo.get_service(session, service_alias, team.tenant_id)
-    graph = component_graph_repo.get_graph(service.service_id, graph_id)
-    graphs = component_graph_service.update_component_graph(graph, data["title"], data["promql"], data["sequence"])
+    graph = component_graph_repo.get_graph(session, service.service_id, graph_id)
+    graphs = component_graph_service.update_component_graph(session, graph, data["title"], data["promql"],
+                                                            data["sequence"])
     result = general_message(200, "success", "修改成功", list=graphs)
     return JSONResponse(result, status_code=result["code"])
