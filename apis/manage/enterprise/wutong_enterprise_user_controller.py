@@ -12,7 +12,7 @@ from database.session import SessionClass
 from exceptions.exceptions import UserFavoriteNotExistError
 from exceptions.main import AbortRequest, ServiceHandleException
 from models.teams import PermRelTenant
-from models.users.users import UserFavorite
+from models.users.users import UserFavorite, Users
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.users.user_favorite_repo import user_favorite_repo
 from repository.users.user_oauth_repo import oauth_user_repo
@@ -213,11 +213,16 @@ async def update_user_info(request: Request,
 async def delete_user(request: Request,
                       enterprise_id: Optional[str] = None,
                       user_id: Optional[str] = None,
-                      session: SessionClass = Depends(deps.get_session)) -> Any:
+                      session: SessionClass = Depends(deps.get_session),
+                      current_user: Users = Depends(deps.get_current_user)) -> Any:
     user = user_repo.get_enterprise_user_by_id(session=session, enterprise_id=enterprise_id, user_id=user_id)
     if not user:
         result = general_message(400, "fail", "未找到该用户")
         return JSONResponse(result, 403)
+
+    if current_user.user_id == int(user_id):
+        return JSONResponse(general_message(400, "failed", "不能删除自己"), status_code=400)
+
     user_svc.delete_user(session=session, user_id=user_id)
     oauth_instance, oauth_user = user_svc.check_user_is_enterprise_center_user(session, user_id)
     if oauth_instance:

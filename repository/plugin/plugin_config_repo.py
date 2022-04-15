@@ -6,6 +6,13 @@ from repository.base import BaseRepository
 
 class PluginConfigGroupRepository(BaseRepository[PluginConfigGroup]):
 
+    def delete_config_group_by_meta_type(self, session, plugin_id, build_version, service_meta_type):
+        session.execute(delete(PluginConfigGroup).where(
+            PluginConfigGroup.plugin_id == plugin_id,
+            PluginConfigGroup.build_version == build_version,
+            PluginConfigGroup.service_meta_type == service_meta_type))
+        session.flush()
+
     def get_config_group_by_pk(self, session, pk):
         return session.execute(select(PluginConfigGroup).where(
             PluginConfigGroup.ID == pk)).scalars().first()

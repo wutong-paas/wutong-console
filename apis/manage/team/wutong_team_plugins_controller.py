@@ -480,7 +480,38 @@ async def get_build_log(request: Request,
 
 
 @router.post("/teams/{team_name}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
-             name="修改插件配置")
+             name="增加插件配置")
+async def add_plugin_config(
+        request: Request,
+        plugin_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    config = await request.json()
+
+    injection = config.get("injection")
+    service_meta_type = config.get("service_meta_type")
+    plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
+                                                                             tenant_id=team.tenant_id,
+                                                                             plugin_id=plugin_id)
+
+    config_groups = plugin_config_service.get_config_group(session,
+                                                           plugin_version.plugin_id,
+                                                           plugin_version.build_version)
+    is_pass, msg = plugin_config_service.check_group_config(service_meta_type, injection, config_groups)
+
+    if not is_pass:
+        return JSONResponse(general_message(400, "param error", msg), status_code=400)
+    create_data = [config]
+    plugin_config_service.create_config_groups(session, plugin_version.plugin_id, plugin_version.build_version,
+                                               create_data)
+
+    result = general_message(200, "success", "添加成功")
+
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.put("/teams/{team_name}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
+            name="修改插件配置")
 async def modify_plugin_config(request: Request,
                                plugin_id: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
@@ -516,6 +547,28 @@ async def modify_plugin_config(request: Request,
                                               service_meta_type, *options)
 
     result = general_message(200, "success", "修改成功")
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.delete("/teams/{team_name}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
+               name="删除插件配置")
+async def delete_plugin_config(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+
+    data = await request.json()
+    config_group_id = data.get("config_group_id")
+    if not config_group_id:
+        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
+
+    config_group = plugin_config_service.get_config_group_by_pk(session, config_group_id)
+    if not config_group:
+        return JSONResponse(general_message(404, "config group not exist", "配置组不存在"), status_code=404)
+    plugin_config_service.delete_config_group_by_meta_type(session,
+                                                           config_group.plugin_id, config_group.build_version,
+                                                           config_group.service_meta_type)
+
+    result = general_message(200, "success", "删除成功")
     return JSONResponse(result, status_code=result["code"])
 
 

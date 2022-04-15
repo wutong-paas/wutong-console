@@ -196,3 +196,37 @@ async def update_key(request: Request,
         logger.exception(e)
         result = error_message("失败")
     return JSONResponse(result, status_code=500)
+
+
+@router.put("/teams/{team_name}/apps/{serviceAlias}/webhooks/trigger'", response_model=Response, name="更新自动部署触发方式")
+async def update_deploy_mode(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    """镜像更新自动部署触发条件"""
+    try:
+        data = await request.json()
+        service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+        service_webhook = service_webhooks_repo.get_or_create_service_webhook(session, service.service_id,
+                                                                              "image_webhooks")
+        trigger = data.get("trigger")
+        if trigger:
+            service_webhook.trigger = trigger
+    except Exception as e:
+        logger.exception(e)
+        return error_message("failed")
+    return JSONResponse(
+        general_message(
+            200,
+            "success",
+            "自动部署触发条件更新成功",
+            bean={
+                "url":
+                    "{host}/console/image/webhooks/{service_id}".format(
+                        host=os.environ.get('DEFAULT_DOMAIN', "http://" + request.url.hostname),
+                        service_id=service.service_id),
+                "trigger":
+                    service_webhook.trigger
+            }),
+        status_code=200)

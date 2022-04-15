@@ -28,6 +28,19 @@ def create_items_and_services(session: SessionClass, app_config_group, config_it
             }
             app_config_group_item_repo.create(session, **group_item)
 
+    # create application config group services takes effect
+    if service_ids is not None:
+        for sid in service_ids:
+            s = service_repo.get_service_by_service_id(session, sid)
+            group_service = {
+                "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                "app_id": app_config_group.app_id,
+                "config_group_name": app_config_group.config_group_name,
+                "service_id": s.service_id,
+                "config_group_id": app_config_group.config_group_id,
+            }
+            app_config_group_service_repo.create(session, **group_service)
+
 
 def convert_todict(session: SessionClass, cgroup_items, cgroup_services):
     # Convert application config group items to dict

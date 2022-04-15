@@ -6,6 +6,7 @@ from loguru import logger
 from core.utils.reqparse import parse_item
 from core import deps
 from database.session import SessionClass
+from exceptions.bcode import ErrComponentPortExists
 from exceptions.main import AbortRequest
 from repository.component.service_config_repo import domain_repo
 from repository.component.group_service_repo import service_repo
@@ -230,11 +231,14 @@ async def add_ports(request: Request,
         return JSONResponse(general_message(400, "params error", "缺少协议参数"), status_code=400)
     if not port_alias:
         port_alias = service.service_alias.upper().replace("-", "_") + str(port)
-    code, msg, port_info = port_service.add_service_port(session=session, tenant=team, service=service,
-                                                         container_port=port, protocol=protocol, port_alias=port_alias,
-                                                         is_inner_service=is_inner_service,
-                                                         is_outer_service=is_outer_service, k8s_service_name=None,
-                                                         user_name=user.nick_name)
+    try:
+        code, msg, port_info = port_service.add_service_port(session=session, tenant=team, service=service,
+                                                             container_port=port, protocol=protocol, port_alias=port_alias,
+                                                             is_inner_service=is_inner_service,
+                                                             is_outer_service=is_outer_service, k8s_service_name=None,
+                                                             user_name=user.nick_name)
+    except ErrComponentPortExists as e:
+        return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
     if code != 200:
         return JSONResponse(general_message(code, "add port error", msg), status_code=code)
 

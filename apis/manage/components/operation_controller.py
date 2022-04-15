@@ -453,7 +453,10 @@ async def add_component_graphs(request: Request,
                                team=Depends(deps.get_current_team)) -> Any:
     data = await request.json()
     service = service_repo.get_service(session, service_alias, team.tenant_id)
-    graph = component_graph_service.create_component_graph(session, service.service_id, data['title'], data['promql'])
+    try:
+        graph = component_graph_service.create_component_graph(session, service.service_id, data['title'], data['promql'])
+    except FileNotFoundError as e:
+        return JSONResponse(general_message(400, "failed", "系统找不到指定的文件"), status_code=400)
     result = general_message(200, "success", "创建成功", bean=graph)
     return JSONResponse(result, status_code=result["code"])
 

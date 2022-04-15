@@ -234,9 +234,12 @@ class NewApp(object):
         mnt_repo.overwrite_by_component_id(session, self.component_ids, self.volume_deps)
 
     def _save_config_groups(self, session):
-        app_config_group_repo.bulk_create_or_update(session, self.config_groups)
-        app_config_group_item_repo.bulk_create_or_update(session, self.config_group_items)
-        app_config_group_service_repo.bulk_create_or_update(session, self.config_group_components)
+        try:
+            app_config_group_repo.bulk_create_or_update(session, self.config_groups)
+            app_config_group_item_repo.bulk_create_or_update(session, self.config_group_items)
+            app_config_group_service_repo.bulk_create_or_update(session, self.config_group_components)
+        except:
+            pass
 
     def _existing_volume_deps(self, session):
         components = self._components()

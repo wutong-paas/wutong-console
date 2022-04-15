@@ -945,7 +945,7 @@ class ShareService(object):
         for monitor in monitors:
             if not result.get(monitor.service_id):
                 result[monitor.service_id] = []
-            m = monitor.to_dict()
+            m = jsonable_encoder(monitor)
             del m["ID"]
             result[monitor.service_id].append(m)
         return result
