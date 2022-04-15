@@ -1,5 +1,4 @@
-from sqlalchemy import select, delete
-
+from sqlalchemy import select, delete, update
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentGraphNotFound, ErrComponentGraphExists
 from models.component.models import ComponentGraph
@@ -7,6 +6,43 @@ from repository.base import BaseRepository
 
 
 class ComponentGraphRepository(BaseRepository[ComponentGraph]):
+
+    def update(self, session, component_id, graph_id, **data):
+        session.execute(update(ComponentGraph).where(
+            ComponentGraph.component_id == component_id,
+            ComponentGraph.graph_id == graph_id
+        ).values(**data))
+        session.flush()
+
+    @staticmethod
+    def list_between_sequence(session, component_id, left_sequence, right_sequence):
+        return session.execute(select(ComponentGraph).where(
+            ComponentGraph.component_id == component_id,
+            ComponentGraph.sequence.__ge__(left_sequence),
+            ComponentGraph.sequence.__lt__(right_sequence)
+        )).scalars().all()
+
+    @staticmethod
+    def get_graph(session, component_id, graph_id):
+        return session.execute(select(ComponentGraph).where(
+            ComponentGraph.component_id == component_id,
+            ComponentGraph.graph_id == graph_id
+        )).scalars().first()
+
+    @staticmethod
+    def list_gt_sequence(session, component_id, sequence):
+        return session.execute(select(ComponentGraph).where(
+            ComponentGraph.component_id == component_id,
+            ComponentGraph.sequence.__gt__(sequence)
+        )).scalars().all()
+
+    @staticmethod
+    def delete(session, component_id, graph_id):
+        session.execute(delete(ComponentGraph).where(
+            ComponentGraph.component_id == component_id,
+            ComponentGraph.graph_id == graph_id
+        ))
+        session.flush()
 
     @staticmethod
     def get(session, component_id, graph_id):

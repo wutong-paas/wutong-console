@@ -3,6 +3,7 @@ import os
 
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
+from sqlalchemy import select
 
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
@@ -15,6 +16,37 @@ from service.app_config.promql_service import BASE_DIR, promql_service
 
 
 class ComponentGraphService(object):
+
+    @staticmethod
+    def _sequence_move_back(session, component_id, left_sequence, right_sequence):
+        graphs = component_graph_repo.list_between_sequence(
+            session=session, component_id=component_id, left_sequence=left_sequence, right_sequence=right_sequence)
+        for graph in graphs:
+            graph.sequence += 1
+            # graph.save()
+
+    def update_component_graph(self, session, graph, title, promql, sequence):
+        data = {
+            "title": title,
+            "promql": promql_service.add_or_update_label(graph.component_id, promql),
+        }
+        if sequence != graph.sequence:
+            data["sequence"] = sequence
+        self._sequence_move_back(session, graph.component_id, sequence, graph.sequence)
+        component_graph_repo.update(session, graph.component_id, graph.graph_id, **data)
+        return jsonable_encoder(component_graph_repo.get(session, graph.component_id, graph.graph_id))
+
+    @staticmethod
+    def _sequence_move_forward(session, component_id, sequence):
+        graphs = component_graph_repo.list_gt_sequence(session=session, component_id=component_id, sequence=sequence)
+        for graph in graphs:
+            graph.sequence -= 1
+            # graph.save()
+
+    def delete_component_graph(self, session, graph):
+        component_graph_repo.delete(session, graph.component_id, graph.graph_id)
+        self._sequence_move_forward(session, graph.component_id, graph.sequence)
+
     def delete_by_component_id(self, session, component_id):
         return component_graph_repo.delete_by_component_id(session, component_id)
 
