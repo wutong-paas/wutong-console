@@ -47,8 +47,6 @@ class ComponentGraphRepository(BaseRepository[ComponentGraph]):
             delete(ComponentGraph).where(ComponentGraph.component_id == component_id)
         )
 
-        
-
     def create(self, session: SessionClass, component_id, graph_id, title, promql, sequence):
         # check if the component graph already exists
         graph = session.execute(select(ComponentGraph).where(ComponentGraph.component_id == component_id,
@@ -62,6 +60,7 @@ class ComponentGraphRepository(BaseRepository[ComponentGraph]):
             promql=promql,
             sequence=sequence,
         ))
+        session.flush()
 
 
 component_graph_repo = ComponentGraphRepository(ComponentGraph)

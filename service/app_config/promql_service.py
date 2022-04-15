@@ -16,7 +16,6 @@ class PromQLService(object):
         Add service_id label, or replace illegal service_id label
         """
         promql_parser = settings.BASE_DIR + "/bin/" + platform.system().lower() + "/promql-parser"
-        logger.warning("=============================== %s" % promql_parser)
         c = subprocess.Popen([os.getenv("PROMQL_PARSER", promql_parser), "--component_id", component_id],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
