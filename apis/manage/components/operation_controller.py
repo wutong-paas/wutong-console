@@ -17,6 +17,7 @@ from exceptions.bcode import ErrComponentBuildFailed
 from exceptions.main import AccountOverdueException, ResourceNotEnoughException, ErrInsufficientResource, \
     ServiceHandleException
 from models.component.models import TeamComponentInfo
+from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import service_repo
 from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -454,7 +455,8 @@ async def add_component_graphs(request: Request,
     data = await request.json()
     service = service_repo.get_service(session, service_alias, team.tenant_id)
     try:
-        graph = component_graph_service.create_component_graph(session, service.service_id, data['title'], data['promql'])
+        graph = component_graph_service.create_component_graph(session, service.service_id, data['title'],
+                                                               data['promql'])
     except FileNotFoundError as e:
         return JSONResponse(general_message(400, "failed", "系统找不到指定的文件"), status_code=400)
     result = general_message(200, "success", "创建成功", bean=graph)
@@ -512,4 +514,32 @@ async def get_history_log(request: Request,
     file_urls = [{"file_name": f["filename"], "file_url": log_domain_url + "/" + f["relative_path"]} for f in file_list]
 
     result = general_message(200, "success", "查询成功", list=file_urls)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.delete("/teams/{team_name}/apps/{service_alias}/graphs/{graph_id}", response_model=Response, name="删除组件图表")
+async def delete_component_graphs(
+        service_alias: Optional[str] = None,
+        graph_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    graph = component_graph_repo.get_graph(service.service_id, graph_id)
+    graphs = component_graph_service.delete_component_graph(graph)
+    result = general_message(200, "success", "删除成功", list=graphs)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.put("/teams/{team_name}/apps/{service_alias}/graphs/{graph_id}", response_model=Response, name="修改组件图表")
+async def modify_component_graphs(
+        request: Request,
+        service_alias: Optional[str] = None,
+        graph_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    graph = component_graph_repo.get_graph(service.service_id, graph_id)
+    graphs = component_graph_service.update_component_graph(graph, data["title"], data["promql"], data["sequence"])
+    result = general_message(200, "success", "修改成功", list=graphs)
     return JSONResponse(result, status_code=result["code"])
