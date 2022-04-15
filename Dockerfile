@@ -6,3 +6,4 @@ RUN apk add --no-cache --virtual .build-deps build-base libffi-dev openssl-dev p
     && pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir -r /tmp/requirements.txt \
     && apk del .build-deps build-base libffi-dev openssl-dev python3-dev gcc libc-dev make git
 COPY . /app
+RUN chmod 755 /app/bin/linux/promql-parser
