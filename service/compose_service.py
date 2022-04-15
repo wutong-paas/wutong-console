@@ -116,8 +116,8 @@ class ComposeService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ","
         tenant_service.min_node = 1
-        tenant_service.min_memory = 128
-        tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
+        tenant_service.min_memory = 0
+        tenant_service.min_cpu = baseService.calculate_service_cpu(region, 0)
         tenant_service.inner_port = 0
         tenant_service.version = "latest"
         tenant_service.namespace = "goodrain"
@@ -127,7 +127,7 @@ class ComposeService(object):
         tenant_service.deploy_version = ""
         tenant_service.git_project_id = 0
         tenant_service.service_type = "application"
-        tenant_service.total_memory = 128
+        tenant_service.total_memory = 0
         tenant_service.volume_mount_path = ""
         tenant_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + tenant_service.service_id
         tenant_service.code_from = "image_manual"

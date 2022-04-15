@@ -83,7 +83,6 @@ class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
             tspr.min_cpu = cpu
         if memory is not None and type(memory) == int and memory >= 0:
             tspr.min_memory = memory
-        
 
 
 class ServicePluginAttrRepository(BaseRepository[TeamServicePluginAttr]):
