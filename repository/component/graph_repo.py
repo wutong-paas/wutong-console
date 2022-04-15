@@ -8,6 +8,16 @@ from repository.base import BaseRepository
 
 class ComponentGraphRepository(BaseRepository[ComponentGraph]):
 
+    @staticmethod
+    def get(session, component_id, graph_id):
+        cg = session.execute(select(ComponentGraph).where(
+            ComponentGraph.component_id == component_id,
+            ComponentGraph.graph_id == graph_id
+        )).scalars().first()
+        if not cg:
+            raise ErrComponentGraphNotFound
+        return cg
+
     def overwrite_by_component_ids(self, session, component_ids, component_graphs):
         session.execute(delete(ComponentGraph).where(
             ComponentGraph.service_id.in_(component_ids)

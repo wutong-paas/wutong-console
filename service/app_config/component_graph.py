@@ -129,7 +129,7 @@ class ComponentGraphService(object):
             self.rearrange(session, component_id)
             sequence = self._next_sequence(session, component_id)
         component_graph_repo.create(session, component_id, graph_id, title, promql, sequence)
-        return jsonable_encoder(component_graph_repo.get(component_id, graph_id))
+        return jsonable_encoder(component_graph_repo.get(session, component_id, graph_id))
 
 
 component_graph_service = ComponentGraphService()
