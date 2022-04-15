@@ -44,7 +44,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           file: Dockerfile.multiarch
           push: true
-          tags: wutongpass/wutong-console:${VERSION},swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-console:${VERSION}
+          tags: wutongpass/wutong-console:${{ env.VERSION }},swr.cn-southwest-2.myhuaweicloud.com/wutong/wutong-console:${{ env.VERSION }}
       
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
