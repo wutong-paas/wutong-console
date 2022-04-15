@@ -106,7 +106,7 @@ class ComponentGraphService(object):
 
     def list_component_graphs(self, session, component_id):
         graphs = component_graph_repo.list(session, component_id)
-        return [graph.to_dict() for graph in graphs]
+        return [jsonable_encoder(graph) for graph in graphs]
 
     def list_internal_graphs(self):
         graphs, _ = self._load_internal_graphs()
