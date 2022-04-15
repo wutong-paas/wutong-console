@@ -33,8 +33,7 @@ class Settings(BaseSettings):
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
-    # SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
-    SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@localhost/wutong'
+    SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
