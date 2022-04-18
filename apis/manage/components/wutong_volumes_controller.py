@@ -133,6 +133,9 @@ async def add_volume(request: Request,
     if mode is not None:
         mode = ensure_volume_mode(mode)
 
+    if len(file_content) > 65535:
+        return JSONResponse(general_message(400, "failed", "配置文件长度不能超过65535"), status_code=400)
+
     settings = {'volume_capacity': volume_capacity, 'provider_name': provider_name, 'access_mode': access_mode,
                 'share_policy': share_policy, 'backup_policy': backup_policy, 'reclaim_policy': reclaim_policy,
                 'allow_expansion': allow_expansion}
