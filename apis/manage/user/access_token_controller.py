@@ -2,13 +2,11 @@ import hashlib
 import os
 import time
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from pymysql import IntegrityError
-
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -25,9 +23,15 @@ router = APIRouter()
 async def get_access_token_list(
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user)) -> Any:
+    access_key_dict = []
     access_key_list = user_access_key_repo.list_by_model(session=session,
                                                          query_model=UserAccessKey(user_id=user.user_id))
-    result = general_message(200, "success", None, list=jsonable_encoder(access_key_list))
+    for access_key in access_key_list:
+        access_dict = jsonable_encoder(access_key)
+        time_array = time.strptime(access_dict["expire_time"], "%Y-%m-%dT%H:%M:%S")
+        access_dict["expire_time"] = int(time.mktime(time_array))
+        access_key_dict.append(access_dict)
+    result = general_message(200, "success", None, list=access_key_dict)
     return JSONResponse(result, status_code=result["code"])
 
 
@@ -42,6 +46,8 @@ async def create_access_token(
         key = hashlib.sha1(os.urandom(24)).hexdigest()
         if params.age:
             expire_time = time.time() + float(params.age)
+            tiem_struct = time.localtime(expire_time)
+            expire_time = time.strftime("%Y-%m-%d %H:%M:%S", tiem_struct)
         else:
             expire_time = None
         add_model: UserAccessKey = UserAccessKey(note=params.note, user_id=user.user_id,
