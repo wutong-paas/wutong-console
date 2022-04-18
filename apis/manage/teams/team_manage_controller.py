@@ -305,7 +305,10 @@ async def put_applicants(request: Request,
     join = apply_repo.get_applicants_by_id_team_name(session=session, user_id=user_id, team_name=team_name)
     if action is True:
         join.is_pass = 1
-        team_services.add_user_to_team(session=session, tenant=team, user_id=user_id, role_ids=role_ids)
+        try:
+            team_services.add_user_to_team(session=session, tenant=team, user_id=user_id, role_ids=role_ids)
+        except ServiceHandleException as e:
+            return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
         # 发送通知
         info = "同意"
         team_repo.send_user_message_for_apply_info(session=session, user_id=user_id, team_name=team.tenant_name,

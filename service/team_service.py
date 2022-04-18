@@ -229,7 +229,7 @@ class TeamService(object):
         enterprise = enterprise_repo.get_enterprise_by_enterprise_id(session=session,
                                                                      enterprise_id=tenant.enterprise_id)
         if exist_team_user:
-            raise ServiceHandleException(msg="user exist", msg_show="用户已经加入此团队")
+            raise ServiceHandleException(msg="user exist", msg_show="用户已经加入此团队", status_code=400)
         session.add(PermRelTenant(tenant_id=tenant.ID, user_id=user.user_id,
                                   identity="", enterprise_id=enterprise.ID))
 
