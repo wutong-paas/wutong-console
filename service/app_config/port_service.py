@@ -104,7 +104,7 @@ class AppPortService:
                 return 400, "请关闭外部访问"
 
         if service.create_status == "complete":
-            body = deal_port.__dict__
+            body = jsonable_encoder(deal_port)
             body["protocol"] = protocol
             body["operator"] = user_name
             self.update_service_port(session=session, tenant=tenant, region_name=service.service_region,
