@@ -163,8 +163,12 @@ class MarketApp(object):
                 "http_rule_configs": [json.loads(config.value) for config in cpt.http_rule_configs],
             }
             volumes = [jsonable_encoder(volume) for volume in cpt.volumes]
+            # todo allow_expansion
             for volume in volumes:
-                volume["allow_expansion"] = True if volume["allow_expansion"] == 1 else False
+                try:
+                    volume["allow_expansion"] = True if volume["allow_expansion"] == 1 else False
+                except:
+                    volume["allow_expansion"] = False
             component["volumes"] = volumes
             # labels
             labels = []
