@@ -8,6 +8,8 @@ from clients.remote_component_client import remote_component_client
 from core.utils.oauth_types import support_oauth_type
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
+from repository.application.app_repository import app_repo
+from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import service_source_repo
 from repository.teams.team_repo import team_repo
 
@@ -162,8 +164,13 @@ class BaseService:
                         market_name = extend_info.get("market_name")
                         bean["install_from_cloud"] = True
                         try:
-                            # todo
                             market = markets.get(market_name, None)
+                            if not market:
+                                market = app_market_repo.get_app_market_by_name(session, tenant.enterprise_id,
+                                                                                market_name,
+                                                                                raise_exception=True)
+                                markets[market_name] = market
+
                             # todo
                             app = apps.get(service_source.group_key, None)
 
@@ -180,6 +187,13 @@ class BaseService:
 
                         bean["install_from_cloud"] = True
                         bean["app_detail_url"] = app.describe
+
+                if not app:
+                    app = app_repo.get_wutong_app_qs_by_key(session, tenant.enterprise_id, service_source.group_key)
+                    if not app:
+                        logger.warning("not found app {0} version {1} in local market".format(
+                            service_source.group_key, service_source.version))
+
                 if app:
                     bean["rain_app_name"] = app.app_name
                     bean["details"] = app.details

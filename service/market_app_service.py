@@ -29,6 +29,9 @@ from service.user_service import user_svc
 
 class MarketAppService(object):
 
+    def get_wutong_app(self, session, eid, app_id):
+        return app_repo.get_wutong_app_qs_by_key(session, eid, app_id)
+
     def check_market_service_info(self, session, tenant, service):
         app_not_found = MarketAppLost("当前云市应用已删除")
         service_source = service_source_repo.get_service_source(session, tenant.tenant_id, service.service_id)

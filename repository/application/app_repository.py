@@ -17,6 +17,12 @@ class TenantServiceDeleteRepository(object):
 
 class AppRepo(object):
 
+    def get_wutong_app_qs_by_key(self, session, eid, app_id):
+        """使用group_key获取一个云市应用的所有版本查询集合"""
+        return session.execute(select(CenterApp).where(
+            CenterApp.enterprise_id == eid,
+            CenterApp.app_id == app_id)).scalars().first()
+
     def delete_app_version_by_version(self, session, enterprise_id, app_id, version):
         session.execute(delete(CenterAppVersion).where(
             CenterAppVersion.enterprise_id == enterprise_id,
