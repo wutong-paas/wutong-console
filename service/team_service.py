@@ -18,6 +18,11 @@ from service.region_service import region_services
 
 class TeamService(object):
 
+    def update_tenant_alias(self, session, tenant_name, new_team_alias):
+        tenant = team_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=True)
+        tenant.tenant_alias = new_team_alias
+        return tenant
+
     def list_user_teams(self, session, enterprise_id, user, name):
         # User joined team
         teams = self.get_teams_region_by_user_id(session, enterprise_id, user, name, get_region=False)
