@@ -9,6 +9,17 @@ from service.base_services import base_service
 
 class GroupServiceRelationRepository(BaseRepository[ComponentApplicationRelation]):
 
+    def get_group_info_by_service_id(self, session, service_id):
+        sgrs = session.execute(select(ComponentApplicationRelation).where(
+            ComponentApplicationRelation.service_id == service_id
+        )).scalars().all()
+        if not sgrs:
+            return None
+        relation = sgrs[0]
+        return session.execute(select(Application).where(
+            Application.ID == relation.group_id
+        )).scalars().first()
+
     def delete_relation_by_group_id(self, session, group_id):
         session.execute(delete(ComponentApplicationRelation).where(
             ComponentApplicationRelation.group_id == group_id))
