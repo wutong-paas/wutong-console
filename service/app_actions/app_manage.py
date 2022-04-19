@@ -1233,11 +1233,10 @@ class AppManageService(AppManageBase):
             delete(ComponentApplicationRelation).where(ComponentApplicationRelation.service_id == service.service_id)
         )
         # 再新建该组件新的关联数据
-        add_model: ComponentApplicationRelation = ComponentApplicationRelation(session=session,
-                                                                               service_id=service.service_id,
+        add_model: ComponentApplicationRelation = ComponentApplicationRelation(service_id=service.service_id,
                                                                                group_id=move_group_id,
                                                                                tenant_id=service.tenant_id,
-                                                                               region_name=service.region_name)
+                                                                               region_name=service.service_region)
         session.add(add_model)
 
         team = (
