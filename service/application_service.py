@@ -26,7 +26,6 @@ from exceptions.bcode import ErrUserNotFound, ErrK8sAppExists, ErrApplicationNot
 from exceptions.main import ServiceHandleException, AbortRequest
 from models.application.models import Application, ComponentApplicationRelation, ApplicationUpgradeRecord, \
     GroupAppMigrateRecord
-from models.market.models import AppMarket, CenterApp, CenterAppVersion
 from models.region.models import RegionApp
 from models.teams import TeamInfo, ServiceDomainCertificate
 from models.users.oauth import OAuthServices, UserOAuthServices
@@ -60,41 +59,8 @@ class ApplicationService(object):
     团队应用service
     """
 
-    def cloud_app_model_to_db_model(self, session, market: AppMarket, app_id, version, for_install=False):
-        app = app_store.get_app(market, app_id)
-        rainbond_app_version = None
-        app_template = None
-        try:
-            if version:
-                app_template = app_store.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
-        except ServiceHandleException as e:
-            if e.status_code != 404:
-                logger.exception(e)
-            app_template = None
-        rainbond_app = CenterApp(
-            app_id=app.app_key_id,
-            app_name=app.name,
-            dev_status=app.dev_status,
-            source="market",
-            scope="goodrain",
-            describe=app.desc,
-            details=app.introduction,
-            pic=app.logo,
-            create_time=app.create_time,
-            update_time=app.update_time)
-        rainbond_app.market_name = market.name
-        if app_template:
-            rainbond_app_version = CenterAppVersion(
-                app_id=app.app_key_id,
-                app_template=app_template.template,
-                version=app_template.version,
-                version_alias=app_template.version_alias,
-                template_version=app_template.rainbond_version,
-                app_version_info=app_template.description,
-                update_time=app_template.update_time,
-                is_official=1)
-            rainbond_app_version.template_type = app_template.template_type
-        return rainbond_app, rainbond_app_version
+    def get_service_group_info(self, session, service_id):
+        return group_service_relation_repo.get_group_info_by_service_id(session, service_id)
 
     def add_service_default_porbe(self, session, tenant, service):
         ports = port_service.get_service_ports(session, service)

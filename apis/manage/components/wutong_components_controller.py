@@ -14,6 +14,7 @@ from core.utils.constants import PluginCategoryConstants
 from core.utils.reqparse import parse_argument
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
+from exceptions.bcode import ErrK8sComponentNameExists
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
     AccountOverdueException, AbortRequest, CallRegionAPIException, ErrInsufficientResource
 from models.users.users import Users
@@ -195,6 +196,31 @@ async def get_brief(serviceAlias: Optional[str] = None,
         except ServiceHandleException as e:
             logger.debug(e)
     result = general_message(200, "success", msg, bean=jsonable_encoder(service))
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.put("/teams/{team_name}/apps/{serviceAlias}/brief", response_model=Response, name="修改组件名称")
+async def modify_components_name(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service_cname = data.get("service_cname", None)
+    k8s_component_name = data.get("k8s_component_name", "")
+    app = application_service.get_service_group_info(session, service.service_id)
+    if app:
+        if application_service.is_k8s_component_name_duplicate(session, app.ID, k8s_component_name, service.service_id):
+            raise ErrK8sComponentNameExists
+    is_pass, msg = application_service.check_service_cname(service_cname)
+    if not is_pass:
+        return JSONResponse(general_message(400, "param error", msg), status_code=400)
+    service.k8s_component_name = k8s_component_name
+    service.service_cname = service_cname
+    remote_component_client.update_service(session, service.service_region, team.tenant_name, service.service_alias,
+                                           {"k8s_component_name": k8s_component_name})
+    result = general_message(200, "success", "修改成功", bean=jsonable_encoder(service))
     return JSONResponse(result, status_code=result["code"])
 
 
