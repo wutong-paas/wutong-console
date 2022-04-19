@@ -668,15 +668,13 @@ class ApplicationService(object):
         # 端口
         ports_info = (
             session.execute(
-                select(TeamComponentPort.container_port, TeamComponentPort.mapping_port, TeamComponentPort.protocol,
-                       TeamComponentPort.port_alias, TeamComponentPort.is_inner_service,
-                       TeamComponentPort.is_outer_service, TeamComponentPort.k8s_service_name).where(
+                select(TeamComponentPort).where(
                     TeamComponentPort.tenant_id == tenant.tenant_id,
                     TeamComponentPort.service_id == service.service_id))
         ).scalars().all()
 
         if ports_info:
-            data["ports_info"] = list(ports_info)
+            data["ports_info"] = list(jsonable_encoder(ports_info))
 
         # endpoints
         endpoints = (
@@ -1111,8 +1109,8 @@ class ApplicationService(object):
                         "is_outer_service": False,
                         "k8s_service_name": new_service.service_alias + "-" + str(port),
                     }
-                    port_repo.add_service_port(**service_port)
-            self.update_or_create_endpoints(tenant, new_service, static_endpoints, session)
+                    port_repo.add_service_port(session, **service_port)
+            self.update_or_create_endpoints(session, tenant, new_service, static_endpoints)
 
         ts = (
             session.execute(
