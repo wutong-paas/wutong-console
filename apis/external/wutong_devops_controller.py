@@ -164,6 +164,14 @@ async def add_users(
         return JSONResponse(result)
     # check user info
     user = user_svc.devops_get_current_user(session, authorization)
+    if user_svc.get_user_by_email(session, email):
+        register_user = session.execute(select(Users).where(
+            Users.email == email,
+            Users.enterprise_id == user.enterprise_id
+        )).scalars().first()
+        return JSONResponse(
+            general_message(200, "email already exists", "邮箱{0}已存在".format(email),
+                            bean=jsonable_encoder(register_user)), status_code=200)
     try:
         res = user_svc.devops_check_params(session, user_name, email, password, re_password, user.enterprise_id, phone)
         if res:
