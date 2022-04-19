@@ -52,7 +52,7 @@ class BatchActionParam(BaseModel):
 class ThirdPartyCreateParam(BaseModel):
     group_id: Optional[int] = -1
     service_cname: Optional[str] = None
-    static: Optional[str] = None
+    static: Optional[list] = None
     endpoints_type: Optional[str] = None
     serviceName: Optional[str] = ""
     namespace: Optional[str] = ""
