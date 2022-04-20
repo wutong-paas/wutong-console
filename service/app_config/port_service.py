@@ -1,6 +1,7 @@
 import datetime
 import re
 
+import validators
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from sqlalchemy import select
@@ -15,13 +16,13 @@ from core.utils.crypt import make_uuid
 from core.utils.validation import validate_endpoints_info
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sServiceNameExists, ErrComponentPortExists
-from exceptions.main import AbortRequest, ServiceHandleException
+from exceptions.main import AbortRequest, ServiceHandleException, CheckThirdpartEndpointFailed
 from models.application.models import Application
 from models.component.models import TeamComponentPort
 from repository.application.application_repo import application_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import service_repo
-from repository.component.service_config_repo import port_repo, domain_repo, tcp_domain
+from repository.component.service_config_repo import port_repo, domain_repo, tcp_domain, service_endpoints_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
@@ -33,6 +34,13 @@ from service.probe_service import probe_service
 
 
 class AppPortService:
+
+    def close_thirdpart_outer(self, session, tenant, service, deal_port):
+        try:
+            self.__close_outer(session, tenant, service, deal_port)
+        except remote_component_client.CallApiError as e:
+            logger.exception(e)
+            raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
 
     def change_port_alias(self, session: SessionClass, tenant, service, deal_port, new_port_alias, k8s_service_name,
                           user_name=''):
@@ -868,7 +876,8 @@ class AppPortService:
         probe = probe_repo.get_service_probe(session, service.service_id)
         if probe and container_port == probe.port:
             probe.is_used = False
-            probe_service.update_service_probea(session=session, tenant=tenant, service=service, data=probe.to_dict())
+            probe_service.update_service_probea(session=session, tenant=tenant, service=service,
+                                                data=jsonable_encoder(probe))
 
     def delete_port_by_container_port(self, session: SessionClass, tenant, service, container_port, user_name=''):
         service_domain = domain_repo.get_service_domain_by_container_port(session, service.service_id, container_port)
@@ -1018,4 +1027,68 @@ class AppPortService:
         self.sync_ports(session, tenant.tenant_name, region_name, region_app_id, components, ports, new_envs)
 
 
+class EndpointService(object):
+
+    # check endpoint do not start with protocol and do not end with port, just hostname or ip
+    def check_endpoint(self, endpoint):
+        is_ipv4 = validators.ipv4(endpoint)
+        is_ipv6 = validators.ipv6(endpoint)
+        if is_ipv4 or is_ipv6:
+            return False
+        if validators.domain(endpoint):
+            return True
+        raise CheckThirdpartEndpointFailed(msg="invalid endpoint")
+
+    def check_endpoints(self, endpoints):
+        is_domain = False
+        for endpoint in endpoints:
+            if "https://" in endpoint:
+                endpoint = endpoint.partition("https://")[2]
+            if "http://" in endpoint:
+                endpoint = endpoint.partition("http://")[2]
+            if ":" in endpoint:
+                endpoint = endpoint.rpartition(":")[0]
+            is_domain = self.check_endpoint(endpoint)
+            if is_domain and len(endpoints) > 1:
+                raise CheckThirdpartEndpointFailed(msg="do not support multi domain endpoint", msg_show="不允许添加多个域名实例地址")
+        return is_domain
+
+    def add_endpoint(self, session, tenant, service, address):
+        try:
+            _, body = remote_build_client.get_third_party_service_pods(session, service.service_region,
+                                                                       tenant.tenant_name, service.service_alias)
+        except remote_build_client.CallApiError as e:
+            logger.exception(e)
+            raise CheckThirdpartEndpointFailed()
+        if not body:
+            raise CheckThirdpartEndpointFailed()
+
+        endpoint_list = body.get("list", [])
+        endpoints = [endpoint.address for endpoint in endpoint_list]
+        endpoints.append(address)
+        is_domain = self.check_endpoints(endpoints)
+
+        # close outer port
+        if is_domain:
+            ports = port_service.get_service_ports(session, service)
+            if ports:
+                logger.debug("close third part port: {0}".format(ports[0].container_port))
+                port_service.close_thirdpart_outer(session, tenant, service, ports[0])
+
+        data = {"address": address}
+
+        try:
+            res, _ = remote_build_client.post_third_party_service_endpoints(session, service.service_region,
+                                                                            tenant.tenant_name,
+                                                                            service.service_alias, data)
+            # 保存endpoints数据
+            service_endpoints_repo.update_or_create_endpoints(session, tenant, service, endpoints)
+        except remote_build_client.CallApiError as e:
+            logger.exception(e)
+            raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")
+        if res and res.status != 200:
+            raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")
+
+
 port_service = AppPortService()
+endpoint_service = EndpointService()
