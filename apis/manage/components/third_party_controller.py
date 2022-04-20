@@ -173,7 +173,7 @@ async def delete_third_party_pods(request: Request,
                                                                      service.service_alias)
     new_endpoint_list = new_body.get("list", [])
     new_endpoints = [endpoint.address for endpoint in new_endpoint_list]
-    application_service.update_or_create_endpoints(session, team, service, new_endpoints)
+    service_endpoints_repo.update_or_create_endpoints(session, team, service, new_endpoints)
     logger.debug('-------res------->{0}'.format(res))
     logger.debug('=======body=======>{0}'.format(body))
 

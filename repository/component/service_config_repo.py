@@ -560,9 +560,9 @@ class TenantServiceEndpoints(BaseRepository[ThirdPartyComponentEndpoints]):
             session.execute(
                 delete(ThirdPartyComponentEndpoints).where(ThirdPartyComponentEndpoints.ID == endpoints.ID)
             )
+            session.flush()
         elif endpoints:
             endpoints.endpoints_info = json.dumps(service_endpoints)
-            session.merge(endpoints)
         else:
             data = {
                 "tenant_id": tenant.tenant_id,
