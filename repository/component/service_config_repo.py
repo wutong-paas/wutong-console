@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 
@@ -552,6 +553,28 @@ class ApplicationConfigGroupRepository(BaseRepository[ConfigGroupService]):
 
 
 class TenantServiceEndpoints(BaseRepository[ThirdPartyComponentEndpoints]):
+
+    def update_or_create_endpoints(self, session, tenant, service, service_endpoints):
+        endpoints = self.get_service_endpoints_by_service_id(session, service.service_id)
+        if not service_endpoints:
+            session.execute(
+                delete(ThirdPartyComponentEndpoints).where(ThirdPartyComponentEndpoints.ID == endpoints.ID)
+            )
+            session.flush()
+        elif endpoints:
+            endpoints.endpoints_info = json.dumps(service_endpoints)
+        else:
+            data = {
+                "tenant_id": tenant.tenant_id,
+                "service_id": service.service_id,
+                "service_cname": service.service_cname,
+                "endpoints_info": json.dumps(service_endpoints),
+                "endpoints_type": "static"
+            }
+            endpoints = ThirdPartyComponentEndpoints(**data)
+            session.add(endpoints)
+            session.flush()
+        return endpoints
 
     def list_by_component_ids(self, session, component_ids):
         return (session.execute(select(ThirdPartyComponentEndpoints).where(

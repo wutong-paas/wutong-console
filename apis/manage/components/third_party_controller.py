@@ -13,7 +13,7 @@ from core.utils.return_message import general_message
 from core.utils.validation import validate_endpoints_info
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, CheckThirdpartEndpointFailed
 from models.component.models import ThirdPartyComponentEndpoints
 from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_repo
@@ -22,6 +22,7 @@ from repository.component.third_party_repo import third_party_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.components import ThirdPartyCreateParam
 from schemas.response import Response
+from service.app_config.port_service import endpoint_service
 from service.application_service import application_service
 
 router = APIRouter()
@@ -124,6 +125,29 @@ async def get_third_party_pods(service_alias: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
+@router.post("/teams/{team_name}/apps/{service_alias}/third_party/pods",
+             response_model=Response, name="添加第三方组件实例信息")
+async def add_third_party_pods(
+        request: Request,
+        service_alias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    address = data.get("ip", None)
+    if not address:
+        return JSONResponse(general_message(400, "end_point is null", "end_point未指明"), status_code=400)
+    service = service_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
+    validate_endpoints_info([address])
+    try:
+        endpoint_service.add_endpoint(session, team, service, address)
+    except CheckThirdpartEndpointFailed as e:
+        session.rollback()
+        return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
+
+    result = general_message(200, "success", "添加成功")
+    return JSONResponse(result, status_code=200)
+
+
 @router.delete("/teams/{team_name}/apps/{service_alias}/third_party/pods",
                response_model=Response, name="删除第三方组件实例信息")
 async def delete_third_party_pods(request: Request,
@@ -149,7 +173,7 @@ async def delete_third_party_pods(request: Request,
                                                                      service.service_alias)
     new_endpoint_list = new_body.get("list", [])
     new_endpoints = [endpoint.address for endpoint in new_endpoint_list]
-    service_endpoints_repo.update_or_create_endpoints(team, service, new_endpoints)
+    service_endpoints_repo.update_or_create_endpoints(session, team, service, new_endpoints)
     logger.debug('-------res------->{0}'.format(res))
     logger.debug('=======body=======>{0}'.format(body))
 
