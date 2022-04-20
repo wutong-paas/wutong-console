@@ -740,7 +740,7 @@ class AppPortService:
             for tenant_service_port in tenant_service_ports:
                 port_list.append(tenant_service_port.container_port)
             if len(port_list) <= 1:
-                probe = probe_repo.get_probe(service.service_id)
+                probe = probe_repo.get_probe(session, service.service_id)
                 if not probe:
                     params = {
                         "http_header": "",
