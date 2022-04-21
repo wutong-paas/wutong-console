@@ -2,7 +2,7 @@
 import requests
 from core.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from core.utils.oauth.base.oauth import OAuth2Interface, OAuth2User
-from console.utils.urlutil import set_get_url
+from core.utils.urlutil import set_get_url
 
 
 class AliYun(object):

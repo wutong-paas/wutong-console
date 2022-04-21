@@ -2,10 +2,12 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Request, Header
 from fastapi.responses import JSONResponse
+from loguru import logger
 from starlette import status
 
 from core import deps
-from core.utils.oauth_types import get_oauth_instance
+from core.utils.oauth_types import get_oauth_instance, support_oauth_type
+from core.utils.return_message import error_message
 from database.session import SessionClass
 from repository.users.user_oauth_repo import oauth_repo
 from schemas.response import Response
@@ -57,4 +59,55 @@ async def get_oauth_services(enterprise_id: Optional[str] = None,
                 "enterprise_id": l_service.eid,
             })
     rst = {"data": {"list": all_services_list}}
+    return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+
+@router.post("/enterprise/{enterprise_id}/oauth/oauth-services", response_model=Response, name="添加oauth服务集成")
+async def add_oauth_services(
+        request: Request,
+        enterprise_id: Optional[str] = None,
+        user=Depends(deps.get_current_user),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    data = await request.json()
+    values = data.get("oauth_services")
+    eid = user.enterprise_id
+    try:
+        services = oauth_repo.create_or_update_console_oauth_services(session, values, eid)
+    except Exception as e:
+        logger.exception(e)
+        return JSONResponse({"msg": "添加失败"}, status_code=status.HTTP_400_BAD_REQUEST)
+    service = oauth_repo.get_conosle_oauth_service(session, eid)
+    api = get_oauth_instance(service.oauth_type, service, None)
+    authorize_url = api.get_authorize_url()
+    data = []
+    for service in services:
+        data.append({
+            "service_id": service.ID,
+            "name": service.name,
+            "oauth_type": service.oauth_type,
+            "client_id": service.client_id,
+            "client_secret": service.client_secret,
+            "enable": service.enable,
+            "eid": service.eid,
+            "redirect_uri": service.redirect_uri,
+            "home_url": service.home_url,
+            "auth_url": service.auth_url,
+            "access_token_url": service.access_token_url,
+            "api_url": service.api_url,
+            "is_auto_login": service.is_auto_login,
+            "is_git": service.is_git,
+            "authorize_url": authorize_url,
+        })
+    rst = {"data": {"bean": {"oauth_services": data}}}
+    return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+
+@router.get("/oauth/type", response_model=Response, name="获取Oauth类型")
+async def get_oauth_type() -> Any:
+    try:
+        data = list(support_oauth_type.keys())
+    except Exception as e:
+        logger.debug(e)
+        return JSONResponse(error_message(e), status_code=status.HTTP_200_OK)
+    rst = {"data": {"bean": {"oauth_type": data}}}
     return JSONResponse(rst, status_code=status.HTTP_200_OK)

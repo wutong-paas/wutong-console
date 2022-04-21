@@ -1,7 +1,8 @@
 import os
 
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 
+from core.utils.oauth.oauth_types import support_oauth_type
 from core.utils.oauth_types import get_oauth_instance
 from database.session import SessionClass
 from models.users.oauth import OAuthServices, UserOAuthServices
@@ -33,6 +34,61 @@ class UserOauthRepository(BaseRepository[UserOAuthServices]):
 
 
 class OAuthRepo(BaseRepository[OAuthServices]):
+
+    def create_or_update_console_oauth_services(self, session, values, eid):
+        old_oauth_service = session.execute(select(OAuthServices).where(
+            OAuthServices.eid == eid,
+            OAuthServices.is_console == 1
+        )).scalars().first()
+        for value in values[:1]:
+            if value["oauth_type"] in list(support_oauth_type.keys()):
+                instance = get_oauth_instance(value["oauth_type"])
+                auth_url = instance.get_auth_url(home_url=value["home_url"])
+                access_token_url = instance.get_access_token_url(home_url=value["home_url"])
+                api_url = instance.get_user_url(home_url=value["home_url"])
+                is_git = instance.is_git_oauth()
+                if value.get("service_id") is None and old_oauth_service is None:
+                    oauth_service = OAuthServices(
+                        name=value["name"],
+                        client_id=value["client_id"],
+                        eid=value["eid"],
+                        client_secret=value["client_secret"],
+                        redirect_uri=value["redirect_uri"],
+                        oauth_type=value["oauth_type"],
+                        home_url=value["home_url"],
+                        auth_url=auth_url,
+                        access_token_url=access_token_url,
+                        api_url=api_url,
+                        enable=value["enable"],
+                        is_auto_login=value["is_auto_login"],
+                        is_console=value["is_console"],
+                        is_git=is_git)
+                    session.add(oauth_service)
+                    session.flush()
+                elif old_oauth_service is not None and value.get("service_id") == old_oauth_service.ID:
+                    session.execute(update(OAuthServices).where(
+                        OAuthServices.ID == value["service_id"]
+                    ).values({
+                        "name": value["name"],
+                        "eid": value["eid"],
+                        "redirect_uri": value["redirect_uri"],
+                        "home_url": value["home_url"],
+                        "auth_url": auth_url,
+                        "access_token_url": access_token_url,
+                        "api_url": api_url,
+                        "enable": value["enable"],
+                        "is_auto_login": value["is_auto_login"],
+                        "is_console": value["is_console"]
+                    }))
+                    session.flush()
+            else:
+                raise Exception("未找到该OAuth类型")
+            rst = session.execute(select(OAuthServices).where(
+                        OAuthServices.eid == eid,
+                        OAuthServices.is_console == 1
+                    )).scalars().all()
+            return rst
+
     def get_all_oauth_services(self, session, eid):
         return session.execute(
             select(OAuthServices).where(OAuthServices.eid == eid,

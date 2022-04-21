@@ -6,7 +6,6 @@ from core.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from core.utils.oauth.base.git_oauth import GitOAuth2Interface
 from core.utils.oauth.base.oauth import OAuth2User
 from core.utils.urlutil import set_get_url
-from github import Github
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, SSLError
 
 
