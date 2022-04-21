@@ -9,7 +9,7 @@ from core import deps
 from core.utils.oauth_types import get_oauth_instance, support_oauth_type
 from core.utils.return_message import error_message
 from database.session import SessionClass
-from repository.users.user_oauth_repo import oauth_repo
+from repository.users.user_oauth_repo import oauth_repo, oauth_user_repo
 from schemas.response import Response
 from service.region_service import EnterpriseConfigService
 
@@ -111,3 +111,19 @@ async def get_oauth_type() -> Any:
         return JSONResponse(error_message(e), status_code=status.HTTP_200_OK)
     rst = {"data": {"bean": {"oauth_type": data}}}
     return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+
+@router.delete("/oauth/oauth-services/{service_id}", response_model=Response, name="删除Oauth配置")
+async def delete_oauth(
+        service_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)
+) -> Any:
+    try:
+        oauth_repo.delete_oauth_service(session, service_id)
+        oauth_user_repo.delete_users_by_services_id(session, service_id)
+        rst = {"data": {"bean": None}, "status": 200}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.debug(e)
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
