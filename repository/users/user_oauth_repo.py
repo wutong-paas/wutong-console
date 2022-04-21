@@ -10,6 +10,13 @@ from repository.base import BaseRepository
 
 
 class UserOauthRepository(BaseRepository[UserOAuthServices]):
+
+    def delete_users_by_services_id(self, session, service_id):
+        session.execute(delete(UserOAuthServices).where(
+            UserOAuthServices.service_id == service_id
+        ))
+        session.flush()
+
     def get_enterprise_center_user_by_user_id(self, session: SessionClass, user_id):
         q = session.execute(select(OAuthServices).where(OAuthServices.oauth_type == "enterprisecenter",
                                                         OAuthServices.ID == 1))
@@ -34,6 +41,12 @@ class UserOauthRepository(BaseRepository[UserOAuthServices]):
 
 
 class OAuthRepo(BaseRepository[OAuthServices]):
+
+    def delete_oauth_service(self, session, service_id):
+        session.execute(delete(OAuthServices).where(
+            OAuthServices.ID == service_id
+        ))
+        session.flush()
 
     def create_or_update_console_oauth_services(self, session, values, eid):
         old_oauth_service = session.execute(select(OAuthServices).where(
