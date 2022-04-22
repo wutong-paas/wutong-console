@@ -4,6 +4,7 @@ from clients.remote_component_client import remote_component_client
 from database.session import SessionClass
 from exceptions.bcode import ErrUserNotFound, ErrTenantNotFound
 from exceptions.main import ServiceHandleException
+from models.teams.enterprise import TeamEnterprise
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import group_service_relation_repo
@@ -17,6 +18,23 @@ class EnterpriseServices(object):
     """
     企业组件接口，提供以企业为中心的操作集合，企业在云帮体系中为最大业务隔离单元，企业下有团队（也就是tenant）
     """
+
+    def create_oauth_enterprise(self, session, enterprise_name, enterprise_alias, enterprise_id):
+        """
+        创建一个本地的企业信息, 并生成本地的企业ID
+
+        :param enterprise_name: 企业的domain, 如果没有则自动生成一个, 如果存在则需要保证传递的名字在数据库中唯一
+        :param enterprise_alias: 企业的名称, 可以中文, 用于展示用, 如果为空则自动生成一个
+        :param enterprise_id: 企业的id
+        :return:
+        """
+        enterprise = TeamEnterprise()
+        enterprise.enterprise_name = enterprise_name
+        enterprise.enterprise_id = enterprise_id
+        enterprise.enterprise_alias = enterprise_alias
+        # session.add(enterprise)
+        # session.flush()
+        return enterprise
 
     @staticmethod
     def create_user_roles(session, eid, user_id, tenant_name, role_ids):
