@@ -7,15 +7,20 @@ from core.utils.oauth.base.git_oauth import GitOAuth2Interface
 from core.utils.oauth.base.oauth import OAuth2User
 from core.utils.urlutil import set_get_url
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, SSLError
+from github import Github
 
 
 class GithubApiV3MiXin(object):
+    def __init__(self):
+        self.api = None
+
     def set_api(self, access_token):
         self.api = Github(access_token, per_page=10)
 
 
 class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
     def __init__(self):
+        super().__init__()
         super(GithubApiV3, self).set_session()
         self.events = ["push"]
         self.request_params = {
@@ -50,7 +55,8 @@ class GithubApiV3(GithubApiV3MiXin, GitOAuth2Interface):
             url = self.get_access_token_url(self.oauth_service.home_url)
             try:
                 rst = self._session.request(method='POST', url=url, headers=headers, params=params)
-            except Exception:
+            except Exception as e:
+                logger.warning(e)
                 raise NoAccessKeyErr("can not get access key")
             if rst.status_code == 200:
                 data = rst.json()

@@ -8,6 +8,11 @@ from repository.base import BaseRepository
 
 class UserRepository(BaseRepository[Users]):
 
+    def get_by_user_id(self, session, user_id):
+        return session.execute(select(Users).where(
+            Users.user_id == user_id
+        )).scalars().first()
+
     def get_enterprise_users(self, session, enterprise_id):
         session.execute(
             select(Users).where(

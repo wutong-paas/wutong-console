@@ -1,5 +1,6 @@
 import os
 
+from loguru import logger
 from sqlalchemy import select, delete, update
 
 from core.utils.oauth.oauth_types import support_oauth_type
@@ -10,6 +11,51 @@ from repository.base import BaseRepository
 
 
 class UserOauthRepository(BaseRepository[UserOAuthServices]):
+
+    def get_user_oauth_by_id(self, session, service_id, id):
+        return session.execute(select(UserOAuthServices).where(
+                UserOAuthServices.ID == id,
+                UserOAuthServices.service_id == service_id,
+            )).scalars().first()
+
+    def get_user_oauth_by_code(self, session, service_id, code):
+        return session.execute(select(UserOAuthServices).where(
+                UserOAuthServices.code == code,
+                UserOAuthServices.service_id == service_id,
+            )).scalars().first()
+
+    def save_oauth(self, session, *args, **kwargs):
+        user = None
+        try:
+            user = session.execute(select(UserOAuthServices).where(
+                UserOAuthServices.oauth_user_id == kwargs.get("oauth_user_id"),
+                UserOAuthServices.service_id == kwargs.get("service_id"),
+                UserOAuthServices.user_id == kwargs.get("user_id"),
+            )).scalars().first()
+            if not user:
+                user = UserOAuthServices(
+                    oauth_user_id=kwargs.get("oauth_user_id"),
+                    oauth_user_name=kwargs.get("oauth_user_name"),
+                    oauth_user_email=kwargs.get("oauth_user_email"),
+                    service_id=kwargs.get("service_id"),
+                    is_auto_login=kwargs.get("is_auto_login"),
+                    is_authenticated=kwargs.get("is_authenticated"),
+                    is_expired=kwargs.get("is_expired"),
+                    access_token=kwargs.get("access_token"),
+                    refresh_token=kwargs.get("refresh_token"),
+                    user_id=kwargs.get("user_id"),
+                    code=kwargs.get("code"))
+                session.add(user)
+                session.flush()
+        except Exception as e:
+            logger.exception(e)
+        return user
+
+    def user_oauth_exists(self, session, service_id, oauth_user_id):
+        return session.execute(select(UserOAuthServices).where(
+            UserOAuthServices.service_id == service_id,
+            UserOAuthServices.oauth_user_id == oauth_user_id
+        )).scalars().first()
 
     def delete_users_by_services_id(self, session, service_id):
         session.execute(delete(UserOAuthServices).where(

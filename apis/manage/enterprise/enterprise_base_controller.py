@@ -28,11 +28,13 @@ async def get_info(session: SessionClass = Depends(deps.get_session)) -> Any:
     :return:
     """
     initialize_info = perms_repo.initialize_permission_settings(session)
+    register_config = platform_config_service.get_config_by_key(session, "IS_REGIST")
     data = platform_config_service.initialization_or_get_config(session=session)
     if data.get("enterprise_id", None) is None:
         data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
     data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
     data["is_offline"] = os.getenv('IS_OFFLINE', False)
+    data["is_regist"] = os.getenv('IS_REGIST', register_config.enable)
     result = general_message(200, "success", "查询成功", bean=data, initialize_info=initialize_info)
     return JSONResponse(result, status_code=result["code"])
 

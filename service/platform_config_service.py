@@ -6,9 +6,12 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 
 from core.enum.system_config import ConfigKeyEnum
+from core.utils.oauth.oauth_types import get_oauth_instance
+from core.utils.oauth_types import NoSupportOAuthType
 from database.session import SessionClass
 from exceptions.exceptions import ConfigExistError
 from models.teams import ConsoleSysConfig
+from models.users.oauth import OAuthServices
 from models.users.users import Users
 from repository.config.config_repo import sys_config_repo
 
@@ -58,39 +61,12 @@ class ConfigService(object):
                 rst_datas.update(rst_data)
             else:
                 if tar_key.type == "json":
-                    rst_value = jsonable_encoder(tar_key.value)#eval(tar_key.value)
+                    rst_value = jsonable_encoder(tar_key.value)
                 else:
                     rst_value = tar_key.value
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
                 rst_datas[key.lower()] = {"enable": tar_key.enable, "value": self.base_cfg_keys_value[key]["value"]}
-
-        for key in self.cfg_keys:
-            tar_key = sys_config_repo.get_config_by_key_and_enterprise_id(session, key, self.enterprise_id)
-            if not tar_key:
-                enable = self.cfg_keys_value[key]["enable"]
-                value = self.cfg_keys_value[key]["value"]
-                desc = self.cfg_keys_value[key]["desc"]
-                config_type = "string"
-                if isinstance(value, (dict, list)):
-                    config_type = "json"
-                if not value:
-                    value = None
-                rst_key = sys_config_repo.add_config(session=session, key=key, enterprise_id=self.enterprise_id,
-                                                     default_value=value, config_type=config_type,
-                                                     enable=enable, desc=desc)
-
-                value = rst_key.value
-                enable = rst_key.enable
-                rst_data = {key.lower(): {"enable": enable, "value": value}}
-                rst_datas.update(rst_data)
-            else:
-                if tar_key.type == "json":
-                    rst_value = eval(tar_key.value)
-                else:
-                    rst_value = tar_key.value
-                rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
-                rst_datas.update(rst_data)
 
         rst_datas["default_market_url"] = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
         return rst_datas
@@ -170,9 +146,8 @@ class PlatformConfigService(ConfigService):
     def __init__(self):
         super(PlatformConfigService, self).__init__()
         self.base_cfg_keys = ["IS_PUBLIC", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"]
-        # todo
-        # if not os.getenv('IS_PUBLIC', False):
-        #     self.base_cfg_keys.append("OAUTH_SERVICES")
+        if not os.getenv('IS_PUBLIC', False):
+            self.base_cfg_keys.append("OAUTH_SERVICES")
 
         self.cfg_keys = [
             "TITLE",
@@ -275,11 +250,37 @@ class PlatformConfigService(ConfigService):
         }
         if not os.getenv('IS_PUBLIC', False):
             self.base_cfg_keys_value["OAUTH_SERVICES"] = {
-                # todo
-                "value": None,
+                "value": self.get_all_oauth_service(session),
                 "desc": "开启/关闭OAuthServices功能",
                 "enable": True
             }
+
+    def get_all_oauth_service(self, session):
+        rst = []
+        oauth_services = session.execute(select(OAuthServices).where(
+            OAuthServices.is_deleted == 0,
+            OAuthServices.enable == 1
+        )).scalars().all()
+        if oauth_services:
+            for oauth_service in oauth_services:
+                try:
+                    api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
+                    authorize_url = api.get_authorize_url()
+                    rst.append({
+                        "service_id": oauth_service.ID,
+                        "enable": oauth_service.enable,
+                        "name": oauth_service.name,
+                        "oauth_type": oauth_service.oauth_type,
+                        "is_console": oauth_service.is_console,
+                        "home_url": oauth_service.home_url,
+                        "eid": oauth_service.eid,
+                        "is_auto_login": oauth_service.is_auto_login,
+                        "is_git": oauth_service.is_git,
+                        "authorize_url": authorize_url,
+                    })
+                except NoSupportOAuthType:
+                    continue
+        return rst
 
 
 platform_config_service = PlatformConfigService()
