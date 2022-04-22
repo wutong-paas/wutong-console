@@ -99,14 +99,14 @@ class OAuthRepo(BaseRepository[OAuthServices]):
             OAuthServices.eid == eid,
             OAuthServices.is_console == 1
         )).scalars().first()
-        for value in values[:1]:
+        for value in values:
             if value["oauth_type"] in list(support_oauth_type.keys()):
                 instance = get_oauth_instance(value["oauth_type"])
                 auth_url = instance.get_auth_url(home_url=value["home_url"])
                 access_token_url = instance.get_access_token_url(home_url=value["home_url"])
                 api_url = instance.get_user_url(home_url=value["home_url"])
                 is_git = instance.is_git_oauth()
-                if value.get("service_id") is None and old_oauth_service is None:
+                if value.get("service_id") is None:
                     oauth_service = OAuthServices(
                         name=value["name"],
                         client_id=value["client_id"],
@@ -142,11 +142,11 @@ class OAuthRepo(BaseRepository[OAuthServices]):
                     session.flush()
             else:
                 raise Exception("未找到该OAuth类型")
-            rst = session.execute(select(OAuthServices).where(
-                        OAuthServices.eid == eid,
-                        OAuthServices.is_console == 1
-                    )).scalars().all()
-            return rst
+        rst = session.execute(select(OAuthServices).where(
+                    OAuthServices.eid == eid,
+                    OAuthServices.is_console == 1
+                )).scalars().all()
+        return rst
 
     def get_all_oauth_services(self, session, eid):
         return session.execute(
