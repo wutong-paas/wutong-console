@@ -266,3 +266,71 @@ async def link_oauth_user(
     else:
         rst = {"data": {"bean": None}, "status": 404, "msg_show": "绑定失败，请重新认证"}
         return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+
+@router.post("/oauth/user/authorize", response_model=Response, name="绑定权限")
+async def oauth_auth_user(
+        request: Request,
+        user=Depends(deps.get_current_user),
+        session: SessionClass = Depends(deps.get_session)
+) -> Any:
+    login_user = user
+    data = await request.json()
+    code = data.get("code")
+    service_id = data.get("service_id")
+    try:
+        oauth_service = application_service.get_oauth_services_by_service_id(session, service_id)
+    except Exception as e:
+        logger.debug(e)
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    try:
+        api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
+    except NoSupportOAuthType as e:
+        logger.debug(e)
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    try:
+        user, access_token, refresh_token = api.get_user_info(code=code)
+    except Exception as e:
+        logger.exception(e)
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "失败"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+    user_name = user.name
+    user_id = str(user.id)
+    user_email = user.email
+    authenticated_user = oauth_user_repo.user_oauth_exists(session=session, service_id=service_id, oauth_user_id=user_id)
+    link_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=service_id, user_id=login_user.user_id)
+    if link_user is not None and link_user.oauth_user_id != user_id:
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "该用户已绑定其他账号"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+    if authenticated_user is not None and authenticated_user.user_id is None:
+        authenticated_user.oauth_user_id = user_id
+        authenticated_user.oauth_user_name = user_name
+        authenticated_user.oauth_user_email = user_email
+        authenticated_user.access_token = access_token
+        authenticated_user.refresh_token = refresh_token
+        authenticated_user.code = code
+        authenticated_user.is_authenticated = True
+        authenticated_user.is_expired = True
+        authenticated_user.user_id = login_user.user_id
+        # authenticated_user.save()
+        return JSONResponse(None, status_code=status.HTTP_200_OK)
+    else:
+        oauth_user_repo.save_oauth(
+            session=session,
+            oauth_user_id=user_id,
+            oauth_user_name=user_name,
+            oauth_user_email=user_email,
+            user_id=login_user.user_id,
+            code=code,
+            service_id=service_id,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            is_authenticated=True,
+            is_expired=False,
+        )
+        rst = {"data": {"bean": None}, "status": 200, "msg_show": "绑定成功"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
