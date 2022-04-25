@@ -95,10 +95,6 @@ class OAuthRepo(BaseRepository[OAuthServices]):
         session.flush()
 
     def create_or_update_console_oauth_services(self, session, values, eid):
-        old_oauth_service = session.execute(select(OAuthServices).where(
-            OAuthServices.eid == eid,
-            OAuthServices.is_console == 1
-        )).scalars().first()
         for value in values:
             if value["oauth_type"] in list(support_oauth_type.keys()):
                 instance = get_oauth_instance(value["oauth_type"])
@@ -124,7 +120,7 @@ class OAuthRepo(BaseRepository[OAuthServices]):
                         is_git=is_git)
                     session.add(oauth_service)
                     session.flush()
-                elif old_oauth_service is not None and value.get("service_id") == old_oauth_service.ID:
+                else:
                     session.execute(update(OAuthServices).where(
                         OAuthServices.ID == value["service_id"]
                     ).values({

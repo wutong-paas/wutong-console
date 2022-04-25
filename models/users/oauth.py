@@ -36,6 +36,6 @@ class UserOAuthServices(Base):
     is_authenticated = Column(Boolean(), nullable=True, default=False, comment="is_authenticated")
     is_expired = Column(Boolean(), nullable=True, default=False, comment="is_expired")
     access_token = Column(String(2047), nullable=True, comment="access_token_url")
-    refresh_token = Column(String(64), nullable=True, comment="refresh_token")
+    refresh_token = Column(String(2047), nullable=True, comment="refresh_token")
     user_id = Column(Integer, nullable=True, default=None, comment="user_id")
     code = Column(String(256), nullable=True, comment="user_id")

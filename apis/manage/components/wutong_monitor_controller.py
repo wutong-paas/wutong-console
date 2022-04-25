@@ -75,6 +75,7 @@ async def get_monitor_info(request: Request,
 async def get_monitor_info(request: Request,
                            serviceAlias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
+                           user=Depends(deps.get_current_user),
                            team=Depends(deps.get_current_team)) -> Any:
     """
      监控信息范围查询
