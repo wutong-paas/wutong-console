@@ -1,8 +1,6 @@
 # -*- coding: utf8 -*-
-import json
 import requests
 from loguru import logger
-
 from core.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
 from core.utils.oauth.base.git_oauth import OAuth2Interface
 from core.utils.oauth.base.oauth import OAuth2User
@@ -70,7 +68,8 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
         if not self.oauth_service:
             raise NoOAuthServiceErr("no found oauth service")
         if code:
-            headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded", "Connection": "close"}
+            headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded",
+                       "Connection": "close"}
             params = {
                 "client_id": self.oauth_service.client_id,
                 "client_secret": self.oauth_service.client_secret,
@@ -96,7 +95,8 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
         else:
             if self.oauth_user:
                 try:
-                    user = self.get_idaas_user(self.oauth_user.access_token)
+                    user = self.api._api_get(self.get_user_url(""),
+                                             params={"access_token": self.oauth_user.access_token})
                     if user["username"]:
                         return self.oauth_user.access_token, self.oauth_user.refresh_token
                 except Exception:
@@ -116,7 +116,8 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
         headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
 
         params = {"refresh_token": self.refresh_token, "grant_type": "refresh_token", "scope": "api"}
-        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url, headers=headers, params=params)
+        rst = self._session.request(method='POST', url=self.oauth_service.access_token_url, headers=headers,
+                                    params=params)
         data = rst.json()
         if rst.status_code == 200:
             self.oauth_user.refresh_token = data.get("refresh_token")
@@ -125,15 +126,10 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
             self.refresh_token = data.get("refresh_token")
             self.oauth_user = self.oauth_user.save()
 
-    def get_idaas_user(self, token):
-        get_test_url = "/gateway/wutong-idaas-auth/authz/oauth2/userinfo?access_token=" + token
-        get_response = self.api._api_get(get_test_url)
-        return get_response["data"]
-
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
         self.set_api(self.oauth_service.home_url, access_token)
-        user = self.get_idaas_user(access_token)
+        user = self.api._api_get(self.get_user_url(""), params={"access_token": access_token})
         return OAuth2User(user["username"], user["userId"], user["email"]), access_token, refresh_token
 
     def get_authorize_url(self):
