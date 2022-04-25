@@ -1,24 +1,51 @@
 # -*- coding: utf8 -*-
 import json
-
 import requests
-from gitlab import Gitlab
+from loguru import logger
+
 from core.utils.oauth.base.exception import (NoAccessKeyErr, NoOAuthServiceErr)
-from core.utils.oauth.base.git_oauth import GitOAuth2Interface
+from core.utils.oauth.base.git_oauth import OAuth2Interface
 from core.utils.oauth.base.oauth import OAuth2User
 from core.utils.urlutil import set_get_url
 from exceptions.bcode import ErrUnAuthnOauthService, ErrExpiredAuthnOauthService
-from fastapi import Request
 
 
-class IDaasApiV1MiXin(object):
+class IDaaSOauth(object):
+    def __init__(self, url, oauth_token=None):
+        self._base_url = url
+        self._url = "%s" % (url)
+        self.oauth_token = oauth_token
+        self.session = requests.Session()
+        self.headers = {
+            "Accept": "application/json",
+            "Authorization": self.oauth_token,
+        }
+
+    def _api_get(self, url_suffix, params=None):
+        url = self._url + url_suffix
+        try:
+            rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
+            if rst.status_code == 200:
+                data = rst.json()
+                if not isinstance(data, (list, dict)):
+                    data = None
+            else:
+                logger.error("request path {} responset status {} content {}".format(url, rst.status_code, rst.content))
+                data = None
+        except Exception as e:
+            logger.exception(e)
+            data = None
+        return data
+
+
+class IDaaSApiV1MiXin(object):
     def set_api(self, host, access_token):
-        self.api = Gitlab(host, oauth_token=access_token)
+        self.api = IDaaSOauth(host, oauth_token=access_token)
 
 
-class IDaasApiV1(IDaasApiV1MiXin, GitOAuth2Interface):
+class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
     def __init__(self):
-        super(IDaasApiV1, self).set_session()
+        super(IDaaSApiV1, self).set_session()
         self.request_params = {
             "response_type": "code",
         }
@@ -62,7 +89,6 @@ class IDaasApiV1(IDaasApiV1MiXin, GitOAuth2Interface):
                 self.refresh_token = data.get("refresh_token")
                 if self.access_token is None:
                     return None, None
-                # self.set_api(self.oauth_service.home_url, self.access_token)
                 self.update_access_token(self.access_token, self.refresh_token)
                 return self.access_token, self.refresh_token
             else:
@@ -100,16 +126,13 @@ class IDaasApiV1(IDaasApiV1MiXin, GitOAuth2Interface):
             self.oauth_user = self.oauth_user.save()
 
     def get_idaas_user(self, token):
-
-        get_test_url = f"http://idaas.wutong.talkweb.com.cn/gateway/wutong-idaas-auth/authz/" \
-                       f"oauth2/userinfo?access_token=" + token
-
-        get_response = requests.get(get_test_url)
-        res = json.loads(get_response.content.decode('utf-8'))
-        return res["data"]
+        get_test_url = "/gateway/wutong-idaas-auth/authz/oauth2/userinfo?access_token=" + token
+        get_response = self.api._api_get(get_test_url)
+        return get_response["data"]
 
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
+        self.set_api(self.oauth_service.home_url, access_token)
         user = self.get_idaas_user(access_token)
         return OAuth2User(user["username"], user["userId"], user["email"]), access_token, refresh_token
 
@@ -123,123 +146,6 @@ class IDaasApiV1(IDaasApiV1MiXin, GitOAuth2Interface):
             return set_get_url(self.oauth_service.auth_url, params)
         else:
             raise NoOAuthServiceErr("no found oauth service")
-
-    def get_repos(self, *args, **kwargs):
-        access_token, _ = self._get_access_token()
-        page = kwargs.get("page", 1)
-        per_page = kwargs.get("per_page", 10)
-        repo_list = []
-        if per_page is None:
-            per_page = 10
-        for repo in self.api.projects.list(page=page, per_page=per_page, order_by="last_activity_at", membership="true"):
-            if hasattr(repo, "default_branch"):
-                default_branch = repo.default_branch
-            else:
-                default_branch = "master"
-            repo_list.append({
-                "project_id": repo.id,
-                "project_full_name": repo.path_with_namespace,
-                "project_name": repo.name,
-                "project_description": repo.description,
-                "project_url": repo.http_url_to_repo,
-                "project_default_branch": default_branch,
-                "project_ssl_url": repo.ssh_url_to_repo,
-                "updated_at": repo.last_activity_at,
-                "created_at": repo.created_at
-            })
-        total = len(repo_list)
-        meta = self.api.projects.list(as_list=False, membership="true")
-        try:
-            if meta and meta.total:
-                total = meta.total
-        except TypeError:
-            total = 10000
-        return repo_list, total
-
-    def search_repos(self, full_name, *args, **kwargs):
-        access_token, _ = self._get_access_token()
-        page = int(kwargs.get("page", 1))
-        per_page = kwargs.get("per_page", 10)
-        repo_list = []
-        name = full_name.split("/")[-1]
-        for repo in self.api.projects.list(
-                search=name, page=page, per_page=per_page, order_by="last_activity_at", membership="true"):
-            repo_list.append({
-                "project_id": repo.id,
-                "project_full_name": repo.path_with_namespace,
-                "project_name": repo.name,
-                "project_description": repo.description,
-                "project_url": repo.http_url_to_repo,
-                "project_default_branch": repo.default_branch,
-                "project_ssl_url": repo.ssh_url_to_repo,
-                "updated_at": repo.last_activity_at,
-                "created_at": repo.created_at
-            })
-        total = len(repo_list)
-        meta = self.api.projects.list(search=name, as_list=False, membership="true")
-        try:
-            if meta and meta.total:
-                total = meta.total
-        except TypeError:
-            total = 10000
-        return repo_list, total
-
-    def get_repo_detail(self, full_name, *args, **kwargs):
-        access_token, _ = self._get_access_token()
-        repo_list = []
-        name = full_name.split("/")[-1]
-        for repo in self.api.projects.list(search=name, page=1):
-            if repo.path_with_namespace == full_name:
-                repo_list.append({
-                    "project_id": repo.id,
-                    "project_full_name": repo.path_with_namespace,
-                    "project_name": repo.name,
-                    "project_description": repo.description,
-                    "project_url": repo.http_url_to_repo,
-                    "project_default_branch": repo.default_branch,
-                    "project_ssl_url": repo.ssh_url_to_repo,
-                    "updated_at": repo.last_activity_at,
-                    "created_at": repo.created_at
-                })
-        return repo_list
-
-    def get_branches(self, full_name):
-        access_token, _ = self._get_access_token()
-        search_item = full_name.split("/")
-        name = search_item[-1]
-        repos = self.api.projects.list(search=name)
-        rst_list = []
-        for repo in repos:
-            if repo.path_with_namespace == full_name:
-                for branch in repo.branches.list():
-                    rst_list.append(branch.name)
-        return rst_list
-
-    def get_tags(self, full_name):
-        access_token, _ = self._get_access_token()
-        name = full_name.split("/")[-1]
-        repos = self.api.projects.list(search=name)
-        rst_list = []
-        for repo in repos:
-            if repo.path_with_namespace == full_name:
-                for branch in repo.tags.list():
-                    rst_list.append(branch.name)
-        return rst_list
-
-    def get_branches_or_tags(self, type, full_name):
-        if type == "branches":
-            return self.get_branches(full_name)
-        elif type == "tags":
-            return self.get_tags(full_name)
-        else:
-            return []
-
-    def create_hook(self, host, full_name, endpoint='console/webhooks'):
-        access_token, _ = self._get_access_token()
-        name = full_name.split("/")[-1]
-        repo = self.api.projects.list(search=name)[0]
-        url = "{host}/{endpoint}".format(host=host, endpoint=endpoint)
-        return repo.hooks.create({'url': url, 'push_events': 1})
 
     def get_clone_user_password(self):
         access_token, _ = self._get_access_token()

@@ -5,7 +5,7 @@ from core.utils.oauth.gitee_api import GiteeApiV5
 from core.utils.oauth.github_api import GithubApiV3
 from core.utils.oauth.gitlab_api import GitlabApiV4
 from core.utils.oauth.dbox_api import DboxApiV1
-from core.utils.oauth.idaas_api import IDaasApiV1
+from core.utils.oauth.idaas_api import IDaaSApiV1
 
 support_oauth_type = {
     "github": GithubApiV3,
@@ -14,7 +14,7 @@ support_oauth_type = {
     "aliyun": AliYunApiV1,
     "dingtalk": DingtalkApiV1,
     "dbox": DboxApiV1,
-    "idaas": IDaasApiV1
+    "idaas": IDaaSApiV1
 }
 
 
