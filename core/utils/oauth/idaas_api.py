@@ -129,8 +129,14 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
     def get_user_info(self, code=None):
         access_token, refresh_token = self._get_access_token(code=code)
         self.set_api(self.oauth_service.home_url, access_token)
-        user = self.api._api_get(self.get_user_url(""), params={"access_token": access_token})
-        return OAuth2User(user["username"], user["userId"], user["email"]), access_token, refresh_token
+        try:
+            user = self.api._api_get(self.get_user_url(""), params={"access_token": access_token})
+        except Exception as e:
+            logger.exception(e)
+            raise NoAccessKeyErr("can not get user info")
+        if user:
+            return OAuth2User(user["username"], user["userId"], user["email"]), access_token, refresh_token
+        return None, None, None
 
     def get_authorize_url(self):
         if self.oauth_service:
