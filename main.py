@@ -1,9 +1,13 @@
 # 初始化app实例
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from redis import StrictRedis
+from starlette.responses import JSONResponse
+
 from apis.apis import api_router
+from core.utils.return_message import general_message
 from database.session import engine, Base, settings
+from exceptions.main import ServiceHandleException
 from middleware import register_middleware
 
 if settings.ENV == "PROD":
@@ -13,8 +17,19 @@ else:
     app = FastAPI(title=settings.APP_NAME, openapi_url=f"{settings.API_PREFIX}/openapi.json")
 
 
+@app.exception_handler(ServiceHandleException)
+async def validation_exception_handler(request: Request, exc: ServiceHandleException):
+    """
+    捕获请求参数
+    :param request:
+    :param exc:
+    :return:
+    """
+    return JSONResponse(
+        general_message(400, exc.msg, exc.msg_show), status_code=400)
+
+
 def get_redis_pool():
-    # redis = asredis.from_url("redis://localhost", password='123456', encoding="utf-8", decode_responses=True)
     redis = StrictRedis(host=settings.REDIS_HOST, port=int(settings.REDIS_PORT), db=int(settings.REDIS_DATABASE),
                         password=settings.REDIS_PASSWORD, encoding="utf-8")
     return redis

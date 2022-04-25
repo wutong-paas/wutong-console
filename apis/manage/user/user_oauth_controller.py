@@ -176,7 +176,7 @@ async def get_authorize(
         oauth_user, access_token, refresh_token = api.get_user_info(code=code)
     except Exception as e:
         logger.exception(e)
-        rst = {"data": {"bean": None}, "status": 404, "msg_show": "失败"}
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "错误"}
         return JSONResponse(rst, status_code=status.HTTP_200_OK)
     if api.is_communication_oauth():
         logger.debug(oauth_user.enterprise_domain)
@@ -294,7 +294,7 @@ async def oauth_auth_user(
         user, access_token, refresh_token = api.get_user_info(code=code)
     except Exception as e:
         logger.exception(e)
-        rst = {"data": {"bean": None}, "status": 404, "msg_show": "失败"}
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
         return JSONResponse(rst, status_code=status.HTTP_200_OK)
 
     user_name = user.name
