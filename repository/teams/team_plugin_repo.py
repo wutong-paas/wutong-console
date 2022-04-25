@@ -22,7 +22,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         """
         sql = select(TeamPlugin).where(TeamPlugin.tenant_id == tenant_id, TeamPlugin.region == region_name)
         results = session.execute(sql)
-        data = results.all()
+        data = results.scalars().all()
         logger.info("list tenant plugin list by tenant id and region,param-tenant_id:{},param-region:{}", tenant_id,
                     region_name)
         return data
