@@ -10,7 +10,7 @@ from sqlalchemy import select
 from clients.remote_component_client import remote_component_client
 from common.base_http_client import HttpClient
 from core import deps
-from core.utils.oauth_types import support_oauth_type
+from core.utils.oauth.oauth_types import support_oauth_type
 from core.utils.return_message import general_message, error_message, general_data
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentBuildFailed

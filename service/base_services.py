@@ -5,7 +5,7 @@ from loguru import logger
 
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
-from core.utils.oauth_types import support_oauth_type
+from core.utils.oauth.oauth_types import support_oauth_type
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.application.app_repository import app_repo

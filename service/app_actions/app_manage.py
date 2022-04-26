@@ -13,7 +13,7 @@ from core.utils import slug_util
 from core.utils.constants import AppConstants
 from core.utils.crypt import make_uuid
 from core.utils.oauth.base.exception import NoAccessKeyErr
-from core.utils.oauth_types import get_oauth_instance, NoSupportOAuthType
+from core.utils.oauth.oauth_types import get_oauth_instance, NoSupportOAuthType
 from database.session import SessionClass
 from exceptions.bcode import ErrThirdComponentStartFailed
 from exceptions.exceptions import ErrChangeServiceType, TenantNotExistError

@@ -8,7 +8,7 @@ from sqlalchemy import select, not_
 from clients.remote_build_client import remote_build_client
 from clients.remote_tenant_client import remote_tenant_client
 from core.utils.crypt import make_uuid
-from core.utils.oauth_types import NoSupportOAuthType, get_oauth_instance
+from core.utils.oauth.oauth_types import NoSupportOAuthType, get_oauth_instance
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from models.market.models import CenterAppVersion
