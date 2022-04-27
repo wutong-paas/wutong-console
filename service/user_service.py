@@ -11,7 +11,7 @@ from sqlalchemy import select, or_, func, delete
 
 from core.setting import settings
 from core.utils import perms
-from core.utils.oauth_types import get_oauth_instance
+from core.utils.oauth.oauth_types import get_oauth_instance
 from core.utils.perms import get_perms_model, get_enterprise_perms_model, get_team_perms_model, TEAM, ENTERPRISE
 from database.session import SessionClass
 from exceptions.exceptions import ErrCannotDelLastAdminUser, ErrAdminUserDoesNotExist, UserNotExistError

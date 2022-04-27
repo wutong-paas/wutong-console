@@ -1,14 +1,12 @@
 import os
 from typing import Any, Optional
 from urllib.parse import urlsplit
-
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from loguru import logger
 from starlette import status
 from core import deps
-from core.utils.oauth.oauth_types import NoSupportOAuthType
-from core.utils.oauth_types import get_oauth_instance, support_oauth_type
+from core.utils.oauth.oauth_types import get_oauth_instance, support_oauth_type, NoSupportOAuthType
 from core.utils.return_message import error_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
@@ -294,7 +292,7 @@ async def oauth_auth_user(
         user, access_token, refresh_token = api.get_user_info(code=code)
     except Exception as e:
         logger.exception(e)
-        rst = {"data": {"bean": None}, "status": 404, "msg_show": e.message}
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "失败"}
         return JSONResponse(rst, status_code=status.HTTP_200_OK)
 
     user_name = user.name

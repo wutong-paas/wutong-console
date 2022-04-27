@@ -18,7 +18,7 @@ from core.enum.app import AppType, GovernanceModeEnum
 from core.enum.component_enum import ComponentType
 from core.utils.constants import AppConstants
 from core.utils.crypt import make_uuid
-from core.utils.oauth_types import get_oauth_instance
+from core.utils.oauth.oauth_types import get_oauth_instance
 from core.utils.status_translate import get_status_info_map
 from core.utils.validation import validate_endpoints_info, validate_endpoint_address
 from database.session import SessionClass

@@ -6,8 +6,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 
 from core.enum.system_config import ConfigKeyEnum
-from core.utils.oauth.oauth_types import get_oauth_instance
-from core.utils.oauth_types import NoSupportOAuthType
+from core.utils.oauth.oauth_types import get_oauth_instance, NoSupportOAuthType
 from database.session import SessionClass
 from exceptions.exceptions import ConfigExistError
 from models.teams import ConsoleSysConfig
