@@ -314,7 +314,7 @@ async def update_plugin_config(request: Request,
           paramType: body
 
     """
-    config = json.loads(request.body())
+    config = await request.json()
     if not config:
         return JSONResponse(general_message(400, "params error", "参数配置不可为空"), status_code=400)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
