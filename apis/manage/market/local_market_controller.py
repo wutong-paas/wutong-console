@@ -27,7 +27,7 @@ from repository.teams.team_repo import team_repo
 from schemas import CenterAppCreate
 from schemas.market import MarketAppTemplateUpdateParam, MarketAppCreateParam
 from schemas.response import Response
-from service.app_import_and_export_service import import_service
+from service.app_import_and_export_service import import_service, export_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
 from service.team_service import team_services
@@ -411,3 +411,75 @@ async def delete_app_template(enterprise_id: Optional[str] = None,
     result = general_message(200, "success", "删除成功")
     market_app_service.delete_wutong_app_version(session, enterprise_id, app_id, version)
     return JSONResponse(result, status_code=result.get("code", 200))
+
+
+@router.get("/enterprise/{enterprise_id}/app-models/export", response_model=Response, name="获取应用导出状态")
+async def get_app_export_status(
+        request: Request,
+        enterprise_id: str = Path(..., title="enterprise_id"),
+        session: SessionClass = Depends(deps.get_session),
+        user: Users = Depends(deps.get_current_user)) -> Any:
+    """
+    获取应用导出状态
+    ---
+    parameters:
+        - name: tenantName
+          description: 团队名称
+          required: true
+          type: string
+          paramType: path
+    """
+    app_id = request.query_params.get("app_id", None)
+    app_version = request.query_params.get("app_version", None)
+    if not app_id or not app_version:
+        return JSONResponse(general_message(400, "app id is null", "请指明需要查询的应用"), status_code=400)
+
+    result_list = []
+    app_version_list = app_version.split("#")
+    for version in app_version_list:
+        app, app_version = market_app_service.get_wutong_app_and_version(session, user.enterprise_id, app_id, version)
+        if not app or not app_version:
+            return JSONResponse(general_message(404, "not found", "云市应用不存在"), status_code=404)
+        result = export_service.get_export_status(session, enterprise_id, app, app_version)
+        result_list.append(result)
+
+    result = general_message(200, "success", "查询成功", list=result_list)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/enterprise/{enterprise_id}/app-models/export", response_model=Response, name="导出应用市场应用")
+async def export_app_models(
+        request: Request,
+        enterprise_id: str = Path(..., title="enterprise_id"),
+        session: SessionClass = Depends(deps.get_session),
+        user: Users = Depends(deps.get_current_user)) -> Any:
+    """
+    导出应用市场应用
+    ---
+    parameters:
+        - name: tenantName
+          description: 团队名称
+          required: true
+          type: string
+          paramType: path
+        - name: format
+          description: 导出类型 rainbond-app | docker-compose
+          required: true
+          type: string
+          paramType: form
+    """
+    data = await request.json()
+    app_id = data.get("app_id", None)
+    app_versions = data.get("app_versions", [])
+    export_format = data.get("format", None)
+    if not app_id or not app_versions:
+        return JSONResponse(general_message(400, "app id is null", "请指明需要导出的应用"), status_code=400)
+    if not export_format or export_format not in ("rainbond-app", "docker-compose"):
+        return JSONResponse(general_message(400, "export format is illegal", "请指明导出格式"), status_code=400)
+
+    new_export_record_list = []
+    record = export_service.export_app(session, enterprise_id, app_id, app_versions[0], export_format)
+    new_export_record_list.append(jsonable_encoder(record))
+
+    result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
+    return JSONResponse(result, status_code=result["code"])

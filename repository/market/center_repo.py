@@ -350,6 +350,29 @@ class CenterRepository(BaseRepository[CenterApp]):
 
 
 class AppExportRepository(BaseRepository[ApplicationExportRecord]):
+
+    def get_export_record(self, session, eid, app_id, app_version, export_format):
+        return session.execute(select(ApplicationExportRecord).where(
+            ApplicationExportRecord.group_key == app_id,
+            ApplicationExportRecord.version == app_version,
+            ApplicationExportRecord.format == export_format,
+            ApplicationExportRecord.enterprise_id.in_([eid, "public"]),
+            ApplicationExportRecord.status == "exporting"
+        )).scalars().first()
+
+    def create_app_export_record(self, session, **params):
+        app_export_record = ApplicationExportRecord(**params)
+        session.add(app_export_record)
+        session.flush()
+        return app_export_record
+
+    def get_enter_export_record_by_key_and_version(self, session, enterprise_id, group_key, version):
+        return session.execute(select(ApplicationExportRecord).where(
+            ApplicationExportRecord.group_key == group_key,
+            ApplicationExportRecord.version == version,
+            ApplicationExportRecord.enterprise_id.in_(["public", enterprise_id])
+        )).scalars().all()
+
     def delete_by_key_and_version(self, session: SessionClass, group_key, version):
         session.execute(delete(ApplicationExportRecord).where(
             ApplicationExportRecord.group_key == group_key,
