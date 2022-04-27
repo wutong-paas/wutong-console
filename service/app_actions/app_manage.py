@@ -615,7 +615,7 @@ class AppManageService(AppManageBase):
 
                                 # install from local cloud
                                 else:
-                                    _, app_version = market_app_service.get_rainbond_app_and_version(
+                                    _, app_version = market_app_service.get_wutong_app_and_version(
                                         session=session,
                                         enterprise_id=tenant.enterprise_id,
                                         app_id=service_source.group_key,

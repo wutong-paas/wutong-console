@@ -1,16 +1,17 @@
 import base64
 import json
 import os
-
+import urllib.error
+import urllib.parse
+import urllib.request
 from loguru import logger
-
 from clients.remote_migrate_client import remote_migrate_client_api
 from core.setting import settings
 from core.utils.crypt import make_uuid
-from exceptions.main import RegionNotFound, RecordNotFound
+from exceptions.main import RegionNotFound, RecordNotFound, RbdAppNotFound, ExportAppError
 from models.market.models import CenterApp, CenterAppVersion
 from repository.application.app_repository import app_repo
-from repository.market.center_repo import center_app_repo, app_import_record_repo
+from repository.market.center_repo import center_app_repo, app_import_record_repo, app_export_record_repo
 from repository.region.region_info_repo import region_repo
 from service.region_service import region_services
 
@@ -220,4 +221,168 @@ class AppImportService(object):
         return upload_url + "/" + event_id
 
 
+class AppExportService(object):
+
+    def encode_image(self, image_url):
+        if not image_url:
+            return None
+        if image_url.startswith("http"):
+            response = urllib.request.urlopen(image_url)
+        else:
+            image_url = "{}/media/uploads/{}".format(settings.DATA_DIR, image_url.split('/')[-1])
+            response = open(image_url, mode='rb')
+        image_base64_string = base64.encodebytes(response.read()).decode('utf-8')
+        response.close()
+        return image_base64_string
+
+    def __get_app_metata(self, app, app_version):
+        picture_path = app.pic
+        suffix = picture_path.split('.')[-1]
+        describe = app.describe
+        try:
+            image_base64_string = self.encode_image(picture_path)
+        except IOError as e:
+            logger.warning("path: {}; error encoding image: {}".format(picture_path, e))
+            image_base64_string = ""
+
+        app_template = json.loads(app_version.app_template)
+        app_template["annotations"] = {
+            "suffix": suffix,
+            "describe": describe,
+            "image_base64_string": image_base64_string,
+            "version_info": app_version.app_version_info,
+            "version_alias": app_version.version_alias,
+        }
+        return json.dumps(app_template, cls=MyEncoder)
+
+    def select_handle_region(self, session, eid):
+        data = region_services.get_enterprise_regions(session, eid, level="safe", status=1, check_status=True)
+        if data:
+            for region in data:
+                if region["rbd_version"] != "":
+                    return region_services.get_region_by_region_id(session, data[0]["region_id"])
+        raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
+
+    def export_app(self, session, eid, app_id, version, export_format):
+        app, app_version = center_app_repo.get_wutong_app_and_version(session, eid, app_id, version)
+        if not app or not app_version:
+            raise RbdAppNotFound("未找到该应用")
+
+        # get region TODO: get region by app publish meta info
+        region = self.select_handle_region(session, eid)
+        region_name = region.region_name
+        export_record = app_export_record_repo.get_export_record(session, eid, app_id, version, export_format)
+        if export_record:
+            if export_record.status == "success":
+                raise ExportAppError(msg="exported", status_code=409)
+            if export_record.status == "exporting":
+                logger.debug("export record exists: event_id :{0}".format(export_record.event_id))
+                return export_record
+        # did not export, make a new export record
+        # make export data
+        event_id = make_uuid()
+        data = {
+            "event_id": event_id,
+            "group_key": app.app_id,
+            "version": app_version.version,
+            "format": export_format,
+            "group_metadata": self.__get_app_metata(app, app_version)
+        }
+
+        try:
+            remote_migrate_client_api.export_app(session, region_name, eid, data)
+        except remote_migrate_client_api.CallApiError as e:
+            logger.exception(e)
+            raise ExportAppError()
+
+        params = {
+            "event_id": event_id,
+            "group_key": app_id,
+            "version": version,
+            "format": export_format,
+            "status": "exporting",
+            "enterprise_id": eid,
+            "region_name": region.region_name
+        }
+
+        return app_export_record_repo.create_app_export_record(session, **params)
+
+    def _wrapper_director_download_url(self, session, region_name, raw_url):
+        region = region_repo.get_region_by_region_name(session, region_name)
+        if region:
+            splits_texts = region.wsurl.split("://")
+            if splits_texts[0] == "wss":
+                return "https://" + splits_texts[1] + raw_url
+            else:
+                return "http://" + splits_texts[1] + raw_url
+
+    def get_export_status(self, session, enterprise_id, app, app_version):
+        app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(
+            session, enterprise_id, app.app_id, app_version.version)
+        wutong_app_init_data = {
+            "is_export_before": False,
+        }
+        docker_compose_init_data = {
+            "is_export_before": False,
+        }
+
+        if app_export_records:
+            for export_record in app_export_records:
+                if not export_record.region_name:
+                    continue
+                region = region_repo.get_enterprise_region_by_region_name(session, enterprise_id,
+                                                                          export_record.region_name)
+                if not region:
+                    continue
+                if export_record.event_id and export_record.status == "exporting":
+                    try:
+                        res, body = remote_migrate_client_api.get_app_export_status(session,
+                                                                                    export_record.region_name,
+                                                                                    enterprise_id,
+                                                                                    export_record.event_id)
+                        result_bean = body["bean"]
+                        if result_bean["status"] in ("failed", "success"):
+                            export_record.status = result_bean["status"]
+                        export_record.file_path = result_bean["tar_file_href"]
+                        # export_record.save()
+                    except Exception as e:
+                        logger.exception(e)
+
+                if export_record.format == "rainbond-app":
+                    wutong_app_init_data.update({
+                        "is_export_before":
+                            True,
+                        "status":
+                            export_record.status,
+                        "file_path":
+                            self._wrapper_director_download_url(session,
+                                                                export_record.region_name,
+                                                                export_record.file_path.replace(
+                                                                    "/v2", ""))
+                    })
+                if export_record.format == "docker-compose":
+                    docker_compose_init_data.update({
+                        "is_export_before":
+                            True,
+                        "status":
+                            export_record.status,
+                        "file_path":
+                            self._wrapper_director_download_url(session,
+                                                                export_record.region_name,
+                                                                export_record.file_path.replace(
+                                                                    "/v2", ""))
+                    })
+
+        result = {"rainbond_app": wutong_app_init_data, "docker_compose": docker_compose_init_data}
+        return result
+
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return str(obj, encoding='utf-8')
+        return json.JSONEncoder.default(self, obj)
+
+
 import_service = AppImportService()
+export_service = AppExportService()

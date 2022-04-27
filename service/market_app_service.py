@@ -41,9 +41,9 @@ class MarketAppService(object):
         extend_info_str = service_source.extend_info
         extend_info = json.loads(extend_info_str)
         if not extend_info.get("install_from_cloud", False):
-            rainbond_app, rainbond_app_version = market_app_service.get_rainbond_app_and_version(
+            wutong_app, wutong_app_version = market_app_service.get_rainbond_app_and_version(
                 session, tenant.enterprise_id, service_source.group_key, service_source.version)
-            if not rainbond_app or not rainbond_app_version:
+            if not wutong_app or not wutong_app_version:
                 logger.info("app has been delete on market:{0}".format(service.service_cname))
                 raise app_not_found
         else:
@@ -494,7 +494,7 @@ class MarketAppService(object):
 
         return add_model
 
-    def get_rainbond_app_and_version(self, session: SessionClass, enterprise_id, app_id, app_version):
+    def get_wutong_app_and_version(self, session: SessionClass, enterprise_id, app_id, app_version):
         app = (
             session.execute(select(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
                                                     CenterApp.app_id == app_id))

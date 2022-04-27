@@ -108,10 +108,10 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         return [config for config in configs]
 
     def get_service_plugin_config_var(self, session, service_id, plugin_id, build_version):
-        return (session.execute(select(ComponentPluginConfigVar).where(
+        return session.execute(select(ComponentPluginConfigVar).where(
             ComponentPluginConfigVar.plugin_id == plugin_id,
             ComponentPluginConfigVar.service_id == service_id,
-            ComponentPluginConfigVar.build_version == build_version))).scalars().all()
+            ComponentPluginConfigVar.build_version == build_version)).scalars().all()
 
     def get_plugins_by_service_id(self, session, region, tenant_id, service_id, category):
         """获取组件已开通和未开通的插件"""
@@ -179,11 +179,10 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         session.execute(delete(ComponentPluginConfigVar).where(
             ComponentPluginConfigVar.plugin_id == plugin_id,
             ComponentPluginConfigVar.service_id == service_id))
-        
 
     def create_bulk_service_plugin_config_var(self, session, service_plugin_var):
         session.add_all(service_plugin_var)
-        
+        session.flush()
 
     def get_service_plugin_all_config(self, session, service_id):
         return (session.execute(select(ComponentPluginConfigVar).where(
