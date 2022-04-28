@@ -8,6 +8,7 @@ from loguru import logger
 from sqlalchemy import select, or_, text, delete
 
 from clients.remote_build_client import remote_build_client
+from clients.remote_plugin_client import remote_plugin_client
 from common.base_http_client import HttpClient
 from core.enum.component_enum import is_singleton
 from core.utils.crypt import make_uuid
@@ -34,6 +35,62 @@ from service.plugin.plugin_config_service import plugin_config_service
 
 
 class ShareService(object):
+
+    def get_sync_plugin_events(self, session, region_name, tenant_name, record_event):
+        res, body = remote_plugin_client.share_plugin_result(session, region_name, tenant_name, record_event.plugin_id,
+                                                             record_event.region_share_id)
+        ret = body.get('bean')
+        if ret and ret.get('status'):
+            record_event.event_status = ret.get("status")
+            # record_event.save()
+        return record_event
+
+    def sync_service_plugin_event(self, session, user, region_name, tenant_name, record_id, record_event):
+        apps_version = center_app_repo.get_wutong_app_version_by_record_id(session, record_event.record_id)
+        if not apps_version:
+            raise RbdAppNotFound("分享的应用不存在")
+        app_template = json.loads(apps_version.app_template)
+        if "plugins" not in app_template:
+            return
+        plugins_info = app_template["plugins"]
+        plugin_list = []
+        for plugin in plugins_info:
+            if record_event.plugin_id == plugin["plugin_id"]:
+                event_id = make_uuid()
+                body = {
+                    "plugin_id": plugin["plugin_id"],
+                    "plugin_version": plugin["build_version"],
+                    "plugin_key": plugin["plugin_key"],
+                    "event_id": event_id,
+                    "share_user": user.nick_name,
+                    "share_scope": apps_version.scope,
+                    "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else {},
+                }
+                try:
+                    res, body = remote_plugin_client.share_plugin(session, region_name, tenant_name,
+                                                                  plugin["plugin_id"], body)
+                    data = body.get("bean")
+                    if not data:
+                        raise ServiceHandleException(msg="share failed", msg_show="数据中心分享错误")
+
+                    record_event.region_share_id = data.get("share_id", None)
+                    record_event.event_id = data.get("event_id", None)
+                    record_event.event_status = "start"
+                    record_event.update_time = datetime.datetime.now()
+                    # record_event.save()
+                    image_name = data.get("image_name", None)
+                    if image_name:
+                        plugin["share_image"] = image_name
+                except Exception as e:
+                    logger.exception(e)
+                    raise ServiceHandleException(msg="share failed", msg_show="插件分享事件同步发生错误", status_code=500)
+
+            plugin_list.append(plugin)
+        app_template["plugins"] = plugin_list
+        apps_version.app_template = json.dumps(app_template)
+        # apps_version.save()
+        return record_event
+
     def wrapper_service_plugin_config(self, service_related_plugin_config, shared_plugin_info):
         """添加plugin key信息"""
         id_key_map = {}
@@ -233,8 +290,9 @@ class ShareService(object):
                             team_id=share_team.tenant_id,
                             plugin_id=plugin_info['plugin_id'],
                             plugin_name=plugin_info['plugin_alias'],
-                            event_status='not_start')
-                        session.merge(event)
+                            event_status='not_start',
+                            region_share_id="")
+                        session.add(event)
                         session.flush()
 
                     shared_plugin_info = self.get_plugins_group_items(session=session, plugins=plugins)
@@ -366,10 +424,7 @@ class ShareService(object):
                     ServiceShareRecord.create_time.desc()))
             ).scalars().first()
 
-        dt = {}
-        dt["app_model_list"] = []
-        dt["last_shared_app"] = {}
-        dt["scope"] = scope
+        dt = {"app_model_list": [], "last_shared_app": {}, "scope": scope}
         if scope == "goodrain":
             market = market_app_service.get_app_market_by_name(session=session, enterprise_id=enterprise_id,
                                                                name=market_name, raise_exception=True)

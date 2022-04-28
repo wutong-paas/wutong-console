@@ -128,7 +128,7 @@ async def get_share_info(scope: Optional[str] = None,
     data["share_service_list"] = service_info_list
     plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id, session=session)
     data["share_plugin_list"] = plugins
-    return JSONResponse(general_message(200, "query success", "获取成功", bean=data), status_code=200)
+    return JSONResponse(general_message(200, "query success", "获取成功", bean=jsonable_encoder(data)), status_code=200)
 
 
 @router.post("/teams/{team_name}/share/{share_id}/info", response_model=Response, name="生成分享应用实体，向数据中心发送分享任务")
@@ -230,7 +230,7 @@ async def get_share_event(team_name: Optional[str] = None,
         for plugin_event in plugin_events:
             if plugin_event.event_status != "success":
                 result["is_compelte"] = False
-            plugin_event_map = plugin_event.to_dict()
+            plugin_event_map = jsonable_encoder(plugin_event)
             plugin_event_map["type"] = "plugin"
             result["event_list"].append(plugin_event_map)
         result = general_message(200, "query success", "获取成功", bean=jsonable_encoder(result))
@@ -425,3 +425,78 @@ async def get_object_log(event_id: Optional[str] = None,
         logger.exception(e)
         result = error_message("failed")
     return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/share/{share_id}/events/{event_id}/plugin", response_model=Response,
+             name="分享插件")
+async def share_plugin(
+        team_name: Optional[str] = None,
+        share_id: Optional[str] = None,
+        event_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
+    share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+    if not share_record:
+        result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+        return JSONResponse(result, status_code=404)
+    if share_record.is_success or share_record.step >= 3:
+        result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+        return JSONResponse(result, status_code=400)
+    events = session.execute(select(PluginShareRecordEvent).where(
+        PluginShareRecordEvent.record_id == share_id,
+        PluginShareRecordEvent.ID == event_id
+    )).scalars().all()
+    if not events:
+        result = general_message(404, "not exist", "分享事件不存在")
+        return JSONResponse(result, status_code=404)
+
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    response_region = region.region_name
+
+    bean = share_service.sync_service_plugin_event(session, user, response_region, team.tenant_name, share_id,
+                                                   events[0])
+    if not bean:
+        result = general_message(400, "sync share event", "插件不存在无需发布")
+    else:
+        result = general_message(200, "sync share event", "分享成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/teams/{team_name}/share/{share_id}/events/{event_id}/plugin", response_model=Response,
+            name="获取分享插件进度")
+async def get_share_plugin(
+        team_name: Optional[str] = None,
+        share_id: Optional[str] = None,
+        event_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
+    share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+    if not share_record:
+        result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
+        return JSONResponse(result, status_code=404)
+    if share_record.is_success or share_record.step >= 3:
+        result = general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享")
+        return JSONResponse(result, status_code=400)
+
+    plugin_events = session.execute(select(PluginShareRecordEvent).where(
+        PluginShareRecordEvent.record_id == share_id,
+        PluginShareRecordEvent.ID == event_id
+    ).order_by(PluginShareRecordEvent.ID.asc())).scalars().all()
+    if not plugin_events:
+        result = general_message(404, "not exist", "分享事件不存在")
+        return JSONResponse(result, status_code=404)
+
+    if plugin_events[0].event_status == "success":
+        result = general_message(200, "get sync share event result", "查询成功", bean=jsonable_encoder(plugin_events[0]))
+        return JSONResponse(result, status_code=200)
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    response_region = region.region_name
+    bean = share_service.get_sync_plugin_events(session, response_region, team_name, plugin_events[0])
+    result = general_message(200, "get sync share event result", "查询成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=200)

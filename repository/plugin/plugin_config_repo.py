@@ -56,6 +56,7 @@ class PluginConfigItemsRepository(BaseRepository[PluginConfigItems]):
 
     def bulk_create_items(self, session, config_items_list):
         session.add_all(config_items_list)
+        session.flush()
 
     def get_config_items_by_unique_key(self, session, plugin_id, build_version, service_meta_type):
         return (session.execute(select(PluginConfigItems).where(
