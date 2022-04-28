@@ -41,7 +41,7 @@ class MarketAppService(object):
         extend_info_str = service_source.extend_info
         extend_info = json.loads(extend_info_str)
         if not extend_info.get("install_from_cloud", False):
-            wutong_app, wutong_app_version = market_app_service.get_rainbond_app_and_version(
+            wutong_app, wutong_app_version = market_app_service.get_wutong_app_and_version(
                 session, tenant.enterprise_id, service_source.group_key, service_source.version)
             if not wutong_app or not wutong_app_version:
                 logger.info("app has been delete on market:{0}".format(service.service_cname))
@@ -444,8 +444,8 @@ class MarketAppService(object):
         #     # todo
         #     logger.info("install from cloud")
         # else:
-        market_app, app_version = self.get_rainbond_app_and_version(session, user.enterprise_id, app_model_key,
-                                                                    version)
+        market_app, app_version = self.get_wutong_app_and_version(session, user.enterprise_id, app_model_key,
+                                                                  version)
         if app_version and app_version.region_name and app_version.region_name != region.region_name:
             raise AbortRequest(
                 msg="app version can not install to this region",

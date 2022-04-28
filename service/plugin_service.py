@@ -1,10 +1,8 @@
 import json
-import logging
 import os
-
 from loguru import logger
-
 from clients.remote_plugin_client import remote_plugin_client
+from core.setting import settings
 from core.utils.constants import PluginCategoryConstants, DefaultPluginConstants, PluginImage
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
@@ -113,7 +111,7 @@ class PluginService(object):
         config_item_repo.delete_config_items_by_plugin_id(session=session, plugin_id=plugin_id)
         config_group_repo.delete_config_group_by_plugin_id(session=session, plugin_id=plugin_id)
 
-    all_default_config = None
+    # all_default_config = None
     module_dir = os.path.dirname(__file__)
     file_path = os.path.join(module_dir, 'plugin/default_config.json')
     with open(file_path, encoding='utf-8') as f:
@@ -128,15 +126,15 @@ class PluginService(object):
             image = needed_plugin_config.get("image", "")
             build_source = needed_plugin_config.get("build_source", "")
             image_tag = "latest"
-            # if image and build_source and build_source == "image":
-            #     ref = reference.Reference.parse(image)
-            #     if ref["tag"]:
-            #         image_tag = ref["tag"]
-            #     if "goodrain.me" in image:
-            #         _, name = ref.split_hostname()
-            #         image = settings.IMAGE_REPO + "/" + name
-            #     else:
-            #         image = image.split(":")[0]
+            if image and build_source and build_source == "image":
+                ref = image.split(":")
+                if len(ref) > 1:
+                    image_tag = ":".join(ref[1:])
+                if "goodrain.me" in image:
+                    _, name = ref.split_hostname()
+                    image = settings.IMAGE_REPO + "/" + name
+                else:
+                    image = ref[0]
             plugin_params = {
                 "tenant_id": tenant.tenant_id,
                 "region": region,
@@ -198,7 +196,8 @@ class PluginService(object):
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            self.create_region_plugin(session=session, region=region, tenant=tenant, tenant_plugin=plugin_base_info)
+            self.create_region_plugin(session=session, region=region, tenant=tenant, tenant_plugin=plugin_base_info,
+                                      image_tag=image_tag)
 
             self.build_plugin(session=session, region=region, plugin=plugin_base_info,
                               plugin_version=plugin_build_version, user=user, tenant=tenant, event_id=event_id)

@@ -14,7 +14,7 @@ class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
     def create_plugin_build_version(self, session, **params):
         add_plugin = PluginBuildVersion(**params)
         session.add(add_plugin)
-
+        session.flush()
         return add_plugin
 
     def delete_build_version_by_plugin_id(self, session, tenant_id, plugin_id):
