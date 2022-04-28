@@ -723,9 +723,9 @@ class TenantServiceVolumnRepository(BaseRepository[TeamComponentVolume]):
 
     def get_service_config_file(self, session, volume: TeamComponentVolume):
         return session.execute(select(TeamComponentConfigurationFile).where(
-            or_(and_(TeamComponentConfigurationFile.service_id == volume.service_id,
+            and_(or_(TeamComponentConfigurationFile.volume_name == volume.volume_name,
                      TeamComponentConfigurationFile.volume_id == volume.ID),
-                TeamComponentConfigurationFile.volume_name == volume.volume_name))).scalars().first()
+                 TeamComponentConfigurationFile.service_id == volume.service_id))).scalars().first()
 
     def get_service_volumes(self, session, service_id):
         return session.execute(select(TeamComponentVolume).where(
