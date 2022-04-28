@@ -474,7 +474,7 @@ async def export_app_models(
     export_format = data.get("format", None)
     if not app_id or not app_versions:
         return JSONResponse(general_message(400, "app id is null", "请指明需要导出的应用"), status_code=400)
-    if not export_format or export_format not in ("rainbond-app", "docker-compose"):
+    if not export_format or export_format not in ("wutong-app", "docker-compose"):
         return JSONResponse(general_message(400, "export format is illegal", "请指明导出格式"), status_code=400)
 
     new_export_record_list = []

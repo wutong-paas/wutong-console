@@ -348,7 +348,7 @@ class AppExportService(object):
                     except Exception as e:
                         logger.exception(e)
 
-                if export_record.format == "rainbond-app":
+                if export_record.format == "wutong-app":
                     wutong_app_init_data.update({
                         "is_export_before":
                             True,
