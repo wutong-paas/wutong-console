@@ -34,7 +34,9 @@ async def get_info(session: SessionClass = Depends(deps.get_session)) -> Any:
         data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
     data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
     data["is_offline"] = os.getenv('IS_OFFLINE', False)
-    data["is_regist"] = os.getenv('IS_REGIST', register_config.enable)
+    data["is_regist"] = os.getenv('IS_REGIST', {"enable": register_config.enable,
+                                                "value": register_config.value
+                                                })
     result = general_message(200, "success", "查询成功", bean=data, initialize_info=initialize_info)
     return JSONResponse(result, status_code=result["code"])
 
