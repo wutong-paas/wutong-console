@@ -9,10 +9,10 @@ from sqlalchemy import select
 from core import deps
 from core.utils.crypt import make_uuid
 from core.utils.dependencies import DALGetter
-from core.utils.return_message import general_message
+from core.utils.return_message import general_message, error_message
 from core.utils.validation import validate_name
 from database.session import SessionClass
-from exceptions.main import RegionNotFound
+from exceptions.main import RegionNotFound, AbortRequest
 from models.market.models import CenterAppTag
 from models.teams import PermRelTenant, RegionConfig
 from models.teams.enterprise import TeamEnterprise
@@ -482,4 +482,41 @@ async def export_app_models(
     new_export_record_list.append(jsonable_encoder(record))
 
     result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/enterprise/{enterprise_id}/app-models/import/{event_id}", response_model=Response, name="应用包导入")
+async def import_app(
+        request: Request,
+        enterprise_id: Optional[str] = None,
+        event_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    data = await request.json()
+    scope = data.get("scope", None)
+    file_name = data.get("file_name", None)
+    team_name = data.get("tenant_name", None)
+    if not scope:
+        raise AbortRequest(msg="select the scope", msg_show="请选择导入应用可见范围")
+    if scope == "team" and not team_name:
+        raise AbortRequest(msg="select the team", msg_show="请选择要导入的团队")
+    if not file_name:
+        raise AbortRequest(msg="file name is null", msg_show="请选择要导入的文件")
+    if not event_id:
+        raise AbortRequest(msg="event is not found", msg_show="参数错误，未提供事件ID")
+    files = file_name.split(",")
+    import_service.start_import_apps(session, scope, event_id, files, team_name, enterprise_id)
+    result = general_message(200, 'success', "操作成功，正在导入")
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.delete("/enterprise/{enterprise_id}/app-models/import/{event_id}", response_model=Response, name="放弃应用包导入")
+async def delete_import_app(
+        event_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    try:
+        import_service.delete_import_app_dir_by_event_id(session, event_id)
+        result = general_message(200, "success", "操作成功")
+    except Exception as e:
+        logger.exception(e)
+        result = error_message("失败")
     return JSONResponse(result, status_code=result["code"])

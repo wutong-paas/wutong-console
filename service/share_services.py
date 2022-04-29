@@ -7,6 +7,7 @@ from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from sqlalchemy import select, or_, text, delete
 
+from appstore.app_store import app_store
 from clients.remote_build_client import remote_build_client
 from clients.remote_plugin_client import remote_plugin_client
 from common.base_http_client import HttpClient
@@ -383,9 +384,8 @@ class ShareService(object):
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
             )
-            # todo
-            # if app_store.is_no_multiple_region_hub(session=session, enterprise_id=share_team.enterprise_id):
-            #     app_version.region_name = region_name
+            if app_store.is_no_multiple_region_hub(session=session, enterprise_id=share_team.enterprise_id):
+                app_version.region_name = region_name
             session.add(app_version)
             session.flush()
             share_record.step = 2

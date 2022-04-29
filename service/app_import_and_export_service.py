@@ -5,6 +5,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from loguru import logger
+
+from appstore.app_store import app_store
 from clients.remote_migrate_client import remote_migrate_client_api
 from core.setting import settings
 from core.utils.crypt import make_uuid
@@ -17,6 +19,35 @@ from service.region_service import region_services
 
 
 class AppImportService(object):
+
+    def delete_import_app_dir_by_event_id(self, session, event_id):
+        try:
+            import_record = app_import_record_repo.get_import_record_by_event_id(session, event_id)
+            remote_migrate_client_api.delete_enterprise_import(session, import_record.region,
+                                                               import_record.enterprise_id, event_id)
+        except Exception as e:
+            logger.exception(e)
+
+        app_import_record_repo.delete_by_event_id(session, event_id)
+
+    def start_import_apps(self, session, scope, event_id, file_names, team_name=None, enterprise_id=None):
+        import_record = app_import_record_repo.get_import_record_by_event_id(session, event_id)
+        if not import_record:
+            raise RecordNotFound("import_record not found")
+        import_record.scope = scope
+        if team_name:
+            import_record.team_name = team_name
+
+        service_image = app_store.get_app_hub_info(session=session, enterprise_id=enterprise_id)
+        data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
+        if scope == "enterprise":
+            remote_migrate_client_api.import_app_2_enterprise(session, import_record.region,
+                                                              import_record.enterprise_id, data)
+        else:
+            res, body = remote_migrate_client_api.import_app(session, import_record.region, team_name, data)
+        import_record.status = "importing"
+        # import_record.save()
+
     def get_import_app_dir(self, session, event_id):
         """获取应用目录下的包"""
         import_record = app_import_record_repo.get_import_record_by_event_id(session, event_id)
@@ -38,13 +69,13 @@ class AppImportService(object):
             template_version=app_template["template_version"],
             record_id=import_record.ID,
             share_user=0,
+            share_team="",
             is_complete=1,
             app_version_info=app_template.get("annotations", {}).get("version_info", ""),
             version_alias=app_template.get("annotations", {}).get("version_alias", ""),
         )
-        # todo
-        # if app_store.is_no_multiple_region_hub(session, import_record.enterprise_id):
-        #     version.region_name = import_record.region
+        if app_store.is_no_multiple_region_hub(session, import_record.enterprise_id):
+            version.region_name = import_record.region
         return version
 
     def decode_image(self, image_base64_string, suffix):
@@ -79,7 +110,7 @@ class AppImportService(object):
             if app:
                 app.scope = import_record.scope
                 app.describe = app_describe
-                app.save()
+                # app.save()
                 app_version = app_repo.get_wutong_app_version_by_app_id_and_version(
                     session, app.app_id, app_template["group_version"])
                 if app_version:
@@ -112,7 +143,7 @@ class AppImportService(object):
                 if key_and_version in key_and_version_list:
                     continue
                 key_and_version_list.append(key_and_version)
-                rainbond_app = CenterApp(
+                wutong_app = CenterApp(
                     enterprise_id=import_record.enterprise_id,
                     app_id=app_template["group_key"],
                     app_name=app_template["group_name"],
@@ -122,9 +153,9 @@ class AppImportService(object):
                     describe=app_describe,
                     pic=pic_url,
                 )
-                wutong_apps.append(rainbond_app)
+                wutong_apps.append(wutong_app)
                 # create a new app version
-                wutong_app_versions.append(self.create_app_version(rainbond_app, import_record, app_template))
+                wutong_app_versions.append(self.create_app_version(session, wutong_app, import_record, app_template))
         session.add_all(wutong_app_versions)
         session.add_all(wutong_apps)
 
@@ -153,7 +184,7 @@ class AppImportService(object):
         if import_record.status != "success":
             if status == "success":
                 logger.debug("app import success !")
-                self.__save_enterprise_import_info(import_record, body["bean"]["metadata"])
+                self.__save_enterprise_import_info(session, import_record, body["bean"]["metadata"])
                 import_record.source_dir = body["bean"]["source_dir"]
                 import_record.format = body["bean"]["format"]
                 import_record.status = "success"
