@@ -363,10 +363,6 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                 TeamComponentInfo.service_id.in_(service_ids),
                 TeamComponentInfo.tenant_id == tenant_id)).scalars().all()
 
-    def save_service(self, session, service):
-        session.merge(service)
-        session.flush()
-
     def delete_service(self, session, pk):
         session.execute(
             delete(TeamComponentInfo).where(TeamComponentInfo.ID == pk))
