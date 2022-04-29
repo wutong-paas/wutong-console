@@ -16,6 +16,13 @@ from schemas import CenterAppCreate
 
 
 class AppImportRepository(object):
+
+    def delete_by_event_id(self, session, event_id):
+        session.execute(delete(AppImportRecord).where(
+            AppImportRecord.event_id == event_id
+        ))
+        session.flush()
+
     def get_import_record_by_event_id(self, session, event_id):
         return session.execute(select(AppImportRecord).where(
             AppImportRecord.event_id == event_id
