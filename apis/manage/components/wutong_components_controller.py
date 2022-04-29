@@ -301,7 +301,6 @@ async def set_is_upgrade(request: Request,
     service = service_repo.get_service(session, serviceAlias, team.tenant_id)
 
     service.build_upgrade = build_upgrade
-    service_repo.save_service(service)
     result = general_message(200, "success", "操作成功", bean={"build_upgrade": service.build_upgrade})
     return JSONResponse(result, status_code=result["code"])
 

@@ -30,4 +30,4 @@ xpinyin~=0.7.6
 PyGithub~=1.55
 python-gitlab~=2.10.1
 PyYAML~=6.0
-openapi_client~=1.1.7
+-e git+https://gitee.com/rainbond/appstore-sdk-python.git@python3#egg=openapi_client
