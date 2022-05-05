@@ -161,7 +161,7 @@ class MarketAppService(object):
             not_release_ver_nums = app_not_release_ver_nums.get(app.app_id, [])
             # If there is a version to release, set the application to release state
             if len(release_ver_nums) > 0:
-                app.dev_status = "release"
+                app_dict["dev_status"] = "release"
                 release_ver_nums = sorted_versions(release_ver_nums)
             if len(not_release_ver_nums) > 0:
                 not_release_ver_nums = sorted_versions(not_release_ver_nums)
