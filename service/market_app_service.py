@@ -73,20 +73,6 @@ class MarketAppService(object):
             raise ServiceHandleException(msg="can't get version", msg_show="应用下无该版本", status_code=404)
         return version
 
-    def _patch_wutong_app_tag(self, session, eid, apps):
-        app_ids = [app.app_id for app in apps]
-        tags = app_tag_repo.get_multi_apps_tags(session, eid, app_ids)
-        if not tags:
-            return
-        app_with_tags = dict()
-        for tag in tags:
-            if not app_with_tags.get(tag.app_id):
-                app_with_tags[tag.app_id] = []
-            app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
-
-        # for app in apps:
-        #     app.tags = app_with_tags.get(app.app_id)
-
     def _get_wutong_app_min_memory(self, apps_model_versions):
         apps_min_memory = dict()
         for app_model_version in apps_model_versions:
@@ -109,17 +95,21 @@ class MarketAppService(object):
                 apps_min_memory[app_model_version.app_id] = min_memory
         return apps_min_memory
 
-    def _patch_wutong_app_versions(self, session, eid, apps, is_complete):
+    def _patch_wutong_app_versions_tag(self, session, eid, apps, is_complete):
         app_ids = [app.app_id for app in apps]
         versions = center_app_repo.get_wutong_app_version_by_app_ids(session, eid, app_ids, is_complete,
                                                                      rm_template_field=True)
-        # if not versions:
-        #     return
-
+        tags = app_tag_repo.get_multi_apps_tags(session, eid, app_ids)
+        app_with_tags = dict()
         app_with_versions = dict()
-        # Save the version numbers of release and normal versions for sorting
         app_release_ver_nums = dict()
         app_not_release_ver_nums = dict()
+
+        for tag in tags:
+            if not app_with_tags.get(tag.app_id):
+                app_with_tags[tag.app_id] = []
+            app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
+
         for version in versions:
             if not app_with_versions.get(version.app_id):
                 app_with_versions[version.app_id] = dict()
@@ -150,11 +140,11 @@ class MarketAppService(object):
             dev_status = ""
             app_dict.update({"dev_status": ""})
             app_dict.update({"versions_info": []})
+            app_dict["tags"] = app_with_tags.get(app.app_id)
             min_memory = apps_min_memory.get(app.app_id, 0)
             if len(app_with_versions.get(app.app_id, {})) == 0:
                 apps_list.append(app_dict)
                 continue
-
             versions = []
             # sort rainbond app versions by version
             release_ver_nums = app_release_ver_nums.get(app.app_id, [])
@@ -212,8 +202,7 @@ class MarketAppService(object):
         if not apps:
             return [], count
 
-        self._patch_wutong_app_tag(session, eid, apps)
-        apps_list = self._patch_wutong_app_versions(session, eid, apps, is_complete)
+        apps_list = self._patch_wutong_app_versions_tag(session, eid, apps, is_complete)
         return apps_list, count
 
     def list_app_versions(self, session, enterprise_id, component_source):
