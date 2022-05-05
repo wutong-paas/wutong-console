@@ -1,3 +1,4 @@
+import json
 from typing import Any, Optional, List
 
 from fastapi import APIRouter, Path, Depends, Request
@@ -155,8 +156,6 @@ async def delete_app_template(enterprise_id: Optional[str] = None,
 @router.get("/enterprise/{enterprise_id}/app-models", response_model=Response, name="获取本地市场应用列表")
 async def app_models(request: Request,
                      enterprise_id: str = Path(..., title="enterprise_id"),
-                     app_name: Optional[str] = None,
-                     tags: Optional[List[str]] = None,
                      page: Optional[int] = 1,
                      page_size: Optional[int] = 10,
                      session: SessionClass = Depends(deps.get_session),
@@ -172,13 +171,17 @@ async def app_models(request: Request,
     :param enterprise_id:
     :return:
     """
-    logger.info(tags)
     if page < 1:
         page = 1
     is_complete = request.query_params.get("is_complete", None)
     need_install = request.query_params.get("need_install", "false")
     scope = request.query_params.get("scope", None)
-    # user = user_svc.get_current_user(request=request, session=session, token=authorization)
+    tags = request.query_params.get("tags", [])
+    app_name = request.query_params.get("app_name", None)
+
+    if tags:
+        tags = json.loads(tags)
+
     apps, count = market_app_service.get_visiable_apps(session, user, enterprise_id, scope, app_name, tags, is_complete,
                                                        page,
                                                        page_size, need_install)
