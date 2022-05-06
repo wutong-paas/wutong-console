@@ -18,7 +18,7 @@ from database.session import SessionClass
 from exceptions.bcode import ErrK8sServiceNameExists, ErrComponentPortExists
 from exceptions.main import AbortRequest, ServiceHandleException, CheckThirdpartEndpointFailed
 from models.application.models import Application
-from models.component.models import TeamComponentPort
+from models.component.models import TeamComponentPort, ComponentEnvVar
 from repository.application.application_repo import application_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import service_repo
@@ -34,6 +34,28 @@ from service.probe_service import probe_service
 
 
 class AppPortService:
+
+    @staticmethod
+    def _create_port_env(component, port, name, attr_name, attr_value):
+        return ComponentEnvVar(
+            tenant_id=component.tenant_id,
+            service_id=component.component_id,
+            container_port=port.container_port,
+            name=name,
+            attr_name=attr_name,
+            attr_value=attr_value,
+            is_change=False,
+            scope="outer",
+            create_time=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        )
+
+    def create_envs_4_ports(self, component, port, governance_mode):
+        port_alias = component.service_alias.upper()
+        host_value = "127.0.0.1" if governance_mode == GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name else port.k8s_service_name
+        attr_name_prefix = port_alias + str(port.container_port)
+        host_env = self._create_port_env(component, port, "连接地址", attr_name_prefix + "_HOST", host_value)
+        port_env = self._create_port_env(component, port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
+        return [host_env, port_env]
 
     def close_thirdpart_outer(self, session, tenant, service, deal_port):
         try:
