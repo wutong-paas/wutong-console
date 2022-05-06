@@ -59,6 +59,10 @@ class ApplicationService(object):
     团队应用service
     """
 
+    @staticmethod
+    def get_pod(session, tenant, region_name, pod_name):
+        return remote_build_client.get_pod(session, region_name, tenant.tenant_name, pod_name)
+
     def install_app(self, session, tenant, region_name, app_id, overrides):
         if overrides:
             overrides = self._parse_overrides(overrides)
