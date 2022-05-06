@@ -11,6 +11,7 @@ from loguru import logger
 
 from core import deps
 from core.utils.constants import AppConstants
+from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from models.component.models import TeamComponentInfo
@@ -25,6 +26,7 @@ from service.app_actions.app_log import ws_service, event_service
 from service.application_service import application_service
 from service.compose_service import compose_service
 from service.market_app_service import market_app_service
+from service.team_service import team_services
 
 router = APIRouter()
 
@@ -211,3 +213,15 @@ async def get_events_info(request: Request,
                                                                   page_size=int(page_size))
         result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
     return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/check-resource-name", response_model=Response, name="检查资源名称")
+async def check_resource_name(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    name = await parse_item(request, "name", required=True)
+    rtype = await parse_item(request, "type", required=True)
+    region_name = await parse_item(request, "region_name", required=True)
+    components = team_services.check_resource_name(session, team.tenant_name, region_name, rtype, name)
+    return JSONResponse(general_message(200, "success", "查询成功", list=components), status_code=200)

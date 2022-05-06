@@ -18,6 +18,10 @@ from service.region_service import region_services
 
 class TeamService(object):
 
+    @staticmethod
+    def check_resource_name(session, tenant_name: str, region_name: str, rtype: str, name: str):
+        return remote_build_client.check_resource_name(session, tenant_name, region_name, rtype, name)
+
     def update_tenant_alias(self, session, tenant_name, new_team_alias):
         tenant = team_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=True)
         tenant.tenant_alias = new_team_alias
