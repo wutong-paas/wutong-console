@@ -890,7 +890,7 @@ async def install_market_app(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/groups/{group_id}/pods/{pod_name}", response_model=Response, name="查询实例信息")
+@router.get("/teams/{team_name}/groups/{group_id}/pods/{pod_name}", response_model=Response, name="查询实例信息")
 async def get_pod_view(
         pod_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
