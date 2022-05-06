@@ -92,6 +92,10 @@ async def market_create(params: Optional[MarketAppCreateParam] = MarketAppCreate
                                    app_model_key=params.app_id, version=params.app_version,
                                    market_name=params.market_name,
                                    install_from_cloud=params.install_from_cloud, is_deploy=params.is_deploy)
+
+    market_app_service.update_wutong_app_install_num(session=session, enterprise_id=region.enterprise_id,
+                                                     app_id=params.app_id, app_version=params.app_version)
+
     return JSONResponse(general_message(200, "success", "创建成功"), status_code=200)
 
 
