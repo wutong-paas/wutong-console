@@ -870,3 +870,21 @@ async def get_compose_services(
     s_list = [jsonable_encoder(s) for s in services]
     result = general_message(200, "success", "查询成功", list=s_list)
     return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/groups/{group_id}/install", response_model=Response, name="安装应用市场app")
+async def install_market_app(
+        request: Request,
+        group_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    overrides = data.get("overrides")
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    region_name = region.region_name
+    application_service.install_app(session, team, region_name, group_id, overrides)
+    result = general_message(200, "success", "安装成功")
+    return JSONResponse(result, status_code=200)
