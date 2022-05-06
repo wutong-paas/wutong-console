@@ -59,6 +59,15 @@ class ApplicationService(object):
     团队应用service
     """
 
+    def install_app(self, session, tenant, region_name, app_id, overrides):
+        if overrides:
+            overrides = self._parse_overrides(overrides)
+
+        region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
+        remote_app_client.install_app(session, region_name, tenant.tenant_name, region_app_id, {
+            "overrides": overrides,
+        })
+
     def get_service_group_info(self, session, service_id):
         return group_service_relation_repo.get_group_info_by_service_id(session, service_id)
 
