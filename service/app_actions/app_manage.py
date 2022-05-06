@@ -1469,7 +1469,7 @@ class AppManageService(AppManageBase):
 
     @staticmethod
     def _create_third_component_body(component, endpoint, ports, envs):
-        component_base = jsonable_encoder(component())
+        component_base = jsonable_encoder(component)
         component_base["component_id"] = component_base["service_id"]
         component_base["component_name"] = component_base["service_name"]
         component_base["component_alias"] = component_base["service_alias"]
@@ -1480,8 +1480,8 @@ class AppManageService(AppManageBase):
 
         return {
             "component_base": component_base,
-            "envs": [env.to_dict() for env in envs],
-            "ports": [port.to_dict() for port in ports],
+            "envs": [jsonable_encoder(env) for env in envs],
+            "ports": [jsonable_encoder(port) for port in ports],
             "endpoint": endpoint,
         }
 
