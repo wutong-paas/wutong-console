@@ -1502,7 +1502,7 @@ class AppManageService(AppManageBase):
     @staticmethod
     def _save_third_components(session, components, relations, third_endpoints, ports, envs):
         session.add_all(components)
-        service_group_relation_repo.bulk_create(relations)
+        service_group_relation_repo.bulk_create(session, relations)
         session.add_all(third_endpoints)
         session.add_all(ports)
         session.add_all(envs)
@@ -1593,7 +1593,7 @@ class AppManageService(AppManageBase):
         # start the third components
         component_ids = [cpt.component_id for cpt in components]
         try:
-            app_manage_service.batch_operations(tenant, region_name, user, "start", component_ids)
+            app_manage_service.batch_operations(session, tenant, region_name, user, "start", component_ids)
         except Exception as e:
             logger.exception(e)
             raise ErrThirdComponentStartFailed()
