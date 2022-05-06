@@ -17,6 +17,20 @@ class TenantServiceDeleteRepository(object):
 
 class AppRepo(object):
 
+    def add_wutong_install_num(self, session, enterprise_id, app_id, app_version):
+        app = session.execute(select(CenterApp).where(
+            CenterApp.enterprise_id == enterprise_id,
+            CenterApp.app_id == app_id
+        )).scalars().first()
+        app.install_number += 1
+
+        app_version = session.execute(select(CenterAppVersion).where(
+            CenterAppVersion.enterprise_id == enterprise_id,
+            CenterAppVersion.app_id == app_id,
+            CenterAppVersion.version == app_version
+        ).order_by(CenterAppVersion.update_time.desc())).scalars().first()
+        app_version.install_number += 1
+
     def get_wutong_app_qs_by_key(self, session, eid, app_id):
         """使用group_key获取一个云市应用的所有版本查询集合"""
         return session.execute(select(CenterApp).where(

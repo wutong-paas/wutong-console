@@ -29,6 +29,9 @@ from service.user_service import user_svc
 
 class MarketAppService(object):
 
+    def update_wutong_app_install_num(self, session, enterprise_id, app_id, app_version):
+        app_repo.add_wutong_install_num(session, enterprise_id, app_id, app_version)
+
     def get_wutong_app(self, session, eid, app_id):
         return app_repo.get_wutong_app_qs_by_key(session, eid, app_id)
 
