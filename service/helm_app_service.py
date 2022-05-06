@@ -9,7 +9,7 @@ from models.teams import TeamInfo
 from repository.component.service_config_repo import service_endpoints_repo
 from repository.region.region_app_repo import region_app_repo
 from service.app_actions.app_manage import app_manage_service
-
+from service.application_service import application_service
 
 
 class HelmAppService(object):
