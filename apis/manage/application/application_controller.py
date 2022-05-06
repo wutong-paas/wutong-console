@@ -19,7 +19,6 @@ from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrLastRecordUnfinished
 from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException
 from models.application.models import Application, ComponentApplicationRelation, ApplicationUpgradeRecordType
-from models.component.models import TeamComponentInfo
 from models.users.users import Users
 from repository.application.application_repo import application_repo
 from repository.component.compose_repo import compose_repo
@@ -27,7 +26,6 @@ from repository.component.group_service_repo import service_repo
 from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo
 from repository.region.region_app_repo import region_app_repo
-from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from schemas.wutong_application import CommonOperation
@@ -74,8 +72,6 @@ async def create_app(params: TeamAppCreateRequest,
     新建团队应用
     :param session:
     :param params:
-    :param team_name:
-    :param authorization:
     :return:
     """
     if len(params.note) > 2048:
@@ -116,7 +112,6 @@ async def get_app_detail(app_id: Optional[str] = None,
                          team=Depends(deps.get_current_team)) -> Any:
     """
     查询应用详情
-    :param team_name:
     :param app_id:
     :return:
     """
