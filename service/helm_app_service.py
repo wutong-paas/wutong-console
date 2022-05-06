@@ -20,7 +20,7 @@ class HelmAppService(object):
         components = application_service.list_components(session, app.app_id)
         components = [jsonable_encoder(cpt) for cpt in components]
         # relations between components and services
-        relations = self._list_component_service_relations([cpt["service_id"] for cpt in components])
+        relations = self._list_component_service_relations(session, [cpt["service_id"] for cpt in components])
 
         # create third components for services
         orphan_services = [service for service in services if service["service_name"] not in relations.values()]
@@ -46,8 +46,8 @@ class HelmAppService(object):
         return services if services else []
 
     @staticmethod
-    def _list_component_service_relations(component_ids):
-        endpoints = service_endpoints_repo.list_by_component_ids(component_ids)
+    def _list_component_service_relations(session, component_ids):
+        endpoints = service_endpoints_repo.list_by_component_ids(session, component_ids)
         relations = {}
         for endpoint in endpoints:
             ep = json.loads(endpoint.endpoints_info)
