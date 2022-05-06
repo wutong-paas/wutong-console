@@ -1471,7 +1471,7 @@ class AppManageService(AppManageBase):
     def _create_third_component_body(component, endpoint, ports, envs):
         component_base = jsonable_encoder(component)
         component_base["component_id"] = component_base["service_id"]
-        component_base["component_name"] = component_base["service_name"]
+        component_base["component_name"] = component_base["service_cname"]
         component_base["component_alias"] = component_base["service_alias"]
         component_base["container_cpu"] = component.min_cpu
         component_base["container_memory"] = component.min_memory
