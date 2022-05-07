@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, not_
 
 from core.utils.crypt import make_tenant_id
 from database.session import SessionClass
@@ -131,7 +131,7 @@ class RegionRepo(BaseRepository[RegionConfig]):
         return (session.execute(select(RegionConfig).where(
             RegionConfig.status == "1",
             RegionConfig.enterprise_id == enterprise_id,
-            RegionConfig.region_name.in_(opened_regions_name)))).scalars().all()
+            not_(RegionConfig.region_name.in_(opened_regions_name))))).scalars().all()
 
     def get_usable_regions_by_enterprise_id(self, session: SessionClass, enterprise_id):
         """获取可使用的数据中心"""

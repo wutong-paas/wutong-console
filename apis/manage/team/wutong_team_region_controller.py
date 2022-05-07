@@ -98,7 +98,7 @@ async def open_regions(request: Request,
     region_list = region_names.split(",")
     for region_name in region_list:
         region_services.create_tenant_on_region(session=session, enterprise_id=team.enterprise_id,
-                                                team_name=team.team_name,
+                                                team_name=team.tenant_name,
                                                 region_name=region_name, namespace=team.namespace)
     result = general_message(200, "success", "批量开通数据中心成功")
     return JSONResponse(result, result["code"])
