@@ -226,7 +226,7 @@ class RegionService(object):
         for region in regions:
             region_info_list.append(
                 self.conver_region_info(session=session, region=region, check_status=check_status, level=level))
-            return region_info_list
+        return region_info_list
 
     def conver_region_info(self, session: SessionClass, region, check_status, level="open"):
         # 转换集群数据，若需要附加状态则从集群API获取
