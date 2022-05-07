@@ -59,7 +59,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         except ApiBaseHttpClient.CallApiError as e:
             if "namespace exists" in e.message['body'].get('msg', ""):
                 raise ErrNamespaceExists
-            return {'status': e.message['httpcode']}, e.message['body']
+            return {'status': e.message['http_code']}, e.message['body']
 
     # 删除团队
     def delete_tenant(self, session, region, tenant_name):
