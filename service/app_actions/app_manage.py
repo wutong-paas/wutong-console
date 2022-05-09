@@ -1083,7 +1083,6 @@ class AppManageService(AppManageBase):
 
         if service.create_status != "complete":
             service.extend_method = extend_method
-            service_repo.save_service(session, service)
             return
 
         data = dict()
@@ -1094,7 +1093,6 @@ class AppManageService(AppManageBase):
                                                    service.service_region, tenant.tenant_name,
                                                    service.service_alias, data)
             service.extend_method = extend_method
-            service_repo.save_service(session, service)
         except remote_component_client.CallApiError as e:
             logger.exception(e)
             raise ErrChangeServiceType
