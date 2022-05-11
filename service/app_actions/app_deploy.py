@@ -117,7 +117,7 @@ class OtherService(object):
     Services outside the market service
     """
 
-    def pre_action(self):
+    def pre_action(self, session):
         logger.info("type: other; pre-deployment action.")
 
     def get_async_action(self):
