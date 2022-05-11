@@ -258,7 +258,7 @@ class PropertiesChanges(object):
                 return service["service_share_uuid"] in service_share_uuids
             return service["service_id"] in service_ids
 
-        add = [svc for svc in new_dep_services if not dep_service_existed(svc)]
+        add = [svc for svc in new_dep_services if not dep_service_existed(jsonable_encoder(svc))]
         if not add:
             return None
         return {
