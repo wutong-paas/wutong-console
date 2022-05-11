@@ -86,9 +86,7 @@ class AppDeployService(object):
         """perform pre-deployment actions"""
         if service.service_source == "market":
             self.impl = MarketService(session, tenant, service, version)
-            self.impl.pre_action(session)
-        else:
-            self.impl.pre_action(session)
+        self.impl.pre_action(session)
 
     def get_async_action(self):
         return self.impl.get_async_action()
@@ -283,7 +281,7 @@ class MarketService(object):
 
         try:
             self.modify_property(session)
-            self.sync_region_property()
+            self.sync_region_property(session)
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
             logger.error("service id: {}; failed to change properties for market service: {}".format(
@@ -346,7 +344,10 @@ class MarketService(object):
                     func = self.update_funcs.get(k, None)
                     if func is None:
                         continue
-                    func(session, v)
+                    if k == "volumes":
+                        func(session, v)
+                    else:
+                        func(v)
         else:
             raise ServiceHandleException(msg="component is not exist", msg_show="该版本模版不存在该组件，无法进行升级")
 
@@ -381,7 +382,7 @@ class MarketService(object):
             return AsyncAction.UPDATE.value
         return AsyncAction.NOTHING.value
 
-    def sync_region_property(self):
+    def sync_region_property(self, session):
         """
         After modifying the properties on the console side, you need to
         synchronize with the region side. must be called after `set_changes`.
@@ -395,7 +396,7 @@ class MarketService(object):
                 func = self.sync_funcs.get(k, None)
                 if func is None:
                     continue
-                func(v)
+                func(session, v)
                 self.changed[k] = v
 
     def restore_backup(self, session, backup=None):
@@ -718,6 +719,7 @@ class MarketService(object):
             host_path = "/grdata/tenant/{0}/service/{1}{2}".format(self.tenant.tenant_id, self.service.service_id,
                                                                    volume["volume_path"])
             volume["host_path"] = host_path
+            volume["category"] = "app_publish"
             file_content = volume.get("file_content", None)
             if file_content is not None:
                 volume.pop("file_content")
