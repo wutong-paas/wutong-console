@@ -15,7 +15,7 @@ from database.session import SessionClass
 from exceptions.exceptions import ErrDepServiceNotFound
 from exceptions.main import ServiceHandleException, EnvAlreadyExist, InvalidEnvName, ServiceRelationAlreadyExist, \
     InnerPortNotFound, ErrInvalidVolume, ErrDepVolumeNotFound
-from models.component.models import TeamComponentPort, TeamServiceBackup
+from models.component.models import TeamComponentPort, TeamServiceBackup, TeamComponentVolume
 from repository.component.component_repo import service_source_repo
 from repository.component.group_service_repo import service_repo
 from repository.component.service_config_repo import port_repo, volume_repo
@@ -88,7 +88,7 @@ class AppDeployService(object):
             self.impl = MarketService(session, tenant, service, version)
             self.impl.pre_action(session)
         else:
-            self.impl.pre_action()
+            self.impl.pre_action(session)
 
     def get_async_action(self):
         return self.impl.get_async_action()
@@ -346,7 +346,7 @@ class MarketService(object):
                     func = self.update_funcs.get(k, None)
                     if func is None:
                         continue
-                    func(v)
+                    func(session, v)
         else:
             raise ServiceHandleException(msg="component is not exist", msg_show="该版本模版不存在该组件，无法进行升级")
 
@@ -722,7 +722,9 @@ class MarketService(object):
             if file_content is not None:
                 volume.pop("file_content")
             logger.debug("add volume {} for component {}".format(volume["volume_name"], self.service.service_id))
-            v = volume_repo.add_service_volume(**volume)
+            v = TeamComponentVolume(**volume)
+            session.add(v)
+            session.flush()
             if not file_content and volume["volume_type"] != "config-file":
                 continue
             file_data = {"service_id": self.service.service_id, "volume_id": v.ID, "file_content": file_content}
@@ -740,7 +742,6 @@ class MarketService(object):
             logger.debug("update volume {} for component {}".format(v.volume_name, self.service.service_id))
             cfg = volume_repo.get_service_config_file(session, v)
             cfg.file_content = file_content
-            cfg.save()
 
     def _sync_volumes(self, session, volumes):
         """
