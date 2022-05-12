@@ -36,6 +36,8 @@ class UserOauthRepository(BaseRepository[UserOAuthServices]):
                     oauth_user_id=kwargs.get("oauth_user_id"),
                     oauth_user_name=kwargs.get("oauth_user_name"),
                     oauth_user_email=kwargs.get("oauth_user_email"),
+                    oauth_name=kwargs.get("oauth_name"),
+                    oauth_user_mobile=kwargs.get("oauth_user_mobile"),
                     service_id=kwargs.get("service_id"),
                     is_auto_login=kwargs.get("is_auto_login"),
                     is_authenticated=kwargs.get("is_authenticated"),
