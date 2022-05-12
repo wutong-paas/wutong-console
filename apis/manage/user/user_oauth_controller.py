@@ -214,6 +214,8 @@ async def get_oauth_user(
             "oauth_user_id": user_info.oauth_user_id,
             "oauth_user_name": user_info.oauth_user_name,
             "oauth_user_email": user_info.oauth_user_email,
+            "oauth_name": user_info.oauth_name,
+            "oauth_mobile": user_info.oauth_user_mobile,
             "is_authenticated": user_info.is_authenticated,
             "is_expired": user_info.is_expired,
             "is_link": is_link,

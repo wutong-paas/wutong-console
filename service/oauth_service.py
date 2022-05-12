@@ -27,6 +27,8 @@ class OAuthUserService(object):
             authenticated_user.oauth_user_id = oauth_user.id
             authenticated_user.oauth_user_name = oauth_user.name
             authenticated_user.oauth_user_email = oauth_user.email
+            authenticated_user.oauth_name = oauth_user.user_name
+            authenticated_user.oauth_user_mobile = oauth_user.mobile
             authenticated_user.access_token = access_token
             authenticated_user.refresh_token = refresh_token
             authenticated_user.code = code
