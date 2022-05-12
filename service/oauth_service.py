@@ -63,6 +63,8 @@ class OAuthUserService(object):
                 oauth_user_id=oauth_user.id,
                 oauth_user_name=oauth_user.name,
                 oauth_user_email=oauth_user.email,
+                oauth_name=oauth_user.user_name,
+                oauth_user_mobile=oauth_user.mobile,
                 user_id=(user.user_id if user else None),
                 code=code,
                 service_id=oauth_service.ID,
