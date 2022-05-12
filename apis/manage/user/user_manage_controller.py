@@ -16,6 +16,7 @@ from core.setting import settings
 from core.utils.perms import list_enterprise_perms_by_roles
 from core.utils.return_message import general_message
 from database.session import SessionClass
+from exceptions.main import AbortRequest
 from models.teams import PermRelTenant, TeamInfo
 from models.teams.enterprise import TeamEnterprise
 from models.users.users import Users
@@ -150,16 +151,13 @@ async def user_logout(request: Request) -> Any:
 @router.post("/users/register", response_model=Response, name="用户注册")
 async def user_register(request: Request, session: SessionClass = Depends(deps.get_session)) -> Any:
     from_data = await request.form()
-    # real_captcha_code = role_required.get_captcha_code(request)
-    # res = dal.is_data_valid(session, from_data, real_captcha_code)
-    # if not res[0]:
-    #     return general_message(400, "failed", res[1])
 
     user_name = from_data["user_name"]
     email = from_data["email"]
     phone = from_data["phone"]
     real_name = from_data["real_name"]
     password = from_data["password"]
+    re_password = from_data["password_repeat"]
     client_ip = request.client.host
 
     user_info = dict()
@@ -176,9 +174,11 @@ async def user_register(request: Request, session: SessionClass = Depends(deps.g
     user = Users(**user_info)
     user.set_password(password)
 
-    enterprise = enterprise_repo.get_enterprise_first(session=session)
+    if len(password) < 8:
+        result = general_message(400, "len error", "密码长度最少为8位")
+        return JSONResponse(result)
 
-    user_svc.create_user(session, user)
+    enterprise = enterprise_repo.get_enterprise_first(session=session)
 
     if not enterprise:
         enter_name = from_data["enter_name"]
@@ -187,6 +187,14 @@ async def user_register(request: Request, session: SessionClass = Depends(deps.g
         # 创建用户在企业的权限
         user_svc.make_user_as_admin_for_enterprise(session, user.user_id, enterprise.enterprise_id)
     user.enterprise_id = enterprise.enterprise_id
+
+    # check user info
+    try:
+        user_svc.check_params(session, user_name, email, password, re_password, user.enterprise_id, phone)
+    except AbortRequest as e:
+        return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
+
+    user_svc.create_user(session, user)
 
     data = dict()
     data["user_id"] = user.user_id

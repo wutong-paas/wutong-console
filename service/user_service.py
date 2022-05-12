@@ -150,6 +150,16 @@ class UserService(object):
         if not user_name:
             raise AbortRequest("empty username", "用户名不能为空")
         if self.is_user_exist(session, user_name, eid):
+            raise AbortRequest("username already exists", "用户{0}已存在".format(user_name), status_code=409, error_code=409)
+        r = re.compile('^[a-zA-Z0-9_\\-\\u4e00-\\u9fa5]+$')
+        if not r.match(user_name):
+            raise AbortRequest("invalid username", "用户名称只支持中英文下划线和中划线")
+        return False
+
+    def devops_check_user_name(self, session, user_name, eid=None):
+        if not user_name:
+            raise AbortRequest("empty username", "用户名不能为空")
+        if self.is_user_exist(session, user_name, eid):
             return True
         r = re.compile('^[a-zA-Z0-9_\\-\\u4e00-\\u9fa5]+$')
         if not r.match(user_name):
@@ -186,7 +196,7 @@ class UserService(object):
             raise AbortRequest("The two passwords do not match", "两次输入的密码不一致")
 
     def devops_check_params(self, session, user_name, email, password, re_password, eid=None, phone=None):
-        result = self.__check_user_name(session, user_name, eid)
+        result = self.devops_check_user_name(session, user_name, eid)
         if result:
             return True
         self.__check_email(session, email)
