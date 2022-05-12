@@ -6,10 +6,12 @@ from requests.adapters import HTTPAdapter
 
 
 class OAuth2User(object):
-    def __init__(self, name, user_id, user_email):
+    def __init__(self, name, user_id, user_email, user_name=None, mobile=None):
         self.name = name
         self.id = user_id
         self.email = user_email
+        self.user_name = user_name
+        self.mobile = mobile
 
 
 class OAuth2Interface(object, metaclass=ABCMeta):

@@ -31,6 +31,8 @@ class UserOAuthServices(Base):
     oauth_user_id = Column(String(64), nullable=True, comment="oauth_user_id")
     oauth_user_name = Column(String(64), nullable=True, comment="oauth_user_name")
     oauth_user_email = Column(String(64), nullable=True, comment="oauth_user_email")
+    oauth_name = Column(String(64), nullable=True, comment="oauth_name")
+    oauth_user_mobile = Column(String(15), nullable=True, comment="oauth_user_mobile")
     service_id = Column(Integer, nullable=True, comment="service_id")
     is_auto_login = Column(Boolean(), nullable=True, default=False, comment="is_auto_login")
     is_authenticated = Column(Boolean(), nullable=True, default=False, comment="is_authenticated")
