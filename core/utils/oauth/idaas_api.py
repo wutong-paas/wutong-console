@@ -135,7 +135,7 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
             logger.exception(e)
             raise NoAccessKeyErr("can not get user info")
         if user:
-            return OAuth2User(user["username"], user["userId"], user["email"]), access_token, refresh_token
+            return OAuth2User(user["realname"], user["userId"], user["email"]), access_token, refresh_token
         return None, None, None
 
     def get_authorize_url(self):
