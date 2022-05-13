@@ -10,6 +10,7 @@ from starlette.responses import JSONResponse
 from core.utils.return_message import general_message
 from core import deps
 from database.session import SessionClass
+from exceptions.exceptions import LogoFormatError, LogoSizeError
 from models.base.err_log import Errorlog
 from repository.users.perms_repo import perms_repo
 from schemas.response import Response
@@ -50,11 +51,15 @@ async def file_upload(file: UploadFile = File(...)) -> Any:
     :return:
     """
     if not file:
-        return general_message(400, "param error", "请指定需要上传的文件")
-    # if file.spool_max_size > 1048576 * 2:
-    #     return general_message(400, "file is too large", "图片大小不能超过2M")
+        return JSONResponse(general_message(400, "param error", "请指定需要上传的文件"), status_code=400)
     suffix = file.filename.split('.')[-1]
-    file_url = await upload_service.upload_file(file, suffix)
+    try:
+        file_url = await upload_service.upload_file(file, suffix)
+    except LogoFormatError:
+        return JSONResponse(general_message(400, "logo format error", "logo格式错误"), status_code=400)
+    except LogoSizeError:
+        return JSONResponse(general_message(400, "file is too large", "图片大小不能超过2M"), status_code=400)
+
     if not file_url:
         result = general_message(400, "upload file error", "上传失败")
     else:

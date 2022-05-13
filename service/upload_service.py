@@ -1,9 +1,11 @@
+import imghdr
 import os
 
 from loguru import logger
 
 from core.setting import settings
 from core.utils.crypt import make_uuid
+from exceptions.exceptions import LogoFormatError, LogoSizeError
 
 
 class FileUploadService(object):
@@ -38,9 +40,18 @@ class FileUploadService(object):
         query_filename = os.path.join(settings.MEDIA_URL, filename)
 
         res = await upload_file.read()
+
+        if len(res) > 1048576 * 2:
+            raise LogoSizeError
+
         with open(save_filename, "wb+") as destination:
             destination.write(res)
-            return query_filename
+
+        image_type = imghdr.what(save_filename)
+        if image_type not in {"jpeg", "jpg", "pjpeg", "jfif", "png", "pjp"}:
+            os.remove(save_filename)
+            raise LogoFormatError
+        return query_filename
 
 
 upload_service = FileUploadService()

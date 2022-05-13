@@ -28,6 +28,18 @@ class GroupNotExistError(BaseException):
     """
 
 
+class LogoFormatError(BaseException):
+    """
+    logo格式错误
+    """
+
+
+class LogoSizeError(BaseException):
+    """
+    logo大小错误
+    """
+
+
 class UserFavoriteNotExistError(BaseException):
     """
     用户收藏视图不存在
