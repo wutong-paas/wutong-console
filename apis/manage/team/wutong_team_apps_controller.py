@@ -97,10 +97,11 @@ async def get_app_detail(request: Request,
         if not service_source:
             result = general_message(200, "success", "查询成功", bean=bean)
             return JSONResponse(result, status_code=result["code"])
-        wutong_app, wutong_app_version = market_app_service.get_wutong_app_and_version(session=session,
-                                                                                       enterprise_id=team.enterprise_id,
-                                                                                       app_id=service_source.group_key,
-                                                                                       app_version=service_source.version)
+        wutong_app, wutong_app_version = market_app_service.get_wutong_detail_app_and_version(
+            session=session,
+            enterprise_id=team.enterprise_id,
+            app_id=service_source.group_key,
+            app_version=service_source.version)
         if not wutong_app:
             result = general_message(200, "success", "当前组件安装源模版已删除", bean=bean)
             return JSONResponse(result, status_code=result["code"])
