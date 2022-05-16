@@ -486,38 +486,6 @@ class MarketAppService(object):
 
         return add_model
 
-    def get_wutong_app_and_version(self, session: SessionClass, enterprise_id, app_id, app_version):
-        app = (
-            session.execute(select(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
-                                                    CenterApp.app_id == app_id))
-        ).scalars().first()
-
-        if not app_version:
-            return app, None
-        app_version = (
-            session.execute(
-                select(CenterAppVersion).where(CenterAppVersion.enterprise_id == enterprise_id,
-                                               CenterAppVersion.app_id == app_id,
-                                               CenterAppVersion.version == app_version,
-                                               CenterAppVersion.scope.in_(
-                                                   ["gooodrain", "team", "enterprise"])).order_by(
-                    CenterAppVersion.upgrade_time.desc()))
-        ).scalars().first()
-        if app_version and app:
-            return app, app_version
-        app_version = (
-            session.execute(
-                select(CenterAppVersion).where(CenterAppVersion.enterprise_id == "public",
-                                               CenterAppVersion.app_id == app_id,
-                                               CenterAppVersion.version == app_version,
-                                               CenterAppVersion.scope.in_(
-                                                   ["gooodrain", "team", "enterprise"])).order_by(
-                    CenterAppVersion.upgrade_time.desc()))
-        ).scalars().first()
-        if not app:
-            raise RbdAppNotFound("未找到该应用")
-        return app, app_version
-
     def app_models_serializers(self, session: SessionClass, market, data):
         app_models = []
 
@@ -707,6 +675,10 @@ class MarketAppService(object):
         app, app_version = center_app_repo.get_wutong_app_and_version(session, enterprise_id, app_id, app_version)
         if not app:
             raise RbdAppNotFound("未找到该应用")
+        return app, app_version
+
+    def get_wutong_detail_app_and_version(self, session: SessionClass, enterprise_id, app_id, app_version):
+        app, app_version = center_app_repo.get_wutong_app_and_version(session, enterprise_id, app_id, app_version)
         return app, app_version
 
     def app_model_serializers(self, market, data, extend=False):
