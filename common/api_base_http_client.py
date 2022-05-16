@@ -240,7 +240,7 @@ class ApiBaseHttpClient(object):
 
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
-        retries = kwargs.get("retries", 2)
+        retries = kwargs.get("retries", 5)
         d_connect, d_red = get_default_timeout_config()
         timeout = kwargs.get("timeout", d_red)
         preload_content = kwargs.get("preload_content")
