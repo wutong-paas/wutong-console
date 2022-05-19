@@ -719,5 +719,22 @@ class RemoteComponentClient(ApiBaseHttpClient):
         resp, _ = self._put(url, self._set_headers(token), region=region_name)
         return resp
 
+    def get_helm_chart_resources(self, session, region_name, tenant_name, body):
+        url, token = get_region_access_info(tenant_name, region_name, session)
+        url = url + "/v2/helm/{}/apps/{}/resources".format(body["helm_namespace"],
+                                                           body["helm_name"])
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body["list"]
+
+    def get_helm_chart_apps(self, session, region_name, tenant_name, body):
+        url, token = get_region_access_info(tenant_name, region_name, session)
+        url = url + "/v2/helm/{}/apps".format(body["helm_namespace"])
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region_name)
+        return body["list"]
+
 
 remote_component_client = RemoteComponentClient()

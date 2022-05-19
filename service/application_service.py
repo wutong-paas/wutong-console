@@ -16,9 +16,9 @@ from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core.enum.app import AppType, GovernanceModeEnum
 from core.enum.component_enum import ComponentType
-from core.utils.constants import AppConstants
+from core.utils.constants import AppConstants, PluginImage, SourceCodeType
 from core.utils.crypt import make_uuid
-from core.utils.oauth.oauth_types import get_oauth_instance
+from core.utils.oauth.oauth_types import get_oauth_instance, support_oauth_type
 from core.utils.status_translate import get_status_info_map
 from core.utils.validation import validate_endpoints_info, validate_endpoint_address
 from database.session import SessionClass
@@ -58,6 +58,125 @@ class ApplicationService(object):
     """
     团队应用service
     """
+
+    def __init_source_code_app(self, region):
+        """
+        初始化源码创建的组件默认数据,未存入数据库
+        """
+        tenant_service = TeamComponentInfo()
+        tenant_service.service_region = region
+        tenant_service.service_key = "application"
+        tenant_service.desc = "application info"
+        tenant_service.category = "application"
+        tenant_service.image = PluginImage.RUNNER
+        tenant_service.cmd = ""
+        tenant_service.setting = ""
+        tenant_service.extend_method = ComponentType.stateless_multiple.value
+        tenant_service.env = ""
+        tenant_service.min_node = 1
+        tenant_service.min_memory = 128
+        tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
+        tenant_service.inner_port = 5000
+        tenant_service.version = "81701"
+        tenant_service.namespace = "goodrain"
+        tenant_service.update_version = 1
+        tenant_service.port_type = "multi_outer"
+        tenant_service.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tenant_service.deploy_version = ""
+        tenant_service.git_project_id = 0
+        tenant_service.service_type = "application"
+        tenant_service.total_memory = 128
+        tenant_service.volume_mount_path = ""
+        tenant_service.host_path = ""
+        tenant_service.service_source = AppConstants.SOURCE_CODE
+        tenant_service.create_status = "creating"
+        return tenant_service
+
+    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
+                          check_uuid, event_id, oauth_service_id, git_full_name):
+        if service_code_from == SourceCodeType.GITLAB_MANUAL or service_code_from == SourceCodeType.GITLAB_DEMO:
+            service_code_id = "0"
+
+        if service_code_from in (SourceCodeType.GITLAB_EXIT, SourceCodeType.GITLAB_MANUAL, SourceCodeType.GITLAB_DEMO):
+            if not service_code_clone_url or not service_code_id:
+                return 403, "代码信息不全"
+            service.git_project_id = service_code_id
+            service.git_url = service_code_clone_url
+            service.code_from = service_code_from
+            service.code_version = service_code_version
+            # service.save()
+        elif service_code_from == SourceCodeType.GITHUB:
+            if not service_code_clone_url:
+                return 403, "代码信息不全"
+            service.git_project_id = service_code_id
+            service.git_url = service_code_clone_url
+            service.code_from = service_code_from
+            service.code_version = service_code_version
+            # service.save()
+            code_user = service_code_clone_url.split("/")[3]
+            code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
+            # gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
+        elif service_code_from.split("oauth_")[-1] in list(support_oauth_type.keys()):
+
+            if not service_code_clone_url:
+                return 403, "代码信息不全"
+            if check_uuid:
+                service.check_uuid = check_uuid
+            if event_id:
+                service.check_event_id = event_id
+            service.git_project_id = service_code_id
+            service.git_url = service_code_clone_url
+            service.code_from = service_code_from
+            service.code_version = service_code_version
+            service.oauth_service_id = oauth_service_id
+            service.git_full_name = git_full_name
+            # service.save()
+
+        return 200, "success"
+
+    def create_source_code_app(self,
+                               session,
+                               region,
+                               tenant,
+                               user,
+                               service_code_from,
+                               service_cname,
+                               service_code_clone_url,
+                               service_code_id,
+                               service_code_version,
+                               server_type,
+                               check_uuid=None,
+                               event_id=None,
+                               oauth_service_id=None,
+                               git_full_name=None,
+                               k8s_component_name=""):
+        service_cname = service_cname.rstrip().lstrip()
+        is_pass, msg = self.check_service_cname(service_cname)
+        if not is_pass:
+            return 412, msg, None
+        new_service = self.__init_source_code_app(region)
+        new_service.tenant_id = tenant.tenant_id
+        new_service.service_cname = service_cname
+        service_id = make_uuid(tenant.tenant_id)
+        service_alias = self.create_service_alias(session, service_id)
+        new_service.service_id = service_id
+        new_service.service_alias = service_alias
+        new_service.creater = user.user_id
+        new_service.server_type = server_type
+        new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        session.add(new_service)
+        session.flush()
+        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
+                                           service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
+        if code != 200:
+            return code, msg, new_service
+        logger.debug("service.create, user:{0} create service from source code".format(user.nick_name))
+        ts = session.execute(select(TeamComponentInfo).where(
+            TeamComponentInfo.service_id == new_service.service_id,
+            TeamComponentInfo.tenant_id == new_service.tenant_id
+        )).scalars().first()
+
+        return 200, "创建成功", ts
 
     @staticmethod
     def get_pod(session, tenant, region_name, pod_name):
@@ -587,7 +706,7 @@ class ApplicationService(object):
         if service.service_source == AppConstants.SOURCE_CODE:
             if service.oauth_service_id:
                 try:
-                    oauth_service = self.get_oauth_services_by_service_id(service.oauth_service_id)
+                    oauth_service = self.get_oauth_services_by_service_id(session, service.oauth_service_id)
                     oauth_user = (
                         session.execute(
                             select(UserOAuthServices).where(UserOAuthServices.service_id == service.oauth_service_id,

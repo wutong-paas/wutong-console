@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any, Optional
 from urllib.parse import urlsplit
@@ -5,11 +6,14 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from loguru import logger
 from starlette import status
+
+from clients.remote_build_client import remote_build_client
 from core import deps
 from core.utils.oauth.oauth_types import get_oauth_instance, support_oauth_type, NoSupportOAuthType
 from core.utils.return_message import error_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
+from repository.teams.team_repo import team_repo
 from repository.users.user_oauth_repo import oauth_repo, oauth_user_repo
 from schemas.response import Response
 from service.application_service import application_service
@@ -300,7 +304,8 @@ async def oauth_auth_user(
     user_name = user.name
     user_id = str(user.id)
     user_email = user.email
-    authenticated_user = oauth_user_repo.user_oauth_exists(session=session, service_id=service_id, oauth_user_id=user_id)
+    authenticated_user = oauth_user_repo.user_oauth_exists(session=session, service_id=service_id,
+                                                           oauth_user_id=user_id)
     link_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=service_id, user_id=login_user.user_id)
     if link_user is not None and link_user.oauth_user_id != user_id:
         rst = {"data": {"bean": None}, "status": 400, "msg_show": "该用户已绑定其他账号"}
@@ -333,4 +338,167 @@ async def oauth_auth_user(
             is_expired=False,
         )
         rst = {"data": {"bean": None}, "status": 200, "msg_show": "绑定成功"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+
+@router.get("/oauth/service/{service_id}/user/repositories", response_model=Response, name="获取oauth仓库")
+async def get_oauth_repositories(request: Request,
+                                 service_id: Optional[str] = None,
+                                 session=Depends(deps.get_session),
+                                 user=Depends(deps.get_current_user)) -> Any:
+    user_id = user.user_id
+    page = request.query_params.get("page", 1)
+    search = request.query_params.get("search", '')
+    try:
+        oauth_service = application_service.get_oauth_services_by_service_id(session=session, service_id=service_id)
+        oauth_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=service_id, user_id=user_id)
+    except Exception as e:
+        logger.debug(e)
+        rst = {"data": {"bean": {"repositories": []}}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    if oauth_user is None:
+        rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": "未成功获取第三方用户信息"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+    if not service.is_git_oauth():
+        rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    try:
+        if len(search) > 0 and search is not None:
+            true_search = oauth_user.oauth_user_name + '/' + search.split("/")[-1]
+            data, total = service.search_repos(true_search, page=page)
+        else:
+            data, total = service.get_repos(page=page)
+        rst = {
+            "data": {
+                "bean": {
+                    "repositories": data,
+                    "user_id": user_id,
+                    "service_id": service_id,
+                    "service_type": oauth_service.oauth_type,
+                    "service_name": oauth_service.name,
+                    "total": total
+                }
+            }
+        }
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception(e)
+        rst = {"data": {"bean": {"repositories": []}}, "status": 400, "msg_show": "Access Token 已过期"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+
+@router.post("/oauth/service/{service_id}/user/repository/code_detection", response_model=Response, name="检测语言")
+async def code_detection(
+        request: Request,
+        service_id: Optional[str] = None,
+        session=Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
+    data = await request.json()
+    region = data.get("region_name")
+    tenant_name = data.get("tenant_name", None)
+    git_url = data.get("project_url")
+    version = data.get("version")
+    user_id = user.user_id
+    try:
+        oauth_service = application_service.get_oauth_services_by_service_id(session, service_id)
+        oauth_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=service_id, user_id=user_id)
+    except Exception as e:
+        logger.exception(e)
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    if oauth_user is None:
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "未成功获取第三方用户信息"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
+    try:
+        service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+    except Exception as e:
+        logger.debug(e)
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    if not service.is_git_oauth():
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    tenant = team_repo.get_tenant_by_tenant_name(session, tenant_name)
+    service_code_version = version
+    try:
+        service_code_clone_url = service.get_clone_url(git_url)
+    except Exception as e:
+        logger.debug(e)
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "Access Token 已过期"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    sb = {
+        "server_type": 'git',
+        "repository_url": service_code_clone_url,
+        "branch": service_code_version,
+        "tenant_id": tenant.tenant_id
+    }
+
+    source_body = json.dumps(sb)
+    body = dict()
+    body["tenant_id"] = tenant.tenant_id
+    body["source_type"] = "sourcecode"
+    body["username"] = None
+    body["password"] = None
+    body["source_body"] = source_body
+    try:
+        res, body = remote_build_client.service_source_check(session, region, tenant.tenant_name, body)
+        return JSONResponse({"data": {"data": body}}, status_code=status.HTTP_200_OK)
+    except (remote_build_client.CallApiError, ServiceHandleException) as e:
+        logger.debug(e)
+        raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
+
+
+@router.get("/oauth/service/{service_id}/user/repository/code_detection", response_model=Response, name="获取检测结果")
+async def get_code_detection(
+        request: Request,
+        session=Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
+    region = request.query_params.get("region")
+    tenant_name = request.query_params.get("tenant_name")
+    check_uuid = request.query_params.get("check_uuid")
+    try:
+        res, body = remote_build_client.get_service_check_info(session, region, tenant_name, check_uuid)
+        return JSONResponse({"data": body}, status_code=status.HTTP_200_OK)
+    except (remote_build_client.CallApiError, ServiceHandleException) as e:
+        logger.debug(e)
+        raise ServiceHandleException(msg="region error", msg_show="访问数据中心失败")
+
+
+@router.get("/oauth/service/{service_id}/user/repository/branches", response_model=Response, name="获取分支")
+async def get_branches(
+        request: Request,
+        service_id: Optional[str] = None,
+        session=Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
+    user_id = user.user_id
+    type = request.query_params.get("type")
+    full_name = request.query_params.get("full_name")
+    try:
+        oauth_service = application_service.get_oauth_services_by_service_id(session, service_id)
+        oauth_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=service_id, user_id=user_id)
+    except Exception as e:
+        logger.debug(e)
+        rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务, 请检查该服务是否存在且属于开启状态"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    if oauth_user is None:
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "未成功获取第三方用户信息"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    try:
+        service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
+    except Exception as e:
+        logger.debug(e)
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    if not service.is_git_oauth():
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    try:
+        data = service.get_branches_or_tags(type, full_name)
+        rst = {"data": {"bean": {type: data, "total": len(data)}}}
+        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.debug(e)
+        rst = {"data": {"bean": None}, "status": 400, "msg_show": "Access Token 已过期"}
         return JSONResponse(rst, status_code=status.HTTP_200_OK)

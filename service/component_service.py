@@ -12,6 +12,7 @@ from exceptions.bcode import ErrComponentPortExists
 from exceptions.main import ServiceHandleException, ErrVolumePath
 from models.component.models import ComponentEnvVar, TeamComponentEnv, TeamComponentPort, TeamComponentVolume
 from repository.component.group_service_repo import service_repo
+from repository.region.region_info_repo import region_repo
 from service.app_config.domain_service import domain_service
 from service.app_config.env_service import compile_env_service
 from service.app_config.port_service import port_service
@@ -331,9 +332,9 @@ class ComponentCheckService(object):
                                                              port_alias=service.service_alias.upper() + str(5000),
                                                              is_inner_service=False,
                                                              is_outer_service=True)
-                region_info = region_services.get_enterprise_region_by_region_name(session=session,
-                                                                                   enterprise_id=tenant.enterprise_id,
-                                                                                   region_name=service.service_region)
+                region_info = region_repo.get_enterprise_region_by_region_name(session=session,
+                                                                               enterprise_id=tenant.enterprise_id,
+                                                                               region_name=service.service_region)
                 if region_info:
                     domain_service.create_default_gateway_rule(session=session, tenant=tenant, region_info=region_info,
                                                                service=service, port=t_port)
