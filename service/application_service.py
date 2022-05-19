@@ -258,7 +258,7 @@ class ApplicationService(object):
                     "user_name": user_name,
                     "password": password,
                 }
-                service_source_repo.create_service_source(**params)
+                service_source_repo.create_service_source(session, **params)
             else:
                 service_source.user_name = user_name
                 service_source.password = password

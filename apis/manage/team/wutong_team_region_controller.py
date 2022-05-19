@@ -285,3 +285,18 @@ async def get_protocol_info(request: Request,
         logger.exception(e)
         result = general_message(200, "", "查询成功", list=["http", "stream"])
     return JSONResponse(result, 200)
+
+
+@router.get("/teams/{team_name}/regions/{region_name}/publickey", response_model=Response, name="获取指定数据中心的Key")
+async def get_region_key(
+        region_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    """
+    获取指定数据中心的Key
+    ---
+
+    """
+    key = region_services.get_public_key(session, team, region_name)
+    result = general_message(200, 'query success', '数据中心key获取成功', bean=key)
+    return JSONResponse(result, status_code=200)

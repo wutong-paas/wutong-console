@@ -63,6 +63,16 @@ def get_region_list_by_team_name(session: SessionClass, team_name):
 
 class RegionService(object):
 
+    def get_public_key(self, session, tenant, region):
+        try:
+            res, body = remote_build_client.get_region_publickey(session, tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
+            if body and "bean" in body:
+                return body["bean"]
+            return {}
+        except Exception as e:
+            logger.exception(e)
+            return {}
+
     def get_region_wsurl(self, session, region_name):
         region = region_repo.get_region_by_region_name(session, region_name)
         if region:
