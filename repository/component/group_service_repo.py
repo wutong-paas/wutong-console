@@ -111,6 +111,16 @@ class GroupServiceRelationRepository(BaseRepository[ComponentApplicationRelation
 
 
 class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
+
+    def get_service_by_tenant_and_alias(self, session, tenant_id, service_alias):
+        services = session.execute(select(TeamComponentInfo).where(
+            TeamComponentInfo.tenant_id == tenant_id,
+            TeamComponentInfo.service_alias == service_alias
+        )).scalars().all()
+        if services:
+            return services[0]
+        return None
+
     def get_services_by_service_ids_and_group_key(self, session, group_key, service_ids):
         """使用service_ids 和 group_key 查找一组云市应用下的组件"""
         service_source = session.execute(select(ComponentSourceInfo).where(

@@ -34,9 +34,17 @@ from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_check_service
 from service.monitor_service import monitor_service
+from service.multi_app_service import multi_app_service
 from service.user_service import user_svc
 
 router = APIRouter()
+
+
+def validate_request(item, name):
+    if not item:
+        return JSONResponse(general_message(400, "params error", "the field '" + name + "' is required"),
+                            status_code=400)
+    return None
 
 
 @router.post("/teams/{team_name}/apps/docker_run", response_model=Response, name="添加组件-指定镜像")
@@ -543,4 +551,63 @@ async def modify_component_graphs(
     graphs = component_graph_service.update_component_graph(session, graph, data["title"], data["promql"],
                                                             data["sequence"])
     result = general_message(200, "success", "修改成功", list=graphs)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/teams/{team_name}/multi/check", response_model=Response, name="进入多组件创建流程")
+async def get_check_detail(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    check_uuid = request.query_params.get("check_uuid", None)
+    if not check_uuid:
+        return JSONResponse(general_message(400, "params error", "the field 'check_uuid' is required"), status_code=400)
+
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    response_region = region.region_name
+    services = multi_app_service.list_services(session, response_region, team, check_uuid)
+    result = general_message(200, "successfully entered the multi-service creation process", "成功进入多组件创建流程",
+                             list=services)
+    return JSONResponse(result, status_code=200)
+
+
+@router.post("/teams/{team_name}/apps/{service_alias}/multi/create", response_model=Response, name="创建组件")
+async def multi_create(
+        request: Request,
+        service_alias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
+    resp = validate_request(service_alias, "serviceAlias")
+    if resp:
+        return resp
+    data = await request.json()
+    service_infos = data.get("service_infos", None)
+    resp = validate_request(service_infos, "service_infos")
+    if resp:
+        return resp
+
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    response_region = region.region_name
+    group_id, service_ids = multi_app_service.create_services(
+        session=session,
+        region_name=response_region,
+        tenant=team,
+        user=user,
+        service_alias=service_alias,
+        service_infos=service_infos)
+
+    result = general_message(
+        200,
+        "successfully create the multi-services",
+        "成功创建多组件应用",
+        bean={
+            "group_id": group_id,
+            "service_ids": service_ids,
+        })
+
     return JSONResponse(result, status_code=result["code"])

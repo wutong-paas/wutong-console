@@ -252,7 +252,8 @@ class DomainService(object):
             tenant_id = tenant.tenant_id
             service_alias = service.service_cname
             region_id = region_info.region_id
-            domain_repo.create_service_domains(service_id, service_name, domain_name, create_time, container_port,
+            domain_repo.create_service_domains(session,
+                                               service_id, service_name, domain_name, create_time, container_port,
                                                protocol,
                                                http_rule_id, tenant_id, service_alias, region_id)
             logger.debug("create default gateway http rule for component {0} port {1}".format(
@@ -273,7 +274,8 @@ class DomainService(object):
             tcp_rule_id = make_uuid(end_point)
             tenant_id = tenant.tenant_id
             region_id = region_info.region_id
-            tcp_domain.create_service_tcp_domains(service_id, service_name, end_point, create_time,
+            tcp_domain.create_service_tcp_domains(session,
+                                                  service_id, service_name, end_point, create_time,
                                                   container_port,
                                                   protocol,
                                                   service_alias, tcp_rule_id, tenant_id, region_id)

@@ -1,12 +1,10 @@
 import json
-from typing import Any, Optional, List
-
+from typing import Any, Optional
 from fastapi import APIRouter, Path, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from sqlalchemy import select
-
 from core import deps
 from core.utils.crypt import make_uuid
 from core.utils.dependencies import DALGetter
@@ -166,10 +164,8 @@ async def app_models(request: Request,
                      user: Users = Depends(deps.get_current_user)) -> Any:
     """
     查询数据库
-    :param tags:
     :param session:
     :param user:
-    :param app_name:
     :param page:
     :param page_size:
     :param enterprise_id:
@@ -285,7 +281,6 @@ async def create_center_app(*,
                             ) -> Any:
     """
     :param params:
-    :param db:
     :return:
     """
     dal.create_center_app(session=session, params=params)

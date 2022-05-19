@@ -2,6 +2,15 @@
 from enum import Enum
 
 
+class Kind(Enum):
+    Secret = "Secret"            # 密钥
+    ConfigMap = "ConfigMap"      # 配置文件
+    PersistentVolumeClaim = "PersistentVolumeClaim"  # 存储
+    Service = "Service"          # 服务
+    Deployment = "Deployment"    # 实例
+    StatefulSet = "StatefulSet"  # 实例
+
+
 class ComponentType(Enum):
     stateless_singleton = "stateless_singleton"
     stateless_multiple = "stateless_multiple"
