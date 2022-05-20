@@ -14,7 +14,7 @@ from exceptions.main import ServiceHandleException
 from models.teams.enterprise import TeamEnterprise
 from models.region.models import TeamRegionInfo
 from core.setting import settings
-from models.teams import TeamInfo, PermRelTenant, UserMessage, RegionConfig
+from models.teams import TeamInfo, PermRelTenant, UserMessage, RegionConfig, TeamGitlabInfo
 from models.users.users import Users
 from models.component.models import TeamComponentInfo
 from repository.base import BaseRepository
@@ -379,4 +379,24 @@ class TeamRepository(BaseRepository[TeamInfo]):
         return result
 
 
+class TeamGitlabRepo(object):
+    def get_team_gitlab_by_team_id(self, session, team_id):
+        return session.execute(select(TeamGitlabInfo).where(
+            TeamGitlabInfo.team_id == team_id
+        )).scalars().all()
+
+    def create_team_gitlab_info(self, session, **params):
+        gitlab_info = TeamGitlabInfo(**params)
+        session.add(gitlab_info)
+        session.flush()
+        return gitlab_info
+
+    def get_team_repo_by_code_name(self, session, team_id, repo_name):
+        return session.execute(select(TeamGitlabInfo).where(
+            TeamGitlabInfo.team_id == team_id,
+            TeamGitlabInfo.repo_name == repo_name
+        )).scalars().first()
+
+
 team_repo = TeamRepository(TeamInfo)
+team_gitlab_repo = TeamGitlabRepo()

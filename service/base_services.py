@@ -5,6 +5,7 @@ from loguru import logger
 
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
+from core.setting import settings
 from core.utils.oauth.oauth_types import support_oauth_type
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
@@ -243,6 +244,13 @@ class BaseTenantService(object):
         # The algorithm is obsolete
         min_cpu = int(min_memory) / 128 * 20
         return int(min_cpu)
+
+
+class CodeRepositoriesService(object):
+    def getProjectBranches(self, project_id):
+        if custom_config.GITLAB:
+            return gitClient.getProjectBranches(project_id)
+        return ""
 
 
 base_service = BaseService()
