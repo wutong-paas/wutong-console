@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.responses import StreamingResponse
 from loguru import logger
+from sqlalchemy import delete
 
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
@@ -17,7 +18,9 @@ from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
     AccountOverdueException, AbortRequest, CallRegionAPIException, ErrInsufficientResource
+from models.component.models import ComponentEnvVar
 from models.users.users import Users
+from repository.application.app_repository import service_webhooks_repo
 from repository.component.group_service_repo import service_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -30,6 +33,7 @@ from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_log_service
 from service.compose_service import compose_service
+from service.git_service import git_service
 from service.market_app_service import market_app_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.probe_service import probe_service
@@ -664,4 +668,83 @@ async def compose_build(
                 app_manage_service.delete_region_service(session, team, service)
                 service.create_status = "checked"
         raise e
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.put("/teams/{team_name}/apps/{serviceAlias}/keyword", response_model=Response, name="修改组件触发自动部署关键字")
+async def update_keyword(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    keyword = data.get("keyword", None)
+    if not keyword:
+        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
+
+    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    is_pass, msg = application_service.check_service_cname(keyword)
+    if not is_pass:
+        return JSONResponse(general_message(400, "param error", msg), status_code=400)
+    service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
+        session, service.service_id, "code_webhooks")
+    if not service_webhook:
+        return JSONResponse(general_message(412, "keyword is null", "组件自动部署属性不存在"), status_code=412)
+    service_webhook.deploy_keyword = keyword
+    # service_webhook.save()
+    result = general_message(200, "success", "修改成功", bean=jsonable_encoder(service_webhook))
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.put("/teams/{team_name}/apps/{serviceAlias}/build_envs", response_model=Response, name="修改构建组件的环境变量参数")
+async def update_build_envs(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    build_env_dict = data.get("build_env_dict", None)
+    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    build_envs = env_var_service.get_service_build_envs(session, service)
+    # 传入为空，清除
+    if not build_env_dict:
+        for build_env in build_envs:
+            session.execute(delete(ComponentEnvVar).where(
+                ComponentEnvVar.ID == build_env.ID
+            ))
+            session.flush()
+        return JSONResponse(general_message(200, "success", "设置成功"))
+
+    # 传入有值，清空再添加
+    if build_envs:
+        for build_env in build_envs:
+            session.execute(delete(ComponentEnvVar).where(
+                ComponentEnvVar.ID == build_env.ID
+            ))
+            session.flush()
+    for key, value in list(build_env_dict.items()):
+        name = "构建运行时环境变量"
+        attr_name = key
+        attr_value = value
+        is_change = True
+        code, msg, data = env_var_service.add_service_build_env_var(session, team, service, 0, name, attr_name,
+                                                                    attr_value, is_change)
+        if code != 200:
+            continue
+
+    result = general_message(200, "success", "环境变量添加成功")
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/teams/{team_name}/apps/{serviceAlias}/code/branch", response_model=Response, name="获取组件代码仓库分支")
+async def get_code_branch(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
+    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    branches = git_service.get_service_code_branch(session, user, service)
+    bean = {"current_version": service.code_version}
+    result = general_message(200, "success", "查询成功", bean=bean, list=branches)
     return JSONResponse(result, status_code=result["code"])

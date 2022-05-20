@@ -295,3 +295,16 @@ class UserMessage(Base):
     announcement_id = Column(String(32), comment="公告ID", nullable=True)
     title = Column(String(64), comment="消息标题", nullable=False, default="title")
     level = Column(String(32), comment="通知的等级", nullable=False, default="low")
+
+
+class TeamGitlabInfo(Base):
+
+    __tablename__ = 'team_gitlab_info'
+
+    ID = Column(Integer, primary_key=True)
+    team_id = Column(String(32), comment="团队ID", nullable=False)
+    repo_name = Column(String(100), comment="代码仓库名称", nullable=False)
+    respo_url = Column(String(200), nullable=True, comment="code代码仓库")
+    git_project_id = Column(Integer, comment="gitlab 中项目id", default=0, nullable=False)
+    code_version = Column(String(100), nullable=True, comment="代码版本")
+    create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")

@@ -206,8 +206,6 @@ class ComponentCheckService(object):
                 self.save_service_info(session, tenant, service, service_info_list[0])
                 # save service info, checked 表示检测完成
                 service.create_status = "checked"
-                # todo
-                service_repo.save_service(session=session, service=service)
                 # transaction.savepoint_commit(sid)
             except Exception as e:
                 if sid:

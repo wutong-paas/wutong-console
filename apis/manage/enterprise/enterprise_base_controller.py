@@ -4,15 +4,18 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
+from loguru import logger
 from starlette import status
 
+from clients.remote_build_client import remote_build_client
 from core import deps
 from core.utils.reqparse import bool_argument, parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.main import AbortRequest
+from exceptions.main import AbortRequest, ServiceHandleException
 from repository.users.perms_repo import perms_repo
 from schemas.response import Response
+from service.app_actions.app_deploy import RegionApiBaseHttpClient
 from service.platform_config_service import platform_config_service
 from service.region_service import region_services, EnterpriseConfigService
 from service.task_guidance.base_task_guidance import base_task_guidance
@@ -48,6 +51,103 @@ async def get_region_config(enterprise_id: Optional[str] = None,
     data = region_services.get_enterprise_region(session, enterprise_id, region_id, check_status=False)
     result = general_message(200, "success", "获取成功", bean=data)
     return JSONResponse(result, status_code=status.HTTP_200_OK)
+
+
+@router.put("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings/{name}", response_model=Response,
+            name="修改Maven配置")
+async def update_maven_settings(
+        request: Request,
+        enterprise_id: Optional[str] = None,
+        region_name: Optional[str] = None,
+        name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    try:
+        data = await request.json()
+        res, body = remote_build_client.update_maven_setting(session, enterprise_id, region_name, name, data)
+        result = general_message(200, 'update success', '修改成功', bean=body.get("bean"))
+    except RegionApiBaseHttpClient.CallApiError as exc:
+        if exc.message.get("httpcode") == 404:
+            result = general_message(404, 'maven setting is not exist', '配置不存在')
+        else:
+            logger.exception(exc)
+            result = general_message(500, 'update maven setting failure', '更新配置失败')
+    except ServiceHandleException as e:
+        if e.status_code == 404:
+            result = general_message(404, 'maven setting is not exist', '配置不存在')
+        else:
+            logger.exception(e)
+            result = general_message(500, 'update maven setting failure', '更新配置失败')
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.delete("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings/{name}", response_model=Response,
+            name="删除Maven配置")
+async def delete_maven_settings(
+        enterprise_id: Optional[str] = None,
+        region_name: Optional[str] = None,
+        name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    try:
+        res, body = remote_build_client.delete_maven_setting(session, enterprise_id, region_name, name)
+        result = general_message(200, 'delete success', '删除成功', bean=body.get("bean"))
+    except RegionApiBaseHttpClient.CallApiError as exc:
+        if exc.message.get("httpcode") == 404:
+            result = general_message(404, 'maven setting is not exist', '配置不存在')
+        else:
+            logger.exception(exc)
+            result = general_message(500, 'add maven setting failure', '删除配置失败')
+    except ServiceHandleException as e:
+        if e.status_code == 404:
+            result = general_message(404, 'maven setting is not exist', '配置不存在')
+        else:
+            logger.exception(e)
+            result = general_message(500, 'add maven setting failure', '删除配置失败')
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings", response_model=Response,
+            name="添加Maven配置")
+async def add_maven_settings(
+        request: Request,
+        enterprise_id: Optional[str] = None,
+        region_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    try:
+        data = await request.json()
+        res, body = remote_build_client.add_maven_setting(session, enterprise_id, region_name, data)
+        result = general_message(200, 'query success', '添加成功', bean=body.get("bean"))
+    except RegionApiBaseHttpClient.CallApiError as exc:
+        if exc.message.get("httpcode") == 400:
+            result = general_message(400, 'maven setting name is exist', '配置名称已存在')
+        else:
+            logger.exception(exc)
+            result = general_message(500, 'add maven setting failure', '配置添加失败')
+    except ServiceHandleException as e:
+        if e.status_code == 400:
+            result = general_message(400, 'maven setting name is exist', '配置名称已存在')
+        else:
+            logger.exception(e)
+            result = general_message(500, 'add maven setting failure', '配置添加失败')
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings", response_model=Response,
+            name="获取构建源手动配置项")
+async def get_mavens_ettings(
+        request: Request,
+        enterprise_id: Optional[str] = None,
+        region_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    onlyname = request.query_params.get("onlyname", True)
+    res, body = remote_build_client.list_maven_settings(session, enterprise_id, region_name)
+    redata = body.get("list")
+    if redata and isinstance(redata, list) and (onlyname is True or onlyname == "true"):
+        newdata = []
+        for setting in redata:
+            newdata.append({"name": setting["name"], "is_default": setting["is_default"]})
+        redata = newdata
+    result = general_message(200, 'query success', '数据中心Maven获取成功', list=redata)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/enterprise/{enterprise_id}/regions/{region_id}", response_model=Response, name="修改集群配置信息")
