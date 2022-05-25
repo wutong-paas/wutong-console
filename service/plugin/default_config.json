@@ -605,7 +605,7 @@
   },
   "filebrowser":{
     "plugin_alias": "FileBrowser 文件管理插件",
-    "desc": "FileBrowser 文件管理插件",
+    "desc": "文件管理插件，挂载组件目录并与组件一同运行，并对外提供文件上传下载等服务。",
     "category": "filebrowser-plugin",
     "code_repo": "",
     "build_source": "image",
