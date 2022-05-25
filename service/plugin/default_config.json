@@ -620,7 +620,7 @@
             "attr_name": "FB_PORT",
             "attr_type": "string",
             "attr_default_value": "6173",
-            "is_change": false,
+            "is_change": true,
             "attr_alt_value": "",
             "attr_info": "文件管理插件访问端口",
             "protocol": ""
@@ -628,7 +628,7 @@
           {
             "attr_name": "FB_ROOT",
             "attr_type": "string",
-            "attr_default_value": "/filebrowser/mnt",
+            "attr_default_value": "/fbmnt",
             "is_change": true,
             "attr_alt_value": "",
             "attr_info": "文件管理插件挂载目录",
