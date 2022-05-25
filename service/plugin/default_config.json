@@ -602,5 +602,40 @@
         ]
       }
     ]
+  },
+  "filebrowser":{
+    "plugin_alias": "FileBrowser 文件管理插件",
+    "desc": "FileBrowser 文件管理插件",
+    "category": "filebrowser-plugin",
+    "code_repo": "",
+    "build_source": "image",
+    "image": "wutongpaas/filebrowser:latest",
+    "config_group": [
+      {
+        "service_meta_type": "un_define",
+        "injection": "env",
+        "config_name": "配置",
+        "options": [
+          {
+            "attr_name": "FB_PORT",
+            "attr_type": "string",
+            "attr_default_value": "6173",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "文件管理插件访问端口",
+            "protocol": ""
+          },
+          {
+            "attr_name": "FB_ROOT",
+            "attr_type": "string",
+            "attr_default_value": "/filebrowser/mnt",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "文件管理插件挂载目录",
+            "protocol": ""
+          }
+        ]
+      }
+    ]
   }
 }
