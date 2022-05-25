@@ -5,7 +5,9 @@ from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from starlette.responses import JSONResponse
 
+from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
+from common.base_client_service import get_tenant_region_info
 from core import deps
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
@@ -300,3 +302,29 @@ async def get_region_key(
     key = region_services.get_public_key(session, team, region_name)
     result = general_message(200, 'query success', '数据中心key获取成功', bean=key)
     return JSONResponse(result, status_code=200)
+
+
+@router.api_route(
+    "/filebrowser/{service_id}/{url:path}",
+    methods=[
+        "post",
+        "get",
+        "delete",
+        "put"],
+    include_in_schema=False,
+    response_model=Response, name="文件管理")
+async def file_manager(
+        request: Request,
+        service_id: Optional[str] = None,
+        url: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    try:
+        service = service_repo.get_service_by_service_id(session, service_id)
+        response = await remote_app_client.proxy(session, request,
+                                                 '/console/filebrowser/3fb2485d78954e29aad2fa693302cc43' + url,
+                                                 service.service_region)
+    except Exception as exc:
+        logger.exception(exc)
+        response = None
+    # response = self.finalize_response(request, response, *args, **kwargs)
+    return response
