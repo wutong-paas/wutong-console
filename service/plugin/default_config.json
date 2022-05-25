@@ -602,5 +602,40 @@
         ]
       }
     ]
+  },
+  "filebrowser_plugin":{
+    "plugin_alias": "FileBrowser 文件管理插件",
+    "desc": "文件管理插件，挂载组件目录并与组件一同运行，并对外提供文件上传下载等服务。",
+    "category": "general-plugin",
+    "code_repo": "",
+    "build_source": "image",
+    "image": "wutongpaas/filebrowser:latest",
+    "config_group": [
+      {
+        "service_meta_type": "un_define",
+        "injection": "env",
+        "config_name": "文件管理服务配置参数",
+        "options": [
+          {
+            "attr_name": "FB_PORT",
+            "attr_type": "string",
+            "attr_default_value": "6173",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "文件管理插件访问端口",
+            "protocol": ""
+          },
+          {
+            "attr_name": "FB_ROOT",
+            "attr_type": "string",
+            "attr_default_value": "/fbmnt",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "文件管理插件挂载目录",
+            "protocol": ""
+          }
+        ]
+      }
+    ]
   }
 }
