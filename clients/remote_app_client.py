@@ -1,10 +1,13 @@
 import json
 import os
 
+from fastapi.encoders import jsonable_encoder
 from loguru import logger
 
 from common.api_base_http_client import ApiBaseHttpClient
 from common.base_client_service import get_region_access_info, get_tenant_region_info
+from exceptions.main import ServiceHandleException
+from repository.region.region_info_repo import region_repo
 
 
 class RemoteAppClient(ApiBaseHttpClient):
@@ -211,8 +214,9 @@ class RemoteAppClient(ApiBaseHttpClient):
     def check_app_governance_mode(self, session, region_name, tenant_name, region_app_id, query):
         url, token = get_region_access_info(tenant_name, region_name, session)
         tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/{}/apps/{}/governance/check?governance_mode={}".format(tenant_region.region_tenant_name,
-                                                                                        region_app_id, query)
+        url = url + "/v2/tenants/{}/apps/{}/governance/check?governance_mode={}".format(
+            tenant_region.region_tenant_name,
+            region_app_id, query)
 
         self._set_headers(token)
         _, _ = self._get(url, self.default_headers, region=region_name)
@@ -328,6 +332,76 @@ class RemoteAppClient(ApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(url, self.default_headers, region=region_name)
         return body["list"]
+
+    def get_headers(self, environ):
+        """
+        Retrieve the HTTP headers from a WSGI environment dictionary.  See
+        https://docs.djangoproject.com/en/dev/ref/request-response/#django.http.HttpRequest.META
+        """
+        headers = {}
+        for key, value in list(environ.items()):
+            # Sometimes, things don't like when you send the requesting host through.
+            if key.startswith('HTTP_') and key != 'HTTP_HOST':
+                headers[key[5:].replace('_', '-')] = value
+            elif key in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
+                headers[key.replace('_', '-')] = value
+
+        return headers
+
+    async def proxy(self, session, request, url, region_name, requests_args=None):
+        """
+        Forward as close to an exact copy of the request as possible along to the
+        given url.  Respond with as close to an exact copy of the resulting
+        response as possible.
+        If there are any additional arguments you wish to send to requests, put
+        them in the requests_args dictionary.
+        """
+        requests_args = (requests_args or {}).copy()
+        headers = jsonable_encoder(request.headers)  # self.get_headers(request.headers)
+
+        if 'headers' not in requests_args:
+            requests_args['headers'] = {}
+        if 'body' not in requests_args:
+            requests_args['body'] = {}
+        if 'fields' not in requests_args:
+            requests_args['fields'] = {}
+
+        # Overwrite any headers and params from the incoming request with explicitly
+        # specified values for the requests library.
+        headers.update(requests_args['headers'])
+
+        # If there's a content-length header from Django, it's probably in all-caps
+        # and requests might not notice it, so just remove it.
+        for key in list(headers.keys()):
+            if key.lower() == 'content-length':
+                del headers[key]
+
+        requests_args['headers'] = headers
+
+        region = region_repo.get_region_by_region_name(session, region_name)
+        if not region:
+            raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
+        client = self.get_client(region_config=region)
+        response = client.request(method=request.method, timeout=20, url="{}{}".format(region.url, url),
+                                  **requests_args)
+
+        from fastapi.responses import Response
+        proxy_response = Response(response.data, status_code=response.status)
+
+        excluded_headers = {'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers',
+                            'transfer-encoding', 'upgrade', 'content-encoding', 'content-length'}
+        # for key, value in list(response.headers.items()):
+        #     if key.lower() in excluded_headers:
+        #         continue
+        #     elif key.lower() == 'location':
+        #         pass
+        #         # If the location is relative at all, we want it to be absolute to
+        #         # the upstream server.
+        #         # proxy_response[key] = self.make_absolute_location(response.url, value)
+        #     else:
+        #         proxy_response[key] = value
+
+        return proxy_response
 
 
 remote_app_client = RemoteAppClient()
