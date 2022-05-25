@@ -92,6 +92,7 @@ class DefaultPluginConstants(object):
     FILEBEAT_LOG_PLUGIN = "filebeat_log_plugin"
     LOGTAIL_LOG_PLUGIN = "logtail_log_plugin"
     MYSQLD_EXPORTER_PLUGIN = "mysqld_exporter"
+    FILEBROWSER_PLUGIN = "filebrowser_plugin"
 
 
 class PluginMetaType(object):
