@@ -372,7 +372,7 @@ class RemoteAppClient(ApiBaseHttpClient):
             # path relative
             return parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path.rsplit('/', 1)[0] + '/' + location
 
-    async def proxy(self, session, request, url, region_name, requests_args=None):
+    async def proxy(self, session, request, url, region_name, body, requests_args=None):
         """
         Forward as close to an exact copy of the request as possible along to the
         given url.  Respond with as close to an exact copy of the resulting
@@ -386,7 +386,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         if 'headers' not in requests_args:
             requests_args['headers'] = {}
         if 'body' not in requests_args:
-            requests_args['body'] = {}
+            requests_args['body'] = json.dumps(body)
         if 'fields' not in requests_args:
             requests_args['fields'] = {}
 

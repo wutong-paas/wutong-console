@@ -319,10 +319,15 @@ async def file_manager(
         url: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
+        if request.method != "GET":
+            body = await request.json()
+        else:
+            body = {}
         service = service_repo.get_service_by_service_id(session, service_id)
         response = await remote_app_client.proxy(session, request,
                                                  '/console/filebrowser/3fb2485d78954e29aad2fa693302cc43/' + url,
-                                                 service.service_region)
+                                                 service.service_region,
+                                                 body)
     except Exception as exc:
         logger.exception(exc)
         response = None
