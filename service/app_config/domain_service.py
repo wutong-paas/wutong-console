@@ -397,7 +397,7 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         data["path_rewrite"] = path_rewrite
-        data["rewrites"] = json.loads(rewrites if rewrites else "[]")
+        data["rewrites"] = rewrites
         try:
             remote_domain_client_api.bind_http_domain(session, service.service_region, tenant.tenant_name, data)
         except remote_domain_client_api.CallApiError as e:
