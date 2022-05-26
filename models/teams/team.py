@@ -69,6 +69,8 @@ class ServiceDomain(Base):
     is_outer_service = Column(Boolean, comment="是否已开启对外端口", nullable=False, default=True)
     auto_ssl = Column(Boolean, comment="是否自动匹配证书", nullable=False, default=False)
     auto_ssl_config = Column(String(32), comment="自动分发证书配置", nullable=True, default=None)
+    path_rewrite = Column(Boolean, comment="是否开启简单路由重写", nullable=False, default=False)
+    rewrites = Column(Text, comment="复杂路由重写配置", nullable=True)
 
     def __unicode__(self):
         return self.domain_name

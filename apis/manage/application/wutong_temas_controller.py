@@ -123,6 +123,9 @@ async def add_http_domain(request: Request,
     domain_path = do_path if do_path else "/"
     auto_ssl = data.get("auto_ssl", False)
     auto_ssl_config = data.get("auto_ssl_config", None)
+    # path-rewrite
+    path_rewrite = data.get("path_rewrite", False)
+    rewrites = data.get("rewrites", None)
 
     # 判断参数
     if len(do_path) > 1024:
@@ -217,6 +220,8 @@ async def add_http_domain(request: Request,
         "rule_extensions": rule_extensions,
         "auto_ssl": auto_ssl,
         "auto_ssl_config": auto_ssl_config,
+        "path_rewrite": path_rewrite,
+        "rewrites":rewrites
     }
     try:
         data = domain_service.bind_httpdomain(session=session, tenant=team, user=user, service=service,
@@ -312,6 +317,9 @@ async def add_http_domain(request: Request,
     domain_path = do_path if do_path else "/"
     auto_ssl = data.get("auto_ssl", False)
     auto_ssl_config = data.get("auto_ssl_config", None)
+    # path-rewrite
+    path_rewrite = data.get("path_rewrite", False)
+    rewrites = data.get("rewrites", None)
 
     # 判断参数
     if len(do_path) > 1024:
@@ -353,6 +361,8 @@ async def add_http_domain(request: Request,
         "rule_extensions": rule_extensions,
         "auto_ssl": auto_ssl,
         "auto_ssl_config": auto_ssl_config,
+        "path_rewrite": path_rewrite,
+        "rewrites":rewrites
     }
     domain_service.update_httpdomain(session=session, tenant=team, service=service, http_rule_id=http_rule_id,
                                      update_data=update_data)
