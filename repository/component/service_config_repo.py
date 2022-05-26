@@ -215,7 +215,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
     def add_service_domain(self, session, **domain_info):
         service_domain = ServiceDomain(**domain_info)
         session.add(service_domain)
-
+        session.flush()
         return service_domain
 
     def create_service_domains(self, session, service_id, service_name, domain_name, create_time, container_port,
