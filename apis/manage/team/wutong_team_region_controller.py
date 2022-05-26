@@ -325,7 +325,7 @@ async def file_manager(
             body = {}
         service = service_repo.get_service_by_service_id(session, service_id)
         response = await remote_app_client.proxy(session, request,
-                                                 '/console/filebrowser/3fb2485d78954e29aad2fa693302cc43/' + url,
+                                                 '/console/filebrowser/' + service_id + '/' + url,
                                                  service.service_region,
                                                  body)
     except Exception as exc:
