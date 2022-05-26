@@ -141,6 +141,8 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                     OR a.domain_cookie <> ""
                     OR a.domain_heander <> ""
                     OR a.the_weight <> 100
+                    OR a.path_rewrite <> 0
+                    OR a.rewrites <> ""
                     OR a.domain_name NOT LIKE {team_name}
                 )
                 LIMIT 1""".format(
@@ -274,7 +276,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         return (session.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                 sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                 sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                sd.is_outer_service \
+                sd.is_outer_service, sd.path_rewrite, sd.rewrites \
             from service_domain sd \
                 left join service_group_relation sgr on sd.service_id = sgr.service_id \
                 left join service_group sg on sgr.group_id = sg.id \
@@ -292,7 +294,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         return (session.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                    sd.is_outer_service \
+                    sd.is_outer_service, sd.path_rewrite, sd.rewrites \
                 from service_domain sd \
                     left join service_group_relation sgr on sd.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id \

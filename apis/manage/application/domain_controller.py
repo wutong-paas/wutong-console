@@ -69,6 +69,8 @@ async def get_domain_info(request: Request,
         domain_dict["domain_heander"] = tenant_tuple[12]
         domain_dict["the_weight"] = tenant_tuple[13]
         domain_dict["is_outer_service"] = tenant_tuple[14]
+        domain_dict["path_rewrite"] = tenant_tuple[15]
+        domain_dict["rewrites"] = tenant_tuple[16]
         domain_dict["group_id"] = group_id
         domain_list.append(domain_dict)
     bean = dict()
