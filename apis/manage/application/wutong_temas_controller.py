@@ -221,7 +221,7 @@ async def add_http_domain(request: Request,
         "auto_ssl": auto_ssl,
         "auto_ssl_config": auto_ssl_config,
         "path_rewrite": path_rewrite,
-        "rewrites":rewrites
+        "rewrites": rewrites
     }
     try:
         data = domain_service.bind_httpdomain(session=session, tenant=team, user=user, service=service,
@@ -362,7 +362,7 @@ async def add_http_domain(request: Request,
         "auto_ssl": auto_ssl,
         "auto_ssl_config": auto_ssl_config,
         "path_rewrite": path_rewrite,
-        "rewrites":rewrites
+        "rewrites": rewrites
     }
     domain_service.update_httpdomain(session=session, tenant=team, service=service, http_rule_id=http_rule_id,
                                      update_data=update_data)
