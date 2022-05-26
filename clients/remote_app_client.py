@@ -372,7 +372,7 @@ class RemoteAppClient(ApiBaseHttpClient):
             # path relative
             return parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path.rsplit('/', 1)[0] + '/' + location
 
-    async def proxy(self, session, request, url, region_name, requests_args=None):
+    async def proxy(self, session, request, url, region_name, body, requests_args=None):
         """
         Forward as close to an exact copy of the request as possible along to the
         given url.  Respond with as close to an exact copy of the resulting
@@ -386,7 +386,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         if 'headers' not in requests_args:
             requests_args['headers'] = {}
         if 'body' not in requests_args:
-            requests_args['body'] = {}
+            requests_args['body'] = json.dumps(body)
         if 'fields' not in requests_args:
             requests_args['fields'] = {}
 
@@ -423,6 +423,10 @@ class RemoteAppClient(ApiBaseHttpClient):
                 proxy_response_headers.update({key: self.make_absolute_location(response.url, value)})
             else:
                 proxy_response_headers.update({key: value})
+
+        if url == "/console/filebrowser/3fb2485d78954e29aad2fa693302cc43/api/login":
+            proxy_response_headers.update({"Content-Type": "text/plain"})
+            proxy_response_headers.update({"server": "elb"})
 
         proxy_response = Response(response.data, headers=proxy_response_headers, status_code=response.status)
         return proxy_response
