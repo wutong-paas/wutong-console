@@ -1,5 +1,7 @@
 import json
 import os
+import re
+from urllib.parse import urlparse
 
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
@@ -348,6 +350,28 @@ class RemoteAppClient(ApiBaseHttpClient):
 
         return headers
 
+    def make_absolute_location(self, base_url, location):
+        """
+        Convert a location header into an absolute URL.
+        """
+        absolute_pattern = re.compile(r'^[a-zA-Z]+://.*$')
+        if absolute_pattern.match(location):
+            return location
+
+        parsed_url = urlparse(base_url)
+
+        if location.startswith('//'):
+            # scheme relative
+            return parsed_url.scheme + ':' + location
+
+        elif location.startswith('/'):
+            # host relative
+            return parsed_url.scheme + '://' + parsed_url.netloc + location
+
+        else:
+            # path relative
+            return parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path.rsplit('/', 1)[0] + '/' + location
+
     async def proxy(self, session, request, url, region_name, requests_args=None):
         """
         Forward as close to an exact copy of the request as possible along to the
@@ -386,21 +410,21 @@ class RemoteAppClient(ApiBaseHttpClient):
                                   **requests_args)
 
         from fastapi.responses import Response
-        proxy_response = Response(response.data, status_code=response.status)
+        proxy_response_headers = {}
 
         excluded_headers = {'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers',
                             'transfer-encoding', 'upgrade', 'content-encoding', 'content-length'}
-        # for key, value in list(response.headers.items()):
-        #     if key.lower() in excluded_headers:
-        #         continue
-        #     elif key.lower() == 'location':
-        #         pass
-        #         # If the location is relative at all, we want it to be absolute to
-        #         # the upstream server.
-        #         # proxy_response[key] = self.make_absolute_location(response.url, value)
-        #     else:
-        #         proxy_response[key] = value
+        for key, value in list(response.headers.items()):
+            if key.lower() in excluded_headers:
+                continue
+            elif key.lower() == 'location':
+                # If the location is relative at all, we want it to be absolute to
+                # the upstream server.
+                proxy_response_headers.update({key: self.make_absolute_location(response.url, value)})
+            else:
+                proxy_response_headers.update({key: value})
 
+        proxy_response = Response(response.data, headers=proxy_response_headers, status_code=response.status)
         return proxy_response
 
 
