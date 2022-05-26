@@ -1091,6 +1091,8 @@ class ApplicationService(object):
             data["private_key"] = certificate_info.private_key
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
+        data["path_rewrite"] = rule.path_rewrite
+        data["rewrites"] = json.loads(rule.rewrites if rule.rewrites else "[]")
         return data
 
     def get_service_mnts_filter_volume_type(self, session: SessionClass, tenant_id, service_id):

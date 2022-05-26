@@ -19,7 +19,9 @@ from repository.component.component_repo import service_source_repo
 from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_repo
 from repository.component.service_config_repo import service_endpoints_repo
+from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.teams.team_component_repo import team_component_repo
+from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_actions.app_log import ws_service, event_service
@@ -79,6 +81,7 @@ async def get_app_detail(request: Request,
            type: string
            paramType: path
      """
+    is_filebrowser_plugin = False
     bean = dict()
     service = service_repo.get_service(session, serviceAlias, team.tenant_id)
     namespace = team.namespace
@@ -86,9 +89,20 @@ async def get_app_detail(request: Request,
     group_map = application_service.get_services_group_name(session=session, service_ids=[service.service_id])
     group_name = group_map.get(service.service_id)["group_name"]
     group_id = group_map.get(service.service_id)["group_id"]
+
+    service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
+        session, service.service_id)
+    plugin_ids = [p.plugin_id for p in service_plugin_relations]
+    base_plugins = plugin_repo.get_plugin_by_plugin_ids(session, plugin_ids)
+    for plugin in base_plugins:
+        if plugin.origin_share_id == "filebrowser_plugin":
+            is_filebrowser_plugin = True
+            continue
+
     service_model["group_name"] = group_name
     service_model["group_id"] = group_id
     service_model["namespace"] = namespace
+    service_model["is_filebrowser_plugin"] = is_filebrowser_plugin
     bean.update({"service": service_model})
     event_websocket_url = ws_service.get_event_log_ws(session=session, request=request, region=service.service_region)
     bean.update({"event_websocket_url": event_websocket_url})

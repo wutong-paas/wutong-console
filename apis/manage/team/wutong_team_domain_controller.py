@@ -61,7 +61,7 @@ async def get_domain_query(request: Request,
             tenant_tuples = (session.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
-                    sd.is_outer_service \
+                    sd.is_outer_service, sd.path_rewrite, sd.rewrites \
                 from service_domain sd \
                     left join service_group_relation sgr on sd.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id \
@@ -89,7 +89,7 @@ async def get_domain_query(request: Request,
         else:
             tenant_tuples = (session.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                 service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
-                domain_heander, the_weight, is_outer_service from service_domain where tenant_id='{0}'
+                domain_heander, the_weight, is_outer_service, path_rewrite, rewrites from service_domain where tenant_id='{0}'
                 and region_id='{1}' order by type desc LIMIT {2},{3};""".format(team.tenant_id, region.region_id,
                                                                                 start,
                                                                                 end))).fetchall()
@@ -127,6 +127,8 @@ async def get_domain_query(request: Request,
         domain_dict["domain_heander"] = tenant_tuple[12]
         domain_dict["the_weight"] = tenant_tuple[13]
         domain_dict["is_outer_service"] = tenant_tuple[14]
+        domain_dict["path_rewrite"] = tenant_tuple[15]
+        domain_dict["rewrites"] = tenant_tuple[16]
         domain_dict["group_id"] = group_id
         domain_list.append(domain_dict)
     bean = dict()
