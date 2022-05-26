@@ -319,7 +319,7 @@ async def file_manager(
         url: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        if url == "api/login":
+        if request.method != "GET":
             body = await request.json()
         else:
             body = {}
