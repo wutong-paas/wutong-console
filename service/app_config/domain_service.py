@@ -397,7 +397,10 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         data["path_rewrite"] = path_rewrite
-        data["rewrites"] = rewrites
+        if rewrites is None:
+            data["rewrites"] = []
+        else:
+            data["rewrites"] = rewrites
         try:
             remote_domain_client_api.bind_http_domain(session, service.service_region, tenant.tenant_name, data)
         except remote_domain_client_api.CallApiError as e:
@@ -441,7 +444,10 @@ class DomainService(object):
         domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
         domain_info["path_rewrite"] = path_rewrite
-        domain_info["rewrites"] = rewrites
+        if rewrites is not None:
+            domain_info["rewrites"] = json.dumps(rewrites)
+        else:
+            domain_info["rewrites"] = None
         region = region_repo.get_region_by_region_name(session, service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"], service.service_alias,

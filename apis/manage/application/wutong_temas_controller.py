@@ -271,7 +271,7 @@ async def add_http_domain(request: Request, session: SessionClass = Depends(deps
         return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
     domain = domain_repo.get_service_domain_by_http_rule_id(session, http_rule_id)
     if domain:
-        bean = domain.__dict__
+        bean = jsonable_encoder(domain)
         service = service_repo.get_service_by_service_id(session, domain.service_id)
         service_alias = service.service_cname if service else ''
         group_name = ''
@@ -289,6 +289,10 @@ async def add_http_domain(request: Request, session: SessionClass = Depends(deps
         bean.update({"service_alias": service_alias})
         bean.update({"group_name": group_name})
         bean.update({"g_id": g_id})
+        if bean["rewrites"] is not None and bean["rewrites"] != "":
+            bean.update({"rewrites": json.loads(bean["rewrites"])})
+        else:
+            bean.update({"rewrites": []})
     else:
         bean = dict()
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
