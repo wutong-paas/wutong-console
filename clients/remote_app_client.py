@@ -424,10 +424,6 @@ class RemoteAppClient(ApiBaseHttpClient):
             else:
                 proxy_response_headers.update({key: value})
 
-        if url == "/console/filebrowser/3fb2485d78954e29aad2fa693302cc43/api/login":
-            proxy_response_headers.update({"Content-Type": "text/plain"})
-            proxy_response_headers.update({"server": "elb"})
-
         proxy_response = Response(response.data, headers=proxy_response_headers, status_code=response.status)
         return proxy_response
 
