@@ -203,6 +203,24 @@ class AppPluginService(object):
         service_plugin_config_repo.delete_service_plugin_config_var(session=session, service_id=service.service_id,
                                                                     plugin_id=plugin_id)
 
+    def delete_filemanage_service_plugin_port(self, session: SessionClass, team, service, response_region, user,
+                                              plugin_id):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
+        if plugin_info:
+            if plugin_info.origin_share_id == "filebrowser_plugin":
+                code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
+                                                           region_name=response_region, container_port=6173,
+                                                           action="close_inner",
+                                                           protocol="http", port_alias=None,
+                                                           k8s_service_name="", user_name=user.nick_name)
+
+                if code != 200:
+                    logger.debug("change port fail", msg)
+
+                port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
+                                                           container_port=6173,
+                                                           user_name=user.nick_name)
+
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
         service_plugin_var = []
@@ -535,6 +553,22 @@ class AppPluginService(object):
             if "body" in e.message and "msg" in e.message["body"] \
                     and "a same kind plugin has been linked" in e.message["body"]["msg"]:
                 raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
+
+    def add_filemanage_port(self, session: SessionClass, tenant, service, plugin_id, user=None):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
+
+        if plugin_info:
+            if plugin_info.origin_share_id == "filebrowser_plugin":
+                port = "6173"
+                protocol = "http"
+                port_alias = service.service_alias.upper().replace("-", "_") + str(port)
+                port_service.add_service_port(session=session, tenant=tenant, service=service,
+                                              container_port=port, protocol=protocol,
+                                              port_alias=port_alias,
+                                              is_inner_service=True,
+                                              is_outer_service=False,
+                                              k8s_service_name=None,
+                                              user_name=user.nick_name)
 
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):
         app_plugin_relation_repo.delete_service_plugin(session=session, service_id=service.service_id,

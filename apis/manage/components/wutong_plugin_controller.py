@@ -10,10 +10,13 @@ from clients.remote_plugin_client import remote_plugin_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
+from exceptions.bcode import ErrComponentPortExists
 from repository.component.group_service_repo import service_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo
+from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
+from service.app_config.port_service import port_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
 
@@ -109,6 +112,9 @@ async def install_plugin(request: Request,
                                              service_id=service.service_id)
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant=team, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
+    app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service, plugin_id=plugin_id,
+                                           user=user)
+
     result = general_message(200, "success", "安装成功")
     return JSONResponse(result, status_code=result["code"])
 
@@ -152,6 +158,10 @@ async def delete_plugin(plugin_id: Optional[str] = None,
                                                   service.service_alias, body)
     app_plugin_service.delete_service_plugin_relation(session=session, service=service, plugin_id=plugin_id)
     app_plugin_service.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
+    app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
+                                                             response_region=response_region, plugin_id=plugin_id,
+                                                             user=user)
+
     return JSONResponse(general_message(200, "success", "卸载成功"), status_code=200)
 
 
