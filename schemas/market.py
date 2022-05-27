@@ -51,4 +51,4 @@ class MarketAppShareInfoCreateParam(BaseModel):
 
 class MarketAppModelParam(BaseModel):
     page: Optional[int] = 1
-    page_size: Optional[int] = 10
+    page_size: Optional[int] = 100
