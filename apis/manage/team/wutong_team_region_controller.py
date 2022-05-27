@@ -317,11 +317,12 @@ async def file_manager(
         request: Request,
         service_id: Optional[str] = None,
         url: Optional[str] = None,
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        if request.method != "GET":
+        try:
             body = await request.json()
-        else:
+        except:
             body = {}
         service = service_repo.get_service_by_service_id(session, service_id)
         response = await remote_app_client.proxy(session, request,
