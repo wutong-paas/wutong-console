@@ -1,22 +1,16 @@
-import json
 from typing import Any, Optional
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-
 from clients.remote_plugin_client import remote_plugin_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.bcode import ErrComponentPortExists
 from repository.component.group_service_repo import service_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo
-from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
-from service.app_config.port_service import port_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
 
