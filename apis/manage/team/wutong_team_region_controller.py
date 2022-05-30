@@ -322,12 +322,19 @@ async def file_manager(
             data_json = await request.json()
         except:
             data_json = {}
+        params = str(request.query_params)
+        if params == '':
+            url_path = '/console/filebrowser/' + service_id + '/' + url
+        else:
+            url_path = '/console/filebrowser/' + service_id + '/' + url + '?' + params,
+            url_path = url_path[0]
         service = service_repo.get_service_by_service_id(session, service_id)
-        response = await remote_app_client.proxy(session, request,
-                                                 '/console/filebrowser/' + service_id + '/' + url,
-                                                 service.service_region,
-                                                 data_json,
-                                                 body)
+        response = await remote_app_client.proxy(
+            session, request,
+            url_path,
+            service.service_region,
+            data_json,
+            body)
     except Exception as exc:
         logger.exception(exc)
         response = None
