@@ -108,6 +108,8 @@ async def install_plugin(request: Request,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
     app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service, plugin_id=plugin_id,
                                            user=user)
+    app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service, plugin_id=plugin_id,
+                                            plugin_version=build_version, user=user)
 
     result = general_message(200, "success", "安装成功")
     return JSONResponse(result, status_code=result["code"])
@@ -155,6 +157,9 @@ async def delete_plugin(plugin_id: Optional[str] = None,
     app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
                                                              response_region=response_region, plugin_id=plugin_id,
                                                              user=user)
+    app_plugin_service.delete_filemanage_service_plugin_mount(session=session, team=team, service=service,
+                                                              response_region=response_region, plugin_id=plugin_id,
+                                                              user=user)
 
     return JSONResponse(general_message(200, "success", "卸载成功"), status_code=200)
 
