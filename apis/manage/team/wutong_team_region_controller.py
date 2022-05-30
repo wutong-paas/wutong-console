@@ -1,13 +1,10 @@
 from typing import Optional, Any
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from starlette.responses import JSONResponse
-
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
-from common.base_client_service import get_tenant_region_info
 from core import deps
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
@@ -310,7 +307,8 @@ async def get_region_key(
         "post",
         "get",
         "delete",
-        "put"],
+        "put",
+        "patch"],
     include_in_schema=False,
     response_model=Response, name="文件管理")
 async def file_manager(
@@ -319,14 +317,16 @@ async def file_manager(
         url: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
+        body = await request.body()
         try:
-            body = await request.json()
+            data_json = await request.json()
         except:
-            body = {}
+            data_json = {}
         service = service_repo.get_service_by_service_id(session, service_id)
         response = await remote_app_client.proxy(session, request,
                                                  '/console/filebrowser/' + service_id + '/' + url,
                                                  service.service_region,
+                                                 data_json,
                                                  body)
     except Exception as exc:
         logger.exception(exc)
