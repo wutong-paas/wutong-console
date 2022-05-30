@@ -3,6 +3,7 @@ import json
 
 from addict import Dict
 from fastapi_pagination import Params, paginate
+from jsonpath import jsonpath
 from loguru import logger
 
 from clients.remote_plugin_client import remote_plugin_client
@@ -13,13 +14,14 @@ from exceptions.bcode import ErrServiceMonitorExists, ErrRepeatMonitoringTarget,
 from exceptions.main import ServiceHandleException
 from models.application.plugin import ComponentPluginConfigVar
 from repository.component.group_service_repo import service_repo
-from repository.component.service_config_repo import port_repo
+from repository.component.service_config_repo import port_repo, volume_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from service.app_config.component_graph import component_graph_service
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
+from service.app_config.volume_service import volume_service
 from service.plugin.plugin_config_service import plugin_config_service
 from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
@@ -215,10 +217,35 @@ class AppPluginService(object):
                                                            k8s_service_name="", user_name=user.nick_name)
 
                 if code != 200:
-                    logger.debug("change port fail", msg)
+                    logger.debug("close file manager inner error", msg)
 
                 port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
                                                            container_port=6173,
+                                                           user_name=user.nick_name)
+
+    def delete_filemanage_service_plugin_mount(self, session: SessionClass, team, service, response_region, user,
+                                               plugin_id):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
+        if plugin_info:
+            if plugin_info.origin_share_id == "filebrowser_plugin":
+                build_version = plugin_version_repo.get_plugin_build_version(session, plugin_id, team.tenant_id)
+                result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=team,
+                                                                           service=service,
+                                                                           plugin_id=plugin_id,
+                                                                           build_version=build_version)
+                config = jsonpath(result_bean, '$.undefine_env..config')[0][1]
+                attr_value = config["attr_value"]
+                volume_id = volume_repo.get_service_volume_by_name_path(session=session,
+                                                                        service_id=service.service_id,
+                                                                        volume_path=attr_value,
+                                                                        volume_name=service.service_alias
+                                                                        )
+                if not volume_id:
+                    logger.warning("volume is not found")
+                    return
+                volume_service.delete_service_volume_by_id(session=session, tenant=team,
+                                                           service=service,
+                                                           volume_id=int(volume_id),
                                                            user_name=user.nick_name)
 
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
@@ -569,6 +596,34 @@ class AppPluginService(object):
                                               is_outer_service=False,
                                               k8s_service_name=None,
                                               user_name=user.nick_name)
+
+    def add_filemanage_mount(self, session: SessionClass, tenant, service, plugin_id, plugin_version, user=None):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
+
+        if plugin_info:
+            if plugin_info.origin_share_id == "filebrowser_plugin":
+                result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=tenant,
+                                                                           service=service,
+                                                                           plugin_id=plugin_id,
+                                                                           build_version=plugin_version)
+                config = jsonpath(result_bean, '$.undefine_env..config')[0][1]
+                attr_value = config["attr_value"]
+                settings = {'volume_capacity': 1, 'provider_name': '',
+                            'access_mode': '',
+                            'share_policy': '', 'backup_policy': '',
+                            'reclaim_policy': '',
+                            'allow_expansion': False}
+                volume_service.add_service_volume(
+                    session=session,
+                    tenant=tenant,
+                    service=service,
+                    volume_path=attr_value,
+                    volume_type="share-file",
+                    volume_name=service.service_alias,
+                    file_content="",
+                    settings=settings,
+                    user_name=user.nick_name,
+                    mode=None)
 
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):
         app_plugin_relation_repo.delete_service_plugin(session=session, service_id=service.service_id,

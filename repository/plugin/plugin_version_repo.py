@@ -53,5 +53,10 @@ class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
             PluginBuildVersion.region == region,
             PluginBuildVersion.build_status.in_(["building", "timeout", "time_out"]))).scalars().all()
 
+    def get_plugin_build_version(self, session, plugin_id, tenant_id):
+        return session.execute(select(PluginBuildVersion.build_version).where(
+            PluginBuildVersion.tenant_id == tenant_id,
+            PluginBuildVersion.plugin_id == plugin_id)).scalars().first()
+
 
 plugin_version_repo = PluginVersionRepository(PluginBuildVersion)

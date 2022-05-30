@@ -714,6 +714,12 @@ class TenantServiceVolumnRepository(BaseRepository[TeamComponentVolume]):
             TeamComponentVolume.service_id == service_id,
             TeamComponentVolume.volume_name == volume_name)).scalars().first()
 
+    def get_service_volume_by_name_path(self, session, service_id, volume_name, volume_path):
+        return session.execute(select(TeamComponentVolume.ID).where(
+            TeamComponentVolume.service_id == service_id,
+            TeamComponentVolume.volume_path == volume_path,
+            TeamComponentVolume.volume_name == volume_name)).scalars().first()
+
     def get_service_volumes_about_config_file(self, session, service_id):
         return session.execute(select(TeamComponentVolume).where(
             TeamComponentVolume.service_id == service_id,
