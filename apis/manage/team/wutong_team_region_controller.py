@@ -9,7 +9,6 @@ from core import deps
 from core.setting import role_required
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
 from repository.component.group_service_repo import service_repo
 from schemas.response import Response
 from service.region_service import region_services
