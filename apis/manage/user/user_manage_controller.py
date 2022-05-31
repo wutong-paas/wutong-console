@@ -101,7 +101,7 @@ async def user_login(request: Request, session: SessionClass = Depends(deps.get_
         response = JSONResponse(result, status_code=200)
         expiration = int(time.mktime((datetime.now() + timedelta(days=30)).timetuple()))
         response.set_cookie(key="token", value=token, expires=expiration)
-        role_required.login(response, user)
+        role_required.login(response, user, token)
         request.app.state.redis.set("user_%d" % user.user_id, pickle.dumps(user), 24 * 60 * 60)
         return response
 

@@ -43,6 +43,7 @@ class OAuthUserService(object):
                 response = JSONResponse({"data": {"bean": {"token": token}}}, status_code=200)
                 expiration = int(time.mktime((datetime.datetime.now() + timedelta(days=30)).timetuple()))
                 response.set_cookie(key="token", value=token, expires=expiration)
+                role_required.login(response, oauth_user, token)
                 return response
 
             else:
@@ -89,6 +90,7 @@ class OAuthUserService(object):
                 response = JSONResponse({"data": {"bean": {"token": token}}}, status_code=200)
                 expiration = int(time.mktime((datetime.datetime.now() + timedelta(days=30)).timetuple()))
                 response.set_cookie(key="token", value=token, expires=expiration)
+                role_required.login(response, oauth_user, token)
                 return response
             msg = "user is not authenticated"
             return JSONResponse({"data": {"bean": {"result": rst, "msg": msg}}}, status_code=200)
