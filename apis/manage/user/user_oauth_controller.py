@@ -194,7 +194,6 @@ async def get_authorize(
     response = oauth_sev_user_service.set_oauth_user_relation(session, api, oauth_service, oauth_user, access_token,
                                                               refresh_token,
                                                               code)
-    role_required.login(response, oauth_user)
     return response
 
 
