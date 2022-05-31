@@ -9,6 +9,7 @@ from starlette import status
 
 from clients.remote_build_client import remote_build_client
 from core import deps
+from core.setting import role_required
 from core.utils.oauth.oauth_types import get_oauth_instance, support_oauth_type, NoSupportOAuthType
 from core.utils.return_message import error_message
 from database.session import SessionClass
@@ -309,7 +310,9 @@ async def oauth_auth_user(
     link_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=service_id, user_id=login_user.user_id)
     if link_user is not None and link_user.oauth_user_id != user_id:
         rst = {"data": {"bean": None}, "status": 400, "msg_show": "该用户已绑定其他账号"}
-        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+        response = JSONResponse(rst, status.HTTP_200_OK)
+        role_required.login(response, user)
+        return response
 
     if authenticated_user is not None and authenticated_user.user_id is None:
         authenticated_user.oauth_user_id = user_id
@@ -322,7 +325,9 @@ async def oauth_auth_user(
         authenticated_user.is_expired = True
         authenticated_user.user_id = login_user.user_id
         # authenticated_user.save()
-        return JSONResponse(None, status_code=status.HTTP_200_OK)
+        response = JSONResponse(None, status.HTTP_200_OK)
+        role_required.login(response, user)
+        return response
     else:
         oauth_user_repo.save_oauth(
             session=session,
@@ -338,7 +343,9 @@ async def oauth_auth_user(
             is_expired=False,
         )
         rst = {"data": {"bean": None}, "status": 200, "msg_show": "绑定成功"}
-        return JSONResponse(rst, status_code=status.HTTP_200_OK)
+        response = JSONResponse(rst, status.HTTP_200_OK)
+        role_required.login(response, user)
+        return response
 
 
 @router.get("/oauth/service/{service_id}/user/repositories", response_model=Response, name="获取oauth仓库")
