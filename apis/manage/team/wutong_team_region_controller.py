@@ -318,8 +318,8 @@ async def file_manager(
         url: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        user = role_required.get_current_user(request)
-        if not user:
+        authorization = request.cookies.get("token", None)
+        if not authorization:
             result = general_message(405, 'User not logged in', '用户未登录')
             return JSONResponse(result, status_code=405)
 
