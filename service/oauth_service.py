@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from apis.manage.user.user_manage_controller import create_access_token
-from core.setting import settings
+from core.setting import settings, role_required
 from models.users.users import Users
 from repository.users.user_oauth_repo import oauth_user_repo
 from repository.users.user_repo import user_repo
@@ -43,6 +43,7 @@ class OAuthUserService(object):
                 response = JSONResponse({"data": {"bean": {"token": token}}}, status_code=200)
                 expiration = int(time.mktime((datetime.datetime.now() + timedelta(days=30)).timetuple()))
                 response.set_cookie(key="token", value=token, expires=expiration)
+                role_required.login(response, user)
                 return response
 
             else:
@@ -89,6 +90,7 @@ class OAuthUserService(object):
                 response = JSONResponse({"data": {"bean": {"token": token}}}, status_code=200)
                 expiration = int(time.mktime((datetime.datetime.now() + timedelta(days=30)).timetuple()))
                 response.set_cookie(key="token", value=token, expires=expiration)
+                role_required.login(response, user)
                 return response
             msg = "user is not authenticated"
             return JSONResponse({"data": {"bean": {"result": rst, "msg": msg}}}, status_code=200)
