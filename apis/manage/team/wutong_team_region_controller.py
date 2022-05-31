@@ -6,8 +6,10 @@ from starlette.responses import JSONResponse
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from core import deps
+from core.setting import role_required
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
+from exceptions.main import ServiceHandleException
 from repository.component.group_service_repo import service_repo
 from schemas.response import Response
 from service.region_service import region_services
@@ -317,6 +319,11 @@ async def file_manager(
         url: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
+        user = role_required.get_current_user(request)
+        if not user:
+            result = general_message(405, 'User not logged in', '用户未登录')
+            return JSONResponse(result, status_code=405)
+
         body = await request.body()
         try:
             data_json = await request.json()
