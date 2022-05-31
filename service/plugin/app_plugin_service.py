@@ -210,6 +210,9 @@ class AppPluginService(object):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
+                port = port_service.get_port_by_container_port(session, service, 6173)
+                if not port:
+                    return
                 code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
                                                            region_name=response_region, container_port=6173,
                                                            action="close_inner",
@@ -221,31 +224,6 @@ class AppPluginService(object):
 
                 port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
                                                            container_port=6173,
-                                                           user_name=user.nick_name)
-
-    def delete_filemanage_service_plugin_mount(self, session: SessionClass, team, service, response_region, user,
-                                               plugin_id):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
-        if plugin_info:
-            if plugin_info.origin_share_id == "filebrowser_plugin":
-                build_version = plugin_version_repo.get_plugin_build_version(session, plugin_id, team.tenant_id)
-                result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=team,
-                                                                           service=service,
-                                                                           plugin_id=plugin_id,
-                                                                           build_version=build_version)
-                config = jsonpath(result_bean, '$.undefine_env..config')[0][1]
-                attr_value = config["attr_value"]
-                volume_id = volume_repo.get_service_volume_by_name_path(session=session,
-                                                                        service_id=service.service_id,
-                                                                        volume_path=attr_value,
-                                                                        volume_name=service.service_alias
-                                                                        )
-                if not volume_id:
-                    logger.warning("volume is not found")
-                    return
-                volume_service.delete_service_volume_by_id(session=session, tenant=team,
-                                                           service=service,
-                                                           volume_id=int(volume_id),
                                                            user_name=user.nick_name)
 
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
@@ -586,11 +564,14 @@ class AppPluginService(object):
 
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
-                port = "6173"
+                port_num = "6173"
                 protocol = "http"
-                port_alias = service.service_alias.upper().replace("-", "_") + str(port)
+                port_alias = service.service_alias.upper().replace("-", "_") + str(port_num)
+                port = port_service.get_port_by_container_port(session, service, port_num)
+                if port:
+                    return
                 port_service.add_service_port(session=session, tenant=tenant, service=service,
-                                              container_port=port, protocol=protocol,
+                                              container_port=port_num, protocol=protocol,
                                               port_alias=port_alias,
                                               is_inner_service=True,
                                               is_outer_service=False,
@@ -601,6 +582,11 @@ class AppPluginService(object):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
 
         if plugin_info:
+            try:
+                volume_service.check_volume_name(session=session, service=service,
+                                                 volume_name=service.service_alias)
+            except:
+                return
             if plugin_info.origin_share_id == "filebrowser_plugin":
                 result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=tenant,
                                                                            service=service,
