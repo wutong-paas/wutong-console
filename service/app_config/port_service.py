@@ -660,13 +660,14 @@ class AppPortService:
             if port.service_id != component_id or port.container_port != container_port:
                 raise ErrK8sServiceNameExists
 
-    def check_port(self, session: SessionClass, service, container_port):
-        port = (
-            session.execute(
+    def get_port_by_container_port(self, session, service, container_port):
+        return session.execute(
                 select(TeamComponentPort).where(TeamComponentPort.tenant_id == service.tenant_id,
                                                 TeamComponentPort.service_id == service.service_id,
-                                                TeamComponentPort.container_port == container_port))
-        ).scalars().first()
+                                                TeamComponentPort.container_port == container_port)).scalars().first()
+
+    def check_port(self, session: SessionClass, service, container_port):
+        port = self.get_port_by_container_port(session, service, container_port)
 
         if port:
             raise ErrComponentPortExists

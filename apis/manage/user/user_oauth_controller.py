@@ -9,6 +9,7 @@ from starlette import status
 
 from clients.remote_build_client import remote_build_client
 from core import deps
+from core.setting import role_required
 from core.utils.oauth.oauth_types import get_oauth_instance, support_oauth_type, NoSupportOAuthType
 from core.utils.return_message import error_message
 from database.session import SessionClass
@@ -190,9 +191,10 @@ async def get_authorize(
         client_ip = request.META.get("REMOTE_ADDR", None)
         oauth_user.client_ip = client_ip
         oauth_sev_user_service.get_or_create_user_and_enterprise(session, oauth_user)
-    return oauth_sev_user_service.set_oauth_user_relation(session, api, oauth_service, oauth_user, access_token,
-                                                          refresh_token,
-                                                          code)
+    response = oauth_sev_user_service.set_oauth_user_relation(session, api, oauth_service, oauth_user, access_token,
+                                                              refresh_token,
+                                                              code)
+    return response
 
 
 @router.get("/oauth/user", response_model=Response, name="获取oauth用户")

@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from core import deps
+from core.setting import role_required
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_repo
@@ -317,6 +318,11 @@ async def file_manager(
         url: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
+        authorization = request.cookies.get("token", None)
+        if not authorization:
+            result = general_message(405, 'User not logged in', '用户未登录')
+            return JSONResponse(result, status_code=405)
+
         body = await request.body()
         try:
             data_json = await request.json()

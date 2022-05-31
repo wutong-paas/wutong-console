@@ -25,15 +25,13 @@ class RoleRequired:
         self.last_clear_time = now
         self.sessions = {k: v for k, v in self.sessions.items() if v['exp'] < now}
 
-    def __create_token(self, response: Response, user=None):
+    def __create_token(self, response: Response, user=None, token=None):
         self.__clear_overstayed()
-        authorization = str(uuid.uuid1())
-        response.set_cookie(key="authorization", value=authorization)
-        self.sessions[authorization] = {
+        self.sessions[token] = {
             "user": user,
             "exp": datetime.utcnow() + timedelta(minutes=self.expire_minutes)
         }
-        return self.sessions[authorization]
+        return self.sessions[token]
 
     def create_captcha_code(self, response: Response, captcha):
         self.__clear_overstayed()
@@ -63,13 +61,13 @@ class RoleRequired:
             return user.roleid in roleids
         return user.roleid == roleids
 
-    def login(self, response: Response, user):
+    def login(self, response: Response, user, token):
         # assert type(user) == type(self.guest)
-        current_session = self.__create_token(response, user)
+        current_session = self.__create_token(response, user, token)
         return current_session['user']
 
     def logout(self, request: Request):
-        authorization = request.cookies.get("authorization", None)
+        authorization = request.cookies.get("token", None)
         try:
             current_session = self.sessions.pop(authorization)
             return current_session['user']
@@ -78,7 +76,7 @@ class RoleRequired:
             #raise ApiException(code=1005, message="当前未登录，登出发生错误")
 
     def get_current_user(self, request: Request):
-        authorization = request.cookies.get("authorization", None)
+        authorization = request.cookies.get("token", None)
         try:
             current_session = self.sessions.get(authorization)
             return current_session['user']

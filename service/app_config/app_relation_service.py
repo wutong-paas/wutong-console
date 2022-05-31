@@ -170,7 +170,7 @@ class AppServiceRelationService(object):
         services = service_repo.get_services_by_service_ids(session, dep_ids)
         if dep_service_relations:
             service_cnames = [s.service_cname for s in services]
-            return 412, "组件{0}已被关联".format(service_cnames)
+            return 200, "组件{0}已被关联".format(service_cnames)
         for dep_id in dep_service_ids:
             code, msg, relation = self.add_service_dependency(session=session, tenant=tenant, service=service,
                                                               dep_service_id=dep_id, user_name=user_name)
@@ -184,7 +184,7 @@ class AppServiceRelationService(object):
                                                                                     service.service_id,
                                                                                     dep_service_id)
         if not dependency:
-            return 404, "需要删除的依赖不存在", None
+            return 200, "需要删除的依赖不存在", None
         if service.create_status == "complete":
             task = dict()
             task["dep_service_id"] = dep_service_id
