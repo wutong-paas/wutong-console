@@ -21,14 +21,14 @@ class Settings(BaseSettings):
     # 跨域白名单
     BACKEND_CORS_ORIGINS: List = ['*']
 
-    REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
+    REDIS_HOST = os.environ.get("REDIS_HOST", "wutong-redis.wt-system")
     REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
     REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "123456")
     REDIS_DATABASE = os.environ.get("REDIS_DATABASE", 0)
 
     REDIS_CACHE_TTL = 24 * 60 * 60
 
-    MYSQL_HOST = os.environ.get("MYSQL_HOST", "localhost")
+    MYSQL_HOST = os.environ.get("MYSQL_HOST", "wutong-mysql.wt-system")
     MYSQL_PORT = os.environ.get("MYSQL_PORT", "3306")
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")

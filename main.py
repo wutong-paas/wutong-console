@@ -62,6 +62,10 @@ register_middleware(app)
 # 路由注册
 app.include_router(api_router, prefix=settings.API_PREFIX)
 
+## 测试路由
+from worker.app import router
+app.include_router(router)
+
 if __name__ == '__main__':
     import uvicorn
 
