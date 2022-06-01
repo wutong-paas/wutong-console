@@ -54,7 +54,7 @@ async def modify_build_source(request: Request,
     service = service_repo.get_service(session, serviceAlias, team.tenant_id)
     try:
         data = await request.json()
-        image = data.get("image", None)
+        image = data.get("image", None).strip()
         cmd = data.get("cmd", None)
         service_source = data.get("service_source")
         git_url = data.get("git_url", None)
