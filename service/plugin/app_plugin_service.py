@@ -1,5 +1,7 @@
 import copy
 import json
+import random
+import string
 
 from addict import Dict
 from fastapi_pagination import Params, paginate
@@ -580,12 +582,12 @@ class AppPluginService(object):
 
     def add_filemanage_mount(self, session: SessionClass, tenant, service, plugin_id, plugin_version, user=None):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
-
+        volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             try:
                 volume_service.check_volume_name(session=session, service=service,
-                                                 volume_name=service.service_alias)
-            except:
+                                                 volume_name=volume_name)
+            except Exception as e:
                 return
             if plugin_info.origin_share_id == "filebrowser_plugin":
                 result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=tenant,
@@ -605,7 +607,7 @@ class AppPluginService(object):
                     service=service,
                     volume_path=attr_value,
                     volume_type="share-file",
-                    volume_name=service.service_alias,
+                    volume_name=volume_name,
                     file_content="",
                     settings=settings,
                     user_name=user.nick_name,

@@ -371,14 +371,19 @@ async def update_plugin_config(request: Request,
                 result = general_message(200, "success", "配置更新成功")
                 return JSONResponse(result, result["code"])
 
-            service_port = port_repo.get_service_port_by_container_port(session, service.service_id, config_attr_port)
-            if not service_port:
-                app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
-                                                                         response_region=response_region,
-                                                                         plugin_id=plugin_id,
-                                                                         container_port=old_config_attr_port, user=user)
-                app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service,
-                                                       plugin_id=plugin_id,
-                                                       container_port=config_attr_port, user=user)
+            if old_config_attr_port != config_attr_port:
+                service_port = port_repo.get_service_port_by_container_port(session, service.service_id, config_attr_port)
+                if not service_port:
+                    app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
+                                                                             response_region=response_region,
+                                                                             plugin_id=plugin_id,
+                                                                             container_port=old_config_attr_port, user=user)
+                    app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service,
+                                                           plugin_id=plugin_id,
+                                                           container_port=config_attr_port, user=user)
+            if old_config_attr_dir != config_attr_dir:
+                app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service,
+                                                        plugin_id=plugin_id,
+                                                        plugin_version=pbv.build_version, user=user)
     result = general_message(200, "success", "配置更新成功")
     return JSONResponse(result, result["code"])
