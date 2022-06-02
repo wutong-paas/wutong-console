@@ -584,11 +584,6 @@ class AppPluginService(object):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
-            try:
-                volume_service.check_volume_name(session=session, service=service,
-                                                 volume_name=volume_name)
-            except Exception as e:
-                return
             if plugin_info.origin_share_id == "filebrowser_plugin":
                 result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=tenant,
                                                                            service=service,
