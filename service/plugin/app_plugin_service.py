@@ -591,6 +591,14 @@ class AppPluginService(object):
                                                                            build_version=plugin_version)
                 config = jsonpath(result_bean, '$.undefine_env..config')[0][1]
                 attr_value = config["attr_value"]
+
+                volumes = volume_service.get_service_volumes(session=session, tenant=tenant, service=service,
+                                                             is_config_file=False)
+
+                for volume in volumes:
+                    if volume["volume_path"] == attr_value:
+                        return
+
                 settings = {'volume_capacity': 1, 'provider_name': '',
                             'access_mode': '',
                             'share_policy': '', 'backup_policy': '',
