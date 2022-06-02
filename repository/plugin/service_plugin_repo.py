@@ -113,6 +113,11 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             ComponentPluginConfigVar.service_id == service_id,
             ComponentPluginConfigVar.build_version == build_version)).scalars().all()
 
+    def get_service_plugin_config(self, session, service_id, plugin_id):
+        return session.execute(select(ComponentPluginConfigVar).where(
+            ComponentPluginConfigVar.plugin_id == plugin_id,
+            ComponentPluginConfigVar.service_id == service_id)).scalars().first()
+
     def get_plugins_by_service_id(self, session, region, tenant_id, service_id, category):
         """获取组件已开通和未开通的插件"""
 

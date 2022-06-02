@@ -206,15 +206,15 @@ class AppPluginService(object):
                                                                     plugin_id=plugin_id)
 
     def delete_filemanage_service_plugin_port(self, session: SessionClass, team, service, response_region, user,
-                                              plugin_id):
+                                              container_port, plugin_id):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
-                port = port_service.get_port_by_container_port(session, service, 6173)
+                port = port_service.get_port_by_container_port(session, service, container_port)
                 if not port:
                     return
                 code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
-                                                           region_name=response_region, container_port=6173,
+                                                           region_name=response_region, container_port=container_port,
                                                            action="close_inner",
                                                            protocol="http", port_alias=None,
                                                            k8s_service_name="", user_name=user.nick_name)
@@ -223,7 +223,7 @@ class AppPluginService(object):
                     logger.debug("close file manager inner error", msg)
 
                 port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
-                                                           container_port=6173,
+                                                           container_port=container_port,
                                                            user_name=user.nick_name)
 
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
@@ -559,12 +559,12 @@ class AppPluginService(object):
                     and "a same kind plugin has been linked" in e.message["body"]["msg"]:
                 raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
 
-    def add_filemanage_port(self, session: SessionClass, tenant, service, plugin_id, user=None):
+    def add_filemanage_port(self, session: SessionClass, tenant, service, plugin_id, container_port, user=None):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
 
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
-                port_num = "6173"
+                port_num = container_port
                 protocol = "http"
                 port_alias = service.service_alias.upper().replace("-", "_") + str(port_num)
                 port = port_service.get_port_by_container_port(session, service, port_num)
