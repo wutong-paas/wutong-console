@@ -80,6 +80,11 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
             TeamComponentPort.service_id == service_id,
             TeamComponentPort.is_outer_service == 1)).scalars().all()
 
+    def get_service_port_by_container_port(self, session, service_id, port):
+        return session.execute(select(TeamComponentPort).where(
+            TeamComponentPort.container_port == port,
+            TeamComponentPort.service_id == service_id)).scalars().first()
+
     def get_service_ports_by_is_inner_service(self, session, tenant_id, service_id):
         return (
             session.execute(select(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_id,

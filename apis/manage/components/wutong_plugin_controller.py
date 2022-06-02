@@ -1,3 +1,4 @@
+import json
 from typing import Any, Optional
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
@@ -8,7 +9,9 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_repo
+from repository.component.service_config_repo import port_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo
+from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.plugin.app_plugin_service import app_plugin_service
@@ -107,7 +110,7 @@ async def install_plugin(request: Request,
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant=team, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
     app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service, plugin_id=plugin_id,
-                                           user=user)
+                                           container_port="6173", user=user)
     app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
 
@@ -149,14 +152,25 @@ async def delete_plugin(plugin_id: Optional[str] = None,
     service = service_repo.get_service(session, serviceAlias, team.tenant_id)
     body = dict()
     body["operator"] = user.nick_name
+    result_bean = service_plugin_config_repo.get_service_plugin_config(session, service.service_id, plugin_id)
     remote_plugin_client.uninstall_service_plugin(session,
                                                   response_region, team.tenant_name, plugin_id,
                                                   service.service_alias, body)
     app_plugin_service.delete_service_plugin_relation(session=session, service=service, plugin_id=plugin_id)
     app_plugin_service.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
+
+    pbv = plugin_version_service.get_newest_usable_plugin_version(session=session, tenant_id=team.tenant_id,
+                                                                  plugin_id=plugin_id)
+    if not pbv:
+        return JSONResponse(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status_code=400)
+
+    attrs = json.loads(result_bean.attrs)
+
+    config_attr_port = attrs.get("FB_PORT")
+
     app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
                                                              response_region=response_region, plugin_id=plugin_id,
-                                                             user=user)
+                                                             container_port=config_attr_port, user=user)
 
     return JSONResponse(general_message(200, "success", "卸载成功"), status_code=200)
 
@@ -293,7 +307,8 @@ async def update_plugin_config(request: Request,
                                plugin_id: Optional[str] = None,
                                serviceAlias: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
-                               team=Depends(deps.get_current_team)) -> Any:
+                               team=Depends(deps.get_current_team),
+                               user=Depends(deps.get_current_user)) -> Any:
     """
     组件插件配置更新
     ---
@@ -332,9 +347,38 @@ async def update_plugin_config(request: Request,
                                                                   plugin_id=plugin_id)
     if not pbv:
         return JSONResponse(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status_code=400)
+
+    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=team, service=service,
+                                                               plugin_id=plugin_id, build_version=pbv.build_version)
+
     # update service plugin config
     app_plugin_service.update_service_plugin_config(session=session, tenant=team, service=service,
                                                     plugin_id=plugin_id, build_version=pbv.build_version, config=config,
                                                     response_region=response_region)
+
+    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
+    if plugin_info:
+        if plugin_info.origin_share_id == "filebrowser_plugin":
+            old_config_attr_info = result_bean["undefine_env"]["config"]
+            old_config_attr_port = int(old_config_attr_info[0]["attr_value"])
+            old_config_attr_dir = old_config_attr_info[1]["attr_value"]
+
+            config_attr_info = config["undefine_env"]["config"]
+            config_attr_port = int(config_attr_info[0]["attr_value"])
+            config_attr_dir = config_attr_info[1]["attr_value"]
+
+            if old_config_attr_port == config_attr_port and old_config_attr_dir == config_attr_dir:
+                result = general_message(200, "success", "配置更新成功")
+                return JSONResponse(result, result["code"])
+
+            service_port = port_repo.get_service_port_by_container_port(session, service.service_id, config_attr_port)
+            if not service_port:
+                app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
+                                                                         response_region=response_region,
+                                                                         plugin_id=plugin_id,
+                                                                         container_port=old_config_attr_port, user=user)
+                app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service,
+                                                       plugin_id=plugin_id,
+                                                       container_port=config_attr_port, user=user)
     result = general_message(200, "success", "配置更新成功")
     return JSONResponse(result, result["code"])
