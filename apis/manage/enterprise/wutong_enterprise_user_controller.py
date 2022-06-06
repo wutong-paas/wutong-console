@@ -252,7 +252,8 @@ async def set_users_team_roles(request: Request,
                                user_id: Optional[str] = None,
                                tenant_name: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session)) -> Any:
-    role_ids = request.query_params.get('role_ids', [])
+    data = await request.json()
+    role_ids = data.get('role_ids', [])
     try:
         res = enterprise_services.create_user_roles(session, enterprise_id, user_id, tenant_name, role_ids)
         result = general_message(200, "ok", "设置成功", bean=res)
