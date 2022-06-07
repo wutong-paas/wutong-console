@@ -93,6 +93,8 @@ class DefaultPluginConstants(object):
     LOGTAIL_LOG_PLUGIN = "logtail_log_plugin"
     MYSQLD_EXPORTER_PLUGIN = "mysqld_exporter"
     FILEBROWSER_PLUGIN = "filebrowser_plugin"
+    MYSQL_DBGATE_PLUGIN = "mysql_dbgate_plugin"
+    REDIS_DBGATE_PLUGIN = "redis_dbgate_plugin"
 
 
 class PluginMetaType(object):
