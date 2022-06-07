@@ -637,5 +637,228 @@
         ]
       }
     ]
+  },
+  "mysql_dbgate_plugin":{
+    "plugin_alias": "MySQL Manager",
+    "desc": "MySQL Manager，以 Web UI 页面形式帮助连接、操作 MySQL 中间件。",
+    "category": "general-plugin",
+    "code_repo": "",
+    "build_source": "image",
+    "image": "wutongpaas/dbgate:latest",
+    "config_group": [
+      {
+        "service_meta_type": "un_define",
+        "injection": "env",
+        "config_name": "配置参数",
+        "options": [
+          {
+            "attr_name": "NODE_VERSION",
+            "attr_type": "string",
+            "attr_default_value": "14.19.1",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "YARN_VERSION",
+            "attr_type": "string",
+            "attr_default_value": "1.22.17",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "PORT",
+            "attr_type": "string",
+            "attr_default_value": "3000",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "WEB_ROOT",
+            "attr_type": "string",
+            "attr_default_value": "/console/mysqlmanager/${SERVICE_ID}",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "CONNECTIONS",
+            "attr_type": "string",
+            "attr_default_value": "this",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ENGINE_this",
+            "attr_type": "string",
+            "attr_default_value": "mysql@dbgate-plugin-mysql",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "LABEL_this",
+            "attr_type": "string",
+            "attr_default_value": "mysql",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "SERVER_this",
+            "attr_type": "string",
+            "attr_default_value": "localhost",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "PORT_this",
+            "attr_type": "string",
+            "attr_default_value": "3306",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "USER_this",
+            "attr_type": "string",
+            "attr_default_value": "root",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "PASSWORD_this",
+            "attr_type": "string",
+            "attr_default_value": "123456",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          }
+        ]
+      }
+    ]
+  },
+  "redis_dbgate_plugin":{
+    "plugin_alias": "Redis Manager",
+    "desc": "Redis Manager，以 Web UI 页面形式帮助连接、操作 Redis 中间件。",
+    "category": "general-plugin",
+    "code_repo": "",
+    "build_source": "image",
+    "image": "wutongpaas/dbgate:latest",
+    "config_group": [
+      {
+        "service_meta_type": "un_define",
+        "injection": "env",
+        "config_name": "配置参数",
+        "options": [
+          {
+            "attr_name": "NODE_VERSION",
+            "attr_type": "string",
+            "attr_default_value": "14.19.1",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "YARN_VERSION",
+            "attr_type": "string",
+            "attr_default_value": "1.22.17",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "PORT",
+            "attr_type": "string",
+            "attr_default_value": "3000",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "WEB_ROOT",
+            "attr_type": "string",
+            "attr_default_value": "/console/redismanager/${SERVICE_ID}",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "CONNECTIONS",
+            "attr_type": "string",
+            "attr_default_value": "this",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "ENGINE_this",
+            "attr_type": "string",
+            "attr_default_value": "redis@dbgate-plugin-redis",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "LABEL_this",
+            "attr_type": "string",
+            "attr_default_value": "redis",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "SERVER_this",
+            "attr_type": "string",
+            "attr_default_value": "localhost",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "PORT_this",
+            "attr_type": "string",
+            "attr_default_value": "6379",
+            "is_change": false,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          },
+          {
+            "attr_name": "PASSWORD_this",
+            "attr_type": "string",
+            "attr_default_value": "",
+            "is_change": true,
+            "attr_alt_value": "",
+            "attr_info": "",
+            "protocol": ""
+          }
+        ]
+      }
+    ]
   }
 }
