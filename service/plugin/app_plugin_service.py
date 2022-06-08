@@ -559,7 +559,7 @@ class AppPluginService(object):
         except remote_plugin_client.CallApiError as e:
             if "body" in e.message and "msg" in e.message["body"] \
                     and "a same kind plugin has been linked" in e.message["body"]["msg"]:
-                raise ServiceHandleException(msg="install plugin fail", msg_show="网络类插件不能重复安装", status_code=409)
+                raise ServiceHandleException(msg="install plugin fail", msg_show="相同类插件已开通不能重复安装", status_code=409)
 
     def add_filemanage_port(self, session: SessionClass, tenant, service, plugin_id, container_port, user=None):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
