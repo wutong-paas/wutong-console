@@ -18,15 +18,16 @@ from service.plugin.plugin_version_service import plugin_version_service
 allow_plugins = [
     PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
     PluginCategoryConstants.PERFORMANCE_ANALYSIS, PluginCategoryConstants.INIT_TYPE,
-    PluginCategoryConstants.COMMON_TYPE,
-    PluginCategoryConstants.EXPORTER_TYPE
+    PluginCategoryConstants.COMMON_TYPE, PluginCategoryConstants.EXPORTER_TYPE,
+    PluginCategoryConstants.DBGATE_TYPE
 ]
 
 default_plugins = [
     DefaultPluginConstants.DOWNSTREAM_NET_PLUGIN, DefaultPluginConstants.PERF_ANALYZE_PLUGIN,
     DefaultPluginConstants.INANDOUT_NET_PLUGIN, DefaultPluginConstants.FILEBEAT_LOG_PLUGIN,
     DefaultPluginConstants.LOGTAIL_LOG_PLUGIN, DefaultPluginConstants.MYSQLD_EXPORTER_PLUGIN,
-    DefaultPluginConstants.FILEBROWSER_PLUGIN
+    DefaultPluginConstants.FILEBROWSER_PLUGIN, DefaultPluginConstants.MYSQL_DBGATE_PLUGIN,
+    DefaultPluginConstants.REDIS_DBGATE_PLUGIN
 ]
 
 
