@@ -424,10 +424,10 @@ class RemoteAppClient(ApiBaseHttpClient):
                 # If the location is relative at all, we want it to be absolute to
                 # the upstream server.
                 proxy_response_headers.update({key: self.make_absolute_location(response.url, value)})
-            elif key.lower() == 'content-security-policy':
-                proxy_response_headers.update({key: "upgrade-insecure-requests"})
             else:
                 proxy_response_headers.update({key: value})
+
+        proxy_response_headers.update({"content-security-policy": "upgrade-insecure-requests '1'"})
 
         proxy_response = Response(response.data, headers=proxy_response_headers, status_code=response.status)
         return proxy_response
