@@ -1,4 +1,3 @@
-# 初始化app实例
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from redis import StrictRedis
@@ -65,6 +64,7 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 ## 测试路由
 from worker.app import router
 app.include_router(router)
+app.state.api = None
 
 if __name__ == '__main__':
     import uvicorn
