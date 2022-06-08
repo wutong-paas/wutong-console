@@ -641,7 +641,7 @@
   "mysql_dbgate_plugin":{
     "plugin_alias": "MySQL Manager",
     "desc": "MySQL Manager，以 Web UI 页面形式帮助连接、操作 MySQL 中间件。",
-    "category": "general-plugin",
+    "category": "dbgate-plugin",
     "code_repo": "",
     "build_source": "image",
     "image": "wutongpaas/dbgate:latest",
@@ -681,7 +681,7 @@
           {
             "attr_name": "WEB_ROOT",
             "attr_type": "string",
-            "attr_default_value": "/console/mysqlmanager/${SERVICE_ID}",
+            "attr_default_value": "/console/dbgate/${SERVICE_ID}",
             "is_change": false,
             "attr_alt_value": "",
             "attr_info": "",
@@ -757,7 +757,7 @@
   "redis_dbgate_plugin":{
     "plugin_alias": "Redis Manager",
     "desc": "Redis Manager，以 Web UI 页面形式帮助连接、操作 Redis 中间件。",
-    "category": "general-plugin",
+    "category": "dbgate-plugin",
     "code_repo": "",
     "build_source": "image",
     "image": "wutongpaas/dbgate:latest",
@@ -797,7 +797,7 @@
           {
             "attr_name": "WEB_ROOT",
             "attr_type": "string",
-            "attr_default_value": "/console/redismanager/${SERVICE_ID}",
+            "attr_default_value": "/console/dbgate/${SERVICE_ID}",
             "is_change": false,
             "attr_alt_value": "",
             "attr_info": "",
