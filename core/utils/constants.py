@@ -83,6 +83,7 @@ class PluginCategoryConstants(object):
     PERFORMANCE_ANALYSIS = "analyst-plugin:perf"
     COMMON_TYPE = "general-plugin"
     EXPORTER_TYPE = "exporter-plugin"
+    DBGATE_TYPE = "dbgate-plugin"
 
 
 class DefaultPluginConstants(object):
