@@ -35,6 +35,11 @@ class IDaaSOauth(object):
             data = None
         return data
 
+    def _api_logout_get(self, url_suffix, params=None):
+        url = self._url + url_suffix
+        rst = self.session.request(method='GET', url=url, headers=self.headers, params=params)
+        return rst.status_code
+
 
 class IDaaSApiV1MiXin(object):
     def set_api(self, host, access_token):
@@ -59,6 +64,10 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
     def get_user_url(self, home_url=None):
         home_url.strip().strip("/")
         return "/".join([home_url, "gateway/wutong-idaas-auth/authz/oauth2/userinfojson"])
+
+    def get_logout_url(self, home_url=None):
+        home_url.strip().strip("/")
+        return "/".join([home_url, "logout"])
 
     def _get_access_token(self, code=None):
         '''
@@ -138,6 +147,14 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
             return OAuth2User(user["realname"], user["userId"], user["email"], user["username"],
                               user["mobile"]), access_token, refresh_token
         return None, None, None
+
+    def logout(self):
+        try:
+            status_code = self.api._api_logout_get(self.get_logout_url(""), params={"access_token": self.access_token})
+        except Exception as e:
+            logger.exception(e)
+            raise NoAccessKeyErr("idaas logout failed")
+        return status_code
 
     def get_authorize_url(self):
         if self.oauth_service:

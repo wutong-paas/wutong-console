@@ -9,10 +9,12 @@ from fastapi.responses import JSONResponse
 from jose import jwt
 from loguru import logger
 from sqlalchemy import select
+from starlette import status
 
 from core import deps
 from core.setting import role_required
 from core.setting import settings
+from core.utils.oauth.oauth_types import get_oauth_instance, NoSupportOAuthType
 from core.utils.perms import list_enterprise_perms_by_roles
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -27,6 +29,7 @@ from repository.users.user_oauth_repo import oauth_repo
 from repository.users.user_repo import user_repo
 from repository.users.user_role_repo import user_role_repo
 from schemas.response import Response
+from service.application_service import application_service
 from service.region_service import get_region_list_by_team_name
 from service.user_service import user_svc, user_kind_perm_service
 
@@ -126,7 +129,7 @@ def num_to_char(num):
 
 
 @router.get("/users/logout", response_model=Response, name="用户登出")
-async def user_logout(request: Request) -> Any:
+async def user_logout(request: Request, session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     用户登出
     """
@@ -142,6 +145,23 @@ async def user_logout(request: Request) -> Any:
         response.delete_cookie('tenant_name')
         response.delete_cookie('uid')
         response.delete_cookie('token')
+
+        try:
+            api = request.app.state.api
+        except NoSupportOAuthType as e:
+            logger.debug(e)
+            rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
+            return JSONResponse(rst, status_code=status.HTTP_200_OK)
+        try:
+            status_code = api.logout()
+            if status_code != 200:
+                rst = {"data": {"bean": None}, "status": status_code, "msg_show": "idaas登出失败"}
+                return JSONResponse(rst, status_code=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(e)
+            rst = {"data": {"bean": None}, "status": 400, "msg_show": "idaas登出失败"}
+            return JSONResponse(rst, status_code=status.HTTP_200_OK)
+
         return response
     except Exception as e:
         logger.exception(e)

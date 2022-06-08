@@ -327,8 +327,6 @@ async def app_copy(request: Request,
     tar_group_id = data.get("tar_group_id")
     if not tar_team_name or not tar_region_name or not tar_group_id:
         raise ServiceHandleException(msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
-    if len(services) > 20:
-        raise ServiceHandleException(msg_show="单次复制最多20个组件", msg="Copy up to 20 components at a time", status_code=400)
     tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(session, user, tar_team_name, tar_region_name,
                                                                          tar_group_id)
     try:

@@ -171,6 +171,7 @@ async def get_authorize(
         return JSONResponse(rst, status_code=status.HTTP_200_OK)
     try:
         api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
+        request.app.state.api = api
     except NoSupportOAuthType as e:
         logger.debug(e)
         rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
