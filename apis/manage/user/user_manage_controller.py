@@ -14,7 +14,7 @@ from starlette import status
 from core import deps
 from core.setting import role_required
 from core.setting import settings
-from core.utils.oauth.oauth_types import get_oauth_instance, NoSupportOAuthType
+from core.utils.oauth.oauth_types import NoSupportOAuthType
 from core.utils.perms import list_enterprise_perms_by_roles
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -29,7 +29,6 @@ from repository.users.user_oauth_repo import oauth_repo
 from repository.users.user_repo import user_repo
 from repository.users.user_role_repo import user_role_repo
 from schemas.response import Response
-from service.application_service import application_service
 from service.region_service import get_region_list_by_team_name
 from service.user_service import user_svc, user_kind_perm_service
 
