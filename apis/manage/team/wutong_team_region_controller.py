@@ -302,6 +302,7 @@ async def get_region_key(
     return JSONResponse(result, status_code=200)
 
 
+@router.get("/filebrowser/{service_id}", response_model=Response, name="文件管理")
 @router.api_route(
     "/filebrowser/{service_id}/{url:path}",
     methods=[
@@ -329,6 +330,8 @@ async def file_manager(
         except:
             data_json = {}
         params = str(request.query_params)
+        if url is None:
+            url = ""
         if params == '':
             url_path = '/console/filebrowser/' + service_id + '/' + url
         else:
