@@ -31,6 +31,25 @@ class ConfigService(object):
         # no need
         pass
 
+    def get_config_by_key(self, session, key):
+        return session.execute(select(ConsoleSysConfig).where(
+            ConsoleSysConfig.key == key,
+            ConsoleSysConfig.enterprise_id == self.enterprise_id
+        )).scalars().first()
+
+    def get_config_by_key_and_enterprise_id(self, session, key, enterprise_id):
+        """
+        获取console系统配置
+        :param key:
+        :param enterprise_id:
+        :return:
+        """
+        sql = select(ConsoleSysConfig).where(
+            ConsoleSysConfig.key == key,
+            ConsoleSysConfig.enterprise_id == enterprise_id
+        )
+        return session.execute(sql).scalars().first()
+
     def initialization_or_get_config(self, session: SessionClass):
         """
         initialization_or_get_config
@@ -66,6 +85,33 @@ class ConfigService(object):
                 rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
                 rst_datas.update(rst_data)
                 rst_datas[key.lower()] = {"enable": tar_key.enable, "value": self.base_cfg_keys_value[key]["value"]}
+
+        for key in self.cfg_keys:
+            tar_key = self.get_config_by_key(session, key)
+            if not tar_key:
+                enable = self.cfg_keys_value[key]["enable"]
+                value = self.cfg_keys_value[key]["value"]
+                desc = self.cfg_keys_value[key]["desc"]
+                config_type = "string"
+                if isinstance(value, (dict, list)):
+                    config_type = "json"
+                rst_key = sys_config_repo.add_config(session=session, key=key, default_value=value,
+                                                     config_type=config_type,
+                                                     enable=enable,
+                                                     desc=desc,
+                                                     enterprise_id=self.enterprise_id)
+
+                value = rst_key.value
+                enable = rst_key.enable
+                rst_data = {key.lower(): {"enable": enable, "value": value}}
+                rst_datas.update(rst_data)
+            else:
+                if tar_key.type == "json":
+                    rst_value = eval(tar_key.value)
+                else:
+                    rst_value = tar_key.value
+                rst_data = {key.lower(): {"enable": tar_key.enable, "value": rst_value}}
+                rst_datas.update(rst_data)
 
         rst_datas["default_market_url"] = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
         return rst_datas
@@ -210,12 +256,6 @@ class PlatformConfigService(ConfigService):
             return config
         else:
             raise ConfigExistError("配置{}已存在".format(key))
-
-    def get_config_by_key(self, session, key):
-        return session.execute(select(ConsoleSysConfig).where(
-            ConsoleSysConfig.key == key,
-            ConsoleSysConfig.enterprise_id == self.enterprise_id
-        )).scalars().first()
 
     def is_user_register(self, session):
         user = (session.execute(select(Users.user_id))).scalars().first()
