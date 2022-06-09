@@ -199,14 +199,6 @@ async def user_register(request: Request, session: SessionClass = Depends(deps.g
 
     enterprise = enterprise_repo.get_enterprise_first(session=session)
 
-    if not enterprise:
-        enter_name = from_data["enter_name"]
-        enterprise = tenant_enterprise_repo.create_enterprise(session=session, enterprise_name=None,
-                                                              enterprise_alias=enter_name)
-        # 创建用户在企业的权限
-        user_svc.make_user_as_admin_for_enterprise(session, user.user_id, enterprise.enterprise_id)
-    user.enterprise_id = enterprise.enterprise_id
-
     # check user info
     try:
         user_svc.check_params(session, user_name, email, password, re_password, user.enterprise_id, phone)
@@ -214,6 +206,15 @@ async def user_register(request: Request, session: SessionClass = Depends(deps.g
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
 
     user_svc.create_user(session, user)
+
+    if not enterprise:
+        enter_name = from_data["enter_name"]
+        enterprise = tenant_enterprise_repo.create_enterprise(session=session, enterprise_name=None,
+                                                              enterprise_alias=enter_name)
+        # 创建用户在企业的权限
+        user_svc.make_user_as_admin_for_enterprise(session, user.user_id, enterprise.enterprise_id)
+
+    user.enterprise_id = enterprise.enterprise_id
 
     data = dict()
     data["user_id"] = user.user_id
@@ -249,7 +250,8 @@ async def get_user_details(session: SessionClass = Depends(deps.get_session),
     user_detail["phone"] = user.phone
     user_detail["git_user_id"] = user.git_user_id
     user_detail["is_sys_admin"] = user_repo.is_sys_admin(session=session, user_id=user.user_id)
-    user_detail["is_enterprise_active"] = enterprise.is_active
+    if enterprise:
+        user_detail["is_enterprise_active"] = enterprise.is_active
     # todo is_enterprise_admin
     # user_detail["is_enterprise_admin"] = self.is_enterprise_admin
     user_detail["is_enterprise_admin"] = True
