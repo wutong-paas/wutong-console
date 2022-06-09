@@ -97,7 +97,7 @@ async def create_app(params: TeamAppCreateRequest,
             version=params.version,
             eid=user.enterprise_id,
             logo=params.logo,
-            k8s_app=params.k8s_app
+            k8s_app=k8s_app
         )
     except ServiceHandleException as e:
         session.rollback()
