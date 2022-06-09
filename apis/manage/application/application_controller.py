@@ -79,7 +79,7 @@ async def create_app(params: TeamAppCreateRequest,
         return JSONResponse(result, status_code=result["code"])
 
     k8s_app = params.k8s_app
-    if params.app_name:
+    if not k8s_app and params.app_name:
         k8s_app = params.app_name
     if k8s_app and not is_qualified_name(k8s_app):
         raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
