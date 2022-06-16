@@ -73,7 +73,5 @@ if __name__ == '__main__':
         app="main:app",
         host='0.0.0.0',
         port=int(settings.PORT),
-        reload=settings.RELOAD,
-        log_level=2,
-        debug=True
+        reload=settings.RELOAD
     )

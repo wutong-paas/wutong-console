@@ -768,3 +768,21 @@ async def market_create(
                                    install_from_cloud=install_from_cloud,
                                    is_deploy=is_deploy)
     return JSONResponse(general_message(200, "success", "部署成功"), status_code=200)
+
+
+@router.get("/v1.0/devops/teams/{team_name}/regions", response_model=Response, name="查询团队绑定集群")
+async def get_team_regions(
+        request: Request,
+        authorization: Optional[str] = Depends(oauth2_scheme),
+        team=Depends(deps.get_current_team),
+        session: SessionClass = Depends(deps.get_session)
+) -> Any:
+    region_info_map = []
+    region_name_list = team_repo.get_team_region_names(session, team.tenant_id)
+    if region_name_list:
+        region_infos = region_repo.get_region_by_region_names(session, region_name_list)
+        if region_infos:
+            for region in region_infos:
+                region_info_map.append(
+                    {"id": region.ID, "region_name": region.region_name, "region_alias": region.region_alias})
+    return JSONResponse(general_message(200, "success", "查询成功", list=region_info_map), status_code=200)
