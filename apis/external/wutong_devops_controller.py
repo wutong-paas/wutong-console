@@ -785,4 +785,4 @@ async def get_team_regions(
             for region in region_infos:
                 region_info_map.append(
                     {"id": region.ID, "region_name": region.region_name, "region_alias": region.region_alias})
-    return JSONResponse(general_message(200, "success", "查询成功", list=region_info_map), status_code=200)
+    return JSONResponse(general_message(200, "success", "查询成功", data=region_info_map), status_code=200)
