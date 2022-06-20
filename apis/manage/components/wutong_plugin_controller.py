@@ -86,7 +86,6 @@ async def install_sys_plugin(request: Request,
     if not plugins:
         plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team, region=response_region,
                                                       plugin_type=plugin_type, build_version=build_version)
-        session.flush()
     else:
         plugin_id = None
         for plugin in plugins:
@@ -102,7 +101,6 @@ async def install_sys_plugin(request: Request,
             plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team,
                                                           region=response_region,
                                                           plugin_type=plugin_type, build_version=build_version)
-            session.flush()
 
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin", "未找到插件"), status_code=400)
