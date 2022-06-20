@@ -176,6 +176,23 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                 AND tp.region = "{2}"
                 AND pbv.build_status = "{3}"
         """.format(service_id, tenant_id, region, "build_success")
+
+        SHARED_QUERI_UNINSTALLED_SQL = """
+            SELECT
+                tp.plugin_id AS plugin_id,
+                tp.DESC AS "desc",
+                tp.plugin_alias AS plugin_alias,
+                tp.category AS category,
+                pbv.build_version AS build_version
+            FROM
+                tenant_plugin AS tp
+                JOIN plugin_build_version AS pbv ON tp.plugin_id = pbv.plugin_id
+                AND tp.tenant_id = pbv.tenant_id
+            WHERE
+                pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation)
+                AND tp.region = "{0}"
+                AND pbv.build_status = "{1}"
+        """.format(region, "build_success")
         uninstalled_plugins = []
         installed_plugins = []
         if origin == "sys":
@@ -220,6 +237,14 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                         uninstalled_plugins.append(plugin_dict)
                 else:
                     uninstalled_plugins.append(plugin_dict)
+        elif origin == "shared":
+            query_installed_plugin = """{0} AND tp.origin="{1}" """.format(QUERY_INSTALLED_SQL, origin)
+
+            query_uninstalled_plugin = """{0} AND tp.origin="{1}" """.format(SHARED_QUERI_UNINSTALLED_SQL, origin)
+
+            installed_plugins = (session.execute(query_installed_plugin)).fetchall()
+            uninstalled_plugins = (session.execute(query_uninstalled_plugin)).fetchall()
+
         else:
             query_installed_plugin = """{0} AND tp.origin="{1}" """.format(QUERY_INSTALLED_SQL, origin)
 
