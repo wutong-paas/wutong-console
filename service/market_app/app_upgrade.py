@@ -230,7 +230,7 @@ class AppUpgrade(MarketApp):
         new_plugins = []
         for plugin in plugins:
             origin = plugin.plugin.origin
-            if origin == "local_market":
+            if origin == "sys":
                 plugin_from = "yb"
             elif origin == "market":
                 plugin_from = "ys"
@@ -701,7 +701,7 @@ class AppUpgrade(MarketApp):
                 code_repo=plugin_tmpl["code_repo"],
                 username=plugin_tmpl["plugin_image"]["hub_user"],
                 password=plugin_tmpl["plugin_image"]["hub_password"],
-                origin="local_market",
+                origin="sys",
                 origin_share_id=plugin_tmpl["plugin_key"])
 
             build_version = self._create_build_version(plugin.plugin_id, plugin_tmpl)

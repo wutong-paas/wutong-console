@@ -9,13 +9,13 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_repo
-from repository.component.service_config_repo import port_repo
-from repository.plugin.service_plugin_repo import service_plugin_config_repo
+from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
+from service.plugin_service import default_plugins, plugin_service
 
 router = APIRouter()
 
@@ -46,19 +46,76 @@ async def get_plugin_list(request: Request,
           paramType: query
 
     """
-    category = request.query_params.get("category", "")
-    if category:
-        if category not in ("analysis", "net_manage"):
-            return JSONResponse(general_message(400, "param can only be analysis or net_manage", "参数错误"),
+    origin = request.query_params.get("origin", "sys")
+    if origin:
+        if origin not in ("sys", "tenant", "shared"):
+            return JSONResponse(general_message(400, "param can only be sys or tenant、shared", "参数错误"),
                                 status_code=400)
     service = service_repo.get_service(session, serviceAlias, team.tenant_id)
-    installed_plugins, not_install_plugins = service_plugin_config_repo.get_plugins_by_service_id(session=session,
-                                                                                                  region=service.service_region,
-                                                                                                  tenant_id=team.tenant_id,
-                                                                                                  service_id=service.service_id,
-                                                                                                  category=category)
+    installed_plugins, not_install_plugins = service_plugin_config_repo.get_plugins_by_origin(session=session,
+                                                                                              region=service.service_region,
+                                                                                              tenant_id=team.tenant_id,
+                                                                                              service_id=service.service_id,
+                                                                                              origin=origin)
     bean = {"installed_plugins": installed_plugins, "not_install_plugins": not_install_plugins}
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
+             name="安装并开通系统插件")
+async def install_sys_plugin(request: Request,
+                             serviceAlias: Optional[str] = None,
+                             session: SessionClass = Depends(deps.get_session),
+                             user=Depends(deps.get_current_user),
+                             team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    plugin_type = data.get("plugin_type", None)
+    build_version = data.get("build_version", None)
+    if not plugin_type:
+        return general_message(400, "plugin type is null", "请指明插件类型")
+    if plugin_type not in default_plugins:
+        return general_message(400, "plugin type not support", "插件类型不支持")
+
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    response_region = region.region_name
+    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys")
+    if not plugins:
+        plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team, region=response_region,
+                                                      plugin_type=plugin_type, build_version=build_version)
+        session.flush()
+    else:
+        plugin_id = None
+        for plugin in plugins:
+            plugin_rel = app_plugin_relation_repo.get_relation_by_service_and_plugin_version(session, service.service_id,
+                                                                                             plugin.plugin_id,
+                                                                                             build_version)
+            if not plugin_rel:
+                plugin_id = plugin.plugin_id
+            else:
+                plugin.origin = "tenant"
+
+        if not plugin_id:
+            plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team,
+                                                          region=response_region,
+                                                          plugin_type=plugin_type, build_version=build_version)
+            session.flush()
+
+    if not plugin_id:
+        return JSONResponse(general_message(400, "not found plugin", "未找到插件"), status_code=400)
+    app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_id=team.tenant_id,
+                                             service_id=service.service_id)
+    app_plugin_service.install_new_plugin(session=session, region=response_region, tenant=team, service=service,
+                                          plugin_id=plugin_id, plugin_version=build_version, user=user)
+    app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service, plugin_id=plugin_id,
+                                           container_port="6173", user=user)
+    app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service, plugin_id=plugin_id,
+                                            plugin_version=build_version, user=user)
+
+    result = general_message(200, "success", "安装成功")
     return JSONResponse(result, status_code=result["code"])
 
 
@@ -109,10 +166,6 @@ async def install_plugin(request: Request,
                                              service_id=service.service_id)
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant=team, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
-    app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service, plugin_id=plugin_id,
-                                           container_port="6173", user=user)
-    app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service, plugin_id=plugin_id,
-                                            plugin_version=build_version, user=user)
 
     result = general_message(200, "success", "安装成功")
     return JSONResponse(result, status_code=result["code"])

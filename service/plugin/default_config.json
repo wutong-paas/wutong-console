@@ -4,6 +4,7 @@
     "desc": "实现智能路由、A/B测试、灰度发布、端口复用等微服务治理功能",
     "category": "net-plugin:down",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-mesh-data-panel:v5.5.0-release",
     "config_group": [
@@ -165,6 +166,7 @@
     "desc": "实时分析应用的吞吐率、响应时间、在线人数等指标",
     "category": "analyst-plugin:perf",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/plugins-tcm:v5.5.0-release",
     "config_group": [
@@ -191,6 +193,7 @@
     "desc": "该插件支持服务的出站和入站网络治理，包括服务动态路由、限流、熔断等功能",
     "category": "net-plugin:in-and-out",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-mesh-data-panel:v5.5.0-release",
     "config_group": [
@@ -431,6 +434,7 @@
     "desc": "该插件支持通过fileBeat日志收集器收集日志信息到ELK集群中，完成日志的收集、分析功能(需要访问公网安装)",
     "category": "general-plugin",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/plugin-log-filebeat:latest",
     "config_group": [
@@ -529,6 +533,7 @@
     "desc": "该插件支持通过logtail日志收集器收集日志信息到阿里云日志服务中，完成日志的收集、分析功能(需要访问公网安装)",
     "category": "general-plugin",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/plugin-log-logtail:latest",
     "config_group": [
@@ -582,6 +587,7 @@
     "desc": "用于暴露 MySQL 的 Prometheus 指标",
     "category": "exporter-plugin",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/mysqld-exporter",
     "config_group": [
@@ -608,6 +614,7 @@
     "desc": "文件管理插件，挂载组件目录并与组件一同运行，并对外提供文件上传下载等服务。",
     "category": "general-plugin",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "wutongpaas/filebrowser:latest",
     "config_group": [
@@ -643,6 +650,7 @@
     "desc": "MySQL Manager，以 Web UI 页面形式帮助连接、操作 MySQL 中间件。",
     "category": "dbgate-plugin",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "wutongpaas/dbgate:latest",
     "config_group": [
@@ -759,6 +767,7 @@
     "desc": "Redis Manager，以 Web UI 页面形式帮助连接、操作 Redis 中间件。",
     "category": "dbgate-plugin",
     "code_repo": "",
+    "build_version": "1.0.0",
     "build_source": "image",
     "image": "wutongpaas/dbgate:latest",
     "config_group": [

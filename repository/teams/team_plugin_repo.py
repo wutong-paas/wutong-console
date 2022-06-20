@@ -113,6 +113,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         """
         add_plugin = TeamPlugin(**plugin_args)
         session.add(add_plugin)
+        session.flush()
         return add_plugin
 
     def delete_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):
@@ -124,18 +125,9 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         session.execute(
             delete(TeamPlugin).where(TeamPlugin.tenant_id == tenant_id, TeamPlugin.plugin_id == plugin_id))
 
-    def get_plugin_by_origin_share_id(self, session: SessionClass, tenant_id, origin_share_id):
-        """
-
-        :param tenant_id:
-        :param origin_share_id:
-        :return:
-        """
-        sql = select(TeamPlugin).where(TeamPlugin.tenant_id == tenant_id,
-                                       TeamPlugin.origin_share_id == origin_share_id)
-        results = session.execute(sql)
-        data = results.all()
-        return data
+    def get_plugin_by_origin_share_id(self, session: SessionClass, origin_share_id):
+        return session.execute(select(TeamPlugin).where(
+            TeamPlugin.origin_share_id == origin_share_id)).first()
 
     def create_if_not_exist(self, session: SessionClass, **plugin):
         """
@@ -154,7 +146,6 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
                                                      TeamPlugin.region == plugin["region"]))
         add_plugin = TeamPlugin(**plugin)
         session.add(add_plugin)
-        
 
     def bulk_create(self, session: SessionClass, plugins):
         """
@@ -192,7 +183,8 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
     def get_tenant_plugins(self, session: SessionClass, tenant_id, region):
         return session.execute(select(TeamPlugin).where(
             TeamPlugin.tenant_id == tenant_id,
-            TeamPlugin.region == region)).scalars().all()
+            TeamPlugin.region == region,
+            TeamPlugin.origin == "tenant")).scalars().all()
 
     def get_def_tenant_plugins(self, session: SessionClass, tenant_id, region, origin_share_ids):
         return session.execute(select(TeamPlugin).where(
@@ -209,10 +201,29 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
                 (and_(TeamPlugin.category == "analyst-plugin:perf",
                       TeamPlugin.image == IMAGE_REPO))))).scalars().first()
 
+    def get_sys_tenant_plugins(self, session: SessionClass, plugin_id):
+        return session.execute(select(TeamPlugin).where(
+            TeamPlugin.plugin_id == plugin_id)).scalars().first()
+
+    def get_sys_plugin_by_origin_share_id(self, session: SessionClass, tenant_id, origin_share_id):
+        return session.execute(select(TeamPlugin).where(
+            TeamPlugin.tenant_id == tenant_id,
+            TeamPlugin.origin_share_id == origin_share_id)).scalars().first()
+
     def get_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):
         return (session.execute(select(TeamPlugin).where(
             TeamPlugin.tenant_id == tenant_id,
             TeamPlugin.plugin_id == plugin_id))).scalars().first()
+
+    def get_by_share_plugins(self, session: SessionClass, tenant_id, origin):
+        return session.execute(select(TeamPlugin).where(
+            TeamPlugin.tenant_id == tenant_id,
+            TeamPlugin.origin == origin)).scalars().all()
+
+    def get_by_type_plugins(self, session: SessionClass, plugin_type, origin):
+        return session.execute(select(TeamPlugin).where(
+            TeamPlugin.origin_share_id == plugin_type,
+            TeamPlugin.origin == origin)).scalars().all()
 
 
 plugin_repo = TenantPluginRepository(TeamPlugin)
