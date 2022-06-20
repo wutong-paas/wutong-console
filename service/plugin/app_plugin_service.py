@@ -433,6 +433,7 @@ class AppPluginService(object):
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
                 dep_services = plugin_service.get_service_dependencies(session=session, tenant=tenant, service=service)
                 if not dep_services:
+                    session.rollback()
                     raise ServiceHandleException(msg="can't use this plugin", status_code=409,
                                                  msg_show="组件没有依赖其他组件，不能安装此插件")
                 for dep_service in dep_services:
