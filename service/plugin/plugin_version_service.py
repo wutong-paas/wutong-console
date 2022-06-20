@@ -60,6 +60,9 @@ class PluginBuildVersionService(object):
     def get_by_id_and_version(self, session: SessionClass, tenant_id, plugin_id, plugin_version):
         return plugin_version_repo.get_by_id_and_version(session, tenant_id, plugin_id, plugin_version)
 
+    def get_plugin_version_by_id(self, session: SessionClass, tenant_id, plugin_id):
+        return plugin_version_repo.get_plugin_version_by_id(session, tenant_id, plugin_id)
+
     def delete_build_version_by_id_and_version(self, session, tenant_id, plugin_id, build_version, force=False):
         plugin_build_version = plugin_version_repo.get_by_id_and_version(session, tenant_id, plugin_id, build_version)
         if not plugin_build_version:

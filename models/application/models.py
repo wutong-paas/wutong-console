@@ -27,7 +27,7 @@ class Application(Base):
         default=GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
-    app_type = Column(String(255), comment="应用类型", nullable=False, default="rainbond")
+    app_type = Column(String(255), comment="应用类型", nullable=False, default="wutong")
     app_store_name = Column(String(255), comment="应用商店名称", nullable=True)
     app_store_url = Column(String(255), comment="应用商店 URL", nullable=True)
     app_template_name = Column(String(255), comment="应用模板名称", nullable=True)

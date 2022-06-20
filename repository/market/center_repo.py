@@ -4,6 +4,7 @@ from loguru import logger
 from sqlalchemy import select, or_, func, delete, not_
 from sqlalchemy.orm import defer
 
+from clients.remote_component_client import remote_component_client
 from database.session import SessionClass
 from models.application.models import ApplicationExportRecord
 from models.market import models
@@ -344,6 +345,13 @@ class CenterRepository(BaseRepository[CenterApp]):
                     CenterAppVersion.upgrade_time.desc())).scalars().first()
         )
         return app, app_version
+
+    def get_all_helm_info(self, session: SessionClass, region_name, tenant_name, helm_name, helm_namespace):
+        return remote_component_client.get_helm_chart_resources(session,
+                                                                region_name,
+                                                                tenant_name,
+                                                                {"helm_name": helm_name,
+                                                                 "helm_namespace": helm_namespace})
 
     def get_wutong_app_by_app_id(self, session: SessionClass, eid, app_id):
         return session.execute(select(CenterApp).where(

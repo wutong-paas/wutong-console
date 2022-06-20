@@ -83,7 +83,7 @@ class PluginService(object):
         build_data["ImageInfo"] = image_info
         build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
         origin = plugin.origin
-        if origin == "local_market":
+        if origin == "sys":
             plugin_from = "yb"
         elif origin == "market":
             plugin_from = "ys"
@@ -119,7 +119,8 @@ class PluginService(object):
     with open(file_path, encoding='utf-8') as f:
         all_default_config = json.load(f)
 
-    def add_default_plugin(self, session: SessionClass, user, tenant, region, plugin_type="perf_analyze_plugin"):
+    def add_default_plugin(self, session: SessionClass, user, tenant, region, plugin_type="perf_analyze_plugin",
+                           build_version=None):
         plugin_base_info = None
         try:
             if not self.all_default_config:
@@ -151,7 +152,7 @@ class PluginService(object):
                 "password": ""
             }
             code, msg, plugin_base_info = self.create_tenant_plugin(session=session, plugin_params=plugin_params)
-            plugin_base_info.origin = "local_market"
+            plugin_base_info.origin = "sys"
             plugin_base_info.origin_share_id = plugin_type
             # plugin_base_info.save()
 
@@ -161,7 +162,8 @@ class PluginService(object):
                                                                                tenant_id=tenant.tenant_id,
                                                                                user_id=user.user_id, update_info="",
                                                                                build_status="unbuild", min_memory=64,
-                                                                               image_tag=image_tag)
+                                                                               image_tag=image_tag,
+                                                                               build_version=build_version)
 
             plugin_config_meta_list = []
             config_items_list = []
@@ -204,7 +206,8 @@ class PluginService(object):
             self.build_plugin(session=session, region=region, plugin=plugin_base_info,
                               plugin_version=plugin_build_version, user=user, tenant=tenant, event_id=event_id)
             plugin_build_version.build_status = "build_success"
-            # plugin_build_version.save()
+
+            return plugin_base_info.plugin_id
 
         except Exception as e:
             logger.exception(e)
@@ -268,6 +271,18 @@ class PluginService(object):
         data = {"event_id": event_id, "level": level}
         body = remote_plugin_client.get_plugin_event_log(session, region, tenant.tenant_name, data)
         return body["list"]
+
+    def get_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):
+        plugin = plugin_repo.get_by_plugin_id(session, tenant_id, plugin_id)
+        return plugin
+
+    def get_by_share_plugins(self, session: SessionClass, tenant_id, origin):
+        plugins = plugin_repo.get_by_share_plugins(session, tenant_id, origin)
+        return plugins
+
+    def get_by_type_plugins(self, session: SessionClass, plugin_type, origin):
+        plugins = plugin_repo.get_by_type_plugins(session, plugin_type, origin)
+        return plugins
 
 
 plugin_service = PluginService()

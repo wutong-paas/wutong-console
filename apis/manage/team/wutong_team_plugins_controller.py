@@ -12,7 +12,9 @@ from core.utils.constants import DefaultPluginConstants
 from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
+from models.application.plugin import PluginConfigGroup, PluginConfigItems
 from repository.component.service_share_repo import component_share_repo
+from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -113,7 +115,7 @@ async def get_default_plugins(session: SessionClass = Depends(deps.get_session),
     region_name = region.region_name
     default_plugin_dict = plugin_service.get_default_plugin_from_cache(session=session, region=region_name, tenant=team)
 
-    return general_message(200, "success", "查询成功", list=default_plugin_dict)
+    return general_message(200, "success", "查询成功", list=[])
 
 
 @router.post("/teams/{team_name}/plugins", response_model=Response, name="插件创建")
@@ -557,7 +559,6 @@ async def modify_plugin_config(request: Request,
 async def delete_plugin_config(
         request: Request,
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     data = await request.json()
     config_group_id = data.get("config_group_id")
     if not config_group_id:
@@ -589,3 +590,97 @@ async def delete_plugin(request: Request,
     plugin_service.delete_plugin(session, response_region, team, plugin.plugin_id, is_force=is_force)
     result = general_message(200, "success", "删除成功")
     return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/plugins/{plugin_id}/share", response_model=Response, name="团队插件共享")
+async def plugin_share(request: Request,
+                       plugin_id: Optional[str] = None,
+                       session: SessionClass = Depends(deps.get_session),
+                       user=Depends(deps.get_current_user),
+                       team=Depends(deps.get_current_team)) -> Any:
+    plugin = plugin_service.get_by_plugin_id(session, team.tenant_id, plugin_id)
+    plugin_params = jsonable_encoder(plugin)
+    plugin_params.update({"origin": "shared"})
+    plugin_params.update({"ID": None})
+    code, msg, tenant_plugin = plugin_service.create_tenant_plugin(session, plugin_params)
+    if code != 200:
+        return JSONResponse(general_message(code, "create plugin error", msg), status_code=code)
+
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    plugin_version = plugin_version_service.get_plugin_version_by_id(session, team.tenant_id, plugin_id)
+    # 创建插件版本信息
+    plugin_build_version = plugin_version_service.create_build_version(
+        session,
+        region.region_name,
+        tenant_plugin.plugin_id,
+        team.tenant_id,
+        user.user_id,
+        "",
+        "unbuild",
+        plugin_version.min_memory,
+        plugin_version.build_cmd,
+        plugin_version.image_tag,
+        plugin_version.code_version,
+        min_cpu=plugin_version.min_cpu)
+    # 数据中心创建插件
+    code, msg = plugin_service.create_region_plugin(session, region.region_name, team, tenant_plugin,
+                                                    plugin_build_version.image_tag)
+    if code != 200:
+        plugin_service.delete_console_tenant_plugin(session, team.tenant_id, tenant_plugin.plugin_id)
+        plugin_version_service.delete_build_version_by_id_and_version(session,
+                                                                      team.tenant_id,
+                                                                      tenant_plugin.plugin_id,
+                                                                      plugin_build_version.build_version, True)
+        return JSONResponse(general_message(code, "create plugin error", msg), status_code=code)
+
+    config_groups = config_group_repo.get_config_group_by_id_and_version(session=session, plugin_id=plugin_id,
+                                                                         build_version=plugin_version.build_version)
+    if config_groups:
+        for config_group in config_groups:
+            config_group_params = jsonable_encoder(config_group)
+            config_group_params.update({"build_version": plugin_build_version.build_version})
+            config_group_params.update({"plugin_id": tenant_plugin.plugin_id})
+            config_group_params.update({"ID": None})
+            cg = PluginConfigGroup(**config_group_params)
+            session.add(cg)
+
+    pcgs = config_item_repo.list_by_plugin_id(session=session, plugin_id=plugin_id)
+    if pcgs:
+        for p in pcgs:
+            config_item_params = jsonable_encoder(p)
+            config_item_params.update({"build_version": plugin_build_version.build_version})
+            config_item_params.update({"plugin_id": tenant_plugin.plugin_id})
+            config_item_params.update({"ID": None})
+            ci = PluginConfigItems(**config_item_params)
+            session.add(ci)
+
+    event_id = make_uuid()
+    plugin_build_version.build_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    image_info = {
+        "hub_user": tenant_plugin.username,
+        "hub_password": tenant_plugin.password,
+    }
+    try:
+        plugin_service.build_plugin(session, region.region_name, tenant_plugin, plugin_build_version, user, team,
+                                    event_id, image_info)
+        plugin_build_version.build_status = "building"
+        plugin_build_version.event_id = event_id
+        session.merge(plugin_build_version)
+        bean = {"event_id": event_id}
+        result = general_message(200, "success", "共享成功", bean=bean)
+    except Exception as e:
+        logger.exception(e)
+        result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/teams/{team_name}/plugins/share/list", response_model=Response, name="团队共享插件列表")
+async def plugin_share_list(session: SessionClass = Depends(deps.get_session),
+                            user=Depends(deps.get_current_user),
+                            team=Depends(deps.get_current_team)) -> Any:
+    tenant_id = team.tenant_id
+    plugins = plugin_service.get_by_share_plugins(session, tenant_id, "shared")
+    return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(plugins)), status_code=200)

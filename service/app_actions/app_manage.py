@@ -43,7 +43,6 @@ from repository.component.service_group_relation_repo import service_group_relat
 from repository.component.service_label_repo import service_label_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_share_repo import component_share_repo
-from repository.market.center_repo import center_app_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.region.region_app_repo import region_app_repo
 from service.app_actions.app_log import event_service

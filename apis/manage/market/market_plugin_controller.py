@@ -71,7 +71,7 @@ async def installable_internal_plugins(page: int = 1,
                                        page=page,
                                        limit=limit)
     # todo tenant_id  region
-    installed = plugin_repo.list_by_tenant_id(None, None).filter(origin__in=['local_market', 'market'])
+    installed = plugin_repo.list_by_tenant_id(None, None).filter(origin__in=['sys', 'market'])
     for plugin in plugins:
         if installed.filter(origin_share_id=plugin["plugin_key"]).exists():
             plugin["is_installed"] = True
