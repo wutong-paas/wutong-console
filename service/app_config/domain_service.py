@@ -586,6 +586,8 @@ class DomainService(object):
         domain_info["container_port"] = int(domain_info["container_port"])
         domain_info["service_id"] = service.service_id
         domain_info["service_name"] = service.service_alias
+        if not domain_info["rewrites"]:
+            domain_info["rewrites"] = None
         model_data = ServiceDomain(**domain_info)
         domain_repo.save_service_domain(session, model_data)
         if re_model:
