@@ -101,6 +101,25 @@ class ApiBaseHttpClient(object):
         def __str__(self):
             return json.dumps(jsonable_encoder(self.message))
 
+    class RemoteInvokeError(Exception):
+        """
+        RemoteInvokeError
+        """
+
+        def __init__(self, api_type, url, method, res, body, describe=None):
+            self.message = {
+                "api_type": api_type,
+                "url": url,
+                "method": method,
+                "http_code": res.status,
+                "body": body,
+            }
+            self.status = res.status
+
+        def __str__(self):
+            return json.dumps(self.message)
+
+
     class CallApiFrequentError(Exception):
         """
         CallApiFrequentError

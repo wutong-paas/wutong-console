@@ -10,7 +10,7 @@ from sqlalchemy import select, or_, text, delete
 from appstore.app_store import app_store
 from clients.remote_build_client import remote_build_client
 from clients.remote_plugin_client import remote_plugin_client
-from common.base_http_client import HttpClient
+from common.api_base_http_client import ApiBaseHttpClient
 from core.enum.component_enum import is_singleton
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
@@ -18,19 +18,18 @@ from exceptions.main import AbortRequest, ServiceHandleException, RbdAppNotFound
 from models.application.models import ServiceShareRecord, ServiceShareRecordEvent
 from models.application.plugin import TeamComponentPluginRelation, TeamPlugin, ComponentPluginConfigVar, \
     PluginShareRecordEvent
-from models.market.models import CenterApp, CenterAppVersion
-from models.region.label import Labels
-from models.relate.models import TeamComponentRelation
 from models.component.models import TeamComponentConfigurationFile, TeamComponentPort, TeamComponentInfo, \
     ComponentEnvVar, TeamComponentVolume, TeamComponentMountRelation, ComponentProbe, ComponentMonitor, ComponentGraph, \
     ComponentLabels, ComponentEvent
+from models.market.models import CenterApp, CenterAppVersion
+from models.region.label import Labels
+from models.relate.models import TeamComponentRelation
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
 from repository.component.service_config_repo import app_config_group_repo, domain_repo, configuration_repo, port_repo
 from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo, app_export_record_repo
 from service.application_service import application_service
 from service.base_services import base_service
-
 from service.market_app_service import market_app_service
 from service.plugin.plugin_config_service import plugin_config_service
 
@@ -1177,7 +1176,7 @@ class ShareService(object):
                                                                raise_exception=True)
             market_app_service.create_market_app_model_version(market, app.app_id, data)
             # 云市url
-        except HttpClient.CallApiError as e:
+        except ApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
             if e.status == 403:
                 raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403,

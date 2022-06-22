@@ -1,3 +1,5 @@
+import _thread
+import datetime
 import re
 from typing import Any, Optional
 
@@ -8,7 +10,7 @@ from loguru import logger
 from sqlalchemy import select
 
 from clients.remote_component_client import remote_component_client
-from common.base_http_client import HttpClient
+from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
 from core.utils.oauth.oauth_types import support_oauth_type
 from core.utils.return_message import general_message, error_message, general_data
@@ -33,6 +35,7 @@ from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_check_service
+from service.event import message_service
 from service.monitor_service import monitor_service
 from service.multi_app_service import multi_app_service
 from service.user_service import user_svc
@@ -278,8 +281,18 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
             # 添加组件部署关系
             application_service.create_deploy_relation_by_service_id(session=session, service_id=service.service_id)
 
+            # 添加消息投递
+            # todo 操作时间取数据库时间
+            logger.info("新构建组件,投递组件变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
+            _thread.start_new_thread(message_service.component_update_event, (
+                SessionClass(),
+                service.service_id,
+                datetime.datetime.now(),
+                user.real_name, 0,))
+            # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+            #                                        operation_time=datetime.datetime.now(), operator=user.real_name)
         return JSONResponse(general_message(200, "success", "构建成功"), status_code=200)
-    except HttpClient.RemoteInvokeError as e:
+    except ApiBaseHttpClient.RemoteInvokeError as e:
         logger.exception(e)
         if e.status == 403:
             result = general_message(10407, "no cloud permission", e.message)
@@ -355,6 +368,17 @@ async def component_vertical(request: Request,
         if code != 200:
             return JSONResponse(general_message(code, "vertical upgrade error", msg, bean=bean), status_code=code)
         result = general_message(code, "success", "操作成功", bean=bean)
+        # 添加消息投递
+        # todo 操作时间取数据库时间
+        logger.info("组件垂直扩展,投递资源变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
+        _thread.start_new_thread(message_service.component_update_event, (
+            SessionClass(),
+            service.service_id,
+            datetime.datetime.now(),
+            user.real_name, 0,))
+        # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+        #                                        operation_time=datetime.datetime.now(), operator=user.real_name)
+
     except ResourceNotEnoughException as re:
         raise re
     except AccountOverdueException as re:
@@ -380,6 +404,16 @@ async def component_horizontal(request: Request,
         app_manage_service.horizontal_upgrade(
             session, team, service, user, int(new_node), oauth_instance=oauth_instance)
         result = general_message(200, "success", "操作成功", bean={})
+        # 添加消息投递
+        # todo 操作时间取数据库时间
+        logger.info("组件水平扩展,投递资源变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
+        _thread.start_new_thread(message_service.component_update_event, (
+            SessionClass(),
+            service.service_id,
+            datetime.datetime.now(),
+            user.real_name, 5,))
+        # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+        #                                        operation_time=datetime.datetime.now(), operator=user.real_name)
     except ResourceNotEnoughException as re:
         raise re
     except AccountOverdueException as re:

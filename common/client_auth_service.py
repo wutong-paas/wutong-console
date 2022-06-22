@@ -1,5 +1,3 @@
-from core.setting import settings
-from database.session import SessionClass
 from models.teams import TeamInfo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
 from repository.teams.team_enterprise_token_repo import tenant_enterprise_token_repo

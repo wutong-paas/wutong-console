@@ -14,7 +14,7 @@ from apis.manage.components import wutong_monitor_controller, wutong_log_control
 from apis.manage.enterprise import wutong_enterprise_user_controller, wutong_enterprise_base_controller, \
     wutong_enterprise_controller, enterprise_base_controller
 from apis.manage.market import local_market_controller, market_plugin_controller, market_share_controller, \
-    helm_market_controller
+    helm_market_controller, wutong_market_controller
 from apis.manage.team import wutong_team_overview_controller, wutong_team_roles_controller, \
     wutong_team_plugins_controller, wutong_team_users_controller, wutong_team_domain_controller, \
     wutong_team_region_controller, wutong_team_apps_controller, wutong_team_groupapp_controller
@@ -56,6 +56,9 @@ api_router.include_router(application_controller.router, tags=["团队应用接�
 api_router.include_router(wutong_temas_controller.router, tags=["应用接口"])
 api_router.include_router(wutong_topological_controller.router, tags=["应用拓扑图接口"])
 api_router.include_router(domain_controller.router, tags=["应用网关"])
+
+# 梧桐应用市场
+api_router.include_router(wutong_market_controller.router, tags=["梧桐应用市场"])
 
 # 组件
 api_router.include_router(operation_controller.router, tags=["组件操作接口"])
