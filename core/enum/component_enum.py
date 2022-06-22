@@ -42,3 +42,4 @@ def is_support(component_type):
 
 class ComponentSource(Enum):
     THIRD_PARTY = "third_party"
+

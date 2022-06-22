@@ -1,10 +1,12 @@
 import json
 from typing import Any, Optional
+
 from fastapi import APIRouter, Path, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from sqlalchemy import select
+
 from core import deps
 from core.utils.crypt import make_uuid
 from core.utils.dependencies import DALGetter
@@ -211,7 +213,7 @@ async def add_app_models(request: Request,
     if scope == "team" and not create_team:
         result = general_message(400, "please select team", "请选择团队")
         return JSONResponse(result, status_code=400)
-    if scope not in ["team", "enterprise"]:
+    if scope not in ["team", "enterprise", "market"]:
         result = general_message(400, "parameter error", "scope 参数不正确")
         return JSONResponse(result, status_code=400)
     if not name:

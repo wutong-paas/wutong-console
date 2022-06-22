@@ -21,10 +21,19 @@ class Settings(BaseSettings):
     # 跨域白名单
     BACKEND_CORS_ORIGINS: List = ['*']
 
-    REDIS_HOST = os.environ.get("REDIS_HOST", "wutong-redis.wt-system")
+    REDIS_STREAM_HOST = os.environ.get("REDIS_HOST", "localhost")
+    REDIS_STREAM_PORT = os.environ.get("REDIS_PORT", 6379)
+    REDIS_STREAM_PASSWORD = os.environ.get("REDIS_PASSWORD", "123456")
+    REDIS_STREAM_DATABASE = os.environ.get("REDIS_DATABASE", 9)
+    REDIS_STREAM_NAME = os.environ.get("REDIS_STREAM_NAME", "wutong-report-stream")
+    REDIS_STREAM_CONSUMER_NAME = os.environ.get("REDIS_STREAM_CONSUMER_NAME", "wutong-report-consumer")
+    REDIS_STREAM_GROUP_NAME = os.environ.get("REDIS_STREAM_GROUP_NAME", "wutong-report-group")
+
+
+    REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
     REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
     REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "123456")
-    REDIS_DATABASE = os.environ.get("REDIS_DATABASE", 0)
+    REDIS_DATABASE = os.environ.get("REDIS_DATABASE", 5)
 
     REDIS_CACHE_TTL = 24 * 60 * 60
 
@@ -33,7 +42,8 @@ class Settings(BaseSettings):
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
-    SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+    # SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+    SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@localhost:3306/console1'
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 

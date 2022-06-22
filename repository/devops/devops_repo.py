@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from sqlalchemy import select
 
-from common.base_http_client import HttpClient
+from common.api_base_http_client import ApiBaseHttpClient
 from core.utils.return_message import general_message
 from exceptions.bcode import ErrComponentBuildFailed
 from exceptions.main import AbortRequest, ErrInsufficientResource
@@ -106,7 +106,7 @@ class DevopsRepository:
                 application_service.create_deploy_relation_by_service_id(session=session, service_id=service.service_id)
 
             return general_message(200, "success", "部署成功")
-        except HttpClient.RemoteInvokeError as e:
+        except ApiBaseHttpClient.RemoteInvokeError as e:
             logger.exception(e)
             if e.status == 403:
                 result = general_message(10407, "no cloud permission", e.message)

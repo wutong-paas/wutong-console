@@ -31,4 +31,5 @@ PyGithub~=1.55
 python-gitlab~=2.10.1
 PyYAML~=6.0
 jsonpath~=0.82
+APScheduler~=3.9.1
 celery~=5.2.7

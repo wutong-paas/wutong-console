@@ -1,5 +1,9 @@
+# 初始化app实例
+from apscheduler.jobstores.redis import RedisJobStore
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 from redis import StrictRedis
 from starlette.responses import JSONResponse
 
@@ -15,6 +19,29 @@ if settings.ENV == "PROD":
 else:
     app = FastAPI(title=settings.APP_NAME, openapi_url=f"{settings.API_PREFIX}/openapi.json")
 
+# # 自定义定时任务调度器
+# # 使用`RedisJobStore`创建任务存储
+scheduler = AsyncIOScheduler(jobstores={'default': RedisJobStore(db=int(settings.REDIS_DATABASE) + 1,
+                                                                 host=settings.REDIS_HOST,
+                                                                 password=settings.REDIS_PASSWORD,
+                                                                 port=int(settings.REDIS_PORT))})
+
+
+# 定时任务:扫描组件表投递MQ
+# 周期: day='*', hour=2, minute=0, second=0
+@scheduler.scheduled_job('cron', minute='*')
+def scheduler_cron_task_test():
+    """
+    corn表达式定时任务,参数说明:
+    year(int or str)	年,4位数字
+    month(int or str)	月（范围1-12）
+    day(int or str)	    日（范围1-31）
+    hour(int or str)	时（0-23）
+    minute(int or str)	分（0-59）
+    second(int or str)	秒（0-59）
+    """
+    logger.info("周期性定时任务开始执行...")
+
 
 @app.exception_handler(ServiceHandleException)
 async def validation_exception_handler(request: Request, exc: ServiceHandleException):
@@ -29,6 +56,7 @@ async def validation_exception_handler(request: Request, exc: ServiceHandleExcep
 
 
 def get_redis_pool():
+    # password=settings.REDIS_PASSWORD,
     redis = StrictRedis(host=settings.REDIS_HOST, port=int(settings.REDIS_PORT), db=int(settings.REDIS_DATABASE),
                         password=settings.REDIS_PASSWORD, encoding="utf-8")
     return redis
@@ -42,6 +70,8 @@ def startup_event():
     """
     Base.metadata.create_all(engine)
     app.state.redis = get_redis_pool()
+    # 启动定时任务调度器
+    scheduler.start()
 
 
 @app.on_event('shutdown')
@@ -63,6 +93,7 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 ## 测试路由
 from worker.app import router
+
 app.include_router(router)
 app.state.api = None
 

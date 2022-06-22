@@ -20,16 +20,16 @@ from exceptions.exceptions import ErrChangeServiceType, TenantNotExistError
 from exceptions.main import AbortRequest, ServiceHandleException
 from models.application.models import ComponentApplicationRelation, ComposeServiceRelation, ConfigGroupService, \
     ServiceShareRecordEvent, Application
-from models.region.models import RegionApp
-from models.relate.models import TeamComponentRelation
-from models.teams import ServiceDomain, ServiceTcpDomain, TeamInfo
-from models.users.oauth import OAuthServices, UserOAuthServices
 from models.component.models import ComponentEvent, ComponentCreateStep, ComponentAttachInfo, ComponentProbe, \
     TeamComponentInfoDelete, ComponentEnvVar, TeamComponentAuth, TeamComponentMountRelation, TeamComponentPort, \
     TeamComponentVolume, ComponentPaymentNotify, ComponentSourceInfo, ComponentLabels, TeamServiceBackup, \
     ComponentGraph, \
     ComponentMonitor, TeamComponentInfo, TeamComponentEnv, ComponentExtendMethod, TeamApplication, \
     ThirdPartyComponentEndpoints
+from models.region.models import RegionApp
+from models.relate.models import TeamComponentRelation
+from models.teams import ServiceDomain, ServiceTcpDomain, TeamInfo
+from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.application.app_repository import recycle_bin_repo, relation_recycle_bin_repo, delete_service_repo
 from repository.application.application_repo import application_repo
 from repository.application.config_group_repo import app_config_group_service_repo
@@ -54,7 +54,7 @@ from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.base_services import baseService
-
+from service.event import message_service
 from service.market_app_service import market_app_service
 
 
@@ -1046,10 +1046,16 @@ class AppManageService(AppManageBase):
             self.move_service_into_recycle_bin(session=session, service=service)
             # 组件关系移除
             self.move_service_relation_info_recycle_bin(session=session, tenant=tenant, service=service)
+            message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+                                                   operation_time=datetime.datetime.now(),
+                                                   operator=user.real_name)
             return 200, "success"
         else:
             try:
                 code, msg = self.truncate_service(session=session, tenant=tenant, service=service, user=user)
+                message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+                                                       operation_time=datetime.datetime.now(),
+                                                       operator=user.real_name)
                 if code != 200:
                     return code, msg
                 else:
@@ -1307,6 +1313,9 @@ class AppManageService(AppManageBase):
             self.move_service_into_recycle_bin(session=session, service=service)
             # 组件关系移除
             self.move_service_relation_info_recycle_bin(session=session, tenant=tenant, service=service)
+            message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+                                                   operation_time=datetime.datetime.now(),
+                                                   operator=user.real_name)
             code = 200
             msg = "success"
             return code, msg
@@ -1316,6 +1325,9 @@ class AppManageService(AppManageBase):
                 if code != 200:
                     return code, msg
                 else:
+                    message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+                                                           operation_time=datetime.datetime.now(),
+                                                           operator=user.real_name)
                     msg = "success"
                     return code, msg
             except Exception as e:
@@ -1402,7 +1414,7 @@ class AppManageService(AppManageBase):
         return True, "success"
 
     def create_service_alias(self, session, service_id):
-        service_alias = "gr" + service_id[-6:]
+        service_alias = "wt" + service_id[-6:]
         svc = (
             session.execute(
                 select(TeamComponentInfo).where(TeamComponentInfo.service_alias == service_alias))
@@ -1621,7 +1633,7 @@ class AppManageService(AppManageBase):
                 service.min_cpu = new_cpu
                 service.min_memory = new_memory
                 service.container_gpu = new_gpu
-                # service.save()
+                service.update_time = datetime.datetime.now()
             except remote_component_client.CallApiError as e:
                 logger.exception(e)
                 return 507, "组件异常"

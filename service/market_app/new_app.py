@@ -1,6 +1,10 @@
 # -*- coding: utf8 -*-
-import logging
+import _thread
+import datetime
 
+from loguru import logger
+
+from database.session import SessionClass
 from models.application.models import Application
 from repository.application.app_repository import config_file_repo
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
@@ -14,6 +18,7 @@ from repository.plugin.service_plugin_repo import app_plugin_relation_repo, serv
 from repository.region.region_app_repo import region_app_repo
 from service.app_config.service_monitor_service import service_monitor_service
 from service.component_group import ComponentGroup
+from service.event import message_service
 from service.market_app.plugin import Plugin
 
 
@@ -38,7 +43,9 @@ class NewApp(object):
                  new_plugins: [Plugin] = None,
                  config_groups=None,
                  config_group_items=None,
-                 config_group_components=None):
+                 config_group_components=None,
+                 user=None):
+        self.user = user
         self.tenant = tenant
         self.tenant_id = tenant.tenant_id
         self.region_name = region_name
@@ -181,6 +188,19 @@ class NewApp(object):
         session.add_all(graphs)
         session.add_all(service_group_rels)
         session.add_all(labels)
+
+        # todo 逻辑优化
+        session.flush()
+        for component in components:
+            logger.info("应用市场创建组件,投递组件变更消息,组件ID:{},组件名称:{}", component.service_id, component.service_cname)
+            _thread.start_new_thread(message_service.component_update_event, (
+                SessionClass(),
+                component.service_id,
+                datetime.datetime.now(),
+                self.user.real_name, 5,))
+            # message_service.component_update_event(session=SessionClass(), component_id=component.service_id,
+            #                                        operation_time=datetime.datetime.now(),
+            #                                        operator=self.user.real_name)
 
     def _update_components(self, session):
         """

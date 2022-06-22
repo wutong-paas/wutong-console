@@ -21,6 +21,7 @@ from repository.teams.team_region_repo import team_region_repo
 from schemas.market import MarketShareUpdateParam, MarketAppShareInfoCreateParam
 from schemas.response import Response
 from service.app_actions.app_log import event_service
+from service.market import wutong_market_service
 from service.market_app_service import market_app_service
 from service.share_services import share_service
 
@@ -386,6 +387,15 @@ async def share_app(team_name: Optional[str] = None,
         result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
         return JSONResponse(result, status_code=415)
     app_market_url = share_service.complete(session, team, user, share_record)
+    if share_record.scope == "market":
+        # 分享至梧桐应用商店
+        center_app = center_app_repo.get_one_by_model(session=session,
+                                                      query_model=CenterApp(app_id=share_record.app_id))
+        # 查询店铺信息
+        wutong_market_service.push_local_application(session=session, store_id=center_app.store_id,
+                                                     service_share_record_id=share_record.ID,
+                                                     service_share_model_name=share_record.share_app_model_name)
+
     result = general_message(200, "share complete", "应用分享完成", bean=jsonable_encoder(share_record),
                              app_market_url=app_market_url)
     return JSONResponse(result, status_code=200)

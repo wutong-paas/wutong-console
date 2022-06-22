@@ -86,7 +86,7 @@ async def update_maven_settings(
 
 
 @router.delete("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings/{name}", response_model=Response,
-            name="删除Maven配置")
+               name="删除Maven配置")
 async def delete_maven_settings(
         enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
@@ -111,7 +111,7 @@ async def delete_maven_settings(
 
 
 @router.post("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings", response_model=Response,
-            name="添加Maven配置")
+             name="添加Maven配置")
 async def add_maven_settings(
         request: Request,
         enterprise_id: Optional[str] = None,

@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi_pagination import Params, paginate
 from loguru import logger
 
-from common.base_http_client import HttpClient
+from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
 from core.utils.constants import StorageUnit
 from core.utils.return_message import general_message, error_message
@@ -347,7 +347,7 @@ async def app_copy(request: Request,
                 "tar_group_id": tar_group_id
             })
         status = 200
-    except HttpClient.CallApiError as e:
+    except ApiBaseHttpClient.CallApiError as e:
         logger.exception(e)
         if e.status == 403:
             result = general_message(10407, "no cloud permission", e.message)

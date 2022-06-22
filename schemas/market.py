@@ -1,6 +1,15 @@
-from typing import Optional, List, Dict
+from typing import Optional, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class MarketCreateParam(BaseModel):
+    name: Optional[str] = ""
+    url: Optional[str] = ""
+    domain: Optional[str] = ""
+    access_key: Optional[str] = ""
+    access_secret: Optional[str] = ""
+    type: Optional[str] = "wutong"
 
 
 class MarketAppCreateParam(BaseModel):
@@ -52,3 +61,32 @@ class MarketAppShareInfoCreateParam(BaseModel):
 class MarketAppModelParam(BaseModel):
     page: Optional[int] = 1
     page_size: Optional[int] = 100
+
+
+class MarketAppQueryVO(BaseModel):
+    del_flag: Optional[bool] = False
+    queryAppVersionFlag: Optional[int] = 1
+    # todo
+    store_id: Optional[str] = "d50f8f8fb096a39bfb5721d5a3db3f1b"
+    name: Optional[str] = ""
+
+
+class MarketAppQueryParam(BaseModel):
+    current: Optional[int] = 1
+    size: Optional[int] = 20
+    queryVO: Optional[MarketAppQueryVO] = MarketAppQueryVO()
+
+
+class MarketAppPushParam(BaseModel):
+    assembly_info: Optional[str] = ""
+    id: Optional[str] = ""
+    name: Optional[str] = ""
+    version_number: Optional[str] = ""
+
+
+class MarketAppInstallParam(BaseModel):
+    market_app_id: Optional[str] = Field(description="市场应用ID", default="")
+    market_app_name: Optional[str] = Field(description="市场应用名称", default="")
+    market_app_version_id: Optional[str] = Field(description="市场应用版本ID(ID,非版本号)", default="")
+    application_id: Optional[int] = Field(description="本地应用ID(目标应用)", default=0)
+    is_deploy: Optional[bool] = Field(description="是否部署", default=False)

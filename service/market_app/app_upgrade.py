@@ -11,7 +11,8 @@ from core.enum.enterprise_enum import ActionType
 from core.utils.crypt import make_uuid
 from exceptions.bcode import ErrAppUpgradeDeployFailed
 from exceptions.main import ServiceHandleException
-from models.application.models import Application, ApplicationUpgradeRecord, ApplicationUpgradeStatus, ServiceUpgradeRecord, \
+from models.application.models import Application, ApplicationUpgradeRecord, ApplicationUpgradeStatus, \
+    ServiceUpgradeRecord, \
     ApplicationConfigGroup, ApplicationUpgradeSnapshot, ConfigGroupItem, ConfigGroupService
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar, TeamPlugin, \
     PluginBuildVersion, PluginConfigItems, PluginConfigGroup
@@ -80,14 +81,16 @@ class AppUpgrade(MarketApp):
         self.support_labels = label_service.list_available_labels(session, tenant, region.region_name)
 
         # original app
-        self.original_app = OriginalApp(session, self.tenant, self.region, self.app, self.upgrade_group_id, self.support_labels)
+        self.original_app = OriginalApp(session, self.tenant, self.region, self.app, self.upgrade_group_id,
+                                        self.support_labels)
 
         # plugins
         self.original_plugins = self.list_original_plugins(session)
         self.new_plugins = self._create_new_plugins()
         plugins = [plugin.plugin for plugin in self._plugins()]
 
-        self.property_changes = PropertyChanges(session, self.original_app.components(), plugins, self.app_template, self.support_labels)
+        self.property_changes = PropertyChanges(session, self.original_app.components(), plugins, self.app_template,
+                                                self.support_labels)
 
         self.new_app = self._create_new_app(session)
         self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
@@ -364,7 +367,8 @@ class AppUpgrade(MarketApp):
             new_plugins=self.new_plugins,
             config_groups=config_groups,
             config_group_items=config_group_items,
-            config_group_components=config_group_components)
+            config_group_components=config_group_components,
+            user=self.user)
 
     def _create_original_plugins(self, session):
         return self.list_original_plugins(session)
@@ -379,7 +383,8 @@ class AppUpgrade(MarketApp):
         被依赖组件唯一标识: dep["dep_service_key"]
         """
         components = {cpt.component_source.service_share_uuid: cpt.component for cpt in components}
-        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
+        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in
+                               self.original_app.components()}
 
         deps = []
         for tmpl in self.app_template.get("apps", []):
@@ -415,7 +420,8 @@ class AppUpgrade(MarketApp):
         for cpt in raw_components:
             volumes.extend(cpt.volumes)
         components = {cpt.component_source.service_share_uuid: cpt.component for cpt in raw_components}
-        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in self.original_app.components()}
+        original_components = {cpt.component_source.service_share_uuid: cpt.component for cpt in
+                               self.original_app.components()}
 
         deps = []
         for tmpl in self.app_template.get("apps", []):
@@ -617,7 +623,8 @@ class AppUpgrade(MarketApp):
                 continue
 
             # plugin configs
-            plugin_configs, ignore_plugin = self._create_plugin_configs(component, plugin, plugin_dep["attr"], component_keys,
+            plugin_configs, ignore_plugin = self._create_plugin_configs(component, plugin, plugin_dep["attr"],
+                                                                        component_keys,
                                                                         components)
             if ignore_plugin:
                 continue
