@@ -215,7 +215,8 @@ class AppUpgrade(MarketApp):
                 "plugin_id": plugin.plugin.plugin_id,
                 "plugin_info": plugin.plugin.desc,
                 "plugin_model": plugin.plugin.category,
-                "plugin_name": plugin.plugin.plugin_name
+                "plugin_name": plugin.plugin.plugin_name,
+                "origin": plugin.plugin.origin
             })
         body = {
             "plugins": new_plugins,
