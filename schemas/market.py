@@ -54,6 +54,7 @@ class AppVersionInfo(BaseModel):
 
 class MarketAppShareInfoCreateParam(BaseModel):
     app_version_info: Optional[AppVersionInfo] = None
+    store_id: Optional[str] = ""
     share_service_list: List[dict] = []
     share_plugin_list: List[dict] = []
 

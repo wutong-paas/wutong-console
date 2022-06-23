@@ -18,7 +18,7 @@ from loguru import logger
 from urllib3.exceptions import MaxRetryError
 
 from common.api_base_http_client import _json_decode
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, AbortRequest
 from models.market.models import AppMarket
 
 
@@ -40,6 +40,7 @@ def encode_params(params: dict, secret: str, method, sorted_dict_body: dict = No
 
     # 加签
     code_str = method + "&%2F&" + param_encode_str
+    code_str = code_str.replace("+", "%20").replace("*", "%2A").replace("~", "%7E")
     sign_str = hash_hmac(secret=secret, code=code_str)
     logger.info("参数加签,参数:{},加签:{}", code_str, sign_str)
 
@@ -334,13 +335,18 @@ class WutongMarketClient(MarketHttpClient):
                                                                              param_str=param_str)
         try:
             res, body = self._post(url, self.default_headers, body=json.dumps(sorted_body).replace(" ", ""))
-            logger.info("查询商店应用,params:{},resp:{}", json.dumps(body), json.dumps(body))
+            logger.info("查询商店应用,params:{},resp:{}", json.dumps(sorted_body), json.dumps(body))
             if body.code == "0":
                 return body.data
             else:
-                return {"status": body.code, "error_message": body.msg}
+                raise AbortRequest("获取远程商店应用列表失败", "获取远程商店应用列表失败", status_code=500, error_code=500)
         except MarketHttpClient.CallApiError as e:
-            return {'status': e.message['http_code']}, e.message['body']
+            logger.error("获取远程商店应用列表失败,error:{}", e)
+            raise AbortRequest("获取远程商店应用列表失败", "获取远程商店应用列表失败",
+                               status_code=500, error_code=500)
+        except Exception as e:
+            logger.error("获取远程商店应用列表失败,error:{}", e)
+            raise AbortRequest("获取远程商店应用列表失败", "获取远程商店应用列表失败", status_code=500, error_code=500)
 
     def get_market_app_detail(self, market: AppMarket, app_id: str):
         """获取梧桐商店应用详情"""
@@ -372,10 +378,14 @@ class WutongMarketClient(MarketHttpClient):
             if body.code == "0":
                 return body.data
             else:
-                return {"status": body.code, "error_message": body.msg}
+                raise AbortRequest("获取远程商店应用列表失败", "获取远程商店应用列表失败", status_code=500, error_code=500)
         except MarketHttpClient.CallApiError as e:
             logger.error("推送本地应用至远程仓库,HTTP请求失败,error:{}", e)
-            return {'status': e.message['http_code']}, e.message['body']
+            raise AbortRequest("推送本地应用至远程仓库,HTTP请求失败", "推送本地应用至远程仓库,HTTP请求失败",
+                               status_code=500, error_code=500)
+        except Exception as e:
+            logger.error("推送本地应用至远程仓库,HTTP请求失败,error:{}", e)
+            raise AbortRequest("推送本地应用至远程仓库,HTTP请求失败", "推送本地应用至远程仓库,HTTP请求失败", status_code=500, error_code=500)
 
     def get_market_app_versions(self, market: AppMarket, query_body: dict):
         """获取梧桐商店应用版本列表"""
@@ -396,9 +406,15 @@ class WutongMarketClient(MarketHttpClient):
             if body.code == "0":
                 return body.data
             else:
-                return {"status": body.code, "error_message": body.msg}
+                raise AbortRequest(body.msg, "查询商店应用版本列表失败:{error}".format(error=body.msg),
+                                   status_code=500, error_code=500)
         except MarketHttpClient.CallApiError as e:
-            return {'status': e.message['http_code']}, e.message['body']
+            logger.error("查询商店应用版本列表,HTTP请求失败,error:{}", e)
+            raise AbortRequest("查询商店应用版本列表,HTTP请求失败", "查询商店应用版本列表,HTTP请求失败",
+                               status_code=500, error_code=500)
+        except Exception as e:
+            logger.error("查询商店应用版本列表,HTTP请求失败,error:{}", e)
+            raise AbortRequest("查询商店应用版本列表,HTTP请求失败", "查询商店应用版本列表,HTTP请求失败", status_code=500, error_code=500)
 
     def get_market_app_version_detail(self, market: AppMarket, version_id: str):
         """获取梧桐商店应用版本详情"""
@@ -413,7 +429,7 @@ class WutongMarketClient(MarketHttpClient):
         if body.code == "0":
             return body.data
         else:
-            return {"status": body.code, "error_message": body.msg}
+            raise AbortRequest("获取梧桐商店应用版本详情失败", "获取梧桐商店应用版本详情失败", status_code=500, error_code=500)
 
 
 wutong_market_client = WutongMarketClient()
