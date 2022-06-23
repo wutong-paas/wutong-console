@@ -57,7 +57,7 @@ async def get_cloud_market_app_detail(market_id: int = None, app_id: str = None,
     return JSONResponse(general_message(200, "success", "操作成功", bean=jsonable_encoder(result)), status_code=200)
 
 
-@router.post("/enterprise/{enterprise_id}/market/{market_id}/create_template", name="创建应用模版")
+@router.post("/enterprise/{enterprise_id}/market/create_template", name="创建应用模版")
 async def create_cloud_app_template(name: str = Body(default="", embed=True), enterprise_id: str = None,
                                     user=Depends(deps.get_current_user),
                                     session: SessionClass = Depends(deps.get_session)) -> Any:

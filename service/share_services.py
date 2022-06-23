@@ -244,6 +244,7 @@ class ShareService(object):
             else:
                 local_app_version = session.execute(select(CenterApp).where(
                     CenterApp.app_id == app_model_id)).scalars().first()
+                local_app_version.store_id = share_info.store_id
                 if not local_app_version:
                     return 400, "本地应用模型不存在", None
                 scope = local_app_version.scope
@@ -409,7 +410,7 @@ class ShareService(object):
 
     def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name,
                                          session: SessionClass):
-        if scope == "goodrain":
+        if scope == "market":
             last_shared = (
                 session.execute(select(ServiceShareRecord).where(ServiceShareRecord.group_id == group_id,
                                                                  ServiceShareRecord.scope == scope,
@@ -426,85 +427,98 @@ class ShareService(object):
             ).scalars().first()
 
         dt = {"app_model_list": [], "last_shared_app": {}, "scope": scope}
-        if scope == "goodrain":
-            market = market_app_service.get_app_market_by_name(session=session, enterprise_id=enterprise_id,
-                                                               name=market_name, raise_exception=True)
-            apps_versions, _, _, _ = market_app_service.get_market_app_models(session=session, market=market,
-                                                                              page_size=-1, query=None,
-                                                                              query_all=True)
-            if apps_versions:
-                for app in apps_versions:
-                    versions = []
-                    app_versions = app.versions
-                    if app_versions:
-                        for version in app_versions:
-                            versions.append({
-                                "version": version.app_version,
-                                "describe": version.desc,
-                                "version_alias": version.app_version_alias,
-                            })
-                    dt["app_model_list"].append({
-                        "app_name":
-                            app.app_name,
-                        "app_id":
-                            app.app_id,
-                        "versions":
-                            sorted(
-                                versions,
-                                key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in
-                                               x["version"].split(".")],
-                                reverse=True),
-                        "pic":
-                            app.logo,
-                        "app_describe":
-                            app.describe,
-                        "dev_status":
-                            app.dev_status,
-                        "scope": ("goodrain:" + app.publish_type).strip(":")
-                    })
-                    if last_shared and app.app_key_id == last_shared.app_id:
-                        dt["last_shared_app"] = {
-                            "app_name": app.app_name,
-                            "app_id": app.app_id,
-                            "version": last_shared.share_version,
-                            "pic": app.pic,
-                            "describe": app.desc,
-                            "dev_status": app.dev_status,
-                            "scope": ("goodrain:" + app.publish_type).strip(":")
-                        }
+        if scope == "market":
+            logger.info("")
+            # market = market_app_service.get_app_market_by_name(session=session, enterprise_id=enterprise_id,
+            #                                                    name=market_name, raise_exception=True)
+            # apps_versions, _, _, _ = market_app_service.get_market_app_models(session=session, market=market,
+            #                                                                   page_size=-1, query=None,
+            #                                                                   query_all=True)
+            # if apps_versions:
+            #     for app in apps_versions:
+            #         versions = []
+            #         app_versions = app.versions
+            #         if app_versions:
+            #             for version in app_versions:
+            #                 versions.append({
+            #                     "version": version.app_version,
+            #                     "describe": version.desc,
+            #                     "version_alias": version.app_version_alias,
+            #                 })
+            #         dt["app_model_list"].append({
+            #             "app_name":
+            #                 app.app_name,
+            #             "app_id":
+            #                 app.app_id,
+            #             "versions":
+            #                 sorted(
+            #                     versions,
+            #                     key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in
+            #                                    x["version"].split(".")],
+            #                     reverse=True),
+            #             "pic":
+            #                 app.logo,
+            #             "app_describe":
+            #                 app.describe,
+            #             "dev_status":
+            #                 app.dev_status,
+            #             "scope": ("goodrain:" + app.publish_type).strip(":")
+            #         })
+            #         if last_shared and app.app_key_id == last_shared.app_id:
+            #             dt["last_shared_app"] = {
+            #                 "app_name": app.app_name,
+            #                 "app_id": app.app_id,
+            #                 "version": last_shared.share_version,
+            #                 "pic": app.pic,
+            #                 "describe": app.desc,
+            #                 "dev_status": app.dev_status,
+            #                 "scope": ("goodrain:" + app.publish_type).strip(":")
+            #             }
         else:
-            if last_shared:
-                last_shared_app_info = (
-                    session.execute(select(CenterApp).where(CenterApp.app_id == last_shared.app_id))
-                ).scalars().first()
+            logger.info("")
 
-                if last_shared_app_info:
-                    self._patch_rainbond_app_tag(app=last_shared_app_info, session=session)
-                    dt["last_shared_app"] = {
-                        "app_name": last_shared_app_info.app_name,
-                        "app_id": last_shared.app_id,
-                        "version": last_shared.share_version,
-                        "pic": last_shared_app_info.pic,
-                        "app_describe": last_shared_app_info.describe,
-                        "dev_status": last_shared_app_info.dev_status,
-                        "scope": last_shared_app_info.scope,
-                        "tags": last_shared_app_info.tags
-                    }
-            app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name, session)
-            self._patch_rainbond_apps_tag(enterprise_id, app_list, session)
-            dt["app_model_list"] = app_list
+        if last_shared:
+            last_shared_app_info = (
+                session.execute(select(CenterApp).where(CenterApp.app_id == last_shared.app_id))
+            ).scalars().first()
+
+            if last_shared_app_info:
+                self._patch_rainbond_app_tag(app=last_shared_app_info, session=session)
+                dt["last_shared_app"] = {
+                    "app_name": last_shared_app_info.app_name,
+                    "app_id": last_shared.app_id,
+                    "version": last_shared.share_version,
+                    "pic": last_shared_app_info.pic,
+                    "app_describe": last_shared_app_info.describe,
+                    "dev_status": last_shared_app_info.dev_status,
+                    "scope": last_shared_app_info.scope,
+                    "tags": last_shared_app_info.tags
+                }
+        app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name, session,
+                                                     market=scope == "market")
+        self._patch_rainbond_apps_tag(enterprise_id, app_list, session)
+        dt["app_model_list"] = app_list
         return dt
 
-    def get_team_local_apps_versions(self, enterprise_id, team_name, session: SessionClass):
+    def get_team_local_apps_versions(self, enterprise_id, team_name, session: SessionClass, market: bool = False):
         app_list = []
-        apps = (
-            session.execute(select(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
-                                                    CenterApp.source == "local",
-                                                    or_(CenterApp.create_team == team_name,
-                                                        CenterApp.scope.in_(
-                                                            ["team", "enterprise"]))).order_by(
-                CenterApp.create_time.desc()))
-        ).scalars().all()
+        if market:
+            apps = (
+                session.execute(select(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
+                                                        # CenterApp.source == "local",
+                                                        or_(CenterApp.create_team == team_name,
+                                                            CenterApp.scope == "market")).order_by(
+                    CenterApp.create_time.desc()))
+            ).scalars().all()
+        else:
+            apps = (
+                session.execute(select(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
+                                                        CenterApp.source == "local",
+                                                        or_(CenterApp.create_team == team_name,
+                                                            CenterApp.scope.in_(
+                                                                ["team", "enterprise"]))).order_by(
+                    CenterApp.create_time.desc()))
+            ).scalars().all()
 
         if apps:
             for app in apps:

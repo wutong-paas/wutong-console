@@ -171,7 +171,7 @@ class AppMarket(Base):
     name = Column(String(64), comment="应用商店标识", nullable=False)
     store_id = Column(String(64), comment="应用商店编号", nullable=False)
     url = Column(String(255), comment="应用商店链接", nullable=False)
-    domain = Column(String(64), comment="应用商店域名", nullable=False)
+    domain = Column(String(255), comment="应用商店域名", nullable=False)
     access_key = Column(String(1024), nullable=True, comment="应用商店访问令牌")
     access_secret = Column(String(1024), nullable=True, comment="应用商店访问密钥")
     enterprise_id = Column(String(32), comment="企业id", nullable=False)

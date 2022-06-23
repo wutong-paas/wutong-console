@@ -36,16 +36,25 @@ def bind_wutong_market(session: SessionClass, enterprise_id: str, params: Market
     # 字符串处理
     store_url = params.url
 
+    # 参数截取 /wutong-open-market-admin/
+
+    if store_url.count("/wutong-open-market-admin/") < 1:
+        raise AbortRequest("store url error", "url格式错误,未包含云市场网关地址:/wutong-open-market-admin/", status_code=400,
+                           error_code=400)
     if store_url.endswith("/"):
         store_url = store_url[:-1]
     store_id = store_url.split("/")[-1]
     if store_url.count("/") < 1 or not store_id:
         raise AbortRequest("store_id not found", "url格式错误,未找到store_id", status_code=400, error_code=400)
+
+    # 截取服务地址
+    server_address = store_url.split("/wutong-open-market-admin/")[0]
+
     store = wutong_market_repo.get_one_by_model(session=session, query_model=AppMarket(store_id=store_id))
     if store:
         raise AbortRequest("url error", "店铺已绑定", status_code=409, error_code=409)
     wutong_market_repo.base_create(session=session,
-                                   add_model=AppMarket(name=params.name, url=params.url, domain=params.domain,
+                                   add_model=AppMarket(name=params.name, url=server_address, domain=params.url,
                                                        access_key=params.access_key, access_secret=params.access_secret,
                                                        enterprise_id=enterprise_id, type=params.type,
                                                        store_id=store_id))
@@ -142,7 +151,7 @@ def get_store_list(session: SessionClass, enterprise_id: str):
     if store_list:
         result = []
         for store in store_list:
-            result.append({"store_id": store.store_id, "store_name": store.name})
+            result.append({"store_id": store.store_id, "store_name": store.name, "market_id": store.ID})
         return result
     else:
         return []
