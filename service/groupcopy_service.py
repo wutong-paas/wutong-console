@@ -251,7 +251,7 @@ class GroupAppCopyService(object):
                 service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(session,
                                                                                                      service.service_id)
                 for service_plugin in service_plugins:
-                    plugin = plugin_repo.get_by_plugin_id(tenant.tenant_id, service_plugin.plugin_id)
+                    plugin = plugin_repo.get_by_plugin_id(session, service_plugin.plugin_id)
                     plugin_version = plugin_repo.get_plugin_buildversion(service_plugin.plugin_id,
                                                                          service_plugin.build_version)
                     # 在数据中心创建插件

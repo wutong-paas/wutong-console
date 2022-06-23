@@ -104,7 +104,7 @@ async def install_sys_plugin(request: Request,
 
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin", "未找到插件"), status_code=400)
-    app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_id=team.tenant_id,
+    app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_id=None,
                                              service_id=service.service_id)
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant=team, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
@@ -203,7 +203,11 @@ async def delete_plugin(plugin_id: Optional[str] = None,
     service = service_repo.get_service(session, serviceAlias, team.tenant_id)
     body = dict()
     body["operator"] = user.nick_name
-    result_bean = service_plugin_config_repo.get_service_plugin_config(session, service.service_id, plugin_id)
+    plugin = plugin_repo.get_plugin_detail_by_plugin_id(session, plugin_id)
+    if plugin.origin == 'sys':
+        result_bean = service_plugin_config_repo.get_sys_service_plugin_config(session, plugin_id)
+    else:
+        result_bean = service_plugin_config_repo.get_service_plugin_config(session, service.service_id, plugin_id)
     remote_plugin_client.uninstall_service_plugin(session,
                                                   response_region, team.tenant_name, plugin_id,
                                                   service.service_alias, body)

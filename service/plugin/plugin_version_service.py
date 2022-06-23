@@ -51,24 +51,24 @@ class PluginBuildVersionService(object):
         return plugin_version_repo.create_plugin_build_version(session, **build_version_params)
 
     def get_newest_usable_plugin_version(self, session: SessionClass, tenant_id, plugin_id):
-        pbvs = plugin_version_repo.get_plugin_versions(session, tenant_id,
+        pbvs = plugin_version_repo.get_plugin_versions(session,
                                                        plugin_id)  # .filter(build_status="build_success")
         if pbvs:
             return pbvs[0]
         return None
 
     def get_by_id_and_version(self, session: SessionClass, tenant_id, plugin_id, plugin_version):
-        return plugin_version_repo.get_by_id_and_version(session, tenant_id, plugin_id, plugin_version)
+        return plugin_version_repo.get_by_id_and_version(session, plugin_id, plugin_version)
 
     def get_plugin_version_by_id(self, session: SessionClass, tenant_id, plugin_id):
         return plugin_version_repo.get_plugin_version_by_id(session, tenant_id, plugin_id)
 
     def delete_build_version_by_id_and_version(self, session, tenant_id, plugin_id, build_version, force=False):
-        plugin_build_version = plugin_version_repo.get_by_id_and_version(session, tenant_id, plugin_id, build_version)
+        plugin_build_version = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
         if not plugin_build_version:
             return 404, "插件不存在"
         if not force:
-            count_of_version = plugin_version_repo.get_plugin_versions(session=session, tenant_id=tenant_id,
+            count_of_version = plugin_version_repo.get_plugin_versions(session=session,
                                                                        plugin_id=plugin_id).count()
             if count_of_version == 1:
                 return 409, "至少保留插件的一个版本"
@@ -97,7 +97,7 @@ class PluginBuildVersionService(object):
                 pbv.build_status = status
 
     def get_plugin_build_status(self, session, region, tenant, plugin_id, build_version):
-        pbv = plugin_version_repo.get_by_id_and_version(session, tenant.tenant_id, plugin_id, build_version)
+        pbv = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
 
         if pbv.build_status == "building":
             status = self.get_region_plugin_build_status(session, region, tenant.tenant_name, pbv.plugin_id, pbv.build_version)

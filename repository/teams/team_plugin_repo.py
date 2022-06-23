@@ -46,7 +46,11 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         :param plugin_id: 插件ID列表
         :return: 插件信息
         """
-        sql = select(TeamPlugin).where(TeamPlugin.tenant_id == tenant_id, TeamPlugin.plugin_id == plugin_id)
+        plugin = plugin_repo.get_plugin_detail_by_plugin_id(session, plugin_id)
+        if plugin.origin == 'sys' or plugin.origin == 'shared':
+            sql = select(TeamPlugin).where(TeamPlugin.plugin_id == plugin_id)
+        else:
+            sql = select(TeamPlugin).where(TeamPlugin.tenant_id == tenant_id, TeamPlugin.plugin_id == plugin_id)
         results = session.execute(sql)
         data = results.scalars().first()
         logger.info("get plugin detail by tenant id and plugin id,param-tenant_id:{},param-plugin_id:{}", tenant_id,
@@ -210,9 +214,8 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
             TeamPlugin.tenant_id == tenant_id,
             TeamPlugin.origin_share_id == origin_share_id)).scalars().first()
 
-    def get_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):
+    def get_by_plugin_id(self, session: SessionClass, plugin_id):
         return (session.execute(select(TeamPlugin).where(
-            TeamPlugin.tenant_id == tenant_id,
             TeamPlugin.plugin_id == plugin_id))).scalars().first()
 
     def get_by_share_plugins(self, session: SessionClass, tenant_id, origin):

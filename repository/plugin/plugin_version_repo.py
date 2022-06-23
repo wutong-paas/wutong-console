@@ -22,15 +22,13 @@ class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
             PluginBuildVersion.tenant_id == tenant_id,
             PluginBuildVersion.plugin_id == plugin_id))
 
-    def get_plugin_versions(self, session, tenant_id, plugin_id):
+    def get_plugin_versions(self, session, plugin_id):
         return session.execute(select(PluginBuildVersion).where(
-            PluginBuildVersion.tenant_id == tenant_id,
             PluginBuildVersion.plugin_id == plugin_id).order_by(
             PluginBuildVersion.ID.desc())).scalars().all()
 
-    def get_by_id_and_version(self, session, tenant_id, plugin_id, build_version):
+    def get_by_id_and_version(self, session, plugin_id, build_version):
         return session.execute(select(PluginBuildVersion).where(
-            PluginBuildVersion.tenant_id == tenant_id,
             PluginBuildVersion.plugin_id == plugin_id,
             PluginBuildVersion.build_version == build_version)).scalars().first()
 
