@@ -60,6 +60,7 @@ class PluginService(object):
         plugin_data["plugin_model"] = tenant_plugin.category
         plugin_data["plugin_name"] = tenant_plugin.plugin_name
         plugin_data["tenant_id"] = tenant.tenant_id
+        plugin_data["origin"] = tenant_plugin.origin
         remote_plugin_client.create_plugin(session, region, tenant.tenant_name, plugin_data)
         return 200, "success"
 
@@ -139,7 +140,7 @@ class PluginService(object):
                 else:
                     image = ref[0]
             plugin_params = {
-                "tenant_id": tenant.tenant_id,
+                "tenant_id": None,
                 "region": region,
                 "create_user": user.user_id,
                 "desc": needed_plugin_config["desc"],
