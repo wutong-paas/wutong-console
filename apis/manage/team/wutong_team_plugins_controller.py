@@ -242,7 +242,7 @@ async def get_build_history(request: Request,
     plugin = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("page_size", 8)
-    pbvs = plugin_version_repo.get_plugin_versions(session, team.tenant_id, plugin.plugin_id)
+    pbvs = plugin_version_repo.get_plugin_versions(session, plugin.plugin_id)
     params = Params(page=page, size=page_size)
     event_paginator = paginate(pbvs, params)
     total = event_paginator.total

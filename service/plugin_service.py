@@ -273,7 +273,7 @@ class PluginService(object):
         return body["list"]
 
     def get_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):
-        plugin = plugin_repo.get_by_plugin_id(session, tenant_id, plugin_id)
+        plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
         return plugin
 
     def get_by_share_plugins(self, session: SessionClass, tenant_id, origin):
