@@ -17,6 +17,12 @@ from repository.base import BaseRepository
 
 class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
 
+    def list_inner_ports(self, session, tenant_id, service_id):
+        return session.execute(select(TeamComponentPort).where(
+            TeamComponentPort.service_id == service_id,
+            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.is_inner_service == True)).scalars().all()
+
     def get_service_port_by_alias(self, session, service_id, alias):
         return session.execute(select(TeamComponentPort).where(
             TeamComponentPort.service_id == service_id,
