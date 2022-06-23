@@ -511,7 +511,7 @@ class AppPluginService(object):
                                                                            plugin_id=plugin_id)
         if sprs:
             raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
-        plugin_version_info = plugin_version_repo.get_by_id_and_version(session, tenant_id, plugin_id, build_version)
+        plugin_version_info = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
         min_memory = plugin_version_info.min_memory
         min_cpu = plugin_version_info.min_cpu
         params = {
@@ -540,7 +540,7 @@ class AppPluginService(object):
         region_config = self.get_region_config_from_db(session, service, plugin_id, plugin_version, user)
 
         # 3. create monitor resources, such as: service monitor, component graphs
-        plugin = plugin_repo.get_by_plugin_id(session, tenant.tenant_id, plugin_id)
+        plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
         self.create_monitor_resources(session, tenant, service, plugin.origin_share_id, user)
 
         data = dict()

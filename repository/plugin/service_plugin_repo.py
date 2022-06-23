@@ -130,6 +130,10 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             ComponentPluginConfigVar.plugin_id == plugin_id,
             ComponentPluginConfigVar.service_id == service_id)).scalars().first()
 
+    def get_sys_service_plugin_config(self, session, plugin_id):
+        return session.execute(select(ComponentPluginConfigVar).where(
+            ComponentPluginConfigVar.plugin_id == plugin_id)).scalars().first()
+
     file_path = os.path.join('service/plugin/default_config.json')
     with open(file_path, encoding='utf-8') as f:
         all_default_config = json.load(f)
@@ -193,6 +197,27 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                 AND tp.region = "{0}"
                 AND pbv.build_status = "{1}"
         """.format(region, "build_success")
+
+        SHARED_QUERY_INSTALLED_SQL = """
+        SELECT
+            tp.plugin_id AS plugin_id,
+            tp.DESC AS "desc",
+            tp.plugin_alias AS plugin_alias,
+            tp.category AS category,
+            tp.origin_share_id AS origin_share_id,
+            pbv.build_version AS build_version,
+            tsp.min_memory AS min_memory,
+            tsp.plugin_status AS plugin_status,
+            tsp.min_cpu As min_cpu
+        FROM
+            tenant_service_plugin_relation tsp
+            LEFT JOIN plugin_build_version pbv ON tsp.plugin_id = pbv.plugin_id
+            AND tsp.build_version = pbv.build_version
+            JOIN tenant_plugin tp ON tp.plugin_id = tsp.plugin_id
+            AND tp.tenant_id = pbv.tenant_id
+        WHERE
+            tsp.service_id = "{0}"
+            AND tp.region = "{1}" """.format(service_id, region)
         uninstalled_plugins = []
         installed_plugins = []
         if origin == "sys":
@@ -238,7 +263,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                 else:
                     uninstalled_plugins.append(plugin_dict)
         elif origin == "shared":
-            query_installed_plugin = """{0} AND tp.origin="{1}" """.format(QUERY_INSTALLED_SQL, origin)
+            query_installed_plugin = """{0} AND tp.origin="{1}" """.format(SHARED_QUERY_INSTALLED_SQL, origin)
 
             query_uninstalled_plugin = """{0} AND tp.origin="{1}" """.format(SHARED_QUERI_UNINSTALLED_SQL, origin)
 
