@@ -125,6 +125,16 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             ComponentPluginConfigVar.service_id == service_id,
             ComponentPluginConfigVar.build_version == build_version)).scalars().all()
 
+    def get_service_plugin_downstream_envs(self, session, service_id, plugin_id, build_version,
+                                           service_meta_type, dest_service_id, container_port):
+        return session.execute(select(ComponentPluginConfigVar).where(
+            ComponentPluginConfigVar.plugin_id == plugin_id,
+            ComponentPluginConfigVar.service_id == service_id,
+            ComponentPluginConfigVar.build_version == build_version,
+            ComponentPluginConfigVar.service_meta_type == service_meta_type,
+            ComponentPluginConfigVar.dest_service_id == dest_service_id,
+            ComponentPluginConfigVar.container_port == container_port)).scalars().all()
+
     def get_service_plugin_config(self, session, service_id, plugin_id):
         return session.execute(select(ComponentPluginConfigVar).where(
             ComponentPluginConfigVar.plugin_id == plugin_id,

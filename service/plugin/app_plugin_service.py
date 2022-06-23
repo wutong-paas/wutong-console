@@ -135,12 +135,17 @@ class AppPluginService(object):
                 dep_services = plugin_config_service.get_service_dependencies(session=session, tenant=tenant,
                                                                               service=service)
                 for dep_service in dep_services:
-                    ports = port_repo.list_inner_ports(dep_service.tenant_id, dep_service.service_id)
+                    ports = port_repo.list_inner_ports(session, dep_service.tenant_id, dep_service.service_id)
                     for port in ports:
-                        downstream_envs = service_plugin_vars.filter(
+                        downstream_envs = service_plugin_config_repo.get_service_plugin_downstream_envs(
+                            session=session,
+                            service_id=service.service_id,
+                            plugin_id=plugin_id,
+                            build_version=build_version,
                             service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
                             dest_service_id=dep_service.service_id,
-                            container_port=port.container_port)
+                            container_port=port.container_port
+                        )
                         downstream_options = None
                         if downstream_envs:
                             downstream_env = downstream_envs[0]
