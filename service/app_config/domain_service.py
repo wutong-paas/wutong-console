@@ -14,7 +14,8 @@ from database.session import SessionClass
 from exceptions.main import ServiceHandleException, AbortRequest
 from models.teams import ServiceDomain
 from repository.component.group_service_repo import service_repo
-from repository.component.service_config_repo import domain_repo, tcp_domain, configuration_repo, port_repo
+from repository.component.service_config_repo import domain_repo, configuration_repo, port_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
 
@@ -94,7 +95,7 @@ class DomainService(object):
                 raise e
         region = team_region_repo.get_region_by_region_name(session, service.service_region)
         # 先删除再添加
-        tcp_domain.delete_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
+        tcp_domain_repo.delete_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
         domain_info = dict()
         domain_info["tcp_rule_id"] = tcp_rule_id
         domain_info["service_id"] = service.service_id
@@ -117,7 +118,7 @@ class DomainService(object):
                 rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
         domain_info["rule_extensions"] = rule_extensions_str
         domain_info["region_id"] = region.region_id
-        tcp_domain.add_service_tcpdomain(session, **domain_info)
+        tcp_domain_repo.add_service_tcpdomain(session, **domain_info)
         return 200, "success"
 
     def get_certificate(self, session: SessionClass, tenant, page, page_size):
@@ -139,7 +140,7 @@ class DomainService(object):
         return domain_repo.get_service_domain_by_container_port(session, service.service_id, container_port)
 
     def get_tcp_port_bind_domains(self, session: SessionClass, service, container_port):
-        return tcp_domain.get_service_tcp_domains_by_service_id_and_port(session, service.service_id, container_port)
+        return tcp_domain_repo.get_service_tcp_domains_by_service_id_and_port(session, service.service_id, container_port)
 
     def bind_domain(self, session: SessionClass, tenant, user, service, domain_name, container_port, protocol,
                     certificate_id,
@@ -216,7 +217,7 @@ class DomainService(object):
                     if e.status != 404:
                         raise e
         else:
-            servicer_tcp_domain = tcp_domain.get_service_tcp_domain_by_service_id_and_port(
+            servicer_tcp_domain = tcp_domain_repo.get_service_tcp_domain_by_service_id_and_port(
                 service.service_id, container_port, domain_name)
             if not servicer_tcp_domain:
                 raise ServiceHandleException(status_code=404, error_code=2404, msg="domain not found", msg_show="策略不存在")
@@ -237,7 +238,7 @@ class DomainService(object):
         # delete http rules
         domain_repo.delete_service_domain_by_port(session, component_id, port)
         # delete tcp rules
-        tcp_domain.delete_by_component_port(session, component_id, port)
+        tcp_domain_repo.delete_by_component_port(session, component_id, port)
 
     def create_default_gateway_rule(self, session: SessionClass, tenant, region_info, service, port):
         if port.protocol == "http":
@@ -274,11 +275,11 @@ class DomainService(object):
             tcp_rule_id = make_uuid(end_point)
             tenant_id = tenant.tenant_id
             region_id = region_info.region_id
-            tcp_domain.create_service_tcp_domains(session,
-                                                  service_id, service_name, end_point, create_time,
-                                                  container_port,
-                                                  protocol,
-                                                  service_alias, tcp_rule_id, tenant_id, region_id)
+            tcp_domain_repo.create_service_tcp_domains(session,
+                                                       service_id, service_name, end_point, create_time,
+                                                       container_port,
+                                                       protocol,
+                                                       service_alias, tcp_rule_id, tenant_id, region_id)
             logger.debug("create default gateway stream rule for component {0} port {1}, endpoint {2}".format(
                 service.service_alias, port.container_port, end_point))
 
@@ -319,8 +320,8 @@ class DomainService(object):
             if isinstance(search_conditions, bytes):
                 search_conditions = search_conditions.decode('utf-8')
             # 获取总数
-            domain_count = tcp_domain.get_domain_count_search_conditions(tenant.tenant_id, region.region_id,
-                                                                         search_conditions, app_id)
+            domain_count = tcp_domain_repo.get_domain_count_search_conditions(session, tenant.tenant_id, region.region_id,
+                                                                              search_conditions, app_id)
 
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -329,13 +330,13 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
 
-            tenant_tuples = tcp_domain.get_tenant_tuples_search_conditions(tenant.tenant_id, region.region_id,
-                                                                           search_conditions, start,
-                                                                           end,
-                                                                           app_id)
+            tenant_tuples = tcp_domain_repo.get_tenant_tuples_search_conditions(session, tenant.tenant_id, region.region_id,
+                                                                                search_conditions, start,
+                                                                                end,
+                                                                                app_id)
         else:
             # 获取总数
-            domain_count = tcp_domain.get_domain_count(session, tenant.tenant_id, region.region_id, app_id)
+            domain_count = tcp_domain_repo.get_domain_count(session, tenant.tenant_id, region.region_id, app_id)
 
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -344,8 +345,8 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
 
-            tenant_tuples = tcp_domain.get_tenant_tuples(session, tenant.tenant_id, region.region_id, start, end,
-                                                         app_id)
+            tenant_tuples = tcp_domain_repo.get_tenant_tuples(session, tenant.tenant_id, region.region_id, start, end,
+                                                              app_id)
         return tenant_tuples, total
 
     def bind_httpdomain(self, session: SessionClass, tenant, user, service, httpdomain, return_model=False):
@@ -368,7 +369,7 @@ class DomainService(object):
         domain_info = dict()
         certificate_info = None
         if certificate_id:
-            certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
+            certificate_info = domain_repo.get_certificate_by_pk(session=session, pk=int(certificate_id))
         data = dict()
         data["uuid"] = make_uuid(domain_name)
         data["domain"] = domain_name
@@ -665,12 +666,12 @@ class DomainService(object):
 
         if int(end_point.split(":")[1]) != default_port:
             domain_info["type"] = 1
-        tcp_domain.add_service_tcpdomain(session, **domain_info)
+        tcp_domain_repo.add_service_tcpdomain(session, **domain_info)
         domain_info.update({"rule_extensions": rule_extensions})
         return domain_info
 
     def unbind_tcpdomain(self, session: SessionClass, tenant, region, tcp_rule_id):
-        service_tcp_domain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
+        service_tcp_domain = tcp_domain_repo.get_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
         if not service_tcp_domain:
             raise ServiceHandleException(status_code=404, error_code=2404, msg="domain not found", msg_show="策略不存在")
         data = dict()
@@ -681,7 +682,7 @@ class DomainService(object):
         except remote_domain_client_api.CallApiError as e:
             if e.status != 404:
                 raise e
-        tcp_domain.delete_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
+        tcp_domain_repo.delete_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
 
 
 domain_service = DomainService()

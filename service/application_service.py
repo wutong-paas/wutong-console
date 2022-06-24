@@ -26,22 +26,23 @@ from exceptions.bcode import ErrUserNotFound, ErrK8sAppExists, ErrApplicationNot
 from exceptions.main import ServiceHandleException, AbortRequest
 from models.application.models import Application, ComponentApplicationRelation, ApplicationUpgradeRecord, \
     GroupAppMigrateRecord
+from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoints, TeamComponentInfo, \
+    DeployRelation, ComponentSourceInfo, ComponentEnvVar, TeamComponentMountRelation
 from models.region.models import RegionApp
 from models.teams import TeamInfo, ServiceDomainCertificate
 from models.users.oauth import OAuthServices, UserOAuthServices
-from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoints, TeamComponentInfo, \
-    DeployRelation, ComponentSourceInfo, ComponentEnvVar, TeamComponentMountRelation
 from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo, app_market_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.compose_repo import compose_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import group_service_relation_repo, service_repo
-from repository.component.service_config_repo import app_config_group_repo, domain_repo, tcp_domain, dep_relation_repo, \
+from repository.component.service_config_repo import app_config_group_repo, domain_repo, dep_relation_repo, \
     port_repo, volume_repo, mnt_repo
 from repository.component.service_group_relation_repo import service_group_relation_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_share_repo import component_share_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_service_env_var_repo import env_var_repo as team_env_var_repo
@@ -49,7 +50,6 @@ from repository.users.user_repo import user_repo
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
 from service.base_services import base_service, baseService
-
 from service.label_service import label_service
 from service.probe_service import probe_service
 
@@ -92,7 +92,8 @@ class ApplicationService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id, service_code_version,
+    def init_repositories(self, service, user, service_code_from, service_code_clone_url, service_code_id,
+                          service_code_version,
                           check_uuid, event_id, oauth_service_id, git_full_name):
         if service_code_from == SourceCodeType.GITLAB_MANUAL or service_code_from == SourceCodeType.GITLAB_DEMO:
             service_code_id = "0"
@@ -166,7 +167,8 @@ class ApplicationService(object):
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         session.add(new_service)
         session.flush()
-        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url, service_code_id,
+        code, msg = self.init_repositories(new_service, user, service_code_from, service_code_clone_url,
+                                           service_code_id,
                                            service_code_version, check_uuid, event_id, oauth_service_id, git_full_name)
         if code != 200:
             return code, msg, new_service
@@ -476,7 +478,7 @@ class ApplicationService(object):
 
         # count ingress
         count_http_domain = domain_repo.count_by_service_ids(session, region.region_id, service_ids)
-        count_tcp_domain = tcp_domain.count_by_service_ids(session, region.region_id, service_ids)
+        count_tcp_domain = tcp_domain_repo.count_by_service_ids(session, region.region_id, service_ids)
         return count_http_domain + count_tcp_domain
 
     @staticmethod
@@ -1016,7 +1018,7 @@ class ApplicationService(object):
                 rule_data.append(self.__init_http_rule_for_region(session, tenant, service, rule, user_name))
             data["http_rules"] = rule_data
 
-        stream_rule = tcp_domain.get_service_tcpdomains(session, service.service_id)
+        stream_rule = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
         if stream_rule:
             rule_data = []
             for rule in stream_rule:

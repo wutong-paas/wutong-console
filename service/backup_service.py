@@ -18,11 +18,12 @@ from repository.component.compose_repo import compose_repo, compose_relation_rep
 from repository.component.env_var_repo import env_var_repo
 from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import group_service_relation_repo, service_repo
-from repository.component.service_config_repo import volume_repo, domain_repo, configuration_repo, tcp_domain, \
+from repository.component.service_config_repo import volume_repo, domain_repo, configuration_repo, \
     extend_repo, \
     mnt_repo, port_repo, dep_relation_repo, service_endpoints_repo, auth_repo, compile_env_repo, app_config_group_repo
 from repository.component.service_label_repo import service_label_repo
 from repository.component.service_probe_repo import probe_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo, service_plugin_config_repo
@@ -30,7 +31,6 @@ from repository.teams.team_plugin_repo import plugin_repo
 from service.app_config.service_monitor_service import service_monitor_service
 from service.app_config_group import app_config_group_service
 from service.application_service import application_service
-
 from service.region_service import EnterpriseConfigService
 
 
@@ -87,7 +87,7 @@ class GroupAppBackupService(object):
         service_labels = service_label_repo.get_service_labels(session, service.service_id)
         service_domains = domain_repo.get_service_domains(session, service.service_id)
         http_rule_configs = configuration_repo.list_by_rule_ids(session, [sd.http_rule_id for sd in service_domains])
-        service_tcpdomains = tcp_domain.get_service_tcpdomains(session, service.service_id)
+        service_tcpdomains = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
         service_probes = probe_repo.get_all_service_probe(session, service.service_id)
         service_source = service_source_repo.get_service_source(session,
                                                                 tenant.tenant_id,

@@ -13,10 +13,11 @@ from models.region.label import Labels
 from repository.component.component_repo import service_source_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.graph_repo import component_graph_repo
-from repository.component.service_config_repo import domain_repo, tcp_domain, configuration_repo, auth_repo, \
+from repository.component.service_config_repo import domain_repo, configuration_repo, auth_repo, \
     compile_env_repo, extend_repo, mnt_repo, volume_repo, port_repo, dep_relation_repo, service_endpoints_repo
 from repository.component.service_label_repo import service_label_repo, node_label_repo, label_repo
 from repository.component.service_probe_repo import probe_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo, service_plugin_config_repo
 from repository.region.region_info_repo import region_repo
 from service.app_config.service_monitor_service import service_monitor_service
@@ -73,7 +74,7 @@ class LabelService(object):
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             os_label = Labels(label_id=label_id, label_name=os, label_alias=os, create_time=create_time)
             session.add(os_label)
-            
+
         return self.add_service_labels(session=session, tenant=tenant, service=service, label_ids=[os_label.label_id])
 
     def add_service_labels(self, session: SessionClass, tenant, service, label_ids, user_name=''):
@@ -137,7 +138,7 @@ class LabelService(object):
         service_labels = service_label_repo.get_service_labels(session, service.service_id)
         service_domains = domain_repo.get_service_domains(session, service.service_id)
         http_rule_configs = configuration_repo.list_by_rule_ids(session, [sd.http_rule_id for sd in service_domains])
-        service_tcpdomains = tcp_domain.get_service_tcpdomains(session, service.service_id)
+        service_tcpdomains = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
         service_probes = probe_repo.get_all_service_probe(session, service.service_id)
         service_source = service_source_repo.get_service_source(session,
                                                                 tenant.tenant_id,

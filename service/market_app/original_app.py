@@ -5,10 +5,11 @@ from repository.application.application_repo import application_repo
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.graph_repo import component_graph_repo
-from repository.component.service_config_repo import dep_relation_repo, port_repo, volume_repo, domain_repo, tcp_domain, \
+from repository.component.service_config_repo import dep_relation_repo, port_repo, volume_repo, domain_repo, \
     mnt_repo, app_config_group_repo
 from repository.component.service_label_repo import label_repo
 from repository.component.service_probe_repo import probe_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo, service_plugin_config_repo
 from repository.teams.team_service_env_var_repo import env_var_repo
 from service.app_config.service_monitor_service import service_monitor_service
@@ -56,7 +57,8 @@ class OriginalApp(object):
         return self._components
 
     def _component_ids(self, session):
-        components = application_service.list_components_by_upgrade_group_id(session, self.app_id, self.upgrade_group_id)
+        components = application_service.list_components_by_upgrade_group_id(session, self.app_id,
+                                                                             self.upgrade_group_id)
         return [cpt.component_id for cpt in components]
 
     def _create_components(self, session, app_id, upgrade_group_id):
@@ -107,7 +109,7 @@ class OriginalApp(object):
 
     @staticmethod
     def _list_tcp_rules(session, component_ids):
-        tcp_rules = tcp_domain.list_by_component_ids(session, component_ids)
+        tcp_rules = tcp_domain_repo.list_by_component_ids(session, component_ids)
         result = {}
         for rule in tcp_rules:
             rules = result.get(rule.service_id, [])

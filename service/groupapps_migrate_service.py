@@ -13,17 +13,18 @@ from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.exceptions import ErrBackupRecordNotFound, ErrObjectStorageInfoNotFound, ErrNeedAllServiceCloesed
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar
-from models.relate.models import TeamComponentRelation
 from models.component.models import TeamComponentInfo, TeamComponentPort, ComponentEnvVar, \
     TeamComponentConfigurationFile, TeamComponentVolume, TeamComponentEnv, ComponentLabels, ComponentProbe, \
     ComponentSourceInfo, TeamComponentAuth, ThirdPartyComponentEndpoints, TeamComponentMountRelation
+from models.relate.models import TeamComponentRelation
 from repository.application.app_backup_repo import backup_record_repo
 from repository.application.app_migration_repo import migrate_repo
 from repository.application.application_repo import application_repo
 from repository.component.component_repo import service_source_repo
-from repository.component.service_config_repo import port_repo, domain_repo, tcp_domain, volume_repo, compile_env_repo, \
+from repository.component.service_config_repo import port_repo, domain_repo, volume_repo, compile_env_repo, \
     app_config_group_repo
 from repository.component.service_probe_repo import probe_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_repo import team_repo
@@ -323,7 +324,7 @@ class GroupappsMigrateService(object):
                                                                region_id)
 
                     else:
-                        service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
+                        service_tcp_domains = tcp_domain_repo.get_service_tcp_domains_by_service_id_and_port(
                             service.service_id, port.container_port)
                         if service_tcp_domains:
                             for service_tcp_domain in service_tcp_domains:
@@ -345,11 +346,11 @@ class GroupappsMigrateService(object):
                             tcp_rule_id = make_uuid(end_point)
                             tenant_id = tenant.tenant_id
                             region_id = region.region_id
-                            tcp_domain.create_service_tcp_domains(service_id, service_name, end_point,
-                                                                  create_time,
-                                                                  container_port, protocol, service_alias,
-                                                                  tcp_rule_id,
-                                                                  tenant_id, region_id)
+                            tcp_domain_repo.create_service_tcp_domains(service_id, service_name, end_point,
+                                                                       create_time,
+                                                                       container_port, protocol, service_alias,
+                                                                       tcp_rule_id,
+                                                                       tenant_id, region_id)
 
     def __save_env(self, session: SessionClass, tenant, service, tenant_service_env_vars):
         env_list = []
