@@ -70,8 +70,6 @@ class CenterRepository(BaseRepository[CenterApp]):
         return self._prepare_get_wutong_app_by_query_sql(session, eid, scope, app_name, None, tag_names, page,
                                                          page_size,
                                                          need_install)
-        # apps = session.execute(sql).fetchall()
-        # return apps
 
     def get_wutong_app_total_count(self, session, eid, scope, teams, app_name, tag_names, need_install="false"):
         extend_where = ""
@@ -131,7 +129,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         if tag_names:
             extend_where += " and tag.name in (:tag_param)"
         if app_name:
-            extend_where += " and app.app_name like '%:app_name%'"
+            extend_where += " and app.app_name like :app_name"
         if need_install == "true":
             join_version += " left join center_app_version apv on app.app_id = apv.app_id" \
                             " and app.enterprise_id = apv.enterprise_id"
@@ -168,7 +166,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         if tag_names:
             sql = sql.bindparams(tag_param=",".join("'{0}'".format(tag_name) for tag_name in tag_names))
         if app_name:
-            sql = sql.bindparams(app_name=app_name)
+            sql = sql.bindparams(app_name="%" + app_name + "%")
         if scope == "team" and teams:
             sql = sql.bindparams(team_param=",".join("'{0}'".format(team) for team in teams))
         sql = sql.bindparams(eid=eid, offset=(page - 1) * page_size, rows=page_size)
@@ -189,8 +187,6 @@ class CenterRepository(BaseRepository[CenterApp]):
         return self._prepare_get_wutong_app_by_query_sql(session, eid, scope, app_name, teams, tag_names, page,
                                                          page_size,
                                                          need_install)
-        # apps = session.execute(sql).fetchall()
-        # return apps
 
     def get_center_app_list(self,
                             session: SessionClass,
