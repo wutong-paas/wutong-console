@@ -15,7 +15,8 @@ from models.application.models import ServiceShareRecord, ServiceShareRecordEven
 from models.application.plugin import PluginShareRecordEvent
 from models.market.models import CenterApp, CenterAppVersion
 from repository.component.service_share_repo import component_share_repo, component_share_event_repo
-from repository.market.center_repo import center_app_repo, center_app_version_repo
+from repository.market.center_app_version_repo import center_app_version_repo
+from repository.market.center_repo import center_app_repo
 from repository.plugin.plugin_share_repo import plugin_share_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.market import MarketShareUpdateParam, MarketAppShareInfoCreateParam

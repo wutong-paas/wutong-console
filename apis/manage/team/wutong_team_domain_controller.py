@@ -14,7 +14,8 @@ from exceptions.main import ServiceHandleException
 from models.teams import ServiceDomain, ServiceTcpDomain
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_repo, group_service_relation_repo
-from repository.component.service_config_repo import domain_repo, tcp_domain
+from repository.component.service_domain_repo import domain_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -161,7 +162,7 @@ async def service_tcp_domain(request: Request,
     if not tcp_rule_id:
         return general_message(400, "parameters are missing", "参数缺失")
 
-    tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
+    tcpdomain = tcp_domain_repo.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
     if tcpdomain:
         bean = tcpdomain.__dict__
         service = service_repo.get_service_by_service_id(session, tcpdomain.service_id)
@@ -218,7 +219,7 @@ async def service_tcp_domain(request: Request,
 
     # Check if the given endpoint exists.
     region = region_repo.get_region_by_region_name(session, service.service_region)
-    service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(region.region_id, end_point)
+    service_tcpdomain = tcp_domain_repo.get_tcpdomain_by_end_point(region.region_id, end_point)
     if service_tcpdomain and service_tcpdomain[0].tcp_rule_id != tcp_rule_id:
         return general_message(400, "failed", "策略已存在")
 

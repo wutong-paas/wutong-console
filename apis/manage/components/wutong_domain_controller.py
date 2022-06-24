@@ -1,19 +1,17 @@
 import re
 from typing import Any, Optional
 
-from fastapi import Request, APIRouter, Header, Depends
+from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
 
+from core import deps
 from core.utils.constants import DomainType
 from core.utils.return_message import general_message
-from core import deps
 from database.session import SessionClass
-from repository.component.service_config_repo import domain_repo
 from repository.component.group_service_repo import service_repo
+from repository.component.service_domain_repo import domain_repo
 from schemas.response import Response
 from service.app_config.domain_service import domain_service
-from service.team_service import team_services
-from service.user_service import user_svc
 
 router = APIRouter()
 dns1123_subdomain_max_length = 253

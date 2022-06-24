@@ -19,7 +19,8 @@ from models.teams import PermRelTenant, RegionConfig
 from models.teams.enterprise import TeamEnterprise
 from models.users.users import Users
 from repository.application.app_repository import app_tag_repo
-from repository.market.center_repo import CenterRepository, center_app_tag_repo
+from repository.market.center_app_tag_repo import center_app_tag_repo
+from repository.market.center_repo import CenterRepository
 from repository.region.region_config_repo import region_config_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo

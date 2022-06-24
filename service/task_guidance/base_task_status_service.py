@@ -2,11 +2,12 @@ import abc
 
 from loguru import logger
 
+from repository.application.service_group_repo import svc_grop_repo
 from repository.component.group_service_repo import service_repo
-from repository.component.service_config_repo import dep_relation_repo, domain_repo
+from repository.component.service_config_repo import dep_relation_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_share_repo import component_share_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo
-from repository.application.service_group_repo import svc_grop_repo
 
 
 class BaseTaskStatusStrategy(object, metaclass=abc.ABCMeta):
