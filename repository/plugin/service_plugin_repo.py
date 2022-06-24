@@ -258,6 +258,15 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                     is_open = False
                     for plugin_rel in install_plugins_rel:
                         plugin_id = plugin_rel.plugin_id
+                        if plugin_rel.build_version != build_version:
+                            plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
+                            needed_plugin_config = all_default_config[plugin_type]
+                            plugin.image = needed_plugin_config.get("image", "")
+                            plugin.build_source = needed_plugin_config.get("build_source", "")
+                            plugin.plugin_alias = needed_plugin_config["plugin_alias"]
+                            plugin.category = needed_plugin_config["category"]
+                            plugin.code_repo = needed_plugin_config["code_repo"]
+
                         install_plugin = plugin_repo.get_sys_tenant_plugins(session, plugin_id)
                         if install_plugin.origin == origin and install_plugin.origin_share_id == plugin_type and plugin_rel.plugin_status == 1:
                             plugin_dict.update({"origin_share_id": origin_share_id})

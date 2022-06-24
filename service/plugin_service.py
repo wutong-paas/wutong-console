@@ -140,7 +140,7 @@ class PluginService(object):
                 else:
                     image = ref[0]
             plugin_params = {
-                "tenant_id": None,
+                "tenant_id": "-",
                 "region": region,
                 "create_user": user.user_id,
                 "desc": needed_plugin_config["desc"],
