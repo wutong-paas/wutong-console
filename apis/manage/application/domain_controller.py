@@ -8,7 +8,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_repo, group_service_relation_repo
-from repository.component.service_config_repo import domain_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response

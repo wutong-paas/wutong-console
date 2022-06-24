@@ -37,12 +37,14 @@ from repository.component.component_repo import tenant_service_group_repo, servi
 from repository.component.compose_repo import compose_relation_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import service_repo, group_service_relation_repo
-from repository.component.service_config_repo import dep_relation_repo, mnt_repo, domain_repo, auth_repo, \
+from repository.component.service_config_repo import dep_relation_repo, mnt_repo, auth_repo, \
     port_repo, volume_repo, service_attach_repo, create_step_repo, service_payment_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_group_relation_repo import service_group_relation_repo
 from repository.component.service_label_repo import service_label_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_share_repo import component_share_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.region.region_app_repo import region_app_repo
 from service.app_actions.app_log import event_service
@@ -168,7 +170,7 @@ class AppManageService(AppManageBase):
         env_var_repo.delete_service_env(session, tenant.tenant_id, service.service_id)
         auth_repo.delete_service_auth(session, service.service_id)
         domain_repo.delete_service_domain(session, service.service_id)
-        tcp_domain.delete_service_tcp_domain(session, service.service_id)
+        tcp_domain_repo.delete_service_tcp_domain(session, service.service_id)
         dep_relation_repo.delete_service_relation(session, tenant.tenant_id, service.service_id)
         relations = dep_relation_repo.get_dependency_by_dep_id(session, tenant.tenant_id, service.service_id)
         if relations:

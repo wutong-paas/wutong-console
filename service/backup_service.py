@@ -18,9 +18,10 @@ from repository.component.compose_repo import compose_repo, compose_relation_rep
 from repository.component.env_var_repo import env_var_repo
 from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import group_service_relation_repo, service_repo
-from repository.component.service_config_repo import volume_repo, domain_repo, configuration_repo, \
+from repository.component.service_config_repo import volume_repo, configuration_repo, \
     extend_repo, \
     mnt_repo, port_repo, dep_relation_repo, service_endpoints_repo, auth_repo, compile_env_repo, app_config_group_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_label_repo import service_label_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo

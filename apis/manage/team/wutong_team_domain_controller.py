@@ -14,7 +14,7 @@ from exceptions.main import ServiceHandleException
 from models.teams import ServiceDomain, ServiceTcpDomain
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_repo, group_service_relation_repo
-from repository.component.service_config_repo import domain_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo

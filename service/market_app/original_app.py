@@ -5,8 +5,9 @@ from repository.application.application_repo import application_repo
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.graph_repo import component_graph_repo
-from repository.component.service_config_repo import dep_relation_repo, port_repo, volume_repo, domain_repo, \
+from repository.component.service_config_repo import dep_relation_repo, port_repo, volume_repo, \
     mnt_repo, app_config_group_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_label_repo import label_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo

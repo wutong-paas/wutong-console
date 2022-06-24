@@ -13,8 +13,9 @@ from models.region.label import Labels
 from repository.component.component_repo import service_source_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.graph_repo import component_graph_repo
-from repository.component.service_config_repo import domain_repo, configuration_repo, auth_repo, \
+from repository.component.service_config_repo import configuration_repo, auth_repo, \
     compile_env_repo, extend_repo, mnt_repo, volume_repo, port_repo, dep_relation_repo, service_endpoints_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_label_repo import service_label_repo, node_label_repo, label_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo

@@ -37,8 +37,9 @@ from repository.component.component_repo import service_source_repo
 from repository.component.compose_repo import compose_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import group_service_relation_repo, service_repo
-from repository.component.service_config_repo import app_config_group_repo, domain_repo, dep_relation_repo, \
+from repository.component.service_config_repo import app_config_group_repo, dep_relation_repo, \
     port_repo, volume_repo, mnt_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_group_relation_repo import service_group_relation_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_share_repo import component_share_repo

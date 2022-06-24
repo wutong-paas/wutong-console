@@ -21,8 +21,9 @@ from repository.application.app_backup_repo import backup_record_repo
 from repository.application.app_migration_repo import migrate_repo
 from repository.application.application_repo import application_repo
 from repository.component.component_repo import service_source_repo
-from repository.component.service_config_repo import port_repo, domain_repo, volume_repo, compile_env_repo, \
+from repository.component.service_config_repo import port_repo, volume_repo, compile_env_repo, \
     app_config_group_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo

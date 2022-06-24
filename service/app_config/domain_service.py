@@ -14,7 +14,8 @@ from database.session import SessionClass
 from exceptions.main import ServiceHandleException, AbortRequest
 from models.teams import ServiceDomain
 from repository.component.group_service_repo import service_repo
-from repository.component.service_config_repo import domain_repo, configuration_repo, port_repo
+from repository.component.service_config_repo import configuration_repo, port_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -140,7 +141,8 @@ class DomainService(object):
         return domain_repo.get_service_domain_by_container_port(session, service.service_id, container_port)
 
     def get_tcp_port_bind_domains(self, session: SessionClass, service, container_port):
-        return tcp_domain_repo.get_service_tcp_domains_by_service_id_and_port(session, service.service_id, container_port)
+        return tcp_domain_repo.get_service_tcp_domains_by_service_id_and_port(session, service.service_id,
+                                                                              container_port)
 
     def bind_domain(self, session: SessionClass, tenant, user, service, domain_name, container_port, protocol,
                     certificate_id,
@@ -320,7 +322,8 @@ class DomainService(object):
             if isinstance(search_conditions, bytes):
                 search_conditions = search_conditions.decode('utf-8')
             # 获取总数
-            domain_count = tcp_domain_repo.get_domain_count_search_conditions(session, tenant.tenant_id, region.region_id,
+            domain_count = tcp_domain_repo.get_domain_count_search_conditions(session, tenant.tenant_id,
+                                                                              region.region_id,
                                                                               search_conditions, app_id)
 
             total = domain_count[0][0]
@@ -330,7 +333,8 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
 
-            tenant_tuples = tcp_domain_repo.get_tenant_tuples_search_conditions(session, tenant.tenant_id, region.region_id,
+            tenant_tuples = tcp_domain_repo.get_tenant_tuples_search_conditions(session, tenant.tenant_id,
+                                                                                region.region_id,
                                                                                 search_conditions, start,
                                                                                 end,
                                                                                 app_id)

@@ -22,7 +22,8 @@ from models.component.models import TeamComponentPort, ComponentEnvVar
 from repository.application.application_repo import application_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import service_repo
-from repository.component.service_config_repo import port_repo, domain_repo, service_endpoints_repo
+from repository.component.service_config_repo import port_repo, service_endpoints_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_app_repo import region_app_repo
