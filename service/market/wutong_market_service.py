@@ -9,7 +9,7 @@ from models.market.models import AppMarket, CenterAppVersion
 from models.teams import TeamInfo, RegionConfig
 from models.users.users import Users
 from repository.application.application_repo import application_repo
-from repository.market.center_repo import center_app_version_repo
+from repository.market.center_app_version_repo import center_app_version_repo
 from repository.market.wutong_market_repo import wutong_market_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_repo import team_repo
