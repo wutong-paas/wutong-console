@@ -89,13 +89,7 @@ async def install_sys_plugin(request: Request,
     else:
         plugin_id = None
         for plugin in plugins:
-            plugin_rel = app_plugin_relation_repo.get_relation_by_service_and_plugin_version(session, service.service_id,
-                                                                                             plugin.plugin_id,
-                                                                                             build_version)
-            if not plugin_rel:
-                plugin_id = plugin.plugin_id
-            else:
-                plugin.origin = "tenant"
+            plugin_id = plugin.plugin_id
 
         if not plugin_id:
             plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team,
