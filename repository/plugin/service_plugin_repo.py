@@ -267,8 +267,8 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                             plugin.category = needed_plugin_config["category"]
                             plugin.code_repo = needed_plugin_config["code_repo"]
 
-                        install_plugin = plugin_repo.get_sys_tenant_plugins(session, plugin_id)
-                        if install_plugin.origin == origin and install_plugin.origin_share_id == plugin_type and plugin_rel.plugin_status == 1:
+                        install_plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
+                        if install_plugin.origin == origin and install_plugin.origin_share_id == plugin_type:
                             plugin_dict.update({"origin_share_id": origin_share_id})
                             plugin_dict.update({"min_memory": plugin_rel.min_memory})
                             plugin_dict.update({"plugin_status": plugin_rel.plugin_status})

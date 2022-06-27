@@ -205,10 +205,6 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
                 (and_(TeamPlugin.category == "analyst-plugin:perf",
                       TeamPlugin.image == IMAGE_REPO))))).scalars().first()
 
-    def get_sys_tenant_plugins(self, session: SessionClass, plugin_id):
-        return session.execute(select(TeamPlugin).where(
-            TeamPlugin.plugin_id == plugin_id)).scalars().first()
-
     def get_sys_plugin_by_origin_share_id(self, session: SessionClass, tenant_id, origin_share_id):
         return session.execute(select(TeamPlugin).where(
             TeamPlugin.tenant_id == tenant_id,
