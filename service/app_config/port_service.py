@@ -22,8 +22,10 @@ from models.component.models import TeamComponentPort, ComponentEnvVar
 from repository.application.application_repo import application_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import service_repo
-from repository.component.service_config_repo import port_repo, domain_repo, tcp_domain, service_endpoints_repo
+from repository.component.service_config_repo import port_repo, service_endpoints_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_probe_repo import probe_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -229,7 +231,7 @@ class AppPortService:
                     service_domain.is_outer_service = False
                     domain_repo.save_service_domain(session, service_domain)
         else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
+            service_tcp_domains = tcp_domain_repo.get_service_tcp_domains_by_service_id_and_port(
                 session, service.service_id, deal_port.container_port)
             # 改变tcpdomain表中状态
             if service_tcp_domains:
@@ -265,9 +267,9 @@ class AppPortService:
             for service_domain in service_domains:
                 service_domain.is_outer_service = True
 
-        service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(session,
-                                                                                        service.service_id,
-                                                                                        deal_port.container_port)
+        service_tcp_domains = tcp_domain_repo.get_service_tcp_domains_by_service_id_and_port(session,
+                                                                                             service.service_id,
+                                                                                             deal_port.container_port)
         if service_tcp_domains:
             for service_tcp_domain in service_tcp_domains:
                 # 改变tcpdomain表中状态
@@ -319,7 +321,7 @@ class AppPortService:
                         domain_repo.delete_http_domains(session, http_rule_id)
                         return 412, "数据中心添加策略失败"
         else:
-            service_tcp_domains = tcp_domain.get_service_tcp_domains_by_service_id_and_port(
+            service_tcp_domains = tcp_domain_repo.get_service_tcp_domains_by_service_id_and_port(
                 session, service.service_id, deal_port.container_port)
             if service_tcp_domains:
                 for service_tcp_domain in service_tcp_domains:
@@ -341,10 +343,10 @@ class AppPortService:
                 tcp_rule_id = make_uuid(end_point)
                 tenant_id = tenant.tenant_id
                 region_id = region.region_id
-                tcp_domain.create_service_tcp_domains(session,
-                                                      service_id, service_name, end_point, create_time,
-                                                      container_port,
-                                                      protocol, service_alias, tcp_rule_id, tenant_id, region_id)
+                tcp_domain_repo.create_service_tcp_domains(session,
+                                                           service_id, service_name, end_point, create_time,
+                                                           container_port,
+                                                           protocol, service_alias, tcp_rule_id, tenant_id, region_id)
                 if service.create_status == "complete":
                     port = end_point.split(":")[1]
                     data = dict()
@@ -359,7 +361,7 @@ class AppPortService:
                                                                  data)
                     except Exception as e:
                         logger.exception(e)
-                        tcp_domain.delete_tcp_domain(tcp_rule_id)
+                        tcp_domain_repo.delete_tcp_domain(tcp_rule_id)
                         return 412, "数据中心添加策略失败"
 
         deal_port.is_outer_service = True
@@ -412,7 +414,7 @@ class AppPortService:
         if not region:
             return None
         port_domain = {}
-        service_tcp_domains = tcp_domain.get_service_tcpdomains(session, component.service_id)
+        service_tcp_domains = tcp_domain_repo.get_service_tcpdomains(session, component.service_id)
         for domain in service_tcp_domains:
             if "0.0.0.0" in domain.end_point:
                 port_domain[domain.container_port] = [domain.end_point.replace("0.0.0.0", region.tcpdomain)]
@@ -609,10 +611,10 @@ class AppPortService:
     def __get_stream_outer_url(self, session: SessionClass, tenant, service, port):
         region = region_repo.get_region_by_region_name(session, service.service_region)
         if region:
-            service_tcp_domain = tcp_domain.get_service_tcpdomain(session,
-                                                                  tenant.tenant_id, region.region_id,
-                                                                  service.service_id,
-                                                                  port.container_port)
+            service_tcp_domain = tcp_domain_repo.get_service_tcpdomain(session,
+                                                                       tenant.tenant_id, region.region_id,
+                                                                       service.service_id,
+                                                                       port.container_port)
 
             if service_tcp_domain:
                 if "0.0.0.0" in service_tcp_domain.end_point:
@@ -662,9 +664,9 @@ class AppPortService:
 
     def get_port_by_container_port(self, session, service, container_port):
         return session.execute(
-                select(TeamComponentPort).where(TeamComponentPort.tenant_id == service.tenant_id,
-                                                TeamComponentPort.service_id == service.service_id,
-                                                TeamComponentPort.container_port == container_port)).scalars().first()
+            select(TeamComponentPort).where(TeamComponentPort.tenant_id == service.tenant_id,
+                                            TeamComponentPort.service_id == service.service_id,
+                                            TeamComponentPort.container_port == container_port)).scalars().first()
 
     def check_port(self, session: SessionClass, service, container_port):
         port = self.get_port_by_container_port(session, service, container_port)

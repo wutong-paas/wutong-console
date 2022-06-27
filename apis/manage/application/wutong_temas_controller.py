@@ -16,7 +16,9 @@ from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_repo, group_service_relation_repo
-from repository.component.service_config_repo import domain_repo, configuration_repo, tcp_domain
+from repository.component.service_config_repo import configuration_repo
+from repository.component.service_domain_repo import domain_repo
+from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -415,7 +417,7 @@ async def add_tcp_domain(request: Request,
 
     # Check if the given endpoint exists.
     region = region_repo.get_region_by_region_name(session, service.service_region)
-    service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(session, region.region_id, end_point)
+    service_tcpdomain = tcp_domain_repo.get_tcpdomain_by_end_point(session, region.region_id, end_point)
     if service_tcpdomain:
         result = general_message(400, "failed", "策略已存在")
         return JSONResponse(result, status_code=400)
@@ -459,7 +461,7 @@ async def get_tcp_domain(request: Request, session: SessionClass = Depends(deps.
     if not tcp_rule_id:
         return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
 
-    tcpdomain = tcp_domain.get_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
+    tcpdomain = tcp_domain_repo.get_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
     if tcpdomain:
         bean = jsonable_encoder(tcpdomain)
         service = service_repo.get_service_by_service_id(session, tcpdomain.service_id)
@@ -513,7 +515,7 @@ async def set_tcp_domain(request: Request,
 
     # Check if the given endpoint exists.
     region = region_repo.get_region_by_region_name(session, service.service_region)
-    service_tcpdomain = tcp_domain.get_tcpdomain_by_end_point(session, region.region_id, end_point)
+    service_tcpdomain = tcp_domain_repo.get_tcpdomain_by_end_point(session, region.region_id, end_point)
     if service_tcpdomain and service_tcpdomain[0].tcp_rule_id != tcp_rule_id:
         result = general_message(400, "failed", "策略已存在")
         return JSONResponse(result, status_code=400)

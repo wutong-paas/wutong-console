@@ -1,24 +1,22 @@
 from typing import Any, Optional
-from fastapi import Request, APIRouter, Header, Depends
+
+from fastapi import Request, APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from loguru import logger
 
-from core.utils.reqparse import parse_item
 from core import deps
+from core.utils.reqparse import parse_item
+from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentPortExists
 from exceptions.main import AbortRequest
-from repository.component.service_config_repo import domain_repo
 from repository.component.group_service_repo import service_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
-from core.utils.return_message import general_message
-from fastapi.responses import JSONResponse
-
 from service.app_config.domain_service import domain_service
 from service.app_config.port_service import port_service
-from service.team_service import team_services
-from service.user_service import user_svc
 
 router = APIRouter()
 
@@ -233,7 +231,8 @@ async def add_ports(request: Request,
         port_alias = service.service_alias.upper().replace("-", "_") + str(port)
     try:
         code, msg, port_info = port_service.add_service_port(session=session, tenant=team, service=service,
-                                                             container_port=port, protocol=protocol, port_alias=port_alias,
+                                                             container_port=port, protocol=protocol,
+                                                             port_alias=port_alias,
                                                              is_inner_service=is_inner_service,
                                                              is_outer_service=is_outer_service, k8s_service_name=None,
                                                              user_name=user.nick_name)

@@ -25,7 +25,8 @@ from models.market.models import CenterApp, CenterAppVersion
 from models.region.label import Labels
 from models.relate.models import TeamComponentRelation
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
-from repository.component.service_config_repo import app_config_group_repo, domain_repo, configuration_repo, port_repo
+from repository.component.service_config_repo import app_config_group_repo, configuration_repo, port_repo
+from repository.component.service_domain_repo import domain_repo
 from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo, app_export_record_repo
 from service.application_service import application_service
