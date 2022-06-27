@@ -257,8 +257,8 @@ class RegionService(object):
                     region_resource["used_memory"] = body["bean"]["req_mem"]
                     region_resource["total_cpu"] = body["bean"]["cap_cpu"]
                     region_resource["used_cpu"] = body["bean"]["req_cpu"]
-                    region_resource["total_disk"] = body["bean"]["total_capacity_storage"] / 1024 / 1024 / 1024
-                    region_resource["used_disk"] = body["bean"]["total_used_storage"] / 1024 / 1024 / 1024
+                    region_resource["total_disk"] = body["bean"]["total_capacity_storage"]
+                    region_resource["used_disk"] = body["bean"]["total_used_storage"]
                     region_resource["rbd_version"] = rbd_version
             except (remote_build_client.CallApiError, ServiceHandleException) as e:
                 logger.exception(e)
