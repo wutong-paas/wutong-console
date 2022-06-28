@@ -25,7 +25,7 @@ from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEno
 from models.teams import RegionConfig
 from models.users.users import UserAccessKey, Users
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.devops.devops_repo import devops_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_info_repo import region_repo
@@ -457,7 +457,7 @@ async def get_app_state(
 
         if application_id == "-1":
             # query service which not belong to any app
-            no_group_service_list = service_repo.get_no_group_service_status_by_group_id(
+            no_group_service_list = service_info_repo.get_no_group_service_status_by_group_id(
                 session=session,
                 team_name=team_code,
                 team_id=team.tenant_id,
@@ -478,7 +478,7 @@ async def get_app_state(
             result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
             return JSONResponse(result, status_code=202)
 
-        group_service_list = service_repo.get_group_service_by_group_id(
+        group_service_list = service_info_repo.get_group_service_by_group_id(
             session=session,
             group_id=application_id,
             region_name=region_name,
@@ -657,7 +657,7 @@ async def deploy_component(
         result = general_message(200, "success", "成功")
         user = user_svc.devops_get_current_user(session=session, token=authorization)
         tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
-        service = service_repo.get_service(session, params.component_code, tenant.tenant_id)
+        service = service_info_repo.get_service(session, params.component_code, tenant.tenant_id)
         oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
 
         if params.docker_image is not None:

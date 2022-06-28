@@ -9,7 +9,7 @@ from core.utils.reqparse import parse_argument
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.application.app_repository import app_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.mnt_service import mnt_service
 
@@ -61,7 +61,7 @@ async def get_mnt(request: Request,
     volume_types = parse_argument(request, 'volume_types', value_type=list)
     is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
 
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     if query == "undefined":
         query = ""
@@ -110,7 +110,7 @@ async def set_mnt(request: Request,
           paramType: body
 
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     data = await request.json()
     dep_vol_data = data["body"]
     dep_vol_data = json.loads(dep_vol_data)
@@ -126,7 +126,7 @@ async def delete_mnt(dep_vol_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
                      user=Depends(deps.get_current_user),
                      team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     code, msg = mnt_service.delete_service_mnt_relation(session, team, service, dep_vol_id, user.nick_name)
 

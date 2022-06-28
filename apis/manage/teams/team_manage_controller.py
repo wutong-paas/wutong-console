@@ -14,7 +14,7 @@ from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrNamespaceExists
 from exceptions.main import ServiceHandleException
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_applicants_repo import apply_repo
@@ -247,7 +247,7 @@ async def team_services_event(request: Request,
         if event["Target"] == "service":
             service_ids.append(event["TargetID"])
 
-    services = service_repo.list_by_component_ids(session, service_ids)
+    services = service_info_repo.list_by_component_ids(session, service_ids)
 
     event_service_list = []
     for event in event_service_dynamic_list:
@@ -349,7 +349,7 @@ async def again_delete_app(request: Request,
     """
     data = await request.json()
     service_id = data.get("service_id", None)
-    service = service_repo.get_service_by_service_id(session, service_id)
+    service = service_info_repo.get_service_by_service_id(session, service_id)
     app_manage_service.delete_again(session, user, team, service, is_force=True)
     result = general_message(200, "success", "操作成功", bean={})
     return JSONResponse(result, status_code=result["code"])

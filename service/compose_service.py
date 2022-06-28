@@ -13,8 +13,9 @@ from core.utils.timeutil import current_time_str
 from database.session import SessionClass
 from models.component.models import TeamComponentInfo
 from repository.application.application_repo import application_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.compose_repo import compose_relation_repo, compose_repo
-from repository.component.group_service_repo import service_repo, group_service_relation_repo
+from repository.component.group_service_repo import service_info_repo
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.app_relation_service import dependency_service
 from service.application_service import application_service
@@ -30,7 +31,7 @@ class ComposeService(object):
         compose_repo.delete_group_compose_by_compose_id(session, compose_id)
         application_repo.delete_group_by_id(session, group_id)
         # 删除组件与组的关系
-        group_service_relation_repo.delete_relation_by_group_id(session, group_id)
+        app_component_relation_repo.delete_relation_by_group_id(session, group_id)
         compose_repo.delete_group_compose_by_group_id(session, group_id)
 
     def wrap_compose_check_info(self, data):
@@ -47,7 +48,8 @@ class ComposeService(object):
                     service_port_bean = {
                         "type": "ports",
                         "key": "端口信息",
-                        "value": [str(port["container_port"]) + "(" + port["protocol"] + ")" for port in service_info["ports"]]
+                        "value": [str(port["container_port"]) + "(" + port["protocol"] + ")" for port in
+                                  service_info["ports"]]
                     }
                     service_attr_list.append(service_port_bean)
                 if service_info["volumes"]:
@@ -55,7 +57,8 @@ class ComposeService(object):
                         "type": "volumes",
                         "key": "持久化目录",
                         "value":
-                        [volume["volume_path"] + "(" + volume["volume_type"] + ")" for volume in service_info["volumes"]]
+                            [volume["volume_path"] + "(" + volume["volume_type"] + ")" for volume in
+                             service_info["volumes"]]
                     }
                     service_attr_list.append(service_volume_bean)
                 if service_info["image"]:
@@ -85,7 +88,7 @@ class ComposeService(object):
         compse_service_relations = compose_relation_repo.get_compose_service_relation_by_compose_id(session, compose_id)
         service_ids = [csr.service_id for csr in compse_service_relations]
         service_ids = list(service_ids)
-        return service_repo.get_services_by_service_ids(session, service_ids)
+        return service_info_repo.get_services_by_service_ids(session, service_ids)
 
     def __delete_created_compose_info(self, session, tenant, compose_id):
         services = self.get_compose_services(session, compose_id)
@@ -175,7 +178,8 @@ class ComposeService(object):
                         service_list.append(service)
                         name_service_map[service_cname] = service
 
-                        application_service.add_service_to_group(session, tenant, region, group_compose.group_id, service.service_id)
+                        application_service.add_service_to_group(session, tenant, region, group_compose.group_id,
+                                                                 service.service_id)
 
                         component_check_service.save_service_info(session, tenant, service, service_info)
                         # save service info

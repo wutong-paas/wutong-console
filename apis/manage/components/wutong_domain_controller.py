@@ -8,7 +8,7 @@ from core import deps
 from core.utils.constants import DomainType
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from schemas.response import Response
 from service.app_config.domain_service import domain_service
@@ -88,7 +88,7 @@ async def get_dependency_component(request: Request,
     certificate_id = data.get("certificate_id", None)
     rule_extensions = data.get("rule_extensions", None)
 
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     # 判断策略是否存在
     service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(session,
@@ -147,7 +147,7 @@ async def delete_port_domain(request: Request,
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     flag, msg = validate_domain(domain_name)
     if not flag:
         result = general_message(400, "invalid domain", msg)

@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from core.utils.constants import PluginMetaType
 from database.session import SessionClass
 from models.application.plugin import PluginConfigItems, PluginConfigGroup
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import dep_relation_repo
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 
@@ -64,7 +64,7 @@ class PluginConfigService(object):
 
     def get_service_dependencies(self, session: SessionClass, tenant, service):
         dep_ids = self.__get_dep_service_ids(session=session, tenant=tenant, service=service)
-        services = service_repo.get_services_by_service_ids(session, dep_ids)
+        services = service_info_repo.get_services_by_service_ids(session, dep_ids)
         return services
 
     def get_config_details(self, session, plugin_id, build_version):

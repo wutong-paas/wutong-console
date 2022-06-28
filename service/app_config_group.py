@@ -9,7 +9,7 @@ from database.session import SessionClass
 from exceptions.bcode import ErrAppConfigGroupNotFound
 from models.application.models import ApplicationConfigGroup
 from repository.application.config_group_repo import app_config_group_service_repo, app_config_group_item_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import app_config_group_repo
 from repository.region.region_app_repo import region_app_repo
 
@@ -31,7 +31,7 @@ def create_items_and_services(session: SessionClass, app_config_group, config_it
     # create application config group services takes effect
     if service_ids is not None:
         for sid in service_ids:
-            s = service_repo.get_service_by_service_id(session, sid)
+            s = service_info_repo.get_service_by_service_id(session, sid)
             group_service = {
                 "update_time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
                 "app_id": app_config_group.app_id,
@@ -53,7 +53,7 @@ def convert_todict(session: SessionClass, cgroup_items, cgroup_services):
     config_group_services = []
     if cgroup_services:
         for s in cgroup_services:
-            service = service_repo.get_service_by_service_id(session, s.service_id)
+            service = service_info_repo.get_service_by_service_id(session, s.service_id)
             if not service:
                 continue
             cgs = jsonable_encoder(s)

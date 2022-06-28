@@ -2,7 +2,7 @@ from loguru import logger
 
 from exceptions.main import AbortRequest
 from repository.component.component_repo import service_source_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_group_relation_repo import service_group_relation_repo
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
@@ -51,7 +51,7 @@ class MultiAppService(object):
 
     def create_services(self, session, region_name, tenant, user, service_alias, service_infos):
         # get temporary service
-        temporary_service = service_repo.get_service_by_tenant_and_alias(session, tenant.tenant_id, service_alias)
+        temporary_service = service_info_repo.get_service_by_tenant_and_alias(session, tenant.tenant_id, service_alias)
         if not temporary_service:
             raise AbortRequest("service not found", "组件不存在", status_code=404, error_code=11005)
 

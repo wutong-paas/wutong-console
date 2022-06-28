@@ -8,7 +8,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -27,7 +27,7 @@ async def get_topological(team_name, region_name, group_id: Optional[str] = None
     """
     code = 200
     if group_id == "-1":
-        no_service_list = service_repo.get_no_group_service_status_by_group_id(
+        no_service_list = service_info_repo.get_no_group_service_status_by_group_id(
             session=session, team_name=team_name, region_name=region_name)
         return general_message(200, "query success", "应用查询成功", list=no_service_list)
     else:
@@ -66,7 +66,7 @@ async def open_topological_port(
     open_outer = data.get("open_outer", False)
     close_outer = data.get("close_outer", False)
     container_port = data.get("container_port", None)
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -140,7 +140,7 @@ async def get_topological_internet_info(team_name: Optional[str] = None,
     response_region = region.region_name
     if group_id == "-1":
         code = 200
-        no_service_list = service_repo.get_no_group_service_status_by_group_id(
+        no_service_list = service_info_repo.get_no_group_service_status_by_group_id(
             session=session, team_name=team_name, region_name=response_region)
         result = general_message(200, "query success", "应用获取成功", list=no_service_list)
     else:
@@ -185,7 +185,7 @@ async def get_topological_info(request: Request,
           type: string
           paramType: path
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not service:
         return JSONResponse(general_message(400, "service not found", "参数错误"), status_code=400)
     result = topological_service.get_group_topological_graph_details(

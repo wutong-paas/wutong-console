@@ -8,7 +8,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.app_config.app_relation_service import dependency_service
 from service.app_config.port_service import port_service
@@ -47,7 +47,7 @@ async def get_dependency_component(request: Request,
            type: string
            paramType: query
      """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     page_num = int(request.query_params.get("page", 1))
     if page_num < 1:
         page_num = 1
@@ -116,7 +116,7 @@ async def add_dependency_component(request: Request,
           paramType: form
 
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     data = await request.json()
     dep_service_ids = data.get("dep_service_ids", None)
     if not dep_service_ids:
@@ -161,7 +161,7 @@ async def delete_dependency_component(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not dep_service_id:
         return JSONResponse(general_message(400, "attr_name not specify", "未指定需要删除的依赖组件"), status_code=400)
     code, msg, dependency = dependency_service.delete_service_dependency(session=session, tenant=team,
@@ -206,7 +206,7 @@ async def add_dependency_component_post(request: Request,
     dep_service_id = data.get("dep_service_id", None)
     open_inner = data.get("open_inner", False)
     container_port = data.get("container_port", None)
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not dep_service_id:
         return JSONResponse(general_message(400, "dependency service not specify", "请指明需要依赖的组件"), status_code=400)
     if service.is_third_party():

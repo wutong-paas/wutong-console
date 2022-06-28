@@ -9,7 +9,7 @@ from clients.remote_build_client import remote_build_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.app_config.promql_service import promql_service
 
@@ -59,7 +59,7 @@ async def get_monitor_info(request: Request,
      """
     try:
         query = request.query_params.get("query", "")
-        service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
         if "service_id" not in query:
             query = promql_service.add_or_update_label(service.service_id, query)
         sufix = "?" + get_sufix_path(request, query)
@@ -96,7 +96,7 @@ async def get_monitor_info(request: Request,
     try:
         query = request.query_params.get("query", "")
         disable_auto_label = request.query_params.get("disable_auto_label", "false")
-        service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
         if "service_id" not in query and disable_auto_label == "false":
             query = promql_service.add_or_update_label(service.service_id, query)
         sufix = "?" + get_sufix_path(request, query)

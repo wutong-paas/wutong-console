@@ -1,5 +1,6 @@
 import datetime
 from typing import Optional, Any
+
 from fastapi import Depends, APIRouter
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -11,7 +12,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.expressway.hunan_expressway_service import hunan_expressway_service
 from service.team_service import team_services
@@ -162,7 +163,7 @@ async def overview_tenant(
         pods_num = tenant_tuple[1]
         tenant = team_services.get_team_by_team_id(session, tenant_tuple[0])
 
-        team_service_num = service_repo.get_team_service_num_by_team_id(
+        team_service_num = service_info_repo.get_team_service_num_by_team_id(
             session=session, team_id=tenant.tenant_id, region_name=region_name)
         groups = application_repo.get_tenant_region_groups(session, tenant.tenant_id, region_name)
 

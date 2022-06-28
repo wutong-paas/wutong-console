@@ -8,7 +8,7 @@ from repository.component.deploy_repo import deploy_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.port_service import port_service
 from service.application_service import application_service
@@ -228,7 +228,7 @@ class GroupAppCopyService(object):
         if not group_services:
             return []
         service_ids = [group_service.service_id for group_service in group_services]
-        services = service_repo.list_by_component_ids(session=session, service_ids=service_ids)
+        services = service_info_repo.list_by_component_ids(session=session, service_ids=service_ids)
         result = []
         for service in services:
             if service.service_id in change_service_ids:

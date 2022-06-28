@@ -10,7 +10,7 @@ from repository.application.app_repository import app_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.graph_repo import component_graph_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import dep_relation_repo, port_repo, volume_repo, mnt_repo
 from repository.component.service_group_relation_repo import service_group_relation_repo
 from repository.component.service_probe_repo import probe_repo
@@ -243,7 +243,7 @@ class PropertiesChanges(object):
 
         group_id = service_group_relation_repo.get_group_id_by_service(session, self.service)
         # dep services from exist service
-        new_dep_services = service_repo.list_by_svc_share_uuids(session=session, group_id=group_id, dep_uuids=dep_uuids)
+        new_dep_services = service_info_repo.list_by_svc_share_uuids(session=session, group_id=group_id, dep_uuids=dep_uuids)
         if level == "app":
             exist_uuids = [svc["service_share_uuid"] for svc in new_dep_services]
             # dep services from apps
