@@ -116,7 +116,7 @@ class MarketAppService(object):
                 app_with_tags[tag.app_id] = []
             app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
 
-        for version in versions:
+        for version in versions[:200]:
             if not app_with_versions.get(version.app_id):
                 app_with_versions[version.app_id] = dict()
                 app_release_ver_nums[version.app_id] = []
@@ -163,7 +163,7 @@ class MarketAppService(object):
                 not_release_ver_nums = sorted_versions(not_release_ver_nums)
             # Obtain version information according to the sorted version number and construct the returned data
             release_ver_nums.extend(not_release_ver_nums)
-            for ver_num in release_ver_nums[:5]:
+            for ver_num in release_ver_nums:
                 versions.append(app_with_versions[app.app_id][ver_num])
             versions_info = list(reversed(versions))
             app_dict.update({"versions_info": versions_info})
