@@ -260,7 +260,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                     for plugin_rel in install_plugins_rel:
                         plugin_id = plugin_rel.plugin_id
                         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
-                        if plugin_rel.build_version != build_version:
+                        if plugin_rel.build_version != build_version and plugin.origin_share_id == plugin_type:
                             needed_plugin_config = all_default_config[plugin_type]
                             plugin.image = needed_plugin_config.get("image", "")
                             plugin.build_source = needed_plugin_config.get("build_source", "")
