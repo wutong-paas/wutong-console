@@ -634,6 +634,24 @@ class RemoteComponentClient(ApiBaseHttpClient):
             return body
         return None
 
+    def get_all_services_status(self, session, enterprise_id, region, test=False):
+        """
+
+        :param enterprise_id:
+        :param region:
+        :param test:
+        :return:
+        """
+        if test:
+            self.get_enterprise_api_version_v2(session, enterprise_id, region=region)
+        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url = url + "/v2/enterprise/" + enterprise_id + "/services/status"
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region, timeout=10)
+        if res.get("status") == 200 and isinstance(body, dict):
+            return body
+        return None
+
     def get_docker_log_instance(self, session, region, tenant_name, service_alias, enterprise_id):
         """获取日志实体"""
 
