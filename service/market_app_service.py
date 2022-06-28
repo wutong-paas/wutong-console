@@ -163,7 +163,7 @@ class MarketAppService(object):
                 not_release_ver_nums = sorted_versions(not_release_ver_nums)
             # Obtain version information according to the sorted version number and construct the returned data
             release_ver_nums.extend(not_release_ver_nums)
-            for ver_num in release_ver_nums:
+            for ver_num in release_ver_nums[:5]:
                 versions.append(app_with_versions[app.app_id][ver_num])
             versions_info = list(reversed(versions))
             app_dict.update({"versions_info": versions_info})

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from apis.external import wutong_devops_controller
+from apis.external import wutong_devops_controller, wutong_hunan_expressway
 from apis.manage.application import application_controller, wutong_topological_controller, wutong_temas_controller, \
     domain_controller, app_backup_controller
 from apis.manage.common import common_controller
@@ -27,6 +27,8 @@ api_router = APIRouter()
 # router注册
 
 api_router.include_router(wutong_devops_controller.router, prefix="", tags=["devops"])
+
+api_router.include_router(wutong_hunan_expressway.router, prefix="", tags=["湖南高速大屏"])
 
 # 公共接口部分
 api_router.include_router(common_controller.router, tags=["公共部分接口"])
