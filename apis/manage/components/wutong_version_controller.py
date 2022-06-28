@@ -9,7 +9,7 @@ from clients.remote_build_client import remote_build_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 
@@ -45,7 +45,7 @@ async def get_version(request: Request,
     """
     page = int(request.query_params.get("page_num", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)

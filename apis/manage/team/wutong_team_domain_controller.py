@@ -13,7 +13,8 @@ from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from models.teams import ServiceDomain, ServiceTcpDomain
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo, group_service_relation_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
@@ -97,13 +98,13 @@ async def get_domain_query(request: Request,
     # 拼接展示数据
     domain_list = list()
     for tenant_tuple in tenant_tuples:
-        service = service_repo.get_service_by_service_id(session, tenant_tuple[9])
+        service = service_info_repo.get_service_by_service_id(session, tenant_tuple[9])
         service_cname = service.service_cname if service else ''
         service_alias = service.service_alias if service else tenant_tuple[6]
         group_name = ''
         group_id = 0
         if service:
-            gsr = group_service_relation_repo.get_group_by_service_id(session, service.service_id)
+            gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''
@@ -165,12 +166,12 @@ async def service_tcp_domain(request: Request,
     tcpdomain = tcp_domain_repo.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
     if tcpdomain:
         bean = tcpdomain.__dict__
-        service = service_repo.get_service_by_service_id(session, tcpdomain.service_id)
+        service = service_info_repo.get_service_by_service_id(session, tcpdomain.service_id)
         service_alias = service.service_cname if service else ''
         group_name = ''
         g_id = 0
         if service:
-            gsr = group_service_relation_repo.get_group_by_service_id(session, service.service_id)
+            gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''
@@ -206,7 +207,7 @@ async def service_tcp_domain(request: Request,
     if not tcp_rule_id:
         return general_message(400, "parameters are missing", "参数缺失")
 
-    service = service_repo.get_service_by_service_id(session, service_id)
+    service = service_info_repo.get_service_by_service_id(session, service_id)
     if not service:
         return general_message(400, "not service", "组件不存在")
 
@@ -310,12 +311,12 @@ async def get_domain_query(request: Request,
     # 拼接展示数据
     domain_list = list()
     for tenant_tuple in tenant_tuples:
-        service = service_repo.get_service_by_service_id(session, tenant_tuple[7])
+        service = service_info_repo.get_service_by_service_id(session, tenant_tuple[7])
         service_alias = service.service_cname if service else ''
         group_name = ''
         group_id = 0
         if service:
-            gsr = group_service_relation_repo.get_group_by_service_id(session, service.service_id)
+            gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''

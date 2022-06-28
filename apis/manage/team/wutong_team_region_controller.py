@@ -9,7 +9,7 @@ from core import deps
 from core.setting import role_required
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.region_service import region_services
 
@@ -240,7 +240,7 @@ async def get_sort_service_query(region_name: Optional[str] = None,
         value.append(traffic_num)
         service_traffic_list.append(service_dict)
     for service_traffic in service_traffic_list[::-1]:
-        service_obj = service_repo.get_service_by_service_id(session, service_traffic["metric"]["service"])
+        service_obj = service_info_repo.get_service_by_service_id(session, service_traffic["metric"]["service"])
         if service_obj:
             service_traffic["metric"]["service_cname"] = service_obj.service_cname
             service_traffic["metric"]["service_alias"] = service_obj.service_alias
@@ -337,7 +337,7 @@ async def file_manager(
         else:
             url_path = '/console/filebrowser/' + service_id + '/' + url + '?' + params,
             url_path = url_path[0]
-        service = service_repo.get_service_by_service_id(session, service_id)
+        service = service_info_repo.get_service_by_service_id(session, service_id)
         response = await remote_app_client.proxy(
             session, request,
             url_path,

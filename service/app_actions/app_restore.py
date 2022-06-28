@@ -7,7 +7,7 @@ from models.relate.models import TeamComponentRelation
 from models.component.models import ComponentEnvVar, TeamComponentPort, TeamComponentMountRelation
 from repository.component.component_repo import service_source_repo
 from repository.component.env_var_repo import env_var_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo, volume_repo, dep_relation_repo, mnt_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo
@@ -23,9 +23,9 @@ class AppRestore(object):
             logger.warning("service id: {}; service base not found while \
                 restoring service".format(self.service.service_id))
             return
-        service_repo.del_by_sid(session=session, sid=self.service.service_id)
+        service_info_repo.del_by_sid(session=session, sid=self.service.service_id)
         service_base.pop("ID")
-        service_repo.base_create(session=session, add_model=service_base)
+        service_info_repo.base_create(session=session, add_model=service_base)
 
     def svc_source(self, session, service_source):
         if not service_source:

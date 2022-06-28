@@ -1,113 +1,10 @@
-from sqlalchemy import select, func, delete, not_
+from sqlalchemy import select, delete, not_, text
 
 from core.utils.status_translate import get_status_info_map
-from models.application.models import ComponentApplicationRelation, Application
+from models.application.models import ComponentApplicationRelation
 from models.component.models import TeamComponentInfo, ComponentSourceInfo
 from repository.base import BaseRepository
 from service.base_services import base_service
-
-
-class GroupServiceRelationRepository(BaseRepository[ComponentApplicationRelation]):
-
-    def get_group_info_by_service_id(self, session, service_id):
-        sgrs = session.execute(select(ComponentApplicationRelation).where(
-            ComponentApplicationRelation.service_id == service_id
-        )).scalars().all()
-        if not sgrs:
-            return None
-        relation = sgrs[0]
-        return session.execute(select(Application).where(
-            Application.ID == relation.group_id
-        )).scalars().first()
-
-    def delete_relation_by_group_id(self, session, group_id):
-        session.execute(delete(ComponentApplicationRelation).where(
-            ComponentApplicationRelation.group_id == group_id))
-
-    def add_service_group_relation(self, session, group_id, service_id, tenant_id, region_name):
-        sgr = ComponentApplicationRelation(
-            service_id=service_id, group_id=group_id, tenant_id=tenant_id, region_name=region_name)
-        session.add(sgr)
-        session.flush()
-        return sgr
-
-    def get_service_group_relation_by_groups(self, session, group_ids):
-        return (
-            session.execute(
-                select(ComponentApplicationRelation).where(ComponentApplicationRelation.group_id.in_(group_ids)))
-        ).scalars().all()
-
-    def get_group_by_service_id(self, session, service_id):
-        return session.execute(
-            select(ComponentApplicationRelation).where(ComponentApplicationRelation.service_id == service_id)).scalars().first()
-
-    def count_service_by_app_id(self, session, app_id):
-        """
-        统计应用下组件数量
-        :param app_id:
-        :return:
-        """
-        return (session.execute(
-            select(func.count(ComponentApplicationRelation.ID)).where(ComponentApplicationRelation.group_id == app_id)
-        )).first()[0]
-
-    def list_serivce_ids_by_app_id(self, session, tenant_id, region_name, app_id):
-        service_ids = (
-            session.execute(
-                select(ComponentApplicationRelation.service_id).where(ComponentApplicationRelation.tenant_id == tenant_id,
-                                                                      ComponentApplicationRelation.region_name == region_name,
-                                                                      ComponentApplicationRelation.group_id == app_id))
-        ).scalars().all()
-        return service_ids
-
-    def get_services_by_group(self, session, group_id):
-        return session.execute(select(ComponentApplicationRelation).where(
-            ComponentApplicationRelation.group_id == group_id)).scalars().all()
-
-    def get_group_by_service_ids(self, session, service_ids):
-        sgr = session.execute(select(ComponentApplicationRelation).where(
-            ComponentApplicationRelation.service_id.in_(service_ids))).scalars().all()
-        sgr_map = {s.service_id: s.group_id for s in sgr}
-        group_ids = [g.group_id for g in sgr]
-        groups = session.execute(select(Application).where(
-            Application.ID.in_(group_ids))).scalars().all()
-        group_map = {g.ID: g.group_name for g in groups}
-        result_map = {}
-        for service_id in service_ids:
-            group_id = sgr_map.get(service_id, None)
-            group_info = dict()
-            if group_id:
-                group_info["group_name"] = group_map[group_id]
-                group_info["group_id"] = group_id
-                result_map[service_id] = group_info
-            else:
-                group_info["group_name"] = "未分组"
-                group_info["group_id"] = -1
-                result_map[service_id] = group_info
-        return result_map
-
-    def delete_relation_by_service_id(self, session, service_id):
-        session.execute(
-            delete(ComponentApplicationRelation).where(ComponentApplicationRelation.service_id == service_id)
-        )
-
-    def save(self, session, gsr):
-        session.merge(gsr)
-
-    def create_service_group_relation(self, session, **params):
-        gsr = ComponentApplicationRelation(**params)
-        session.add(gsr)
-
-        return gsr
-
-    def get_services_by_tenant_id_and_group(self, session, tenant_id, response_region, group_id):
-        return (
-            session.execute(
-                select(Application).where(
-                    Application.tenant_id == tenant_id,
-                    Application.region_name == response_region,
-                    Application.ID == group_id))
-        ).scalars().first()
 
 
 class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
@@ -141,10 +38,11 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}"
-                AND a.create_status="complete"
-                AND a.service_source IN ( "docker_image", "docker_compose", "docker_run" )
-                LIMIT 1""".format(eid=eid)
+                AND b.enterprise_id = :eid
+                AND a.create_status='complete'
+                AND a.service_source IN ( 'docker_image', 'docker_compose', 'docker_run' )
+                LIMIT 1"""
+        sql = text(sql).bindparams(eid=eid)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 
@@ -157,10 +55,11 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}"
-                AND a.service_source = "market"
+                AND b.enterprise_id = :eid
+                AND a.service_source = 'market'
                 AND ( a.image LIKE "%mysql%" OR a.image LIKE "%postgres%" OR a.image LIKE "%mariadb%" )
-                LIMIT 1""".format(eid=eid)
+                LIMIT 1"""
+        sql = text(sql).bindparams(eid=eid)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 
@@ -173,10 +72,11 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}"
-                AND a.service_source = "source_code"
-                AND a.create_status = "complete"
-                LIMIT 1""".format(eid=eid)
+                AND b.enterprise_id = :eid
+                AND a.service_source = 'source_code'
+                AND a.create_status = 'complete'
+                LIMIT 1"""
+        sql = text(sql).bindparams(eid=eid)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 
@@ -195,11 +95,11 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
             WHERE
                 a.tenant_id = b.team_id
                 AND a.service_id = b.service_id
-                AND b.service_share_uuid IN ( {uuids} )
+                AND b.service_share_uuid IN ( :uuids )
                 AND a.service_id = c.service_id
-                AND c.group_id = {group_id}
-            """.format(
-            group_id=group_id, uuids=uuids)
+                AND c.group_id = :group_id
+            """
+        sql = text(sql).bindparams(group_id=group_id, uuids=uuids)
         result = session.execute(sql).fetchall()
         return result
 
@@ -222,8 +122,9 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         from tenant_service svc
             left join service_group_relation sgr on svc.service_id = sgr.service_id
             left join service_group sg on sg.id = sgr.group_id
-        where sg.id in ({ids});
-        """.format(ids=ids)
+        where sg.id in (:ids);
+        """
+        sql = text(sql).bindparams(ids=ids)
 
         return session.execute(sql).fetchall()
 
@@ -391,5 +292,4 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         ).scalars().first()
 
 
-group_service_relation_repo = GroupServiceRelationRepository(ComponentApplicationRelation)
-service_repo = ServiceInfoRepository(TeamComponentInfo)
+service_info_repo = ServiceInfoRepository(TeamComponentInfo)

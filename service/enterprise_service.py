@@ -5,9 +5,9 @@ from database.session import SessionClass
 from exceptions.bcode import ErrUserNotFound, ErrTenantNotFound
 from exceptions.main import ServiceHandleException
 from models.teams.enterprise import TeamEnterprise
-from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import group_service_relation_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
+from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.teams.team_repo import team_repo
 from repository.users.user_repo import user_repo
 from service.team_service import team_services
@@ -78,7 +78,7 @@ class EnterpriseServices(object):
         app_total_num = len(apps)
 
         app_ids = [app.ID for app in apps]
-        app_relations = group_service_relation_repo.get_service_group_relation_by_groups(session, app_ids)
+        app_relations = app_component_relation_repo.get_service_group_relation_by_groups(session, app_ids)
         component_total_num = len(app_relations)
 
         # 3. get all running component

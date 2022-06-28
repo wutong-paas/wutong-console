@@ -33,10 +33,11 @@ from models.teams import TeamInfo, ServiceDomainCertificate
 from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo, app_market_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.compose_repo import compose_repo
 from repository.component.env_var_repo import env_var_repo
-from repository.component.group_service_repo import group_service_relation_repo, service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import app_config_group_repo, dep_relation_repo, \
     port_repo, volume_repo, mnt_repo
 from repository.component.service_domain_repo import domain_repo
@@ -195,7 +196,7 @@ class ApplicationService(object):
         })
 
     def get_service_group_info(self, session, service_id):
-        return group_service_relation_repo.get_group_info_by_service_id(session, service_id)
+        return app_component_relation_repo.get_group_info_by_service_id(session, service_id)
 
     def add_service_default_porbe(self, session, tenant, service):
         ports = port_service.get_service_ports(session, service)
@@ -274,7 +275,7 @@ class ApplicationService(object):
                 group = application_repo.get_group_by_pk(session, tenant.tenant_id, region_name, group_id)
                 if not group:
                     return 404, "应用不存在"
-                group_service_relation_repo.add_service_group_relation(session, group_id, service_id, tenant.tenant_id,
+                app_component_relation_repo.add_service_group_relation(session, group_id, service_id, tenant.tenant_id,
                                                                        region_name)
         return 200, "success"
 
@@ -282,16 +283,16 @@ class ApplicationService(object):
         return app_market_repo.get_app_market_by_name(session, enterprise_id, name, raise_exception=raise_exception)
 
     def list_components_by_upgrade_group_id(self, session, group_id, upgrade_group_id):
-        gsr = group_service_relation_repo.get_services_by_group(session, group_id)
+        gsr = app_component_relation_repo.get_services_by_group(session, group_id)
         service_ids = [gs.service_id for gs in gsr]
-        return service_repo.list_by_ids_upgrade_group_id(session, service_ids, upgrade_group_id)
+        return service_info_repo.list_by_ids_upgrade_group_id(session, service_ids, upgrade_group_id)
 
     def get_wutong_services(self, session, group_id, group_key, upgrade_group_id=None):
         """获取云市应用下的所有组件"""
         tenant_service_group = []
-        gsr = group_service_relation_repo.get_services_by_group(session, group_id)
+        gsr = app_component_relation_repo.get_services_by_group(session, group_id)
         service_ids = [service.service_id for service in gsr]
-        components = service_repo.get_services_by_service_ids_and_group_key(session, group_key, service_ids)
+        components = service_info_repo.get_services_by_service_ids_and_group_key(session, group_key, service_ids)
         if upgrade_group_id:
             for component in components:
                 if component.tenant_service_group_id == upgrade_group_id:
@@ -436,7 +437,7 @@ class ApplicationService(object):
         res['app_id'] = app.ID
         res['app_name'] = app.group_name
         res['app_type'] = app.app_type
-        res['service_num'] = group_service_relation_repo.count_service_by_app_id(session, app_id)
+        res['service_num'] = app_component_relation_repo.count_service_by_app_id(session, app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(session=session, app_id=app_id)
         res['share_num'] = component_share_repo.count_by_app_id(session=session, app_id=app_id)
         res['ingress_num'] = self.count_ingress_by_app_id(session=session, tenant_id=tenant.tenant_id,
@@ -445,7 +446,7 @@ class ApplicationService(object):
         res['logo'] = app.logo
         res['k8s_app'] = app.k8s_app
         res['can_edit'] = True
-        components = group_service_relation_repo.get_services_by_group(session, app_id)
+        components = app_component_relation_repo.get_services_by_group(session, app_id)
         running_components = remote_component_client.get_dynamic_services_pods(session, region_name, tenant.tenant_name,
                                                                                [component.service_id for component in
                                                                                 components])
@@ -471,7 +472,7 @@ class ApplicationService(object):
 
     def count_ingress_by_app_id(self, session: SessionClass, tenant_id, region_name, app_id):
         # list service_ids
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(session, tenant_id, region_name, app_id)
+        service_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session, tenant_id, region_name, app_id)
         if not service_ids:
             return 0
 
@@ -580,7 +581,7 @@ class ApplicationService(object):
         component_list = service_group_relation_repo.get_components_by_app_id(session, app_id)
         component_ids = [component.service_id for component in component_list]
         if len(component_ids) > 0:
-            components = service_repo.list_by_ids(session, component_ids)
+            components = service_info_repo.list_by_ids(session, component_ids)
         for component in components:
             if component.k8s_component_name == k8s_component_name and component.service_id != component_id:
                 return True
@@ -1365,7 +1366,7 @@ class ApplicationService(object):
 
     def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_name, tenant):
         app_list = application_repo.get_multi_app_info(session, app_ids)
-        service_list = service_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
+        service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(session=session, region=region, tenant_name=tenant_name,
                                                         service_ids=service_ids, enterprise_id=tenant.enterprise_id)
@@ -1423,7 +1424,7 @@ class ApplicationService(object):
 
     def get_groups_and_services(self, session: SessionClass, tenant, region, query="", app_type=""):
         groups = application_repo.get_tenant_region_groups(session, tenant.tenant_id, region, query, app_type)
-        services = service_repo.get_tenant_region_services(session, region, tenant.tenant_id)
+        services = service_info_repo.get_tenant_region_services(session, region, tenant.tenant_id)
 
         sl = []
         for ser in services:
@@ -1431,7 +1432,7 @@ class ApplicationService(object):
             sl.append(s)
 
         service_id_map = {s["service_id"]: s for s in sl}
-        service_group_relations = group_service_relation_repo.get_service_group_relation_by_groups(
+        service_group_relations = app_component_relation_repo.get_service_group_relation_by_groups(
             session, [g.ID for g in groups])
         service_group_map = {sgr.service_id: sgr.group_id for sgr in service_group_relations}
         group_services_map = dict()
@@ -1473,20 +1474,20 @@ class ApplicationService(object):
 
     @staticmethod
     def get_component_and_resource_by_group_ids(session: SessionClass, app_id, group_ids):
-        gsr = group_service_relation_repo.get_services_by_group(session, app_id)
+        gsr = app_component_relation_repo.get_services_by_group(session, app_id)
         gsr_service_ids = [service.service_id for service in gsr]
-        components = service_repo.get_services_by_service_group_ids(session, gsr_service_ids, group_ids)
+        components = service_info_repo.get_services_by_service_group_ids(session, gsr_service_ids, group_ids)
         service_ids = [component.service_id for component in components]
         data = service_source_repo.get_service_sources_by_service_ids(session, service_ids)
         return components, data
 
     def get_services_group_name(self, session: SessionClass, service_ids):
-        return group_service_relation_repo.get_group_by_service_ids(session, service_ids)
+        return app_component_relation_repo.get_group_by_service_ids(session, service_ids)
 
     @staticmethod
     def list_components(session: SessionClass, app_id):
-        service_groups = group_service_relation_repo.get_services_by_group(session, app_id)
-        result = service_repo.list_by_ids(session=session, service_ids=[sg.service_id for sg in service_groups])
+        service_groups = app_component_relation_repo.get_services_by_group(session, app_id)
+        result = service_info_repo.list_by_ids(session=session, service_ids=[sg.service_id for sg in service_groups])
         return result
 
     def check_governance_mode(self, session, tenant, region_name, app_id, governance_mode):
@@ -1575,13 +1576,13 @@ class ApplicationService(object):
         return 200, "success"
 
     def delete_service_group_relation_by_service_id(self, session: SessionClass, service_id):
-        group_service_relation_repo.delete_relation_by_service_id(session, service_id)
+        app_component_relation_repo.delete_relation_by_service_id(session, service_id)
 
     def update_or_create_service_group_relation(self, session: SessionClass, tenant, service, group_id):
-        gsr = group_service_relation_repo.get_group_by_service_id(session, service.service_id)
+        gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
         if gsr:
             gsr.group_id = group_id
-            group_service_relation_repo.save(session=session, gsr=gsr)
+            app_component_relation_repo.save(session=session, gsr=gsr)
         else:
             params = {
                 "service_id": service.service_id,
@@ -1589,7 +1590,7 @@ class ApplicationService(object):
                 "tenant_id": tenant.tenant_id,
                 "region_name": service.service_region
             }
-            group_service_relation_repo.create_service_group_relation(session, **params)
+            app_component_relation_repo.create_service_group_relation(session, **params)
 
     def get_group_by_id(self, session: SessionClass, tenant, region, group_id):
         principal_info = dict()
@@ -1612,14 +1613,14 @@ class ApplicationService(object):
 
     def get_group_services(self, session: SessionClass, group_id):
         """查询某一应用下的组件"""
-        gsr = group_service_relation_repo.get_services_by_group(session, group_id)
+        gsr = app_component_relation_repo.get_services_by_group(session, group_id)
         service_ids = [gs.service_id for gs in gsr]
-        services = service_repo.get_services_by_service_ids(session, service_ids)
+        services = service_info_repo.get_services_by_service_ids(session, service_ids)
         return services
 
     def get_group_service(self, session: SessionClass, tenant_id, response_region, group_id):
         """查询某一应用下的组件"""
-        gsr = group_service_relation_repo.get_services_by_tenant_id_and_group(session,
+        gsr = app_component_relation_repo.get_services_by_tenant_id_and_group(session,
                                                                               tenant_id,
                                                                               response_region,
                                                                               group_id)
@@ -1659,11 +1660,11 @@ class ApplicationService(object):
 
     def update_governance_mode(self, session, tenant, region_name, app_id, governance_mode):
         # update the value of host env. eg. MYSQL_HOST
-        component_ids = group_service_relation_repo.list_serivce_ids_by_app_id(session=session,
+        component_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session=session,
                                                                                tenant_id=tenant.tenant_id,
                                                                                region_name=region_name, app_id=app_id)
 
-        components = service_repo.list_by_ids(session=session, service_ids=component_ids)
+        components = service_info_repo.list_by_ids(session=session, service_ids=component_ids)
         components = {cpt.component_id: cpt for cpt in components}
 
         ports = port_repo.list_inner_ports_by_service_ids(session, tenant.tenant_id, component_ids)
@@ -1694,12 +1695,12 @@ class ApplicationService(object):
 
     def list_kubernetes_services(self, session, tenant_id, region_name, app_id):
         # list service_ids
-        service_ids = group_service_relation_repo.list_serivce_ids_by_app_id(session=session, tenant_id=tenant_id,
+        service_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session=session, tenant_id=tenant_id,
                                                                              region_name=region_name, app_id=app_id)
         if not service_ids:
             return []
         # service_id to service_alias
-        services = service_repo.list_by_ids(session=session, service_ids=service_ids)
+        services = service_info_repo.list_by_ids(session=session, service_ids=service_ids)
         service_aliases = {service.service_id: service.service_alias for service in services}
         service_cnames = {service.service_id: service.service_cname for service in services}
 
@@ -1725,7 +1726,7 @@ class ApplicationService(object):
         port_service.check_k8s_service_names(session, tenant.tenant_id, k8s_services)
 
         # check if the given k8s_services belong to the app based on app_id
-        app_component_ids = group_service_relation_repo.list_serivce_ids_by_app_id(session=session,
+        app_component_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session=session,
                                                                                    tenant_id=tenant.tenant_id,
                                                                                    region_name=region_name,
                                                                                    app_id=app.app_id)

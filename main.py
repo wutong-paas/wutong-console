@@ -43,6 +43,7 @@ def scheduler_cron_task_test():
     logger.info("周期性定时任务开始执行...")
 
 
+@logger.catch
 @app.exception_handler(ServiceHandleException)
 async def validation_exception_handler(request: Request, exc: ServiceHandleException):
     """
@@ -51,8 +52,8 @@ async def validation_exception_handler(request: Request, exc: ServiceHandleExcep
     :param exc:
     :return:
     """
-    return JSONResponse(
-        general_message(400, exc.msg, exc.msg_show), status_code=400)
+    logger.error("catch exception,request:{},error_message:{}", request.url, exc.msg_show)
+    return JSONResponse(general_message(exc.status_code, exc.msg, exc.msg_show), status_code=exc.status_code)
 
 
 def get_redis_pool():

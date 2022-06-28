@@ -1,11 +1,11 @@
 import time
 
 from loguru import logger
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 
-from models.market.models import CenterApp, CenterAppVersion, CenterAppTag, CenterAppTagsRelation
 from models.component.models import TeamComponentInfo, ComponentWebhooks, ComponentRecycleBin, \
     ComponentRelationRecycleBin, TeamComponentInfoDelete, TeamComponentConfigurationFile
+from models.market.models import CenterApp, CenterAppVersion, CenterAppTag, CenterAppTagsRelation
 
 
 class TenantServiceDeleteRepository(object):
@@ -196,10 +196,10 @@ class AppTagRepository(object):
             atr.enterprise_id = tag.enterprise_id
             and atr.tag_id = tag.ID
         where
-            atr.enterprise_id = '{eid}'
-            and atr.app_id in ({app_ids});
-        """.format(
-            eid=eid, app_ids=app_ids)
+            atr.enterprise_id = :eid
+            and atr.app_id in (:app_ids);
+        """
+        sql = text(sql).bindparams(eid=eid, app_ids=app_ids)
         apps = session.execute(sql).fetchall()
         return apps
 

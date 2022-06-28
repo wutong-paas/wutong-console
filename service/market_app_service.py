@@ -21,7 +21,7 @@ from models.teams import TeamInfo
 from models.users.users import Users
 from repository.application.app_repository import app_tag_repo, app_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.market.center_repo import center_app_repo
 from repository.teams.team_repo import team_repo
 from service.application_service import application_service
@@ -116,7 +116,7 @@ class MarketAppService(object):
                 app_with_tags[tag.app_id] = []
             app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
 
-        for version in versions:
+        for version in versions[:200]:
             if not app_with_versions.get(version.app_id):
                 app_with_versions[version.app_id] = dict()
                 app_release_ver_nums[version.app_id] = []
@@ -163,7 +163,7 @@ class MarketAppService(object):
                 not_release_ver_nums = sorted_versions(not_release_ver_nums)
             # Obtain version information according to the sorted version number and construct the returned data
             release_ver_nums.extend(not_release_ver_nums)
-            for ver_num in release_ver_nums[:5]:
+            for ver_num in release_ver_nums:
                 versions.append(app_with_versions[app.app_id][ver_num])
             versions_info = list(reversed(versions))
             app_dict.update({"versions_info": versions_info})
@@ -246,7 +246,7 @@ class MarketAppService(object):
         if not component_sources_list:
             return []
         component_ids = [cs.service_id for cs in component_sources_list]
-        components = service_repo.list_by_component_ids(session, component_ids)
+        components = service_info_repo.list_by_component_ids(session, component_ids)
 
         versions = self.list_app_versions(session, enterprise_id, component_sources_list[0])
 
@@ -368,17 +368,18 @@ class MarketAppService(object):
             ).scalars().first()
 
             if user:
-                version.release_user = user.nick_name
+                version.release_user_id = user.user_id
             if share_user:
-                version.share_user = share_user.nick_name
+                version.share_user = share_user.user_id
             else:
                 record = (
                     session.execute(
                         select(AppImportRecord).where(AppImportRecord.ID == version.record_id))
                 ).scalars().first()
 
-                if record:
-                    version.share_user = record.user_name
+                # todo
+                # if record:
+                    # version.share_user = record.user_name
 
             app_with_versions[version.version] = version
             if version.version not in apv_ver_nums:

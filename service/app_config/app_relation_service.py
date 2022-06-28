@@ -4,7 +4,7 @@ from clients.remote_component_client import remote_component_client
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.component.env_var_repo import env_var_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import dep_relation_repo, port_repo
 from service.app_config.port_service import port_service
 from service.plugin.app_plugin_service import app_plugin_service
@@ -17,7 +17,7 @@ class AppServiceRelationService(object):
 
     def get_service_dependencies(self, session: SessionClass, tenant, service):
         dep_ids = self.__get_dep_service_ids(session=session, tenant=tenant, service=service)
-        services = service_repo.get_services_by_service_ids(session, dep_ids)
+        services = service_info_repo.get_services_by_service_ids(session, dep_ids)
         return services
 
     def delete_region_dependency(self, session: SessionClass, tenant, service):
@@ -38,9 +38,9 @@ class AppServiceRelationService(object):
     def get_undependencies(self, session: SessionClass, tenant, service):
 
         # 打开对内端口才能被依赖
-        services = service_repo.get_tenant_region_services_by_service_id(session=session, region=service.service_region,
-                                                                         tenant_id=tenant.tenant_id,
-                                                                         service_id=service.service_id)
+        services = service_info_repo.get_tenant_region_services_by_service_id(session=session, region=service.service_region,
+                                                                              tenant_id=tenant.tenant_id,
+                                                                              service_id=service.service_id)
         not_dependencies = []
         dep_services = dep_relation_repo.get_service_dependencies(session, tenant.tenant_id, service.service_id)
         dep_service_ids = [dep.dep_service_id for dep in dep_services]
@@ -56,8 +56,8 @@ class AppServiceRelationService(object):
     def get_dependencies(self, session: SessionClass, tenant):
 
         # 打开对内端口才能被依赖
-        services = service_repo.devops_get_tenant_region_services_by_service_id(session=session,
-                                                                                tenant_id=tenant.tenant_id)
+        services = service_info_repo.devops_get_tenant_region_services_by_service_id(session=session,
+                                                                                     tenant_id=tenant.tenant_id)
         dependencies = []
         for s in services:
             # 查找打开内部访问的组件
@@ -120,8 +120,8 @@ class AppServiceRelationService(object):
         if dep_service_relation:
             return 212, "当前组件已被关联", None
 
-        dep_service = service_repo.get_service_by_tenant_and_id(session=session, tenant_id=tenant.tenant_id,
-                                                                service_id=dep_service_id)
+        dep_service = service_info_repo.get_service_by_tenant_and_id(session=session, tenant_id=tenant.tenant_id,
+                                                                     service_id=dep_service_id)
         # 开启对内端口
         if open_inner:
             self.__open_port(session, tenant, dep_service, container_port, user_name)
@@ -167,7 +167,7 @@ class AppServiceRelationService(object):
                                                                                     service.service_id,
                                                                                     dep_service_ids)
         dep_ids = [dep.dep_service_id for dep in dep_service_relations]
-        services = service_repo.get_services_by_service_ids(session, dep_ids)
+        services = service_info_repo.get_services_by_service_ids(session, dep_ids)
         if dep_service_relations:
             service_cnames = [s.service_cname for s in services]
             return 200, "组件{0}已被关联".format(service_cnames)

@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.app_actions.app_log import log_service
 
@@ -46,7 +46,7 @@ async def get_log(request: Request,
     """
     action = request.query_params.get("action", "service")
     lines = request.query_params.get("lines", 100)
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     code, msg, log_list = log_service.get_service_logs(session=session, tenant=team, service=service, action=action,
                                                        lines=int(lines))

@@ -11,7 +11,7 @@ from database.session import SessionClass
 from exceptions.bcode import ErrComponentPortExists
 from exceptions.main import ServiceHandleException, ErrVolumePath
 from models.component.models import ComponentEnvVar, TeamComponentEnv, TeamComponentPort, TeamComponentVolume
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.region.region_info_repo import region_repo
 from service.app_config.domain_service import domain_service
 from service.app_config.env_service import compile_env_service

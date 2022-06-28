@@ -47,13 +47,13 @@ class CenterRepository(BaseRepository[CenterApp]):
         sql = session.query(CenterAppVersion).where(
             CenterAppVersion.enterprise_id == eid,
             CenterAppVersion.app_id.in_(app_ids)
-        )
+        ).order_by(CenterAppVersion.create_time.asc())
         if is_complete:
             sql = session.query(CenterAppVersion).where(
                 CenterAppVersion.enterprise_id == eid,
                 CenterAppVersion.app_id.in_(app_ids),
                 CenterAppVersion.is_complete == is_complete
-            )
+            ).order_by(CenterAppVersion.create_time.asc())
         if rm_template_field:
             return sql.options(defer("app_template")).all()
         return sql.all()

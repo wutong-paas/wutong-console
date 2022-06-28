@@ -21,7 +21,7 @@ from models.application.models import Application
 from models.component.models import TeamComponentPort, ComponentEnvVar
 from repository.application.application_repo import application_repo
 from repository.component.env_var_repo import env_var_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo, service_endpoints_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_probe_repo import probe_repo
@@ -1047,7 +1047,7 @@ class AppPortService:
         # env_var_repo.overwrite_by_component_ids(session, component_ids, new_envs)
 
         # sync ports and envs
-        components = service_repo.list_by_ids(session=session, service_ids=component_ids)
+        components = service_info_repo.list_by_ids(session=session, service_ids=component_ids)
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app.app_id)
         self.sync_ports(session, tenant.tenant_name, region_name, region_app_id, components, ports, new_envs)
 

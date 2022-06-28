@@ -15,7 +15,7 @@ from database.session import SessionClass
 from exceptions.bcode import ErrServiceMonitorExists, ErrRepeatMonitoringTarget, ErrInternalGraphsNotFound
 from exceptions.main import ServiceHandleException
 from models.application.plugin import ComponentPluginConfigVar
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo, volume_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
@@ -643,7 +643,7 @@ class AppPluginService(object):
         aprr = app_plugin_relation_repo.get_used_plugin_services(session=session, plugin_id=plugin_id)
         service_ids = [r.service_id for r in aprr]
         service_plugin_version_map = {r.service_id: r.build_version for r in aprr}
-        services = service_repo.get_services_by_service_ids_tenant_id(session, service_ids, tenant_id)
+        services = service_info_repo.get_services_by_service_ids_tenant_id(session, service_ids, tenant_id)
         params = Params(page=page, size=page_size)
         paginator = paginate(services, params)
         show_apps = paginator.items

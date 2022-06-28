@@ -17,7 +17,7 @@ from database.session import SessionClass
 from models.component.models import TeamComponentInfo
 from repository.component.component_repo import service_source_repo
 from repository.component.deploy_repo import deploy_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import service_endpoints_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.teams.team_component_repo import team_component_repo
@@ -52,7 +52,7 @@ async def get_assembly_state(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     bean = dict()
     bean["check_uuid"] = service.check_uuid
     status_map = application_service.get_service_status(session=session, tenant=team, service=service)
@@ -83,7 +83,7 @@ async def get_app_detail(request: Request,
      """
     is_filebrowser_plugin = False
     bean = dict()
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     namespace = team.namespace
     service_model = jsonable_encoder(service)
     group_map = application_service.get_services_group_name(session=session, service_ids=[service.service_id])

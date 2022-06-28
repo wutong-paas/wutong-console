@@ -4,9 +4,10 @@ from loguru import logger
 from clients.remote_component_client import remote_component_client
 from core.enum.component_enum import is_state
 from database.session import SessionClass
-from repository.component.service_config_repo import mnt_repo, volume_repo
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo, group_service_relation_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
+from repository.component.group_service_repo import service_info_repo
+from repository.component.service_config_repo import mnt_repo, volume_repo
 from service.app_config.volume_service import volume_service
 
 
@@ -49,9 +50,9 @@ class AppMntService(object):
         mounted_dependencies = []
         if mnt_relations:
             for mount in mnt_relations:
-                dep_service = service_repo.get_service_by_service_id(session, mount.dep_service_id)
+                dep_service = service_info_repo.get_service_by_service_id(session, mount.dep_service_id)
                 if dep_service:
-                    gs_rel = group_service_relation_repo.get_group_by_service_id(session, dep_service.service_id)
+                    gs_rel = app_component_relation_repo.get_group_by_service_id(session, dep_service.service_id)
                     group = None
                     if gs_rel:
                         group = application_repo.get_group_by_pk(session, tenant.tenant_id, service.service_region,
@@ -83,7 +84,7 @@ class AppMntService(object):
         for serviceID in service_ids:
             if serviceID == service.service_id:
                 service_ids.remove(serviceID)
-        services = service_repo.get_services_by_service_ids(session, service_ids)
+        services = service_info_repo.get_services_by_service_ids(session, service_ids)
         state_services = []  # 有状态组件
         for svc in services:
             if is_state(svc.extend_method):
@@ -111,10 +112,11 @@ class AppMntService(object):
         page_volumes = event_paginator.items
         un_mount_dependencies = []
         for volume in page_volumes:
-            gs_rel = group_service_relation_repo.get_group_by_service_id(session, volume.service_id)
+            gs_rel = app_component_relation_repo.get_group_by_service_id(session, volume.service_id)
             group = None
             if gs_rel:
-                group = application_repo.get_group_by_pk(session, tenant.tenant_id, service.service_region, gs_rel.group_id)
+                group = application_repo.get_group_by_pk(session, tenant.tenant_id, service.service_region,
+                                                         gs_rel.group_id)
             dep_app_name = ""
             dep_app_alias = ""
             for ser in services:
@@ -139,7 +141,7 @@ class AppMntService(object):
             return None
 
         service_ids = [mnt.service_id for mnt in mnts]
-        services = service_repo.get_services_by_service_ids(session, service_ids)
+        services = service_info_repo.get_services_by_service_ids(session, service_ids)
         # to dict
         id_to_services = {}
         for svc in services:

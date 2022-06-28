@@ -8,7 +8,7 @@ from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_config.extend_service import extend_service
@@ -64,7 +64,7 @@ async def validate_parameter(data):
 async def get_xparuler(serviceAlias: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
                        team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     rules = autoscaler_service.list_autoscaler_rules(session=session, service_id=service.service_id)
     result = general_message(200, "success", "查询成功", list=rules)
     return JSONResponse(result, status_code=200)
@@ -78,7 +78,7 @@ async def set_xparuler(request: Request,
     data = await request.json()
     await validate_parameter(data)
 
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return general_message(400, "not found region", "数据中心不存在")
@@ -102,7 +102,7 @@ async def get_xparecords(request: Request,
     if not region:
         return general_message(400, "not found region", "数据中心不存在")
     region_name = region.region_name
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     data = scaling_records_service.list_scaling_records(session=session, region_name=region_name,
                                                         tenant_name=team.tenant_name,
                                                         service_alias=service.service_alias, page=page,
@@ -130,7 +130,7 @@ async def get_extend_method(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     node_list, memory_list = extend_service.get_app_extend_method(session=session, service=service)
     bean = {
         "node_list": node_list,
@@ -166,7 +166,7 @@ async def set_xparules_index(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     res = autoscaler_service.update_autoscaler_rule(session, region_name, team.tenant_name,
                                                     service.service_alias,
                                                     rule_id, data, user.nick_name)

@@ -13,7 +13,7 @@ from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, AbortRequest
 from models.teams import ServiceDomain
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import configuration_repo, port_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
@@ -483,7 +483,7 @@ class DomainService(object):
         service_domain = domain_repo.get_service_domain_by_http_rule_id(session, rule_id)
         if not service_domain:
             raise AbortRequest("no domain", msg_show="策略不存在", status_code=404, error_code=None)
-        service = service_repo.get_service_by_service_id(session, service_domain.service_id)
+        service = service_info_repo.get_service_by_service_id(session, service_domain.service_id)
         if not service:
             raise AbortRequest("no service", msg_show="组件不存在", status_code=404, error_code=None)
         cf = configuration_repo.get_configuration_by_rule_id(session, rule_id)

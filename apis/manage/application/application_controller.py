@@ -22,7 +22,7 @@ from models.application.models import Application, ComponentApplicationRelation,
 from models.users.users import Users
 from repository.application.application_repo import application_repo
 from repository.component.compose_repo import compose_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo
 from repository.region.region_app_repo import region_app_repo
@@ -287,7 +287,7 @@ async def common_operation(params: CommonOperation,
         return general_message(400, "param error", "操作类型错误")
     # 去除掉第三方组件
     for service_id in service_ids:
-        service_obj = service_repo.get_service_by_service_id(session, service_id)
+        service_obj = service_info_repo.get_service_by_service_id(session, service_id)
         if service_obj and service_obj.service_source == "third_party":
             service_ids.remove(service_id)
 
