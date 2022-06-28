@@ -116,7 +116,8 @@ class MarketAppService(object):
                 app_with_tags[tag.app_id] = []
             app_with_tags[tag.app_id].append({"tag_id": tag.ID, "name": tag.name})
 
-        for version in versions[:200]:
+        versions = versions[:200]
+        for version in versions:
             if not app_with_versions.get(version.app_id):
                 app_with_versions[version.app_id] = dict()
                 app_release_ver_nums[version.app_id] = []
