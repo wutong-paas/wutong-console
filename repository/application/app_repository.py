@@ -197,9 +197,9 @@ class AppTagRepository(object):
             and atr.tag_id = tag.ID
         where
             atr.enterprise_id = :eid
-            and atr.app_id in (:app_ids);
+            and atr.app_id in :app_ids;
         """
-        sql = text(sql).bindparams(eid=eid, app_ids=app_ids)
+        sql = text(sql).bindparams(eid=eid, app_ids=tuple(app_ids.split(",")))
         apps = session.execute(sql).fetchall()
         return apps
 

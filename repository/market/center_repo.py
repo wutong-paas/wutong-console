@@ -127,7 +127,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         extend_where = ""
         join_version = ""
         if tag_names:
-            extend_where += " and tag.name in (:tag_param)"
+            extend_where += " and tag.name in :tag_param"
         if app_name:
             extend_where += " and app.app_name like :app_name"
         if need_install == "true":
@@ -137,7 +137,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         if scope == "team":
             team_sql = ""
             if teams:
-                team_sql = " and app.create_team in(:team_param)"
+                team_sql = " and app.create_team in :team_param"
             team_sql += " and app.scope='team'"
             extend_where += team_sql
         if scope == "enterprise":
@@ -164,11 +164,13 @@ class CenterRepository(BaseRepository[CenterApp]):
         # 参数
         sql = text(sql)
         if tag_names:
-            sql = sql.bindparams(tag_param=",".join("'{0}'".format(tag_name) for tag_name in tag_names))
+            tag_param = ",".join("'{0}'".format(tag_name) for tag_name in tag_names)
+            sql = sql.bindparams(tag_param=tuple(tag_param.split(",")))
         if app_name:
             sql = sql.bindparams(app_name="%" + app_name + "%")
         if scope == "team" and teams:
-            sql = sql.bindparams(team_param=",".join("'{0}'".format(team) for team in teams))
+            team_param = ",".join("'{0}'".format(team) for team in teams)
+            sql = sql.bindparams(team_param=tuple(team_param.split(",")))
         sql = sql.bindparams(eid=eid, offset=(page - 1) * page_size, rows=page_size)
 
         apps = session.execute(sql).fetchall()

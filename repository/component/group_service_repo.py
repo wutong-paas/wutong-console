@@ -95,11 +95,11 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
             WHERE
                 a.tenant_id = b.team_id
                 AND a.service_id = b.service_id
-                AND b.service_share_uuid IN ( :uuids )
+                AND b.service_share_uuid IN :uuids
                 AND a.service_id = c.service_id
                 AND c.group_id = :group_id
             """
-        sql = text(sql).bindparams(group_id=group_id, uuids=uuids)
+        sql = text(sql).bindparams(group_id=group_id, uuids=tuple(uuids.split(",")))
         result = session.execute(sql).fetchall()
         return result
 
@@ -122,9 +122,9 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         from tenant_service svc
             left join service_group_relation sgr on svc.service_id = sgr.service_id
             left join service_group sg on sg.id = sgr.group_id
-        where sg.id in (:ids);
+        where sg.id in :ids;
         """
-        sql = text(sql).bindparams(ids=ids)
+        sql = text(sql).bindparams(ids=tuple(ids.split(",")))
 
         return session.execute(sql).fetchall()
 
