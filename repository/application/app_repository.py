@@ -234,10 +234,11 @@ class ComponentConfigurationFileRepository(object):
 
     @staticmethod
     def overwrite_by_component_ids(session, component_ids, config_files):
-        session.execute(delete(TeamComponentConfigurationFile).where(
-            TeamComponentConfigurationFile.service_id.in_(component_ids)
-        ))
-        session.add_all(config_files)
+        # session.execute(delete(TeamComponentConfigurationFile).where(
+        #     TeamComponentConfigurationFile.service_id.in_(component_ids)
+        # ))
+        for config_file in config_files:
+            session.merge(config_file)
 
 
 app_repo = AppRepo()
