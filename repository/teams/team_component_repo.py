@@ -3,10 +3,7 @@ from repository.base import BaseRepository
 
 
 class TeamComponentRepository(BaseRepository[TeamComponentInfo]):
-
-    def index(self):
-        # todo
-        return None
+    pass
 
 
 team_component_repo = TeamComponentRepository(TeamComponentInfo)

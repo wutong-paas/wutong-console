@@ -31,9 +31,6 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         """
         check if there is a custom gateway rule
         """
-        team_name_query = "'%' || b.tenant_name || '%'"
-        if os.environ.get('DB_TYPE') == 'mysql':
-            team_name_query = "concat('%',b.tenant_name,'%')"
         sql = """
             SELECT
                 *
@@ -42,19 +39,19 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = "{eid}"
+                AND b.enterprise_id = :eid
                 AND (
                     a.certificate_id <> 0
-                    OR ( a.domain_path <> "/" AND a.domain_path <> "" )
-                    OR a.domain_cookie <> ""
-                    OR a.domain_heander <> ""
+                    OR ( a.domain_path <> '/' AND a.domain_path <> '' )
+                    OR a.domain_cookie <> ''
+                    OR a.domain_heander <> ''
                     OR a.the_weight <> 100
                     OR a.path_rewrite <> 0
-                    OR a.rewrites <> ""
-                    OR a.domain_name NOT LIKE {team_name}
+                    OR a.rewrites <> ''
+                    OR a.domain_name NOT LIKE concat('%',b.tenant_name,'%')
                 )
-                LIMIT 1""".format(
-            eid=eid, team_name=team_name_query)
+                LIMIT 1"""
+        sql = text(sql).bindparams(eid=eid)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 

@@ -20,7 +20,7 @@ from exceptions.main import AccountOverdueException, ResourceNotEnoughException,
     ServiceHandleException
 from models.component.models import TeamComponentInfo
 from repository.component.graph_repo import component_graph_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.components import DockerRunParams, DockerRunCheckParam, BuildParam
@@ -355,7 +355,7 @@ async def component_vertical(request: Request,
         new_memory = data.get("new_memory", 0)
         new_gpu = data.get("new_gpu", None)
         new_cpu = data.get("new_cpu", None)
-        service = service_repo.get_service(session, service_alias, team.tenant_id)
+        service = service_info_repo.get_service(session, service_alias, team.tenant_id)
         code, msg = app_manage_service.vertical_upgrade(
             session,
             team,
@@ -399,7 +399,7 @@ async def component_horizontal(request: Request,
         if not new_node:
             return JSONResponse(general_message(400, "node is null", "请选择节点个数"), status_code=400)
 
-        service = service_repo.get_service(session, service_alias, team.tenant_id)
+        service = service_info_repo.get_service(session, service_alias, team.tenant_id)
         oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session=session, user_id=user.user_id)
         app_manage_service.horizontal_upgrade(
             session, team, service, user, int(new_node), oauth_instance=oauth_instance)
@@ -429,7 +429,7 @@ async def component_horizontal(request: Request,
 async def component_graphs(service_alias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
                            team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     graphs = component_graph_service.list_component_graphs(session, service.service_id)
     result = general_message(200, "success", "查询成功", list=graphs)
     return JSONResponse(result, status_code=result["code"])
@@ -446,7 +446,7 @@ async def component_graphs() -> Any:
 async def component_monitor(service_alias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     sms = service_monitor_service.get_component_service_monitors(session, team.tenant_id, service.service_id)
     return JSONResponse(general_data(list=[jsonable_encoder(p) for p in sms]), status_code=200)
 
@@ -469,7 +469,7 @@ async def add_component_monitor(request: Request,
     if not path.startswith("/"):
         return JSONResponse(general_message(400, "path must start with /", "参数错误"), status_code=400)
 
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     sm = service_monitor_service.create_component_service_monitor(session, team, service, name, path, port,
                                                                   service_show_name, interval, user)
     return JSONResponse(general_data(bean=jsonable_encoder(sm)), status_code=200)
@@ -479,7 +479,7 @@ async def add_component_monitor(request: Request,
 async def component_metrics(service_alias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -495,7 +495,7 @@ async def add_component_graphs(request: Request,
                                session: SessionClass = Depends(deps.get_session),
                                team=Depends(deps.get_current_team)) -> Any:
     data = await request.json()
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     try:
         graph = component_graph_service.create_component_graph(session, service.service_id, data['title'],
                                                                data['promql'])
@@ -523,7 +523,7 @@ async def modify_component_monitor(request: Request,
     if not path.startswith("/"):
         return JSONResponse(general_message(400, "path must start with /", "参数错误"), status_code=400)
 
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     sm = service_monitor_service.update_component_service_monitor(session, team, service, user, name, path,
                                                                   port,
                                                                   service_show_name, interval)
@@ -537,7 +537,7 @@ async def delete_component_monitor(service_alias: Optional[str] = None,
                                    session: SessionClass = Depends(deps.get_session),
                                    user=Depends(deps.get_current_user),
                                    team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     sm = service_monitor_service.delete_component_service_monitor(session, team, service, user, name)
     return JSONResponse(general_data(bean=jsonable_encoder(sm)), status_code=200)
 
@@ -547,7 +547,7 @@ async def get_history_log(request: Request,
                           service_alias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
                           team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     code, msg, file_list = log_service.get_history_log(session, team, service)
     log_domain_url = ws_service.get_log_domain(session, request, service.service_region)
     if code != 200 or file_list is None:
@@ -565,7 +565,7 @@ async def delete_component_graphs(
         graph_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     graph = component_graph_repo.get_graph(session, service.service_id, graph_id)
     graphs = component_graph_service.delete_component_graph(session, graph)
     result = general_message(200, "success", "删除成功", list=graphs)
@@ -580,7 +580,7 @@ async def modify_component_graphs(
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team)) -> Any:
     data = await request.json()
-    service = service_repo.get_service(session, service_alias, team.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
     graph = component_graph_repo.get_graph(session, service.service_id, graph_id)
     graphs = component_graph_service.update_component_graph(session, graph, data["title"], data["promql"],
                                                             data["sequence"])

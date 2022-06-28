@@ -15,7 +15,7 @@ from models.market.models import CenterAppVersion
 from models.teams.enterprise import TeamEnterprise
 from models.users.oauth import OAuthServices
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.config.config_repo import sys_config_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_info_repo import region_repo
@@ -371,7 +371,7 @@ class RegionService(object):
             # check cluster api health
             if not info or info["rbd_version"] == "":
                 ignore_cluster_resource = True
-        services = service_repo.get_services_by_team_and_region(session, tenant.tenant_id, region_name)
+        services = service_info_repo.get_services_by_team_and_region(session, tenant.tenant_id, region_name)
         if not ignore_cluster_resource and services and len(services) > 0:
             # check component status
             service_ids = [service.service_id for service in services]

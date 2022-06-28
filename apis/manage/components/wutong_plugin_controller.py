@@ -8,7 +8,7 @@ from clients.remote_plugin_client import remote_plugin_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -51,7 +51,7 @@ async def get_plugin_list(request: Request,
         if origin not in ("sys", "tenant", "shared"):
             return JSONResponse(general_message(400, "param can only be sys or tenant、shared", "参数错误"),
                                 status_code=400)
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     installed_plugins, not_install_plugins = service_plugin_config_repo.get_plugins_by_origin(session=session,
                                                                                               region=service.service_region,
                                                                                               tenant_id=team.tenant_id,
@@ -81,7 +81,7 @@ async def install_sys_plugin(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys")
     if not plugins:
         plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team, region=response_region,
@@ -149,7 +149,7 @@ async def install_plugin(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     data = await request.json()
     build_version = data.get("build_version", None)
     if not plugin_id:
@@ -194,7 +194,7 @@ async def delete_plugin(plugin_id: Optional[str] = None,
     if not region:
         return general_message(400, "not found region", "数据中心不存在")
     response_region = region.region_name
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     body = dict()
     body["operator"] = user.nick_name
     plugin = plugin_repo.get_plugin_detail_by_plugin_id(session, plugin_id)
@@ -262,7 +262,7 @@ async def open_or_stop_plugin(request: Request,
     """
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin_id", "参数异常"), status_code=400)
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return general_message(400, "not found region", "数据中心不存在")
@@ -336,7 +336,7 @@ async def get_plugin_config(request: Request,
     if not plugin_id or not build_version:
         logger.error("plugin.relation", '参数错误，plugin_id and version_id')
         return JSONResponse(general_message(400, "params error", "请指定插件版本"), status_code=400)
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=team, service=service,
                                                                plugin_id=plugin_id, build_version=build_version)
     svc_plugin_relation = app_plugin_service.get_service_plugin_relation(session=session, service_id=service.service_id,
@@ -391,7 +391,7 @@ async def update_plugin_config(request: Request,
     if not region:
         return general_message(400, "not found region", "数据中心不存在")
     response_region = region.region_name
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     pbv = plugin_version_service.get_newest_usable_plugin_version(session=session, tenant_id=team.tenant_id,
                                                                   plugin_id=plugin_id)
     if not pbv:

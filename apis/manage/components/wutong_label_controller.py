@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_label_repo import node_label_repo, label_repo, service_label_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -36,7 +36,7 @@ async def get_env(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     bean = label_service.get_service_labels(session=session, service=service)
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
     return JSONResponse(result, status_code=result["code"])
@@ -57,7 +57,7 @@ async def get_available_labels(serviceAlias: Optional[str] = None,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     # 节点添加的标签和数据中心查询回来的标签才可被组件使用
     node_labels = node_label_repo.get_all_labels(session)
     labels_list = list()
@@ -118,7 +118,7 @@ async def set_available_labels(request: Request,
           type: string
           paramType: body
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     data = await request.json()
     label_ids = data.get("label_ids", None)
     if not label_ids:
@@ -157,7 +157,7 @@ async def delete_available_labels(request: Request,
           type: string
           paramType: form
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     data = await request.json()
     label_id = data.get("label_id", None)
     if not label_id:

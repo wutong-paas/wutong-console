@@ -15,7 +15,7 @@ from exceptions.bcode import ErrK8sComponentNameExists
 from exceptions.main import ResourceNotEnoughException, AccountOverdueException
 from repository.application.app_repository import service_webhooks_repo
 from repository.component.component_repo import service_source_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_region_repo import team_region_repo
 from repository.users.user_oauth_repo import oauth_repo
 from schemas.response import Response
@@ -33,7 +33,7 @@ async def get_build_source(serviceAlias: Optional[str] = None,
     查询构建源信息
     ---
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     service_ids = [service.service_id]
     build_infos = base_service.get_build_infos(session=session, tenant=team, service_ids=service_ids)
     bean = build_infos.get(service.service_id, None)
@@ -51,7 +51,7 @@ async def modify_build_source(request: Request,
     修改构建源
     ---
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     try:
         data = await request.json()
         image = data.get("image", None).strip()

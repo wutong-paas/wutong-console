@@ -15,7 +15,7 @@ from database.session import SessionClass
 from exceptions.exceptions import GroupNotExistError
 from models.region.models import RegionApp
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -60,7 +60,7 @@ async def get_app_state(request: Request,
 
         if group_id == "-1":
             # query service which not belong to any app
-            no_group_service_list = service_repo.get_no_group_service_status_by_group_id(
+            no_group_service_list = service_info_repo.get_no_group_service_status_by_group_id(
                 session=session,
                 team_name=team_name,
                 team_id=team.tenant_id,
@@ -81,7 +81,7 @@ async def get_app_state(request: Request,
             result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
             return JSONResponse(result, status_code=202)
 
-        group_service_list = service_repo.get_group_service_by_group_id(
+        group_service_list = service_info_repo.get_group_service_by_group_id(
             session=session,
             group_id=group_id,
             region_name=region_name,
@@ -128,7 +128,7 @@ async def overview_team_info(region_name: Optional[str] = None,
     if users:
         user_nums = len(users)
         overview_detail["user_nums"] = user_nums
-        team_service_num = service_repo.get_team_service_num_by_team_id(
+        team_service_num = service_info_repo.get_team_service_num_by_team_id(
             session=session, team_id=team.tenant_id, region_name=region_name)
         source = common_services.get_current_region_used_resource(session=session, tenant=team, region_name=region_name)
 
@@ -182,6 +182,7 @@ async def overview_team_info(region_name: Optional[str] = None,
             resp = remote_build_client.list_app_statuses_by_app_ids(session, team_name, region_name,
                                                                     {"app_ids": region_app_ids})
             app_statuses = resp.get("list", [])
+            # todo
             for app_status in app_statuses:
                 if app_status.get("status") == "RUNNING":
                     running_app_num += 1

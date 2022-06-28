@@ -1,6 +1,4 @@
-import datetime
 import json
-import os
 
 from sqlalchemy import select, and_, or_, delete, func, not_
 
@@ -9,7 +7,7 @@ from models.component.models import TeamComponentPort, ComponentExtendMethod, Te
     TeamComponentVolume, TeamComponentConfigurationFile, TeamComponentAuth, TeamComponentEnv, \
     ThirdPartyComponentEndpoints, ComponentCreateStep, ComponentPaymentNotify, ComponentAttachInfo
 from models.relate.models import TeamComponentRelation
-from models.teams import ServiceDomain, ServiceDomainCertificate, GatewayCustomConfiguration
+from models.teams import GatewayCustomConfiguration
 from repository.application.config_group_repo import app_config_group_service_repo
 from repository.base import BaseRepository
 
@@ -107,7 +105,6 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
         session.execute(delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_id,
                                                         TeamComponentPort.service_id == service_id,
                                                         TeamComponentPort.container_port == container_port))
-
 
 
 class ApplicationConfigGroupRepository(BaseRepository[ConfigGroupService]):

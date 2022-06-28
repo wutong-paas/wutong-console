@@ -7,7 +7,8 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo, group_service_relation_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -38,13 +39,13 @@ async def get_domain_info(request: Request,
     # 拼接展示数据
     domain_list = list()
     for tenant_tuple in tenant_tuples:
-        service = service_repo.get_service_by_service_id(session, tenant_tuple[9])
+        service = service_info_repo.get_service_by_service_id(session, tenant_tuple[9])
         service_cname = service.service_cname if service else ''
         service_alias = service.service_alias if service else tenant_tuple[6]
         group_name = ''
         group_id = 0
         if service:
-            gsr = group_service_relation_repo.get_group_by_service_id(session, service.service_id)
+            gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''
@@ -103,12 +104,12 @@ async def get_tcp_domain_info(request: Request,
     # 拼接展示数据
     domain_list = list()
     for tenant_tuple in tenant_tuples:
-        service = service_repo.get_service_by_service_id(session, tenant_tuple[7])
+        service = service_info_repo.get_service_by_service_id(session, tenant_tuple[7])
         service_alias = service.service_cname if service else ''
         group_name = ''
         group_id = 0
         if service:
-            gsr = group_service_relation_repo.get_group_by_service_id(session, service.service_id)
+            gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''

@@ -13,11 +13,12 @@ from exceptions.exceptions import ErrObjectStorageInfoNotFound, ErrBackupRecordN
 from exceptions.main import ServiceHandleException
 from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.compose_repo import compose_repo, compose_relation_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.graph_repo import component_graph_repo
-from repository.component.group_service_repo import group_service_relation_repo, service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import volume_repo, configuration_repo, \
     extend_repo, \
     mnt_repo, port_repo, dep_relation_repo, service_endpoints_repo, auth_repo, compile_env_repo, app_config_group_repo
@@ -161,9 +162,9 @@ class GroupAppBackupService(object):
                 session, compose_group_info.compose_id)
         group_info = application_repo.get_group_by_id(session, group_id)
 
-        service_group_relations = group_service_relation_repo.get_services_by_group(session, group_id)
+        service_group_relations = app_component_relation_repo.get_services_by_group(session, group_id)
         service_ids = [sgr.service_id for sgr in service_group_relations]
-        services = service_repo.get_services_by_service_ids(session, service_ids)
+        services = service_info_repo.get_services_by_service_ids(session, service_ids)
         all_data["compose_group_info"] = jsonable_encoder(compose_group_info) if compose_group_info else None
         all_data["compose_service_relation"] = [jsonable_encoder(relation)
                                                 for relation in

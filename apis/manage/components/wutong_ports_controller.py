@@ -11,7 +11,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentPortExists
 from exceptions.main import AbortRequest
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -40,7 +40,7 @@ async def get_ports(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     tenant_service_ports = port_service.get_service_ports(session=session, service=service)
     port_list = []
     for port in tenant_service_ports:
@@ -146,7 +146,7 @@ async def update_ports(request: Request,
     if not region:
         return general_message(400, "not found region", "数据中心不存在")
     response_region = region.region_name
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     if service.service_source == "third_party" and ("outer" in action):
         msg, msg_show, code = port_service.check_domain_thirdpart(session=session, tenant=team, service=service)
@@ -221,7 +221,7 @@ async def add_ports(request: Request,
     is_inner_service = data.get('is_inner_service', False)
     is_outer_service = data.get('is_outer_service', False)
 
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     if not port:
         return JSONResponse(general_message(400, "params error", "缺少端口参数"), status_code=400)
@@ -273,7 +273,7 @@ async def delete_ports(serviceAlias: Optional[str] = None,
 
      """
     try:
-        service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
         container_port = port
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")

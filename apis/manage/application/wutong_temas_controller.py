@@ -15,7 +15,8 @@ from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException
 from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_repo, group_service_relation_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import configuration_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
@@ -59,7 +60,7 @@ async def get_group_service_visit(service_alias: Optional[str] = None,
         service_list = service_alias.split('-')
         for service_alias in service_list:
             bean = dict()
-            service = service_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
+            service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
             access_type, data = port_service.get_access_info(session=session, tenant=team, service=service)
             bean["access_type"] = access_type
             bean["access_info"] = data
@@ -82,7 +83,7 @@ async def batch_delete_components(request: Request,
     data = await request.json()
     service_ids = data.get("service_ids", None)
     service_id_list = service_ids.split(",")
-    services = service_repo.get_services_by_service_ids(session, service_id_list)
+    services = service_info_repo.get_services_by_service_ids(session, service_id_list)
     msg_list = []
     for service in services:
         code, msg = app_manage_service.batch_delete(session=session, user=user, tenant=team, service=service,
@@ -135,7 +136,7 @@ async def add_http_domain(request: Request,
     if not container_port or not domain_name or not service_id:
         return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
 
-    service = service_repo.get_service_by_service_id(session, service_id)
+    service = service_info_repo.get_service_by_service_id(session, service_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     protocol = "http"
@@ -274,12 +275,12 @@ async def add_http_domain(request: Request, session: SessionClass = Depends(deps
     domain = domain_repo.get_service_domain_by_http_rule_id(session, http_rule_id)
     if domain:
         bean = jsonable_encoder(domain)
-        service = service_repo.get_service_by_service_id(session, domain.service_id)
+        service = service_info_repo.get_service_by_service_id(session, domain.service_id)
         service_alias = service.service_cname if service else ''
         group_name = ''
         g_id = 0
         if service:
-            gsr = group_service_relation_repo.get_group_by_service_id(session, service.service_id)
+            gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''
@@ -333,7 +334,7 @@ async def add_http_domain(request: Request,
     if not service_id or not container_port or not domain_name or not http_rule_id:
         return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
 
-    service = service_repo.get_service_by_service_id(session, service_id)
+    service = service_info_repo.get_service_by_service_id(session, service_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
 
@@ -411,7 +412,7 @@ async def add_tcp_domain(request: Request,
     if not container_port or not service_id or not end_point:
         return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
 
-    service = service_repo.get_service_by_service_id(session, service_id)
+    service = service_info_repo.get_service_by_service_id(session, service_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
 
@@ -464,12 +465,12 @@ async def get_tcp_domain(request: Request, session: SessionClass = Depends(deps.
     tcpdomain = tcp_domain_repo.get_service_tcpdomain_by_tcp_rule_id(session, tcp_rule_id)
     if tcpdomain:
         bean = jsonable_encoder(tcpdomain)
-        service = service_repo.get_service_by_service_id(session, tcpdomain.service_id)
+        service = service_info_repo.get_service_by_service_id(session, tcpdomain.service_id)
         service_alias = service.service_cname if service else ''
         group_name = ''
         g_id = 0
         if service:
-            gsr = group_service_relation_repo.get_group_by_service_id(session, service.service_id)
+            gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''
@@ -502,7 +503,7 @@ async def set_tcp_domain(request: Request,
     if not tcp_rule_id:
         return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
 
-    service = service_repo.get_service_by_service_id(session, service_id)
+    service = service_info_repo.get_service_by_service_id(session, service_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
 

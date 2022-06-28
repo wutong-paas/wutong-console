@@ -3,7 +3,7 @@ import abc
 from loguru import logger
 
 from repository.application.service_group_repo import svc_grop_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import dep_relation_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_share_repo import component_share_repo
@@ -41,14 +41,14 @@ class SourceCodeServiceCreationStrategy(BaseTaskStatusStrategy):
     """Task: create a service based on source code"""
 
     def confirm_status(self, session, eid):
-        return service_repo.check_sourcecode_svc_by_eid(session, eid)
+        return service_info_repo.check_sourcecode_svc_by_eid(session, eid)
 
 
 class InstallMysqlFromMarketStrategy(BaseTaskStatusStrategy):
     """Task: install the database based on the application market"""
 
     def confirm_status(self, session, eid):
-        return service_repo.check_db_from_market_by_eid(session, eid)
+        return service_info_repo.check_db_from_market_by_eid(session, eid)
 
 
 class ServiceConnectDBStrategy(BaseTaskStatusStrategy):
@@ -83,7 +83,7 @@ class ImageServiceCreateStrategy(BaseTaskStatusStrategy):
     """Task: install the performance analysis plugin"""
 
     def confirm_status(self, session, eid):
-        return service_repo.check_image_svc_by_eid(session, eid)
+        return service_info_repo.check_image_svc_by_eid(session, eid)
 
 
 class BaseTaskStatusContext(object):

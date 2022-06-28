@@ -16,7 +16,7 @@ from exceptions.bcode import ErrK8sComponentNameExists
 from exceptions.main import ServiceHandleException, CheckThirdpartEndpointFailed
 from models.component.models import ThirdPartyComponentEndpoints
 from repository.component.deploy_repo import deploy_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import service_endpoints_repo
 from repository.component.third_party_repo import third_party_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -110,7 +110,7 @@ async def third_party(request: Request,
 async def get_third_party_pods(service_alias: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
                                team=Depends(deps.get_current_team)) -> Any:
-    service = service_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
+    service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
     res, body = remote_build_client.get_third_party_service_pods(session,
                                                                  service.service_region, team.tenant_name,
                                                                  service.service_alias)
@@ -136,7 +136,7 @@ async def add_third_party_pods(
     address = data.get("ip", None)
     if not address:
         return JSONResponse(general_message(400, "end_point is null", "end_point未指明"), status_code=400)
-    service = service_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
+    service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
     validate_endpoints_info([address])
     try:
         endpoint_service.add_endpoint(session, team, service, address)
@@ -160,7 +160,7 @@ async def delete_third_party_pods(request: Request,
         return JSONResponse(general_message(400, "end_point is null", "end_point未指明"), status_code=400)
     endpoint_dict = dict()
     endpoint_dict["ep_id"] = ep_id
-    service = service_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
+    service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)

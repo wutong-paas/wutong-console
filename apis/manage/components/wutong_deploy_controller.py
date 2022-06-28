@@ -8,7 +8,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import ResourceNotEnoughException, AccountOverdueException
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import app_deploy_service
 from service.app_actions.exception import ErrServiceSourceNotFound
@@ -40,7 +40,7 @@ async def deploy_component(request: Request,
 
     """
     try:
-        service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
         oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
 
         data = await request.json()

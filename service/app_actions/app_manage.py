@@ -33,10 +33,11 @@ from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.application.app_repository import recycle_bin_repo, relation_recycle_bin_repo, delete_service_repo
 from repository.application.application_repo import application_repo
 from repository.application.config_group_repo import app_config_group_service_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
 from repository.component.compose_repo import compose_relation_repo
 from repository.component.env_var_repo import env_var_repo
-from repository.component.group_service_repo import service_repo, group_service_relation_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import dep_relation_repo, mnt_repo, auth_repo, \
     port_repo, volume_repo, service_attach_repo, create_step_repo, service_payment_repo
 from repository.component.service_domain_repo import domain_repo
@@ -178,7 +179,7 @@ class AppManageService(AppManageBase):
         mnt_repo.delete_mnt(session, service.service_id)
         port_repo.delete_service_port(session, tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(session, service.service_id)
-        group_service_relation_repo.delete_relation_by_service_id(session, service.service_id)
+        app_component_relation_repo.delete_relation_by_service_id(session, service.service_id)
         service_attach_repo.delete_service_attach(session, service.service_id)
         create_step_repo.delete_create_step(session, service.service_id)
         event_service.delete_service_events(session, service)
@@ -193,8 +194,8 @@ class AppManageService(AppManageBase):
         component_graph_service.delete_by_component_id(session, service.service_id)
         app_config_group_service_repo.delete_effective_service(session=session, service_id=service.service_id)
         if service.tenant_service_group_id > 0:
-            count = service_repo.get_services_by_service_group_id(session=session,
-                                                                  service_group_id=service.tenant_service_group_id).count()
+            count = service_info_repo.get_services_by_service_group_id(session=session,
+                                                                       service_group_id=service.tenant_service_group_id).count()
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(session=session,
                                                                             pk=service.tenant_service_group_id)
@@ -350,7 +351,7 @@ class AppManageService(AppManageBase):
         )
 
         self.__create_service_delete_event(session=session, tenant=tenant, service=service, user=user)
-        service_repo.delete_service(session, service.ID)
+        service_info_repo.delete_service(session, service.ID)
 
     def get_etcd_keys(self, session: SessionClass, tenant, service):
         logger.debug("ready delete etcd data while delete service")
@@ -964,7 +965,7 @@ class AppManageService(AppManageBase):
         tsrs = dep_relation_repo.get_dependency_by_dep_id(session, tenant.tenant_id, service.service_id)
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
-            service_ids = service_repo.get_services_by_service_ids(session, sids)
+            service_ids = service_info_repo.get_services_by_service_ids(session, sids)
             services = [service.service_cname for service in service_ids]
             if not services:
                 return False, ""
@@ -976,7 +977,7 @@ class AppManageService(AppManageBase):
         sms = mnt_repo.get_mount_current_service(session, tenant.tenant_id, service.service_id)
         if sms:
             sids = [sm.service_id for sm in sms]
-            service_ids = service_repo.get_services_by_service_ids(session, sids)
+            service_ids = service_info_repo.get_services_by_service_ids(session, sids)
             services = [service.service_cname for service in service_ids]
             mnt_service_names = ",".join(list(services))
             return True, mnt_service_names
@@ -990,8 +991,8 @@ class AppManageService(AppManageBase):
 
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
         if service.tenant_service_group_id > 0:
-            count = service_repo.get_services_by_service_group_id(session=session,
-                                                                  service_group_id=service.tenant_service_group_id).count()
+            count = service_info_repo.get_services_by_service_group_id(session=session,
+                                                                       service_group_id=service.tenant_service_group_id).count()
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(session=session,
                                                                             pk=service.tenant_service_group_id)
@@ -1339,7 +1340,7 @@ class AppManageService(AppManageBase):
                 return code, msg
 
     def batch_action(self, session: SessionClass, region_name, tenant, user, action, service_ids, move_group_id):
-        services = service_repo.get_services_by_service_ids(session, service_ids)
+        services = service_info_repo.get_services_by_service_ids(session, service_ids)
         code = 500
         msg = "系统异常"
         fail_service_name = []
@@ -1373,7 +1374,7 @@ class AppManageService(AppManageBase):
     def close_all_component_in_tenant(self, session: SessionClass, tenant, region_name, user):
         try:
             # list components
-            components = service_repo.get_services_by_team_and_region(session, tenant.tenant_id, region_name)
+            components = service_info_repo.get_services_by_team_and_region(session, tenant.tenant_id, region_name)
             component_ids = [cpt.service_id for cpt in components]
             self.batch_operations(session=session, tenant=tenant, region_name=region_name, user=user, action="stop",
                                   service_ids=component_ids)

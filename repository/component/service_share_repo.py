@@ -1,5 +1,5 @@
 from fastapi_pagination import Params, paginate
-from sqlalchemy import select, func, not_, delete
+from sqlalchemy import select, func, not_, delete, text
 
 from models.application.models import ServiceShareRecord, ComponentApplicationRelation, ServiceShareRecordEvent
 from models.application.plugin import TeamComponentPluginRelation
@@ -21,8 +21,9 @@ class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
                 tenant_info b
             WHERE
                 a.team_name = b.tenant_name
-                AND b.enterprise_id = "{eid}"
-                LIMIT 1""".format(eid=eid)
+                AND b.enterprise_id = :eid
+                LIMIT 1"""
+        sql = text(sql).bindparams(eid=eid)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 

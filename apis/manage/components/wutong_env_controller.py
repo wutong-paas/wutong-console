@@ -9,7 +9,7 @@ from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.app_env_service import env_var_service
 
@@ -46,7 +46,7 @@ async def get_env(request: Request,
     page_size = int(request.query_params.get("page_size", 10))
     env_name = request.query_params.get("env_name", None)
 
-    service = service_repo.get_service(db, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(db, serviceAlias, team.tenant_id)
 
     if not env_type:
         return JSONResponse(general_message(400, "param error", "参数异常"), status_code=400)
@@ -210,7 +210,7 @@ async def add_env(request: Request,
     attr_value = data.get("attr_value", "")
     scope = data.get('scope', "")
     is_change = data.get('is_change', True)
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     # try:
     if not scope or not attr_name:
         return JSONResponse(general_message(400, "params error", "参数异常"), status_code=400)
@@ -254,7 +254,7 @@ async def delete_env(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not env_id:
         return JSONResponse(general_message(400, "env_id not specify", "环境变量ID未指定"))
     env_var_service.delete_env_by_env_id(session=session, tenant=team, service=service, env_id=env_id,
@@ -271,7 +271,7 @@ async def move_env(request: Request,
                    user=Depends(deps.get_current_user),
                    team=Depends(deps.get_current_team)) -> Any:
     """变更环境变量范围"""
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     # todo await
     scope = await parse_item(request, 'scope', required=True, error="scope is is a required parameter")
     env = env_var_service.patch_env_scope(session=session, tenant=team, service=service, env_id=env_id, scope=scope,
@@ -327,7 +327,7 @@ async def modify_env(request: Request,
     name = data.get("name", "")
     attr_value = data.get("attr_value", "")
 
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     code, msg, env = env_var_service.update_env_by_env_id(session=session, tenant=team, service=service,
                                                           env_id=env_id, name=name, attr_value=attr_value,

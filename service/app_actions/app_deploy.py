@@ -17,7 +17,7 @@ from exceptions.main import ServiceHandleException, EnvAlreadyExist, InvalidEnvN
     InnerPortNotFound, ErrInvalidVolume, ErrDepVolumeNotFound
 from models.component.models import TeamComponentPort, TeamServiceBackup, TeamComponentVolume
 from repository.component.component_repo import service_source_repo
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo, volume_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.teams.team_service_backup_repo import service_backup_repo
@@ -860,7 +860,7 @@ class MarketService(object):
             """
             raise RegionApiBaseHttpClient.CallApiError
             """
-            dep_service = service_repo.get_service_by_service_id(session, dep_service_id)
+            dep_service = service_info_repo.get_service_by_service_id(session, dep_service_id)
             body = dict()
             body["dep_service_id"] = dep_service.service_id
             body["tenant_id"] = self.tenant.tenant_id

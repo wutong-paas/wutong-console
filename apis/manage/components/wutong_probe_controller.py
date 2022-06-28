@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.probe_service import probe_service
 
@@ -39,7 +39,7 @@ async def get_probe(request: Request,
           type: string
           paramType: query
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if service.service_source == "third_party":
         code, msg, probe = probe_service.get_service_probe(session=session, service=service)
         if code != 200:
@@ -75,7 +75,7 @@ async def add_probe(request: Request,
     """
     data = await request.json()
 
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     params = jsonable_encoder(data)
     code, msg, probe = probe_service.add_service_probe(session=session, tenant=team, service=service, data=params)
@@ -96,7 +96,7 @@ async def modify_probe(request: Request,
     ---
     serializer: ProbeSerilizer
     """
-    service = service_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     data = await request.json()
 

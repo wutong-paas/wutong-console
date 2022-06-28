@@ -1,6 +1,6 @@
 import json
 import os
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 from models.application.plugin import TeamComponentPluginRelation, TeamServicePluginAttr, ComponentPluginConfigVar
 from repository.base import BaseRepository
 from repository.teams.team_plugin_repo import plugin_repo
@@ -34,9 +34,10 @@ class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
             WHERE
                 c.tenant_id = b.tenant_id
                 AND a.service_id = c.service_id
-                AND c.service_source <> "market"
-                AND b.enterprise_id = "{eid}"
-                LIMIT 1""".format(eid=eid)
+                AND c.service_source <> 'market'
+                AND b.enterprise_id = :eid
+                LIMIT 1"""
+        sql = text(sql).bindparams(eid=eid)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 

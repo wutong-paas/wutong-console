@@ -7,7 +7,7 @@ from clients.remote_plugin_client import remote_plugin_client
 from core.utils.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
 from database.session import SessionClass
 from models.application.plugin import ComponentPluginConfigVar
-from repository.component.group_service_repo import service_repo
+from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo, dep_relation_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
@@ -296,7 +296,7 @@ class PluginService(object):
 
     def get_service_dependencies(self, session: SessionClass, tenant, service):
         dep_ids = self.__get_dep_service_ids(session=session, tenant=tenant, service=service)
-        services = service_repo.get_services_by_service_ids(session, dep_ids)
+        services = service_info_repo.get_services_by_service_ids(session, dep_ids)
         return services
 
 
