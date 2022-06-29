@@ -144,6 +144,7 @@ async def user_logout(request: Request, session: SessionClass = Depends(deps.get
         response.delete_cookie('tenant_name')
         response.delete_cookie('uid')
         response.delete_cookie('token')
+        response.delete_cookie('third_token')
 
         try:
             api = request.app.state.api
