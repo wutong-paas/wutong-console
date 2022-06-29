@@ -195,6 +195,7 @@ async def get_authorize(
     response = oauth_sev_user_service.set_oauth_user_relation(session, api, oauth_service, oauth_user, access_token,
                                                               refresh_token,
                                                               code)
+    response.set_cookie("third_token", access_token)
     return response
 
 
