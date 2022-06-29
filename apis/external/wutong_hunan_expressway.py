@@ -256,5 +256,25 @@ async def get_region_event(
                 "level": "紧急",
             })
 
+        # test data
+        events.append({
+            "time": now_time,
+            "name": "节点存储",
+            "mesc": name + "节点存在磁盘存储压力",
+            "level": "紧急",
+        })
+        events.append({
+            "time": now_time,
+            "name": "节点POD",
+            "mesc": name + "节点分配容器组过多",
+            "level": "紧急",
+        })
+        events.append({
+            "time": now_time,
+            "name": "节点内存",
+            "mesc": name + "节点内存不足",
+            "level": "一般",
+        })
+
     result = general_message(200, "success", "查询成功", bean=events)
     return JSONResponse(result, status_code=result["code"])
