@@ -38,8 +38,8 @@ async def get_store(
     store = {
         "total_cpu": result_bean["cap_cpu"],
         "used_cpu": result_bean["req_cpu"],
-        "total_memory": round(result_bean["cap_mem"] / 1024, 2),
-        "used_memory": round(result_bean["req_mem"] / 1024, 2),
+        "total_memory": result_bean["cap_mem"],
+        "used_memory": result_bean["req_mem"],
         "total_disk": result_bean["total_capacity_storage"],
         "used_disk": result_bean["total_used_storage"]
     }
