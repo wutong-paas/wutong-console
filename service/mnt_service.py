@@ -55,8 +55,7 @@ class AppMntService(object):
                     gs_rel = app_component_relation_repo.get_group_by_service_id(session, dep_service.service_id)
                     group = None
                     if gs_rel:
-                        group = application_repo.get_group_by_pk(session, tenant.tenant_id, service.service_region,
-                                                                 gs_rel.group_id)
+                        group = application_repo.get_by_primary_key(session=session, primary_key=gs_rel.group_id)
                     dep_volume = volume_repo.get_service_volume_by_name(session, dep_service.service_id, mount.mnt_name)
                     if dep_volume:
                         mounted_dependencies.append({
@@ -115,8 +114,7 @@ class AppMntService(object):
             gs_rel = app_component_relation_repo.get_group_by_service_id(session, volume.service_id)
             group = None
             if gs_rel:
-                group = application_repo.get_group_by_pk(session, tenant.tenant_id, service.service_region,
-                                                         gs_rel.group_id)
+                group = application_repo.get_by_primary_key(session=session, primary_key=gs_rel.group_id)
             dep_app_name = ""
             dep_app_alias = ""
             for ser in services:

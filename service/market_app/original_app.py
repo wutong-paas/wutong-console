@@ -26,7 +26,7 @@ class OriginalApp(object):
         self.region_name = region.region_name
         self.app_id = app.app_id
         self.upgrade_group_id = upgrade_group_id
-        self.app = application_repo.get_group_by_pk(session, tenant.tenant_id, region.region_name, app.app_id)
+        self.app = application_repo.get_by_primary_key(session=session, primary_key=app.app_id)
         self.governance_mode = app.governance_mode
 
         self.support_labels = support_labels

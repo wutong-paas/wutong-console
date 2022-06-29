@@ -176,3 +176,4 @@ class AppMarket(Base):
     access_secret = Column(String(1024), nullable=True, comment="应用商店访问密钥")
     enterprise_id = Column(String(32), comment="企业id", nullable=False)
     type = Column(String(32), comment="类型", nullable=False)
+    scope = Column(String(32), comment="可见范围", nullable=False)

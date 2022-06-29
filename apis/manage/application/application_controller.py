@@ -1,7 +1,7 @@
 import datetime
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -57,12 +57,6 @@ def check_services(session: SessionClass, app_id, req_service_ids):
                     status_code=404)
 
 
-@router.get("/teams/{team_name}/groups", response_model=Response, name="查询租户在指定数据中心下的应用")
-async def get_apps(session: SessionClass = Depends(deps.get_session)) -> Any:
-    # todo
-    raise Exception("todo")
-
-
 @router.post("/teams/{team_name}/groups", response_model=Response, name="新建团队应用")
 async def create_app(params: TeamAppCreateRequest,
                      session: SessionClass = Depends(deps.get_session),
@@ -107,7 +101,7 @@ async def create_app(params: TeamAppCreateRequest,
 
 
 @router.get("/teams/{team_name}/groups/{app_id}", response_model=Response, name="团队应用详情")
-async def get_app_detail(app_id: Optional[str] = None,
+async def get_app_detail(app_id: Optional[int] = None,
                          session: SessionClass = Depends(deps.get_session),
                          team=Depends(deps.get_current_team)) -> Any:
     """
@@ -314,6 +308,8 @@ async def common_operation(params: CommonOperation,
 
 @router.get("/teams/{team_name}/groups/{group_id}/share/record", response_model=Response, name="应用发布")
 async def app_share_record(request: Request,
+                           page: int = Query(default=1, ge=1, le=9999),
+                           page_size: int = Query(default=10, ge=1, le=500),
                            team_name: Optional[str] = None,
                            group_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
@@ -321,8 +317,8 @@ async def app_share_record(request: Request,
     data = []
     market = dict()
     cloud_app = dict()
-    page = int(request.query_params.get("page", 1))
-    page_size = int(request.query_params.get("page_size", 10))
+    # page = int(request.query_params.get("page", 1))
+    # page_size = int(request.query_params.get("page_size", 10))
     total, share_records = component_share_repo.get_service_share_records_by_groupid(
         session=session, team_name=team_name, group_id=group_id, page=page, page_size=page_size)
     if not share_records:
@@ -538,17 +534,19 @@ async def get_app_ver(request: Request,
 
 @router.get("/teams/{team_name}/groups/{group_id}/configgroups", response_model=Response, name="查询应用配置")
 async def get_config_groups(request: Request,
+                            page: int = Query(default=1, ge=1, le=9999),
+                            page_size: int = Query(default=10, ge=1, le=500),
                             group_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             team=Depends(deps.get_current_team)) -> Any:
-    try:
-        page = int(request.query_params.get("page", 1))
-    except ValueError:
-        page = 1
-    try:
-        page_size = int(request.query_params.get("page_size", 10))
-    except ValueError:
-        page_size = 10
+    # try:
+    #     page = int(request.query_params.get("page", 1))
+    # except ValueError:
+    #     page = 1
+    # try:
+    #     page_size = int(request.query_params.get("page_size", 10))
+    # except ValueError:
+    #     page_size = 10
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)

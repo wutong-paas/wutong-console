@@ -1,7 +1,7 @@
 from functools import cmp_to_key
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import paginate, Params
@@ -181,6 +181,8 @@ async def add_team_user(request: Request,
 
 @router.get("/teams/{team_name}/apps", response_model=Response, name="总览团队应用信息")
 async def overview_team_app_info(request: Request,
+                                 page: int = Query(default=1, ge=1, le=9999),
+                                 page_size: int = Query(default=10, ge=1, le=500),
                                  team_name: Optional[str] = None,
                                  session: SessionClass = Depends(deps.get_session),
                                  team=Depends(deps.get_current_team)) -> Any:
@@ -188,8 +190,8 @@ async def overview_team_app_info(request: Request,
     总览 团队应用信息
     """
     query = request.query_params.get("query", "")
-    page = int(request.query_params.get("page", 1))
-    page_size = int(request.query_params.get("page_size", 10))
+    # page = int(request.query_params.get("page", 1))
+    # page_size = int(request.query_params.get("page_size", 10))
 
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
@@ -214,14 +216,17 @@ async def overview_team_app_info(request: Request,
 
 
 @router.get("/teams/{team_name}/services/event", response_model=Response, name="应用事件动态")
-async def team_services_event(request: Request,
-                              session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
+async def team_services_event(
+        # request: Request,
+        page: int = Query(default=1, ge=1, le=9999),
+        page_size: int = Query(default=3, ge=1, le=500),
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     组件事件动态
     """
-    page = request.query_params.get("page", 1)
-    page_size = request.query_params.get("page_size", 3)
+    # page = request.query_params.get("page", 1)
+    # page_size = request.query_params.get("page_size", 3)
 
     total = 0
     region_list = region_repo.get_team_opened_region(session, team.tenant_name)

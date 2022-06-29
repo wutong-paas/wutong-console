@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Params, paginate
@@ -30,6 +30,8 @@ router = APIRouter()
 
 @router.get("/teams/{team_name}/service/group", response_model=Response, name="应用列表、状态展示")
 async def get_app_state(request: Request,
+                        page: int = Query(default=1, ge=1, le=9999),
+                        page_size: int = Query(default=10, ge=1, le=500),
                         team_name: Optional[str] = None,
                         session: SessionClass = Depends(deps.get_session),
                         team=Depends(deps.get_current_team)) -> Any:
@@ -38,8 +40,8 @@ async def get_app_state(request: Request,
      """
     try:
         code = 200
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 10))
+        # page = int(request.query_params.get("page", 1))
+        # page_size = int(request.query_params.get("page_size", 10))
         group_id = request.query_params.get("group_id", None)
         if group_id is None or not group_id.isdigit():
             code = 400

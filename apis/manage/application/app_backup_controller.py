@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Params, paginate
@@ -21,12 +21,15 @@ router = APIRouter()
 
 @router.get("/teams/{team_name}/all/groupapp/backup", response_model=Response,
             name="查询当前团队 数据中心下所有备份信息")
-async def get_team_backup_info(request: Request,
-                               session: SessionClass = Depends(deps.get_session),
-                               team=Depends(deps.get_current_team)) -> Any:
+async def get_team_backup_info(
+        # request: Request,
+        page: int = Query(default=1, ge=1, le=9999),
+        page_size: int = Query(default=10, ge=1, le=500),
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     try:
-        page = int(request.query_params.get("page", 1))
-        page_size = int(request.query_params.get("page_size", 10))
+        # page = int(request.query_params.get("page", 1))
+        # page_size = int(request.query_params.get("page_size", 10))
         region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
         if not region:
             return general_message(400, "not found region", "数据中心不存在")

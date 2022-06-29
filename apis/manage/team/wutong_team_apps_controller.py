@@ -84,6 +84,8 @@ async def get_app_detail(request: Request,
     is_filebrowser_plugin = False
     bean = dict()
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    if not service:
+        return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     namespace = team.namespace
     service_model = jsonable_encoder(service)
     group_map = application_service.get_services_group_name(session=session, service_ids=[service.service_id])
