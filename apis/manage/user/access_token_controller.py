@@ -2,11 +2,13 @@ import hashlib
 import os
 import time
 from typing import Any, Optional
+
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from pymysql import IntegrityError
+
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -28,8 +30,9 @@ async def get_access_token_list(
                                                          query_model=UserAccessKey(user_id=user.user_id))
     for access_key in access_key_list:
         access_dict = jsonable_encoder(access_key)
-        time_array = time.strptime(access_dict["expire_time"], "%Y-%m-%dT%H:%M:%S")
-        access_dict["expire_time"] = int(time.mktime(time_array))
+        if access_dict["expire_time"]:
+            time_array = time.strptime(access_dict["expire_time"], "%Y-%m-%dT%H:%M:%S")
+            access_dict["expire_time"] = int(time.mktime(time_array))
         access_key_dict.append(access_dict)
     result = general_message(200, "success", None, list=access_key_dict)
     return JSONResponse(result, status_code=result["code"])

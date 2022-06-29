@@ -91,6 +91,8 @@ async def get_pods_info(serviceAlias: Optional[str] = None,
      """
 
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    if not service:
+        return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     data = remote_component_client.get_service_pods(session,
                                                     service.service_region,
                                                     team.tenant_name,
