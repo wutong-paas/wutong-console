@@ -31,7 +31,7 @@ router = APIRouter()
 @router.get("/teams/{team_name}/service/group", response_model=Response, name="应用列表、状态展示")
 async def get_app_state(request: Request,
                         page: int = Query(default=1, ge=1, le=9999),
-                        page_size: int = Query(default=10, ge=1, le=500),
+                        page_size: int = Query(default=10, ge=-1, le=500),
                         team_name: Optional[str] = None,
                         session: SessionClass = Depends(deps.get_session),
                         team=Depends(deps.get_current_team)) -> Any:
