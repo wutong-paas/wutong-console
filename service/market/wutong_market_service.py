@@ -60,7 +60,7 @@ def bind_wutong_market(session: SessionClass, enterprise_id: str, params: Market
                                    add_model=AppMarket(name=params.name, url=server_address, domain=params.url,
                                                        access_key=params.access_key, access_secret=params.access_secret,
                                                        enterprise_id=enterprise_id, type=params.type,
-                                                       store_id=store_id))
+                                                       store_id=store_id, scope=params.scope))
 
 
 def update_wutong_market(session: SessionClass, enterprise_id: str, market_id: str, market_name: str):
