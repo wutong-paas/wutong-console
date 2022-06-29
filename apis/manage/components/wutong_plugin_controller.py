@@ -208,18 +208,14 @@ async def delete_plugin(plugin_id: Optional[str] = None,
     app_plugin_service.delete_service_plugin_relation(session=session, service=service, plugin_id=plugin_id)
     app_plugin_service.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
 
-    pbv = plugin_version_service.get_newest_usable_plugin_version(session=session, tenant_id=team.tenant_id,
-                                                                  plugin_id=plugin_id)
-    if not pbv:
-        return JSONResponse(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status_code=400)
+    if result_bean:
+        attrs = json.loads(result_bean.attrs)
 
-    attrs = json.loads(result_bean.attrs)
+        config_attr_port = attrs.get("FB_PORT")
 
-    config_attr_port = attrs.get("FB_PORT")
-
-    app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
-                                                             response_region=response_region, plugin_id=plugin_id,
-                                                             container_port=config_attr_port, user=user)
+        app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
+                                                                 response_region=response_region, plugin_id=plugin_id,
+                                                                 container_port=config_attr_port, user=user)
 
     return JSONResponse(general_message(200, "success", "卸载成功"), status_code=200)
 
