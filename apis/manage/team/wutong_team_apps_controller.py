@@ -53,6 +53,8 @@ async def get_assembly_state(serviceAlias: Optional[str] = None,
           paramType: path
     """
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    if not service:
+        return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     bean = dict()
     bean["check_uuid"] = service.check_uuid
     status_map = application_service.get_service_status(session=session, tenant=team, service=service)
