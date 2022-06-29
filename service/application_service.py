@@ -272,7 +272,7 @@ class ApplicationService(object):
         if group_id:
             group_id = int(group_id)
             if group_id > 0:
-                group = application_repo.get_group_by_pk(session, tenant.tenant_id, region_name, group_id)
+                group = application_repo.get_by_primary_key(session=session, primary_key=group_id)
                 if not group:
                     return 404, "应用不存在"
                 app_component_relation_repo.add_service_group_relation(session, group_id, service_id, tenant.tenant_id,
@@ -427,7 +427,8 @@ class ApplicationService(object):
 
     def get_app_detail(self, session: SessionClass, tenant, region_name, app_id):
         # app metadata
-        app = application_repo.get_group_by_pk(session, tenant.tenant_id, region_name, app_id)
+        app = application_repo.get_by_primary_key(session=session, primary_key=app_id)
+
         if not app:
             raise ServiceHandleException(msg="not found application", msg_show="应用不存在", status_code=400)
 
@@ -1596,7 +1597,7 @@ class ApplicationService(object):
         principal_info = dict()
         principal_info["email"] = ""
         principal_info["is_delete"] = False
-        group = application_repo.get_group_by_pk(session, tenant.tenant_id, region, group_id)
+        group = application_repo.get_by_primary_key(session=session, primary_key=group_id)
         if not group:
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
         try:

@@ -1,4 +1,3 @@
-# todo
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Body
@@ -19,8 +18,11 @@ router = APIRouter()
 
 
 @router.get("/enterprise/{enterprise_id}/cloud/wutong-markets", name="梧桐商店列表")
-async def wutong_markets(enterprise_id: str = None, session: SessionClass = Depends(deps.get_session)) -> Any:
-    markets = wutong_market_service.get_wutong_markets(session=session, enterprise_id=enterprise_id)
+async def wutong_markets(enterprise_id: str = None,
+                         user=Depends(deps.get_current_user),
+                         session: SessionClass = Depends(deps.get_session)) -> Any:
+    markets = wutong_market_service.get_wutong_markets(session=session, enterprise_id=enterprise_id,
+                                                       user_id=user.user_id)
     return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(markets)), status_code=200)
 
 
@@ -43,6 +45,8 @@ async def update_wutong_market(enterprise_id: str = None, market_id: str = None,
 @router.post("/enterprise/{enterprise_id}/market-apps/{market_id}", name="商店应用列表")
 async def get_cloud_market_apps(market_id: int = None,
                                 query_body: Optional[MarketAppQueryParam] = MarketAppQueryParam(),
+                                current: int = Body(default=1, ge=1, le=99999, embed=True),
+                                size: int = Body(default=10, ge=1, le=500, embed=True),
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     market = wutong_market_repo.get_by_primary_key(session=session, primary_key=market_id)
     result = wutong_market_client.get_market_apps(body=query_body.dict(), market=market)

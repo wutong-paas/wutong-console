@@ -1,7 +1,7 @@
 import json
 from typing import Any, Optional
 
-from fastapi import APIRouter, Path, Depends, Request
+from fastapi import APIRouter, Path, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -161,8 +161,8 @@ async def delete_app_template(enterprise_id: Optional[str] = None,
 @router.get("/enterprise/{enterprise_id}/app-models", response_model=Response, name="获取本地市场应用列表")
 async def app_models(request: Request,
                      enterprise_id: str = Path(..., title="enterprise_id"),
-                     page: Optional[int] = 1,
-                     page_size: Optional[int] = 10,
+                     page: int = Query(default=1, ge=1, le=9999),
+                     page_size: int = Query(default=10, ge=1, le=500),
                      session: SessionClass = Depends(deps.get_session),
                      user: Users = Depends(deps.get_current_user)) -> Any:
     """
@@ -176,6 +176,7 @@ async def app_models(request: Request,
     """
     if page < 1:
         page = 1
+    #     todo 参数
     is_complete = request.query_params.get("is_complete", None)
     need_install = request.query_params.get("need_install", "false")
     scope = request.query_params.get("scope", None)

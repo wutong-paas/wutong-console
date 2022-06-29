@@ -1,7 +1,7 @@
 import pickle
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -319,11 +319,13 @@ async def regions(status: Optional[str] = "", check_status: Optional[str] = "",
 
 @router.get("/enterprise/{enterprise_id}/teams", response_model=Response, name="获取企业团队列表")
 async def get_enterprise_teams(request: Request,
+                               page: int = Query(default=1, ge=1, le=9999),
+                               page_size: int = Query(default=10, ge=1, le=500),
                                enterprise_id: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
                                user=Depends(deps.get_current_user)) -> Any:
-    page = int(request.query_params.get("page", 1))
-    page_size = int(request.query_params.get("page_size", 10))
+    # page = int(request.query_params.get("page", 1))
+    # page_size = int(request.query_params.get("page_size", 10))
     name = request.query_params.get("name", None)
     teams, total = team_services.get_enterprise_teams(session=session, enterprise_id=enterprise_id, query=name,
                                                       page=page,

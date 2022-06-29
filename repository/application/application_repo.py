@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from loguru import logger
 from sqlalchemy import select, update, not_, delete
 
 from exceptions.main import ServiceHandleException
@@ -87,7 +86,7 @@ class ApplicationRepository(BaseRepository[Application]):
                 create_time=datetime.now())
             session.add(group)
             session.flush()
-            
+
         return group
 
     def list_tenant_group_on_region(self, session, tenant, region_name):
@@ -144,23 +143,6 @@ class ApplicationRepository(BaseRepository[Application]):
             Application.k8s_app == k8s_app
         )).scalars().first()
 
-    def get_group_by_pk(self, session, tenant_id, region_name, app_id):
-        """
-
-        :param tenant_id:
-        :param region_name:
-        :param app_id:
-        :return:
-        """
-        # todo 优化
-        data = (
-            session.execute(
-                select(Application).where(Application.tenant_id == tenant_id,
-                                          Application.region_name == region_name,
-                                          Application.ID == app_id))
-        ).scalars().first()
-        return data
-
     def get_by_service_id(self, session, tenant_id, service_id):
         rel = (session.execute(
             select(ComponentApplicationRelation).where(ComponentApplicationRelation.tenant_id == tenant_id,
@@ -176,7 +158,8 @@ class ApplicationRepository(BaseRepository[Application]):
     def get_groups(self, session, sids, tenant_id):
         return (session.execute(
             select(ComponentApplicationRelation).where(ComponentApplicationRelation.tenant_id == tenant_id,
-                                                       ComponentApplicationRelation.service_id.in_(sids)))).scalars().all()
+                                                       ComponentApplicationRelation.service_id.in_(
+                                                           sids)))).scalars().all()
 
     def update_governance_mode(self, session, tenant_id, region_name, app_id, governance_mode):
         sg = session.execute(select(Application).where(

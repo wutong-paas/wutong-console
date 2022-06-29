@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete, not_, text
+from sqlalchemy import select, delete, not_, text, bindparam
 
 from core.utils.status_translate import get_status_info_map
 from models.application.models import ComponentApplicationRelation

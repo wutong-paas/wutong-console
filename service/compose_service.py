@@ -224,7 +224,7 @@ class ComposeService(object):
         group_compose.check_uuid = bean["check_uuid"]
         group_compose.check_event_id = bean["event_id"]
         group_compose.create_status = "checking"
-        group = application_repo.get_group_by_pk(session, tenant.tenant_id, region, group_compose.group_id)
+        group = application_repo.get_by_primary_key(session=session, primary_key=group_compose.group_id)
         compose_bean = jsonable_encoder(group_compose)
         if group:
             compose_bean["group_name"] = group.group_name

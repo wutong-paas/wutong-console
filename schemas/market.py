@@ -10,6 +10,7 @@ class MarketCreateParam(BaseModel):
     access_key: Optional[str] = ""
     access_secret: Optional[str] = ""
     type: Optional[str] = "wutong"
+    scope: Optional[str] = "enterprise"
 
 
 class MarketAppCreateParam(BaseModel):

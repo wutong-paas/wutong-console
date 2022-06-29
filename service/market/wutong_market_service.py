@@ -17,7 +17,10 @@ from schemas.market import MarketCreateParam, MarketAppInstallParam
 from service.market_app.app_upgrade import AppUpgrade
 
 
-def get_wutong_markets(session: SessionClass, enterprise_id: str):
+def get_wutong_markets(session: SessionClass, enterprise_id: str, user_id: str):
+    # 查询用户团队权限信息
+
+    # 查询用户团队权限下应用店铺
     markets = wutong_market_repo.list_by_model(session=session, query_model=AppMarket(enterprise_id=enterprise_id))
     if not markets:
         return []

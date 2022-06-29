@@ -2,6 +2,7 @@
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from redis import StrictRedis
@@ -43,9 +44,8 @@ def scheduler_cron_task_test():
     logger.info("周期性定时任务开始执行...")
 
 
-@logger.catch
 @app.exception_handler(ServiceHandleException)
-async def validation_exception_handler(request: Request, exc: ServiceHandleException):
+async def exception_handler(request: Request, exc: ServiceHandleException):
     """
     捕获请求参数
     :param request:
@@ -54,6 +54,16 @@ async def validation_exception_handler(request: Request, exc: ServiceHandleExcep
     """
     logger.error("catch exception,request:{},error_message:{}", request.url, exc.msg_show)
     return JSONResponse(general_message(exc.status_code, exc.msg, exc.msg_show), status_code=exc.status_code)
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(request: Request, exception: RequestValidationError):
+    logger.error("catch validation error for Request,request_url:{}, request_path_params:{}, request_query_params:{}",
+                 request.url,
+                 request.path_params,
+                 request.query_params.items())
+    logger.exception(exception)
+    return JSONResponse(general_message(400, "validation error", "参数异常"), status_code=400)
 
 
 def get_redis_pool():
