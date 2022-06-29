@@ -406,8 +406,8 @@ class Configuration():
         wsurl_split_list = region_config.url.split(':')
         if wsurl_split_list[0] == "https":
             # todo
-            verify_ssl = False
-            # verify_ssl = True
+            # verify_ssl = False
+            verify_ssl = True
         # Default Base url
         self.host = region_config.url
 
