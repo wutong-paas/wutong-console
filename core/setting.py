@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     REDIS_STREAM_HOST = os.environ.get("REDIS_HOST", "localhost")
     REDIS_STREAM_PORT = os.environ.get("REDIS_PORT", 6379)
-    REDIS_STREAM_PASSWORD = os.environ.get("REDIS_PASSWORD", "123456")
+    REDIS_STREAM_PASSWORD = os.environ.get("REDIS_PASS", "123456")
     REDIS_STREAM_DATABASE = os.environ.get("REDIS_DATABASE", 9)
     REDIS_STREAM_NAME = os.environ.get("REDIS_STREAM_NAME", "wutong-report-stream")
     REDIS_STREAM_CONSUMER_NAME = os.environ.get("REDIS_STREAM_CONSUMER_NAME", "wutong-report-consumer")
@@ -42,8 +42,8 @@ class Settings(BaseSettings):
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
-    SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
-    # SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@localhost:3306/new'
+    # SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+    SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@localhost:3306/new'
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
