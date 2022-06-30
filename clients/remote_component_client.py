@@ -19,7 +19,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
     def __init__(self, *args, **kwargs):
         ApiBaseHttpClient.__init__(self, *args, **kwargs)
-        self.default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
+        self.default_headers = {'Connection': 'close', 'Content-Type': 'application/json'}
 
     def _set_headers(self, token):
 
