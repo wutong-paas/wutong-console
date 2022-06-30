@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
     REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
-    REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "123456")
+    REDIS_PASSWORD = os.environ.get("REDIS_PASS", "123456")
     REDIS_DATABASE = os.environ.get("REDIS_DATABASE", 5)
 
     REDIS_CACHE_TTL = 24 * 60 * 60
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
     SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
-    # SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@localhost:3306/console1'
+    # SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@localhost:3306/new'
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 

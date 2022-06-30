@@ -23,6 +23,7 @@ class RegionConfigRepository(BaseRepository[RegionConfig]):
         sql = select(RegionConfig).where(RegionConfig.region_name == region_name)
         results = session.execute(sql)
         data = results.scalars().first()
+        session.close()
         return data
 
     def get_region_config_by_region_id(self, session: SessionClass, region_id):
