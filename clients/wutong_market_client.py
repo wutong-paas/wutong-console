@@ -320,7 +320,7 @@ class MarketHttpClient(object):
 class WutongMarketClient(MarketHttpClient):
     def __init__(self):
         MarketHttpClient.__init__(self)
-        self.default_headers = {'Connection': 'close', 'Content-Type': 'application/json'}
+        self.default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
 
     def get_market_apps(self, body: dict, market: AppMarket):
         # 参数排序
