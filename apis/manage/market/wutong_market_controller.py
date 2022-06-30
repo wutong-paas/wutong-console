@@ -10,7 +10,7 @@ from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.market.wutong_market_repo import wutong_market_repo
-from schemas.market import MarketCreateParam, MarketAppQueryParam, MarketAppInstallParam
+from schemas.market import MarketCreateParam, MarketAppQueryParam, MarketAppInstallParam, MarketAppQueryVO
 from service.market import wutong_market_service
 from service.market_app_service import market_app_service
 
@@ -44,12 +44,13 @@ async def update_wutong_market(enterprise_id: str = None, market_id: str = None,
 
 @router.post("/enterprise/{enterprise_id}/market-apps/{market_id}", name="商店应用列表")
 async def get_cloud_market_apps(market_id: int = None,
-                                query_body: Optional[MarketAppQueryParam] = MarketAppQueryParam(),
                                 current: int = Body(default=1, ge=1, le=99999, embed=True),
                                 size: int = Body(default=10, ge=1, le=500, embed=True),
+                                queryVO: MarketAppQueryVO = Body(default=MarketAppQueryVO(), embed=True),
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     market = wutong_market_repo.get_by_primary_key(session=session, primary_key=market_id)
-    result = wutong_market_client.get_market_apps(body=query_body.dict(), market=market)
+    result = wutong_market_client.get_market_apps(
+        body=MarketAppQueryParam(current=current, size=size, queryVO=queryVO).dict(), market=market)
     return JSONResponse(general_message(200, "success", "操作成功", bean=jsonable_encoder(result)), status_code=200)
 
 
