@@ -282,14 +282,15 @@ class MarketApp(object):
                 print("certificate is null")
 
             rule_extensions = []
-            for ext in gateway_rule.rule_extensions.split(";"):
-                kvs = ext.split(":")
-                if len(kvs) != 2 or kvs[0] == "" or kvs[1] == "":
-                    continue
-                rule_extensions.append({
-                    "key": kvs[0],
-                    "value": kvs[1],
-                })
+            if gateway_rule.rule_extensions:
+                for ext in gateway_rule.rule_extensions.split(";"):
+                    kvs = ext.split(":")
+                    if len(kvs) != 2 or kvs[0] == "" or kvs[1] == "":
+                        continue
+                    rule_extensions.append({
+                        "key": kvs[0],
+                        "value": kvs[1],
+                    })
             rule["rule_extensions"] = rule_extensions
             rules.append(rule)
         return rules
