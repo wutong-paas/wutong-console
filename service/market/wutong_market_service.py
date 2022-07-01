@@ -15,13 +15,21 @@ from repository.region.region_info_repo import region_repo
 from repository.teams.team_repo import team_repo
 from schemas.market import MarketCreateParam, MarketAppInstallParam
 from service.market_app.app_upgrade import AppUpgrade
+from service.team_service import team_services
 
 
-def get_wutong_markets(session: SessionClass, enterprise_id: str, user_id: str):
+def get_wutong_markets(session: SessionClass, enterprise_id: str, user: str):
     # 查询用户团队权限信息
+    teams = team_services.get_teams_region_by_user_id(session=session, enterprise_id=enterprise_id, user=user)
+    if not teams:
+        return []
+    team_names = [team['team_name'] for team in teams]
+
+    team_names.append('enterprise')
 
     # 查询用户团队权限下应用店铺
-    markets = wutong_market_repo.list_by_model(session=session, query_model=AppMarket(enterprise_id=enterprise_id))
+    # markets = wutong_market_repo.list_by_model(session=session, query_model=AppMarket(enterprise_id=enterprise_id))
+    markets = wutong_market_repo.get_market_list(session=session, enterprise_id=enterprise_id, scopes=team_names)
     if not markets:
         return []
     result = []
