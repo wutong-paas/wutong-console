@@ -22,7 +22,7 @@ async def wutong_markets(enterprise_id: str = None,
                          user=Depends(deps.get_current_user),
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     markets = wutong_market_service.get_wutong_markets(session=session, enterprise_id=enterprise_id,
-                                                       user_id=user.user_id)
+                                                       user=user)
     return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(markets)), status_code=200)
 
 
