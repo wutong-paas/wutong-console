@@ -20,6 +20,9 @@ from core.setting import settings
 from repository.region.region_config_repo import region_config_repo
 
 
+urllib3.disable_warnings()
+
+
 def _json_decode(string):
     try:
         body = json.loads(string)
@@ -259,7 +262,7 @@ class ApiBaseHttpClient(object):
 
     def _request(self, url, method, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
-        retries = kwargs.get("retries", 2)
+        retries = kwargs.get("retries", 3)
         d_connect, d_red = get_default_timeout_config()
         timeout = kwargs.get("timeout", d_red)
         preload_content = kwargs.get("preload_content")
@@ -312,6 +315,7 @@ class ApiBaseHttpClient(object):
         except MaxRetryError as e:
             logger.debug("error url {}".format(url))
             logger.exception(e)
+            self.destroy_client(region_config=region)
             raise ServiceHandleException(error_code=10411, msg="MaxRetryError", msg_show="访问数据中心异常，请稍后重试")
         except Exception as e:
             logger.debug("error url {}".format(url))
