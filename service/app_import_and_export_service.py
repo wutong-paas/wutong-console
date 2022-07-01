@@ -404,7 +404,7 @@ class AppExportService(object):
                                                                     "/v2", ""))
                     })
 
-        result = {"rainbond_app": wutong_app_init_data, "docker_compose": docker_compose_init_data}
+        result = {"wutong_app": wutong_app_init_data, "docker_compose": docker_compose_init_data}
         return result
 
 
