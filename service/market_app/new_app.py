@@ -190,7 +190,7 @@ class NewApp(object):
         session.add_all(labels)
 
         # todo 逻辑优化
-        session.flush()
+        # session.flush()
         for component in components:
             logger.info("应用市场创建组件,投递组件变更消息,组件ID:{},组件名称:{}", component.service_id, component.service_cname)
             _thread.start_new_thread(message_service.component_update_event, (
