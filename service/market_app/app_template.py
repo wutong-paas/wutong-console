@@ -19,8 +19,6 @@ class AppTemplate(object):
             return {}
         result = {}
         for ingress in ingress_routes:
-            if not ingress:
-                continue
             ingresses = result.get(ingress["component_key"], [])
             ingresses.append(ingress)
             result[ingress["component_key"]] = ingresses
