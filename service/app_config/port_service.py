@@ -103,7 +103,8 @@ class AppPortService:
                     "enterprise_id": tenant.enterprise_id,
                     "operator": user_name
                 }
-                remote_component_client.add_service_env(service.service_region, tenant.tenant_name,
+                remote_component_client.add_service_env(session,
+                                                        service.service_region, tenant.tenant_name,
                                                         service.service_alias, add_env)
 
         if k8s_service_name:
