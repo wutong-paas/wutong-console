@@ -395,12 +395,10 @@ class AppPortService:
         if action == "change_port_alias":
             if not port_alias:
                 return 400, "端口别名不能为空"
-            try:
-                port = port_repo.get_service_port_by_alias(session, service_id, port_alias)
+            port = port_repo.get_service_port_by_alias(session, service_id, port_alias)
+            if port:
                 if port.container_port != container_port:
                     return 400, "别名已存在"
-            except TeamComponentPort.DoesNotExist:
-                pass
         if action == "change_protocol":
             if not protocol:
                 return 400, "端口协议不能为空"
