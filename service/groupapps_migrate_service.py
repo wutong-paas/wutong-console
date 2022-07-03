@@ -326,7 +326,7 @@ class GroupappsMigrateService(object):
 
                     else:
                         service_tcp_domains = tcp_domain_repo.get_service_tcp_domains_by_service_id_and_port(
-                            service.service_id, port.container_port)
+                            session, service.service_id, port.container_port)
                         if service_tcp_domains:
                             for service_tcp_domain in service_tcp_domains:
                                 # 改变tcpdomain表中状态
