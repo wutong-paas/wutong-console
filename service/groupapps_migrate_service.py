@@ -347,7 +347,8 @@ class GroupappsMigrateService(object):
                             tcp_rule_id = make_uuid(end_point)
                             tenant_id = tenant.tenant_id
                             region_id = region.region_id
-                            tcp_domain_repo.create_service_tcp_domains(service_id, service_name, end_point,
+                            tcp_domain_repo.create_service_tcp_domains(session,
+                                                                       service_id, service_name, end_point,
                                                                        create_time,
                                                                        container_port, protocol, service_alias,
                                                                        tcp_rule_id,
