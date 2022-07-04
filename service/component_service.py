@@ -287,7 +287,7 @@ class ComponentCheckService(object):
                     continue
                 # BUILD_开头的env保存为build类型的环境变量
                 elif env["name"].startswith("BUILD_"):
-                    code, msg, data = env_var_service.add_service_build_env_var(session=session, tenant=tenant,
+                    code, msg, data = env_var_service.add_service_build_env_var(session=session,
                                                                                 service=service,
                                                                                 container_port=0, name=env["name"],
                                                                                 attr_name=env["name"],

@@ -112,7 +112,7 @@ class AppEnvVarService(object):
         if service:
             return env_var_repo.get_service_env_by_scope(session, service.tenant_id, service.service_id, "build")
 
-    def add_service_build_env_var(self, session: SessionClass, tenant, service, container_port, name, attr_name, attr_value,
+    def add_service_build_env_var(self, session: SessionClass, service, container_port, name, attr_name, attr_value,
                                   is_change,
                                   scope="build"):
         attr_name = str(attr_name).strip()

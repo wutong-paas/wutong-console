@@ -729,7 +729,7 @@ async def update_build_envs(
         attr_name = key
         attr_value = value
         is_change = True
-        code, msg, data = env_var_service.add_service_build_env_var(session, team, service, 0, name, attr_name,
+        code, msg, data = env_var_service.add_service_build_env_var(session, service, 0, name, attr_name,
                                                                     attr_value, is_change)
         if code != 200:
             continue

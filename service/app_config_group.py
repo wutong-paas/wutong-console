@@ -47,7 +47,7 @@ def convert_todict(session: SessionClass, cgroup_items, cgroup_services):
     config_group_items = []
     if cgroup_items:
         for i in cgroup_items:
-            cgi = i.__dict__
+            cgi = jsonable_encoder(i)
             config_group_items.append(cgi)
     # Convert application config group services to dict
     config_group_services = []
