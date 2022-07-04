@@ -1,6 +1,6 @@
 import json
 
-from sqlalchemy import select, and_, or_, delete, func, not_
+from sqlalchemy import select, and_, or_, delete, func, not_, exists
 
 from models.application.models import ApplicationConfigGroup, ConfigGroupService
 from models.component.models import TeamComponentPort, ComponentExtendMethod, TeamComponentMountRelation, \
@@ -108,6 +108,15 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
 
 
 class ApplicationConfigGroupRepository(BaseRepository[ConfigGroupService]):
+
+    def is_exists(self, session, region_name, app_id, config_group_name):
+        return session.execute(
+            exists(ApplicationConfigGroup.ID).where(
+                ApplicationConfigGroup.region_name == region_name,
+                ApplicationConfigGroup.app_id == app_id,
+                ApplicationConfigGroup.config_group_name == config_group_name)
+        ).scalars().first()
+
     @staticmethod
     def bulk_create_or_update(session, config_groups):
         config_group_ids = [cg.config_group_id for cg in config_groups]
