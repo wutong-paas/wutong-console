@@ -1,4 +1,4 @@
-from sqlalchemy import not_, select
+from sqlalchemy import not_, select, update
 
 from models.application.models import GroupAppMigrateRecord
 from repository.base import BaseRepository
@@ -19,7 +19,7 @@ class AppMigrationRespository(BaseRepository[GroupAppMigrateRecord]):
     def create_migrate_record(self, session, **params):
         gamr = GroupAppMigrateRecord(**params)
         session.add(gamr)
-        
+
         return gamr
 
     def get_by_restore_id(self, session, restore_id):
@@ -27,10 +27,10 @@ class AppMigrationRespository(BaseRepository[GroupAppMigrateRecord]):
             GroupAppMigrateRecord.restore_id == restore_id
         )).scalars().first()
 
-    def get_by_original_group_id(self, session, original_grup_id):
-        return session.query(GroupAppMigrateRecord).filter(
-            GroupAppMigrateRecord.original_group_id == original_grup_id
-        ).all()
+    def get_by_original_group_id(self, session, original_grup_id, original_group_id):
+        session.execute(update(GroupAppMigrateRecord).where(
+            GroupAppMigrateRecord.original_group_id == original_grup_id).values(
+            {"original_group_id": original_group_id}))
 
 
 migrate_repo = AppMigrationRespository(GroupAppMigrateRecord)

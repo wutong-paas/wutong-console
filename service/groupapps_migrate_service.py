@@ -796,8 +796,8 @@ class GroupappsMigrateService(object):
         return migrate_record
 
     def update_migrate_original_group_id(self, session: SessionClass, old_original_group_id, new_original_group_id):
-        migrate_repo.get_by_original_group_id(session=session, original_grup_id=old_original_group_id).update(
-            original_group_id=new_original_group_id)
+        migrate_repo.get_by_original_group_id(session=session, original_grup_id=old_original_group_id,
+                                              original_group_id=new_original_group_id)
 
 
 migrate_service = GroupappsMigrateService()
