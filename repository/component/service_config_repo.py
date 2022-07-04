@@ -110,12 +110,15 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
 class ApplicationConfigGroupRepository(BaseRepository[ConfigGroupService]):
 
     def is_exists(self, session, region_name, app_id, config_group_name):
-        return session.execute(
-            exists(ApplicationConfigGroup.ID).where(
+        exist = session.execute(
+            select(ApplicationConfigGroup).where(
                 ApplicationConfigGroup.region_name == region_name,
                 ApplicationConfigGroup.app_id == app_id,
                 ApplicationConfigGroup.config_group_name == config_group_name)
         ).scalars().first()
+        if exist:
+            return True
+        return False
 
     @staticmethod
     def bulk_create_or_update(session, config_groups):
