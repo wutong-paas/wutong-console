@@ -1,4 +1,4 @@
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, update
 
 from models.application.models import GroupAppBackupRecord
 from repository.base import BaseRepository
@@ -25,10 +25,10 @@ class AppBackupRecordRepository(BaseRepository[GroupAppBackupRecord]):
                 GroupAppBackupRecord.group_id == group_id).order_by(GroupAppBackupRecord.ID.desc())
         )).scalars().all()
 
-    def get_record_by_group_id(self, session, group_id):
-        return (session.execute(
-            select(GroupAppBackupRecord).where(
-                GroupAppBackupRecord.group_id == group_id))).scalars().all()
+    def get_record_by_group_id(self, session, group_id, new_group_id):
+        session.execute(
+            update(GroupAppBackupRecord).where(
+                GroupAppBackupRecord.group_id == group_id).values({"group_id": new_group_id}))
 
     def create_backup_records(self, session, **params):
         babr = GroupAppBackupRecord(**params)
