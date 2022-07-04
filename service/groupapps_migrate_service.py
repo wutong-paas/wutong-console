@@ -538,7 +538,7 @@ class GroupappsMigrateService(object):
             return
         for cgroup in config_groups:
             service_ids = []
-            is_exists = app_config_group_repo.is_exists(region_name, app_id, cgroup["config_group_name"])
+            is_exists = app_config_group_repo.is_exists(session, region_name, app_id, cgroup["config_group_name"])
             if is_exists:
                 cgroup["config_group_name"] = "-".join([cgroup["config_group_name"], make_uuid()[-4:]])
             for service in cgroup["services"]:
