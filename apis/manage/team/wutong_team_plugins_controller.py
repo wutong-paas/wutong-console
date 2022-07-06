@@ -598,10 +598,23 @@ async def plugin_share(request: Request,
                        session: SessionClass = Depends(deps.get_session),
                        user=Depends(deps.get_current_user),
                        team=Depends(deps.get_current_team)) -> Any:
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     plugin_version = plugin_version_service.get_plugin_version_by_id(session, team.tenant_id, plugin_id)
     if plugin_version.build_status != "build_success":
-        return JSONResponse(general_message(400, "The plug-in has not been built successfully", "插件尚未构建成功"),
-                            status_code=400)
+        if plugin_version.build_status == "building":
+            status = plugin_version_service.get_region_plugin_build_status(session, region.region_name,
+                                                                           team.tenant_name,
+                                                                           plugin_version.plugin_id,
+                                                                           plugin_version.build_version)
+            plugin_version.build_status = status
+            if status == "building":
+                result = general_message(400, "failed", "插件正在构建中,请稍后再试")
+                return JSONResponse(result, status_code=result["code"])
+        else:
+            return JSONResponse(general_message(400, "failed", "请构建成功后再共享"),
+                                status_code=400)
     plugin = plugin_service.get_by_plugin_id(session, team.tenant_id, plugin_id)
     plugin_params = jsonable_encoder(plugin)
     plugin_params.update({"origin": "shared"})
@@ -609,10 +622,6 @@ async def plugin_share(request: Request,
     code, msg, tenant_plugin = plugin_service.create_tenant_plugin(session, plugin_params)
     if code != 200:
         return JSONResponse(general_message(code, "create plugin error", msg), status_code=code)
-
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     # 创建插件版本信息
     plugin_build_version = plugin_version_service.create_build_version(
