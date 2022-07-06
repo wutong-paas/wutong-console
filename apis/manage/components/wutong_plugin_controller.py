@@ -157,7 +157,7 @@ async def install_plugin(request: Request,
         return JSONResponse(general_message(400, "not found plugin_id", "参数错误"), status_code=400)
     pbv = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
     if pbv.build_status == "building":
-        status = plugin_version_service.get_region_plugin_build_status(session, region, team.tenant_name,
+        status = plugin_version_service.get_region_plugin_build_status(session, response_region, team.tenant_name,
                                                                        pbv.plugin_id,
                                                                        pbv.build_version)
         pbv.build_status = status
