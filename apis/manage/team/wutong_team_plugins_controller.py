@@ -604,7 +604,8 @@ async def plugin_share(request: Request,
     plugin_version = plugin_version_service.get_plugin_version_by_id(session, team.tenant_id, plugin_id)
     if plugin_version.build_status != "build_success":
         if plugin_version.build_status == "building":
-            status = plugin_version_service.get_region_plugin_build_status(session, region, team.tenant_name,
+            status = plugin_version_service.get_region_plugin_build_status(session, region.region_name,
+                                                                           team.tenant_name,
                                                                            plugin_version.plugin_id,
                                                                            plugin_version.build_version)
             plugin_version.build_status = status
@@ -612,7 +613,7 @@ async def plugin_share(request: Request,
                 result = general_message(400, "failed", "插件正在构建中,请稍后再试")
                 return JSONResponse(result, status_code=result["code"])
         else:
-            return JSONResponse(general_message(400, "failed", "插件构建失败,不能共享"),
+            return JSONResponse(general_message(400, "failed", "请构建成功后再共享"),
                                 status_code=400)
     plugin = plugin_service.get_by_plugin_id(session, team.tenant_id, plugin_id)
     plugin_params = jsonable_encoder(plugin)
