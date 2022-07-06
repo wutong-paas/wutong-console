@@ -33,5 +33,3 @@ PyYAML~=6.0
 jsonpath~=0.82
 APScheduler~=3.9.1
 celery~=5.2.7
-
-pyhelm~=2.14.5
