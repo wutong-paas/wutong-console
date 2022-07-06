@@ -482,8 +482,7 @@ class MarketAppService(object):
                          region_name,
                          is_deploy,
                          install_from_cloud,
-                         helm_name,
-                         helm_namespace):
+                         helm_dir):
         app = (
             session.execute(select(Application).where(Application.ID == app_id))
         ).scalars().first()
@@ -491,11 +490,7 @@ class MarketAppService(object):
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
-        helm_apps = self.get_all_helm_info(session,
-                                           region_name,
-                                           tenant.tenant_name,
-                                           helm_name,
-                                           helm_namespace)
+        helm_apps = self.get_all_helm_info(helm_dir)
 
         app_template = {"plugins": None}
         app_template["group_key"] = "12345678"
@@ -733,12 +728,8 @@ class MarketAppService(object):
             raise RbdAppNotFound("未找到该应用")
         return app, app_version
 
-    def get_all_helm_info(self, session: SessionClass, region_name, tenant_name, helm_name, helm_namespace):
-        helm_list = center_app_repo.get_all_helm_info(session,
-                                                      region_name,
-                                                      tenant_name,
-                                                      helm_name,
-                                                      helm_namespace)
+    def get_all_helm_info(self, helm_dir):
+        helm_list = center_app_repo.get_all_helm_info(helm_dir)
         data = []
         kind_service = []
         kind_deployment = []
@@ -748,37 +739,31 @@ class MarketAppService(object):
         kind_statefulset = []
 
         for helm in helm_list:
-            info = helm.get("info")
-            kind = info.get("kind")
+            kind = helm.get("kind")
             if kind == Kind.Service.value:
-                kind_service.append(helm.get("apiResource"))
+                kind_service.append(helm)
             elif kind == Kind.Deployment.value:
-                kind_deployment.append(helm.get("apiResource"))
+                kind_deployment.append(helm)
             elif kind == Kind.ConfigMap.value:
-                kind_configmap.append(helm.get("apiResource"))
+                kind_configmap.append(helm)
             elif kind == Kind.PersistentVolumeClaim.value:
-                kind_persistent_volume_claim.append(helm.get("apiResource"))
+                kind_persistent_volume_claim.append(helm)
             elif kind == Kind.Secret.value:
-                kind_secret.append(helm.get("apiResource"))
+                kind_secret.append(helm)
             elif kind == Kind.StatefulSet.value:
-                kind_deployment.append(helm.get("apiResource"))
+                kind_deployment.append(helm)
 
         for deployment in kind_deployment:
             helm_data = {}
             new_ports = []
             secret_info = []
-            configmap_info = []
             volume_claim_info = []
             uuid = make_uuid()
             status = False
             enable = False
-            instance = jsonpath(deployment, '$.metadata..labels')[0].get("app.kubernetes.io/instance")
             deployment_name = jsonpath(deployment, '$.metadata..labels')[0].get("app.kubernetes.io/name")
             ports_deployment = jsonpath(deployment, '$.spec..template...spec')[0].get("containers")[0].get("ports")
-            if instance == deployment_name:
-                name = instance
-            else:
-                name = instance + "-" + deployment_name
+            name = jsonpath(deployment, '$.metadata..name')[0][13:]
             for service in kind_service:
                 service_name = jsonpath(service, '$.metadata..labels')[0].get("app.kubernetes.io/name")
                 if deployment_name != service_name:
@@ -856,11 +841,12 @@ class MarketAppService(object):
                         volume_name = volume.get("name")
                         if v_name == volume_name:
                             is_config_map = "configMap" in volume.keys()
-                            is_volume_claim = "persistentVolumeClaim" in volume.keys()
                             if is_config_map:
-                                sub_path = volume_mount["subPath"]
+                                try:
+                                    sub_path = volume_mount["subPath"]
+                                except:
+                                    sub_path = volume_mount["mountPath"]
                                 config_map = volume["configMap"]
-                                mode = config_map["defaultMode"]
                                 config_name = config_map["name"]
                                 volume_mount.update({"volume_type": "config-file"})
                                 volume_mount.update({"volume_name": config_name})
@@ -873,10 +859,8 @@ class MarketAppService(object):
                                     if is_config:
                                         file_content = configmap.get(sub_path)
                                 volume_mount.update({"file_content": file_content})
-                            if is_volume_claim:
-                                volume_claim = volume["persistentVolumeClaim"]
-                                volume_mount.update({"volume_type": "share-file"})
-                                volume_mount.update({"volume_name": volume_claim["claimName"]})
+                        else:
+                            volume_mount.update({"volume_type": "share-file"})
                         is_volume_name = "volume_name" in volume_mount.keys()
                         if not is_volume_name:
                             volume_mount.update({"volume_name": volume_mount.get("name")})

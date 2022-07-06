@@ -9,6 +9,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
+from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -154,6 +155,19 @@ async def install_plugin(request: Request,
     build_version = data.get("build_version", None)
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin_id", "参数错误"), status_code=400)
+    pbv = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
+    if pbv.build_status == "building":
+        status = plugin_version_service.get_region_plugin_build_status(session, region, team.tenant_name,
+                                                                       pbv.plugin_id,
+                                                                       pbv.build_version)
+        pbv.build_status = status
+        if status == "building":
+            result = general_message(400, "failed", "插件正在构建中,请稍后再试")
+            return JSONResponse(result, status_code=result["code"])
+    if pbv.build_status != "build_success":
+        result = general_message(400, "failed", "插件构建失败,不能开通")
+        return JSONResponse(result, status_code=result["code"])
+
     app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_id=team.tenant_id,
                                              service_id=service.service_id)
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant=team, service=service,

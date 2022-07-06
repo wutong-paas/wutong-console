@@ -1,10 +1,9 @@
 from typing import Optional
-
 from loguru import logger
 from sqlalchemy import select, or_, func, delete, not_, text
 from sqlalchemy.orm import defer
-
-from clients.remote_component_client import remote_component_client
+import yaml
+import os
 from database.session import SessionClass
 from models.application.models import ApplicationExportRecord
 from models.market import models
@@ -354,12 +353,14 @@ class CenterRepository(BaseRepository[CenterApp]):
         )
         return app, app_version
 
-    def get_all_helm_info(self, session: SessionClass, region_name, tenant_name, helm_name, helm_namespace):
-        return remote_component_client.get_helm_chart_resources(session,
-                                                                region_name,
-                                                                tenant_name,
-                                                                {"helm_name": helm_name,
-                                                                 "helm_namespace": helm_namespace})
+    def get_all_helm_info(self, dir):
+        values = []
+        for root, _, files in os.walk(dir):
+            for file_name in files:
+                stream = open(root + "\\" + file_name, mode='r', encoding='utf-8')
+                value = yaml.safe_load(stream)
+                values.append(value)
+        return values
 
     def get_wutong_app_by_app_id(self, session: SessionClass, eid, app_id):
         return session.execute(select(CenterApp).where(
