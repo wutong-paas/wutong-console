@@ -206,8 +206,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             WHERE
                 pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation)
                 AND tp.region = "{0}"
-                AND pbv.build_status = "{1}"
-        """.format(region, "build_success")
+        """.format(region)
 
         SHARED_QUERY_INSTALLED_SQL = """
         SELECT

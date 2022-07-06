@@ -598,6 +598,10 @@ async def plugin_share(request: Request,
                        session: SessionClass = Depends(deps.get_session),
                        user=Depends(deps.get_current_user),
                        team=Depends(deps.get_current_team)) -> Any:
+    plugin_version = plugin_version_service.get_plugin_version_by_id(session, team.tenant_id, plugin_id)
+    if plugin_version.build_status != "build_success":
+        return JSONResponse(general_message(400, "The plug-in has not been built successfully", "插件尚未构建成功"),
+                            status_code=400)
     plugin = plugin_service.get_by_plugin_id(session, team.tenant_id, plugin_id)
     plugin_params = jsonable_encoder(plugin)
     plugin_params.update({"origin": "shared"})
@@ -610,7 +614,6 @@ async def plugin_share(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
-    plugin_version = plugin_version_service.get_plugin_version_by_id(session, team.tenant_id, plugin_id)
     # 创建插件版本信息
     plugin_build_version = plugin_version_service.create_build_version(
         session,
