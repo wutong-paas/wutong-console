@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, DECIMAL
-
+from sqlalchemy.dialects.mysql import LONGTEXT
 from core.enum.component_enum import ComponentSource
 from database.session import Base
 
@@ -597,7 +597,7 @@ class TeamComponentConfigurationFile(Base):
     service_id = Column(String(32), comment="组件id", nullable=False)
     volume_id = Column(Integer, nullable=True, comment="存储id")
     volume_name = Column(String(32), nullable=True, comment="组件名称, 唯一标识")
-    file_content = Column(Text, nullable=False, comment="配置文件内容")
+    file_content = Column(LONGTEXT, nullable=False, comment="配置文件内容")
 
 
 class TeamComponentEnv(Base):
