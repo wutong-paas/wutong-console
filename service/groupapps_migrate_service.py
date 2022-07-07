@@ -499,7 +499,7 @@ class GroupappsMigrateService(object):
             plugin.pop("ID")
             plugin["tenant_id"] = tenant.tenant_id
             plugin["region"] = region_name
-            plugin = plugin_repo.create_if_not_exist(**plugin)
+            plugin = plugin_repo.create_if_not_exist(session, **plugin)
             if plugin:
                 create_plugins.append(plugin)
         return create_plugins
