@@ -10,7 +10,7 @@ class PluginConfigGroupRepository(BaseRepository[PluginConfigGroup]):
         result = session.execute(select(PluginConfigGroup).where(
             PluginConfigGroup.plugin_id == plugin_config_group["plugin_id"],
             PluginConfigGroup.build_version == plugin_config_group["build_version"],
-            PluginConfigGroup.attr_name == plugin_config_group["config_name"]
+            PluginConfigGroup.config_name == plugin_config_group["config_name"]
         )).scalars().first()
         if not result:
             pcg = PluginConfigGroup(**plugin_config_group)
