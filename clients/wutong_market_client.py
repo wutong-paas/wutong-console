@@ -322,6 +322,25 @@ class WutongMarketClient(MarketHttpClient):
         MarketHttpClient.__init__(self)
         self.default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
 
+    def check_store(self, url: str, access_key: str, access_secret: str):
+        sign_str, param_str = encode_params(params=build_sign_params(access_key=access_key),
+                                            secret=access_secret, method="GET")
+        try:
+            url += "?Signature=" + quote(sign_str) + "&" + param_str
+            res, body = self._get(url, self.default_headers, timeout=10)
+            if body.code == "0":
+                return body.data
+            else:
+                logger.error("绑定店铺,校验失败,url:{},resp:{}", url, res)
+                return False
+        except MarketHttpClient.CallApiError as e:
+            logger.error("远程校验店铺信息失败,error:{}", e)
+            raise AbortRequest("远程校验店铺信息失败", "远程校验店铺信息失败",
+                               status_code=500, error_code=500)
+        except Exception as e:
+            logger.error("远程校验店铺信息失败,error:{}", e)
+            raise AbortRequest("远程校验店铺信息失败", "远程校验店铺信息失败", status_code=500, error_code=500)
+
     def get_market_apps(self, body: dict, market: AppMarket):
         # 参数排序
         sorted_body = dict(sorted(body.items(), key=lambda x: x[0]))

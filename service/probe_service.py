@@ -48,7 +48,7 @@ class ProbeService(object):
             "service_id": service.service_id,
             "scheme": data.get("scheme", "tcp"),
             "path": data.get("path", ""),
-            "port": data.get("port"),
+            "port": int(data.get("port")),
             "cmd": data.get("cmd", ""),
             "http_header": data.get("http_header", ""),
             "initial_delay_second": data.get("initial_delay_second", 4),
