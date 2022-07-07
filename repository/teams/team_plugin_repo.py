@@ -12,6 +12,12 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
 
     """
 
+    def get_plugin_buildversion(self, session, plugin_id, version):
+        return session.execute(select(PluginBuildVersion).where(
+            PluginBuildVersion.plugin_id == plugin_id,
+            PluginBuildVersion.build_version == version
+        )).scalars().first()
+
     def list_by_tenant_id(self, session: SessionClass, tenant_id, region_name):
         """
         查询插件列表
@@ -144,12 +150,20 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
                                        TeamPlugin.region == plugin["region"])
         results = session.execute(sql)
         data = results.all()
-        if data:
+        if not data:
+            add_plugin = TeamPlugin(**plugin)
+            session.add(add_plugin)
+            session.flush()
+            return add_plugin
+        if len(data) > 1:
             session.execute(delete(TeamPlugin).where(TeamPlugin.tenant_id == plugin["tenant_id"],
                                                      TeamPlugin.plugin_id == plugin["plugin_id"],
                                                      TeamPlugin.region == plugin["region"]))
-        add_plugin = TeamPlugin(**plugin)
-        session.add(add_plugin)
+            add_plugin = TeamPlugin(**plugin)
+            session.add(add_plugin)
+            session.flush()
+            return add_plugin
+        return data[0]
 
     def bulk_create(self, session: SessionClass, plugins):
         """

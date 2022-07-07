@@ -252,7 +252,8 @@ class GroupAppCopyService(object):
                                                                                                      service.service_id)
                 for service_plugin in service_plugins:
                     plugin = plugin_repo.get_by_plugin_id(session, service_plugin.plugin_id)
-                    plugin_version = plugin_repo.get_plugin_buildversion(service_plugin.plugin_id,
+                    plugin_version = plugin_repo.get_plugin_buildversion(session,
+                                                                         service_plugin.plugin_id,
                                                                          service_plugin.build_version)
                     # 在数据中心创建插件
                     try:
@@ -267,7 +268,8 @@ class GroupAppCopyService(object):
                         logger.debug(e)
                     # 为组件开通插件
                     try:
-                        region_config = app_plugin_service.get_region_config_from_db(service, service_plugin.plugin_id,
+                        region_config = app_plugin_service.get_region_config_from_db(session,
+                                                                                     service, service_plugin.plugin_id,
                                                                                      service_plugin.build_version)
                         data = dict()
                         data["plugin_id"] = service_plugin.plugin_id
