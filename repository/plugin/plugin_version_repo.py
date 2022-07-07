@@ -6,6 +6,18 @@ from repository.base import BaseRepository
 
 class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
 
+    def create_if_not_exist(self, session, **plugin_build_version):
+        result = session.execute(select(PluginBuildVersion).where(
+            PluginBuildVersion.plugin_id == plugin_build_version["plugin_id"],
+            PluginBuildVersion.tenant_id == plugin_build_version["tenant_id"]
+        )).scalars().first()
+        if not result:
+            pbv = PluginBuildVersion(**plugin_build_version)
+            session.add(pbv)
+            session.flush()
+            return pbv
+        return result
+
     def list_by_plugin_ids(self, session, plugin_ids):
         return session.execute(select(PluginBuildVersion).where(
             PluginBuildVersion.plugin_id.in_(plugin_ids)

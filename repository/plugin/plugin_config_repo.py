@@ -6,6 +6,17 @@ from repository.base import BaseRepository
 
 class PluginConfigGroupRepository(BaseRepository[PluginConfigGroup]):
 
+    def create_if_not_exist(self, session, **plugin_config_group):
+        result = session.execute(select(PluginConfigGroup).where(
+            PluginConfigGroup.plugin_id == plugin_config_group["plugin_id"],
+            PluginConfigGroup.build_version == plugin_config_group["build_version"],
+            PluginConfigGroup.attr_name == plugin_config_group["config_name"]
+        )).scalars().first()
+        if not result:
+            pcg = PluginConfigGroup(**plugin_config_group)
+            session.add(pcg)
+            session.flush()
+
     def delete_config_group_by_meta_type(self, session, plugin_id, build_version, service_meta_type):
         session.execute(delete(PluginConfigGroup).where(
             PluginConfigGroup.plugin_id == plugin_id,
@@ -43,6 +54,17 @@ class PluginConfigGroupRepository(BaseRepository[PluginConfigGroup]):
 
 
 class PluginConfigItemsRepository(BaseRepository[PluginConfigItems]):
+
+    def create_if_not_exist(self, session, **plugin_config_item):
+        result = session.execute(select(PluginConfigItems).where(
+            PluginConfigItems.plugin_id == plugin_config_item["plugin_id"],
+            PluginConfigItems.build_version == plugin_config_item["build_version"],
+            PluginConfigItems.attr_name == plugin_config_item["attr_name"]
+        )).scalars().first()
+        if not result:
+            pci = PluginConfigItems(**plugin_config_item)
+            session.add(pci)
+            session.flush()
 
     def delete_config_items(self, session, plugin_id, build_version, service_meta_type):
         session.execute(delete(PluginConfigItems).where(
