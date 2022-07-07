@@ -26,6 +26,8 @@ from repository.component.service_config_repo import port_repo, volume_repo, com
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_probe_repo import probe_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
+from repository.plugin.plugin_config_repo import config_item_repo, config_group_repo
+from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_repo import team_repo
@@ -509,16 +511,14 @@ class GroupappsMigrateService(object):
             return
         for item in plugin_config_items:
             item.pop("ID")
-            # todo
-            plugin_config_items_repo.create_if_not_exist(**item)
+            config_item_repo.create_if_not_exist(session, **item)
 
     def __save_plugin_config_groups(self, session: SessionClass, plugin_config_groups):
         if not plugin_config_groups:
             return
         for group in plugin_config_groups:
             group.pop("ID")
-            # todo
-            plugin_config_group_repo.create_if_not_exist(**group)
+            config_group_repo.create_if_not_exist(session, **group)
 
     def __save_plugin_build_versions(self, session: SessionClass, tenant, plugin_build_versions):
         if not plugin_build_versions:
@@ -527,8 +527,7 @@ class GroupappsMigrateService(object):
         for version in plugin_build_versions:
             version.pop("ID")
             version["tenant_id"] = tenant.tenant_id
-            # todo
-            create_version = build_version_repo.create_if_not_exist(**version)
+            create_version = plugin_version_repo.create_if_not_exist(session, **version)
             create_version_list.append(create_version)
         return create_version_list
 
