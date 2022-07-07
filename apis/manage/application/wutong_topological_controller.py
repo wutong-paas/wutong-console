@@ -79,7 +79,7 @@ async def open_topological_port(
             if code != 200:
                 logger.exception(msg, msg_show)
                 return JSONResponse(general_message(code, msg, msg_show), status_code=code)
-        code, msg, data = port_service.manage_port(session.tenant, service, response_region, int(container_port),
+        code, msg, data = port_service.manage_port(session, team, service, response_region, int(container_port),
                                                    "open_outer", tenant_service_port.protocol,
                                                    tenant_service_port.port_alias)
         if code != 200:
