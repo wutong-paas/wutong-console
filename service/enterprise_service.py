@@ -101,6 +101,7 @@ class EnterpriseServices(object):
             component_and_app[relation.service_id] = relation.group_id
 
         running_apps = []
+        running_component_ids = list(set(running_component_ids))
         for running_component in running_component_ids:
             # if this running component belong to this enterprise
             app = component_and_app.get(running_component)
