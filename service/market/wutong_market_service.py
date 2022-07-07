@@ -58,6 +58,12 @@ def bind_wutong_market(session: SessionClass, enterprise_id: str, params: Market
     if store_url.count("/") < 1 or not store_id:
         raise AbortRequest("store_id not found", "url格式错误,未找到store_id", status_code=400, error_code=400)
 
+    # 添加校验
+    check_result = wutong_market_client.check_store(url=params.url, access_key=params.access_key,
+                                                    access_secret=params.access_secret)
+    if not check_result:
+        raise AbortRequest("params error", "店铺信息校验失败,请检查参数", status_code=400, error_code=400)
+
     # 截取服务地址
     server_address = store_url.split("/wutong-open-market-admin/")[0]
 
