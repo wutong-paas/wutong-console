@@ -157,12 +157,18 @@ class PluginService(object):
             plugin_base_info.origin_share_id = plugin_type
             # plugin_base_info.save()
 
+            if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin":
+                min_memory = 256
+            else:
+                min_memory = 64
+
             plugin_build_version = plugin_version_service.create_build_version(session=session,
                                                                                region=region,
                                                                                plugin_id=plugin_base_info.plugin_id,
                                                                                tenant_id=tenant.tenant_id,
                                                                                user_id=user.user_id, update_info="",
-                                                                               build_status="unbuild", min_memory=64,
+                                                                               build_status="unbuild",
+                                                                               min_memory=min_memory,
                                                                                image_tag=image_tag,
                                                                                build_version=build_version)
 
