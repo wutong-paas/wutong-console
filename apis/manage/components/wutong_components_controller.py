@@ -126,8 +126,8 @@ async def get_pods_info(serviceAlias: Optional[str] = None,
                     container_dict["memory_usage"] = round(memory_usage, 2)
                     container_dict["usage_rate"] = round(usage_rate, 2)
                     container_list.append(container_dict)
-                    if key.startswith('default-tcpmesh'):
-                        if len(container_list) > 1 and service.k8s_component_name.startswith('default-tcpmesh') == False:
+                    if service.k8s_component_name.startswith.startswith(key):
+                        if len(container_list) > 1:
                             container_list[0], container_list[len(container_list) - 1] = container_list[len(container_list) - 1], container_list[0]
                 bean["container"] = container_list
                 res.append(bean)
