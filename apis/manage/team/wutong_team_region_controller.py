@@ -313,7 +313,18 @@ async def get_region_key(
         "patch"],
     include_in_schema=False,
     response_model=Response, name="文件管理")
-async def file_manager(
+@router.get("/dbgate/{service_id}", response_model=Response, name="数据中间件管理")
+@router.api_route(
+    "/dbgate/{service_id}/{url:path}",
+    methods=[
+        "post",
+        "get",
+        "delete",
+        "put",
+        "patch"],
+    include_in_schema=False,
+    response_model=Response, name="数据中间件管理")
+async def manager(
         request: Request,
         service_id: Optional[str] = None,
         url: Optional[str] = None,
@@ -332,10 +343,11 @@ async def file_manager(
         params = str(request.query_params)
         if url is None:
             url = ""
+        head_url = '/console/' + str(request.url).split("console")[1].split("/")[1] + '/'
         if params == '':
-            url_path = '/console/filebrowser/' + service_id + '/' + url
+            url_path = head_url + service_id + '/' + url
         else:
-            url_path = '/console/filebrowser/' + service_id + '/' + url + '?' + params,
+            url_path = head_url + service_id + '/' + url + '?' + params,
             url_path = url_path[0]
         service = service_info_repo.get_service_by_service_id(session, service_id)
         response = await remote_app_client.proxy(
