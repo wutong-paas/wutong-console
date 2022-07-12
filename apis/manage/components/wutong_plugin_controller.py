@@ -10,7 +10,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
-from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
+from repository.plugin.service_plugin_repo import service_plugin_config_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
