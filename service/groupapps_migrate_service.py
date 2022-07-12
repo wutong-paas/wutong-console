@@ -259,7 +259,7 @@ class GroupappsMigrateService(object):
             k8s_service_name = port.get("k8s_service_name", "")
             if k8s_service_name:
                 try:
-                    port_repo.get_by_k8s_service_name(tenant.tenant_id, k8s_service_name)
+                    port_repo.get_by_k8s_service_name(session, tenant.tenant_id, k8s_service_name)
                     k8s_service_name += "-" + make_uuid()[-4:]
                     # update port if k8s_service_name has changed.
                     body = port
@@ -273,6 +273,7 @@ class GroupappsMigrateService(object):
             new_port.service_id = service.service_id
             new_port.tenant_id = tenant.tenant_id
             new_port.k8s_service_name = port.get("k8s_service_name")
+            new_port.port_alias = (service.service_alias + str(port["container_port"])).upper()
             port_list.append(new_port)
 
             # make sure the value of X_HOST env is correct
