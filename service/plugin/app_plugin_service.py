@@ -216,7 +216,8 @@ class AppPluginService(object):
                                               container_port, plugin_id):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
         if plugin_info:
-            if plugin_info.origin_share_id == "filebrowser_plugin":
+            if plugin_info.origin_share_id == "filebrowser_plugin" or plugin_info.origin_share_id == "redis_dbgate_plugin" \
+                    or plugin_info.origin_share_id == "mysql_dbgate_plugin":
                 port = port_service.get_port_by_container_port(session, service, container_port)
                 if not port:
                     return
@@ -571,7 +572,13 @@ class AppPluginService(object):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
 
         if plugin_info:
-            if plugin_info.origin_share_id == "filebrowser_plugin":
+            if plugin_info.origin_share_id == "filebrowser_plugin"\
+                    or plugin_info.origin_share_id == "redis_dbgate_plugin"\
+                    or plugin_info.origin_share_id == "mysql_dbgate_plugin":
+                if plugin_info.origin_share_id == "filebrowser_plugin":
+                    container_port = "6173"
+                else:
+                    container_port = "3000"
                 port_num = container_port
                 protocol = "http"
                 port_alias = service.service_alias.upper().replace("-", "_") + str(port_num)

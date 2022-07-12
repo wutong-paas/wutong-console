@@ -10,10 +10,11 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
-from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
+from repository.plugin.service_plugin_repo import service_plugin_config_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
+from service.app_config.port_service import port_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
 from service.plugin_service import default_plugins, plugin_service
@@ -227,6 +228,9 @@ async def delete_plugin(plugin_id: Optional[str] = None,
 
         config_attr_port = attrs.get("FB_PORT")
 
+        if not config_attr_port:
+            config_attr_port = attrs.get("PORT")
+
         app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
                                                                  response_region=response_region, plugin_id=plugin_id,
                                                                  container_port=config_attr_port, user=user)
@@ -428,5 +432,44 @@ async def update_plugin_config(request: Request,
                 app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service,
                                                         plugin_id=plugin_id,
                                                         plugin_version=pbv.build_version, user=user)
+        if plugin_info.origin_share_id == "redis_dbgate_plugin" or plugin_info.origin_share_id == "mysql_dbgate_plugin":
+            port = 0
+            old_port = 0
+            old_config_attr_info = result_bean["undefine_env"]["config"]
+
+            for old_config in old_config_attr_info:
+                if old_config["attr_name"] == "PORT":
+                    old_port = old_config["attr_value"]
+                    break
+
+            config_attr_info = config["undefine_env"]["config"]
+            for config in config_attr_info:
+                if config["attr_name"] == "PORT":
+                    port = config["attr_value"]
+                    break
+            if old_port != port:
+                code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
+                                                           region_name=response_region, container_port=old_port,
+                                                           action="close_inner",
+                                                           protocol="http", port_alias=None,
+                                                           k8s_service_name="", user_name=user.nick_name)
+
+                if code != 200:
+                    logger.debug("close file manager inner error", msg)
+                port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
+                                                           container_port=int(old_port),
+                                                           user_name=user.nick_name)
+                port_alias = service.service_alias.upper().replace("-", "_") + str(port)
+                try:
+                    port_service.add_service_port(session=session, tenant=team, service=service,
+                                                  container_port=port, protocol="http",
+                                                  port_alias=port_alias,
+                                                  is_inner_service=True,
+                                                  is_outer_service=False,
+                                                  k8s_service_name=None,
+                                                  user_name=user.nick_name)
+                except:
+                    pass
+
     result = general_message(200, "success", "配置更新成功")
     return JSONResponse(result, result["code"])
