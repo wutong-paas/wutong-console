@@ -342,7 +342,11 @@ async def manager(
         params = str(request.query_params)
         if url is None:
             url = ""
-        head_url = '/console/' + str(request.url).split("console")[1].split("/")[1] + '/'
+        if "dbgate" in str(request.url):
+            head_url = '/console/dbgate/'
+        else:
+            head_url = '/console/filebrowser/'
+        # head_url = '/console/' + str(request.url).split("console")[1].split("/")[1] + '/'
         if params == '':
             url_path = head_url + service_id + '/' + url
         else:
