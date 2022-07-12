@@ -260,7 +260,7 @@ class GroupappsMigrateService(object):
             if k8s_service_name:
                 try:
                     port_repo.get_by_k8s_service_name(session, tenant.tenant_id, k8s_service_name)
-                    k8s_service_name += "-" + make_uuid()[-4:]
+                    k8s_service_name = service.service_alias + "-" + str(port["container_port"])
                     # update port if k8s_service_name has changed.
                     body = port
                     body["k8s_service_name"] = k8s_service_name
