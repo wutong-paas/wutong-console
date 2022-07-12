@@ -6,7 +6,6 @@ from starlette.responses import JSONResponse
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from core import deps
-from core.setting import role_required
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
@@ -313,44 +312,6 @@ async def get_region_key(
         "patch"],
     include_in_schema=False,
     response_model=Response, name="文件管理")
-async def file_manager(
-        request: Request,
-        service_id: Optional[str] = None,
-        url: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    try:
-        authorization = request.cookies.get("token", None)
-        if not authorization:
-            result = general_message(405, 'User not logged in', '用户未登录')
-            return JSONResponse(result, status_code=405)
-
-        body = await request.body()
-        try:
-            data_json = await request.json()
-        except:
-            data_json = {}
-        params = str(request.query_params)
-        if url is None:
-            url = ""
-        if params == '':
-            url_path = '/console/filebrowser/' + service_id + '/' + url
-        else:
-            url_path = '/console/filebrowser/' + service_id + '/' + url + '?' + params,
-            url_path = url_path[0]
-        service = service_info_repo.get_service_by_service_id(session, service_id)
-        response = await remote_app_client.proxy(
-            session, request,
-            url_path,
-            service.service_region,
-            data_json,
-            body)
-    except Exception as exc:
-        logger.exception(exc)
-        response = None
-    # response = self.finalize_response(request, response, *args, **kwargs)
-    return response
-
-
 @router.get("/dbgate/{service_id}", response_model=Response, name="数据中间件插件管理")
 @router.api_route(
     "/dbgate/{service_id}/{url:path}",
@@ -362,7 +323,7 @@ async def file_manager(
         "patch"],
     include_in_schema=False,
     response_model=Response, name="数据中间件插件管理")
-async def dbgate_manager(
+async def manager(
         request: Request,
         service_id: Optional[str] = None,
         url: Optional[str] = None,
@@ -381,10 +342,11 @@ async def dbgate_manager(
         params = str(request.query_params)
         if url is None:
             url = ""
+        head_url = '/console/' + str(request.url).split("console")[1].split("/")[1] + '/'
         if params == '':
-            url_path = '/console/dbgate/' + service_id + '/' + url
+            url_path = head_url + service_id + '/' + url
         else:
-            url_path = '/console/dbgate/' + service_id + '/' + url + '?' + params,
+            url_path = head_url + service_id + '/' + url + '?' + params,
             url_path = url_path[0]
         service = service_info_repo.get_service_by_service_id(session, service_id)
         response = await remote_app_client.proxy(
