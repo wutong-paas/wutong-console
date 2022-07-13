@@ -158,6 +158,8 @@ class PluginService(object):
             # plugin_base_info.save()
 
             if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin":
+                min_memory = 512
+            elif plugin_type == "filebrowser_plugin":
                 min_memory = 256
             else:
                 min_memory = 64
