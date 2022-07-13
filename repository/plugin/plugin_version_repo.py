@@ -41,8 +41,7 @@ class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
 
     def get_by_id_and_version(self, session, plugin_id, build_version):
         return session.execute(select(PluginBuildVersion).where(
-            PluginBuildVersion.plugin_id == plugin_id,
-            PluginBuildVersion.build_version == build_version)).scalars().first()
+            PluginBuildVersion.plugin_id == plugin_id)).scalars().first()
 
     def get_plugin_version_by_id(self, session, tenant_id, plugin_id):
         return session.execute(select(PluginBuildVersion).where(
