@@ -3,6 +3,8 @@ import os
 from sqlalchemy import select, delete, text
 from models.application.plugin import TeamComponentPluginRelation, TeamServicePluginAttr, ComponentPluginConfigVar
 from repository.base import BaseRepository
+from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
+from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.teams.team_plugin_repo import plugin_repo
 
 
@@ -253,19 +255,39 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                     "category": category,
                     "build_version": build_version
                 }
+                plugins = plugin_repo.get_by_type_plugins(session, plugin_type, "sys")
+                if plugins:
+                    for plugin in plugins:
+                        plugin_id = plugin.plugin_id
+                        config_groups = config_group_repo.get_config_group_by_id_and_version(
+                            session=session,
+                            plugin_id=plugin_id,
+                            build_version=build_version)
+                        if config_groups:
+                            for config_group in config_groups:
+                                if config_group.build_version != build_version:
+                                    config_group.build_version = build_version
+                                    pcgs = config_item_repo.list_by_plugin_id(session=session, plugin_id=plugin_id)
+                                    if pcgs:
+                                        for p in pcgs:
+                                            p.build_version = build_version
+                                    pbvs = plugin_version_repo.get_plugin_versions(session, plugin_id)
+                                    if pcgs:
+                                        for p in pbvs:
+                                            p.build_version = build_version
+                                    needed_plugin_config = all_default_config[plugin_type]
+                                    plugin.image = needed_plugin_config.get("image", "")
+                                    plugin.build_source = needed_plugin_config.get("build_source", "")
+                                    plugin.plugin_alias = needed_plugin_config["plugin_alias"]
+                                    plugin.category = needed_plugin_config["category"]
+                                    plugin.code_repo = needed_plugin_config["code_repo"]
+
                 install_plugins_rel = app_plugin_relation_repo.get_service_plugin_relation(session, service_id)
                 if install_plugins_rel:
                     is_open = False
                     for plugin_rel in install_plugins_rel:
                         plugin_id = plugin_rel.plugin_id
                         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
-                        if plugin_rel.build_version != build_version and plugin.origin_share_id == plugin_type:
-                            needed_plugin_config = all_default_config[plugin_type]
-                            plugin.image = needed_plugin_config.get("image", "")
-                            plugin.build_source = needed_plugin_config.get("build_source", "")
-                            plugin.plugin_alias = needed_plugin_config["plugin_alias"]
-                            plugin.category = needed_plugin_config["category"]
-                            plugin.code_repo = needed_plugin_config["code_repo"]
 
                         if plugin.origin == origin and plugin.origin_share_id == plugin_type:
                             plugin_dict.update({"origin_share_id": origin_share_id})

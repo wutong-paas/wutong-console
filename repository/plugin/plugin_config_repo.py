@@ -39,8 +39,7 @@ class PluginConfigGroupRepository(BaseRepository[PluginConfigGroup]):
 
     def get_config_group_by_id_and_version(self, session, plugin_id, build_version):
         return (session.execute(select(PluginConfigGroup).where(
-            PluginConfigGroup.plugin_id == plugin_id,
-            PluginConfigGroup.build_version == build_version))).scalars().all()
+            PluginConfigGroup.plugin_id == plugin_id))).scalars().all()
 
     def get_config_group_by_id_and_version_pk(self, session, plugin_id, build_version, pk):
         return (session.execute(select(PluginConfigGroup).where(
