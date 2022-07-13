@@ -401,16 +401,6 @@ async def component_horizontal(request: Request,
         app_manage_service.horizontal_upgrade(
             session, team, service, user, int(new_node), oauth_instance=oauth_instance)
         result = general_message(200, "success", "操作成功", bean={})
-        # 添加消息投递
-        # todo 操作时间取数据库时间
-        # logger.info("组件水平扩展,投递资源变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
-        # _thread.start_new_thread(message_service.component_update_event, (
-        #     SessionClass(),
-        #     service.service_id,
-        #     datetime.datetime.now(),
-        #     user.real_name, 5,))
-        # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
-        #                                        operation_time=datetime.datetime.now(), operator=user.real_name)
     except ResourceNotEnoughException as re:
         raise re
     except AccountOverdueException as re:

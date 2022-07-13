@@ -21,14 +21,6 @@ class Settings(BaseSettings):
     # 跨域白名单
     BACKEND_CORS_ORIGINS: List = ['*']
 
-    # REDIS_STREAM_HOST = os.environ.get("REDIS_HOST", "localhost")
-    # REDIS_STREAM_PORT = os.environ.get("REDIS_PORT", 6379)
-    # REDIS_STREAM_PASSWORD = os.environ.get("REDIS_PASS", "123456")
-    # REDIS_STREAM_DATABASE = os.environ.get("REDIS_DATABASE", 9)
-    # REDIS_STREAM_NAME = os.environ.get("REDIS_STREAM_NAME", "wutong-report-stream")
-    # REDIS_STREAM_CONSUMER_NAME = os.environ.get("REDIS_STREAM_CONSUMER_NAME", "wutong-report-consumer")
-    # REDIS_STREAM_GROUP_NAME = os.environ.get("REDIS_STREAM_GROUP_NAME", "wutong-report-group")
-
     REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
     REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
     REDIS_PASSWORD = os.environ.get("REDIS_PASS", "123456")

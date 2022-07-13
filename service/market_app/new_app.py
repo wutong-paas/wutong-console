@@ -183,19 +183,6 @@ class NewApp(object):
         session.add_all(service_group_rels)
         session.add_all(labels)
 
-        # todo 逻辑优化
-        # session.flush()
-        # for component in components:
-        #     logger.info("应用市场创建组件,投递组件变更消息,组件ID:{},组件名称:{}", component.service_id, component.service_cname)
-        #     _thread.start_new_thread(message_service.component_update_event, (
-        #         SessionClass(),
-        #         component.service_id,
-        #         datetime.datetime.now(),
-        #         self.user.real_name, 5,))
-        # message_service.component_update_event(session=SessionClass(), component_id=component.service_id,
-        #                                        operation_time=datetime.datetime.now(),
-        #                                        operator=self.user.real_name)
-
     def _update_components(self, session):
         """
         update existing components
