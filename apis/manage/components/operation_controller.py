@@ -1,5 +1,3 @@
-import _thread
-import datetime
 import re
 from typing import Any, Optional
 
@@ -35,7 +33,6 @@ from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_check_service
-from service.event import message_service
 from service.monitor_service import monitor_service
 from service.multi_app_service import multi_app_service
 from service.user_service import user_svc
@@ -283,12 +280,12 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
 
             # 添加消息投递
             # todo 操作时间取数据库时间
-            logger.info("新构建组件,投递组件变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
-            _thread.start_new_thread(message_service.component_update_event, (
-                SessionClass(),
-                service.service_id,
-                datetime.datetime.now(),
-                user.real_name, 0,))
+            # logger.info("新构建组件,投递组件变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
+            # _thread.start_new_thread(message_service.component_update_event, (
+            #     SessionClass(),
+            #     service.service_id,
+            #     datetime.datetime.now(),
+            #     user.real_name, 0,))
             # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
             #                                        operation_time=datetime.datetime.now(), operator=user.real_name)
         return JSONResponse(general_message(200, "success", "构建成功"), status_code=200)
@@ -370,12 +367,12 @@ async def component_vertical(request: Request,
         result = general_message(code, "success", "操作成功", bean=bean)
         # 添加消息投递
         # todo 操作时间取数据库时间
-        logger.info("组件垂直扩展,投递资源变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
-        _thread.start_new_thread(message_service.component_update_event, (
-            SessionClass(),
-            service.service_id,
-            datetime.datetime.now(),
-            user.real_name, 0,))
+        # logger.info("组件垂直扩展,投递资源变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
+        # _thread.start_new_thread(message_service.component_update_event, (
+        #     SessionClass(),
+        #     service.service_id,
+        #     datetime.datetime.now(),
+        #     user.real_name, 0,))
         # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
         #                                        operation_time=datetime.datetime.now(), operator=user.real_name)
 
@@ -406,12 +403,12 @@ async def component_horizontal(request: Request,
         result = general_message(200, "success", "操作成功", bean={})
         # 添加消息投递
         # todo 操作时间取数据库时间
-        logger.info("组件水平扩展,投递资源变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
-        _thread.start_new_thread(message_service.component_update_event, (
-            SessionClass(),
-            service.service_id,
-            datetime.datetime.now(),
-            user.real_name, 5,))
+        # logger.info("组件水平扩展,投递资源变更消息,组件ID:{},组件名称:{}", service.service_id, service.service_cname)
+        # _thread.start_new_thread(message_service.component_update_event, (
+        #     SessionClass(),
+        #     service.service_id,
+        #     datetime.datetime.now(),
+        #     user.real_name, 5,))
         # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
         #                                        operation_time=datetime.datetime.now(), operator=user.real_name)
     except ResourceNotEnoughException as re:

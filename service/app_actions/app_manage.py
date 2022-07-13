@@ -57,7 +57,6 @@ from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.base_services import baseService
-from service.event import message_service
 from service.market_app_service import market_app_service
 
 
@@ -1049,16 +1048,16 @@ class AppManageService(AppManageBase):
             self.move_service_into_recycle_bin(session=session, service=service)
             # 组件关系移除
             self.move_service_relation_info_recycle_bin(session=session, tenant=tenant, service=service)
-            message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
-                                                   operation_time=datetime.datetime.now(),
-                                                   operator=user.real_name)
+            # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+            #                                        operation_time=datetime.datetime.now(),
+            #                                        operator=user.real_name)
             return 200, "success"
         else:
             try:
                 code, msg = self.truncate_service(session=session, tenant=tenant, service=service, user=user)
-                message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
-                                                       operation_time=datetime.datetime.now(),
-                                                       operator=user.real_name)
+                # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+                #                                        operation_time=datetime.datetime.now(),
+                #                                        operator=user.real_name)
                 if code != 200:
                     return code, msg
                 else:
@@ -1316,9 +1315,9 @@ class AppManageService(AppManageBase):
             self.move_service_into_recycle_bin(session=session, service=service)
             # 组件关系移除
             self.move_service_relation_info_recycle_bin(session=session, tenant=tenant, service=service)
-            message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
-                                                   operation_time=datetime.datetime.now(),
-                                                   operator=user.real_name)
+            # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+            #                                        operation_time=datetime.datetime.now(),
+            #                                        operator=user.real_name)
             code = 200
             msg = "success"
             return code, msg
@@ -1328,9 +1327,9 @@ class AppManageService(AppManageBase):
                 if code != 200:
                     return code, msg
                 else:
-                    message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
-                                                           operation_time=datetime.datetime.now(),
-                                                           operator=user.real_name)
+                    # message_service.component_update_event(session=SessionClass(), component_id=service.service_id,
+                    #                                        operation_time=datetime.datetime.now(),
+                    #                                        operator=user.real_name)
                     msg = "success"
                     return code, msg
             except Exception as e:
