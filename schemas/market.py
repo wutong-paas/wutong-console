@@ -68,8 +68,8 @@ class MarketAppModelParam(BaseModel):
 class MarketAppQueryVO(BaseModel):
     del_flag: Optional[bool] = False
     queryAppVersionFlag: Optional[int] = 1
-    # todo
-    store_id: Optional[str] = "d50f8f8fb096a39bfb5721d5a3db3f1b"
+    source: Optional[int] = 0
+    store_id: Optional[str] = ""
     name: Optional[str] = ""
 
 

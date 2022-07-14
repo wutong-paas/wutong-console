@@ -72,5 +72,10 @@ class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
             PluginBuildVersion.tenant_id == tenant_id,
             PluginBuildVersion.plugin_id == plugin_id)).scalars().first()
 
+    def delete_version_by_id(self, session, plugin_id):
+        session.execute(delete(PluginBuildVersion).where(
+            PluginBuildVersion.plugin_id == plugin_id))
+        session.flush()
+
 
 plugin_version_repo = PluginVersionRepository(PluginBuildVersion)
