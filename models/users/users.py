@@ -106,7 +106,7 @@ class UserAccessKey(Base):
     ID = Column(Integer, primary_key=True)
     note = Column(String(32), comment="凭证标识")
     user_id = Column(Integer, comment="用户id")
-    access_key = Column(String(192), unique=True, comment="凭证")
+    access_key = Column(String(512), unique=True, comment="凭证")
     expire_time = Column(DateTime(), nullable=True, comment="过期时间")
 
 
