@@ -1,11 +1,16 @@
 import json
 import os
 from sqlalchemy import select, delete, text
-from models.application.plugin import TeamComponentPluginRelation, TeamServicePluginAttr, ComponentPluginConfigVar
+
+from core.setting import settings
+from core.utils.crypt import make_uuid
+from models.application.plugin import TeamComponentPluginRelation, TeamServicePluginAttr, ComponentPluginConfigVar, \
+    PluginConfigGroup, PluginConfigItems
 from repository.base import BaseRepository
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.teams.team_plugin_repo import plugin_repo
+from service.plugin.plugin_version_service import plugin_version_service
 
 
 class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
@@ -151,6 +156,74 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
     with open(file_path, encoding='utf-8') as f:
         all_default_config = json.load(f)
 
+    def update_sys_plugin(self, session, plugin, tenant, plugin_type, user, region, needed_plugin_config,
+                          build_version):
+        if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin":
+            min_memory = 512
+        elif plugin_type == "filebrowser_plugin":
+            min_memory = 256
+        else:
+            min_memory = 64
+
+        image = needed_plugin_config.get("image", "")
+        build_source = needed_plugin_config.get("build_source", "")
+        image_tag = "latest"
+        if image and build_source and build_source == "image":
+            ref = image.split(":")
+            if len(ref) > 1:
+                image_tag = ":".join(ref[1:])
+            if "goodrain.me" in image:
+                _, name = ref.split_hostname()
+                image = settings.IMAGE_REPO + "/" + name
+            else:
+                image = ref[0]
+
+        plugin_build_version = plugin_version_service.create_build_version(session=session,
+                                                                           region=region,
+                                                                           plugin_id=plugin.plugin_id,
+                                                                           tenant_id=tenant.tenant_id,
+                                                                           user_id=user.user_id, update_info="",
+                                                                           build_status="unbuild",
+                                                                           min_memory=min_memory,
+                                                                           image_tag=image_tag,
+                                                                           build_version=build_version)
+
+        plugin_config_meta_list = []
+        config_items_list = []
+        config_group = needed_plugin_config.get("config_group")
+        if config_group:
+            for config in config_group:
+                options = config["options"]
+                plugin_config_meta = PluginConfigGroup(
+                    plugin_id=plugin_build_version.plugin_id,
+                    build_version=plugin_build_version.build_version,
+                    config_name=config["config_name"],
+                    service_meta_type=config["service_meta_type"],
+                    injection=config["injection"])
+                plugin_config_meta_list.append(plugin_config_meta)
+
+                for option in options:
+                    config_item = PluginConfigItems(
+                        plugin_id=plugin_build_version.plugin_id,
+                        build_version=plugin_build_version.build_version,
+                        service_meta_type=config["service_meta_type"],
+                        attr_name=option["attr_name"],
+                        attr_alt_value=option["attr_alt_value"],
+                        attr_type=option.get("attr_type", "string"),
+                        attr_default_value=option.get("attr_default_value", None),
+                        is_change=option.get("is_change", False),
+                        attr_info=option.get("attr_info", ""),
+                        protocol=option.get("protocol", ""))
+                    config_items_list.append(config_item)
+
+            config_group_repo.bulk_create_plugin_config_group(session, plugin_config_meta_list)
+            config_item_repo.bulk_create_items(session, config_items_list)
+
+        event_id = make_uuid()
+        plugin_build_version.event_id = event_id
+        plugin_build_version.plugin_version_status = "fixed"
+        return plugin_build_version
+
     def get_plugins_by_origin(self, session, region, tenant, service_id, origin, user):
         """获取组件已开通和未开通的插件"""
 
@@ -266,26 +339,25 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                         if config_groups:
                             for config_group in config_groups:
                                 if config_group.build_version != build_version:
-                                    config_group.build_version = build_version
-                                    pcgs = config_item_repo.list_by_plugin_id(session=session, plugin_id=plugin_id)
-                                    if pcgs:
-                                        for p in pcgs:
-                                            p.build_version = build_version
-                                    pbvs = plugin_version_repo.get_plugin_versions(session, plugin_id)
-                                    if pbvs:
-                                        for p in pbvs:
-                                            p.build_version = build_version
+                                    config_item_repo.delete_item_by_id(session=session, plugin_id=plugin_id)
+                                    plugin_version_repo.delete_version_by_id(session=session, plugin_id=plugin_id)
+                                    config_group_repo.delete_config_group_by_plugin_id(session=session,
+                                                                                       plugin_id=plugin_id)
+
                                     needed_plugin_config = all_default_config[plugin_type]
                                     plugin.image = needed_plugin_config.get("image", "")
                                     plugin.build_source = needed_plugin_config.get("build_source", "")
                                     plugin.plugin_alias = needed_plugin_config["plugin_alias"]
                                     plugin.category = needed_plugin_config["category"]
                                     plugin.code_repo = needed_plugin_config["code_repo"]
+                                    plugin_build_version = self.update_sys_plugin(session, plugin, tenant, plugin_type,
+                                                                                  user, region, needed_plugin_config,
+                                                                                  build_version)
                                     plugin_repo.build_plugin(session=session, region=region, plugin=plugin,
-                                                             plugin_version=pbvs[0], user=user,
+                                                             plugin_version=plugin_build_version, user=user,
                                                              tenant=tenant,
-                                                             event_id=pbvs[0].event_id)
-                                    pbvs[0].build_status = "build_success"
+                                                             event_id=plugin_build_version.event_id)
+                                    plugin_build_version.build_status = "build_success"
 
                 install_plugins_rel = app_plugin_relation_repo.get_service_plugin_relation(session, service_id)
                 if install_plugins_rel:

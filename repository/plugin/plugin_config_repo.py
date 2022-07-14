@@ -51,6 +51,11 @@ class PluginConfigGroupRepository(BaseRepository[PluginConfigGroup]):
         return (session.execute(select(PluginConfigGroup).where(
             PluginConfigGroup.plugin_id == plugin_id))).scalars().all()
 
+    def delete_config_group_by_id(self, session, plugin_id):
+        session.execute(delete(PluginConfigGroup).where(
+            PluginConfigGroup.plugin_id == plugin_id))
+        session.flush()
+
 
 class PluginConfigItemsRepository(BaseRepository[PluginConfigItems]):
 
@@ -88,6 +93,11 @@ class PluginConfigItemsRepository(BaseRepository[PluginConfigItems]):
     def list_by_plugin_id(self, session, plugin_id):
         return (session.execute(select(PluginConfigItems).where(
             PluginConfigItems.plugin_id == plugin_id))).scalars().all()
+
+    def delete_item_by_id(self, session, plugin_id):
+        session.execute(delete(PluginConfigItems).where(
+            PluginConfigItems.plugin_id == plugin_id))
+        session.flush()
 
 
 config_item_repo = PluginConfigItemsRepository(PluginConfigItems)
