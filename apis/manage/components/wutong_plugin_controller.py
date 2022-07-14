@@ -9,6 +9,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
+from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo
 from repository.teams.team_plugin_repo import plugin_repo
@@ -94,6 +95,33 @@ async def install_sys_plugin(request: Request,
         plugin_id = None
         for plugin in plugins:
             plugin_id = plugin.plugin_id
+            pbvs = plugin_version_repo.get_plugin_versions(session, plugin_id)
+            if pbvs:
+                for pbv in pbvs:
+                    if pbv.build_version != build_version:
+                        all_default_config = service_plugin_config_repo.all_default_config
+                        config_item_repo.delete_item_by_id(session=session, plugin_id=plugin_id)
+                        plugin_version_repo.delete_version_by_id(session=session, plugin_id=plugin_id)
+                        config_group_repo.delete_config_group_by_plugin_id(session=session,
+                                                                           plugin_id=plugin_id)
+
+                        needed_plugin_config = all_default_config[plugin_type]
+                        plugin.image = needed_plugin_config.get("image", "")
+                        plugin.build_source = needed_plugin_config.get("build_source", "")
+                        plugin.plugin_alias = needed_plugin_config["plugin_alias"]
+                        plugin.category = needed_plugin_config["category"]
+                        plugin.code_repo = needed_plugin_config["code_repo"]
+                        plugin_build_version = service_plugin_config_repo.update_sys_plugin(session, plugin, team,
+                                                                                            plugin_type,
+                                                                                            user,
+                                                                                            service.service_region,
+                                                                                            needed_plugin_config,
+                                                                                            build_version)
+                        plugin_repo.build_plugin(session=session, region=service.service_region, plugin=plugin,
+                                                 plugin_version=plugin_build_version, user=user,
+                                                 tenant=team,
+                                                 event_id=plugin_build_version.event_id)
+                        plugin_build_version.build_status = "build_success"
 
         if not plugin_id:
             plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team,
