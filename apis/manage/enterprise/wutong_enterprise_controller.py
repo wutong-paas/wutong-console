@@ -320,7 +320,7 @@ async def regions(status: Optional[str] = "", check_status: Optional[str] = "",
 @router.get("/enterprise/{enterprise_id}/teams", response_model=Response, name="获取企业团队列表")
 async def get_enterprise_teams(request: Request,
                                page: int = Query(default=1, ge=1, le=9999),
-                               page_size: int = Query(default=10, ge=1, le=500),
+                               page_size: int = Query(default=10, ge=1, le=1000),
                                enterprise_id: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
                                user=Depends(deps.get_current_user)) -> Any:
