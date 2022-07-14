@@ -8,7 +8,6 @@ from models.application.plugin import TeamComponentPluginRelation, TeamServicePl
     PluginConfigGroup, PluginConfigItems
 from repository.base import BaseRepository
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
-from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from service.plugin.plugin_version_service import plugin_version_service
 
@@ -328,36 +327,6 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                     "category": category,
                     "build_version": build_version
                 }
-                plugins = plugin_repo.get_by_type_plugins(session, plugin_type, "sys")
-                if plugins:
-                    for plugin in plugins:
-                        plugin_id = plugin.plugin_id
-                        config_groups = config_group_repo.get_config_group_by_id_and_version(
-                            session=session,
-                            plugin_id=plugin_id,
-                            build_version=build_version)
-                        if config_groups:
-                            for config_group in config_groups:
-                                if config_group.build_version != build_version:
-                                    config_item_repo.delete_item_by_id(session=session, plugin_id=plugin_id)
-                                    plugin_version_repo.delete_version_by_id(session=session, plugin_id=plugin_id)
-                                    config_group_repo.delete_config_group_by_plugin_id(session=session,
-                                                                                       plugin_id=plugin_id)
-
-                                    needed_plugin_config = all_default_config[plugin_type]
-                                    plugin.image = needed_plugin_config.get("image", "")
-                                    plugin.build_source = needed_plugin_config.get("build_source", "")
-                                    plugin.plugin_alias = needed_plugin_config["plugin_alias"]
-                                    plugin.category = needed_plugin_config["category"]
-                                    plugin.code_repo = needed_plugin_config["code_repo"]
-                                    plugin_build_version = self.update_sys_plugin(session, plugin, tenant, plugin_type,
-                                                                                  user, region, needed_plugin_config,
-                                                                                  build_version)
-                                    plugin_repo.build_plugin(session=session, region=region, plugin=plugin,
-                                                             plugin_version=plugin_build_version, user=user,
-                                                             tenant=tenant,
-                                                             event_id=plugin_build_version.event_id)
-                                    plugin_build_version.build_status = "build_success"
 
                 install_plugins_rel = app_plugin_relation_repo.get_service_plugin_relation(session, service_id)
                 if install_plugins_rel:
