@@ -151,7 +151,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
     with open(file_path, encoding='utf-8') as f:
         all_default_config = json.load(f)
 
-    def get_plugins_by_origin(self, session, region, tenant_id, service_id, origin):
+    def get_plugins_by_origin(self, session, region, tenant, service_id, origin, user):
         """获取组件已开通和未开通的插件"""
 
         QUERY_INSTALLED_SQL = """
@@ -174,7 +174,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         WHERE
             tsp.service_id = "{0}"
             AND tp.region = "{1}"
-            AND tp.tenant_id = "{2}" """.format(service_id, region, tenant_id)
+            AND tp.tenant_id = "{2}" """.format(service_id, region, tenant.tenant_id)
 
         QUERI_UNINSTALLED_SQL = """
             SELECT
@@ -192,7 +192,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                 AND tp.tenant_id = "{1}"
                 AND tp.region = "{2}"
                 AND pbv.build_status = "{3}"
-        """.format(service_id, tenant_id, region, "build_success")
+        """.format(service_id, tenant.tenant_id, region, "build_success")
 
         SHARED_QUERI_UNINSTALLED_SQL = """
             SELECT
@@ -272,7 +272,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                                         for p in pcgs:
                                             p.build_version = build_version
                                     pbvs = plugin_version_repo.get_plugin_versions(session, plugin_id)
-                                    if pcgs:
+                                    if pbvs:
                                         for p in pbvs:
                                             p.build_version = build_version
                                     needed_plugin_config = all_default_config[plugin_type]
@@ -281,6 +281,11 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                                     plugin.plugin_alias = needed_plugin_config["plugin_alias"]
                                     plugin.category = needed_plugin_config["category"]
                                     plugin.code_repo = needed_plugin_config["code_repo"]
+                                    plugin_repo.build_plugin(session=session, region=region, plugin=plugin,
+                                                             plugin_version=pbvs[0], user=user,
+                                                             tenant=tenant,
+                                                             event_id=pbvs[0].event_id)
+                                    pbvs[0].build_status = "build_success"
 
                 install_plugins_rel = app_plugin_relation_repo.get_service_plugin_relation(session, service_id)
                 if install_plugins_rel:

@@ -26,7 +26,8 @@ router = APIRouter()
 async def get_plugin_list(request: Request,
                           serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team)) -> Any:
+                          team=Depends(deps.get_current_team),
+                          user=Depends(deps.get_current_user)) -> Any:
     """
     获取组件可用的插件列表
     ---
@@ -56,9 +57,10 @@ async def get_plugin_list(request: Request,
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     installed_plugins, not_install_plugins = service_plugin_config_repo.get_plugins_by_origin(session=session,
                                                                                               region=service.service_region,
-                                                                                              tenant_id=team.tenant_id,
+                                                                                              tenant=team,
                                                                                               service_id=service.service_id,
-                                                                                              origin=origin)
+                                                                                              origin=origin,
+                                                                                              user=user)
     bean = {"installed_plugins": installed_plugins, "not_install_plugins": not_install_plugins}
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
     return JSONResponse(result, status_code=result["code"])

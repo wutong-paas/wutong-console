@@ -1,6 +1,7 @@
 from loguru import logger
 from sqlalchemy import select, delete, or_, and_
 
+from clients.remote_plugin_client import remote_plugin_client
 from database.session import SessionClass
 from models.application.plugin import PluginBuildVersion, TeamPlugin, PluginConfigGroup, PluginConfigItems
 from repository.base import BaseRepository
@@ -11,6 +12,37 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
     TenantPluginRepository
 
     """
+
+    def build_plugin(self, session: SessionClass, region, plugin, plugin_version, user, tenant, event_id,
+                     image_info=None):
+
+        build_data = dict()
+
+        build_data["build_version"] = plugin_version.build_version
+        build_data["event_id"] = event_id
+        build_data["info"] = plugin_version.update_info
+
+        build_data["operator"] = user.nick_name
+        build_data["plugin_cmd"] = plugin_version.build_cmd
+        build_data["plugin_memory"] = int(plugin_version.min_memory)
+        build_data["plugin_cpu"] = int(plugin_version.min_cpu)
+        build_data["repo_url"] = plugin_version.code_version
+        build_data["username"] = plugin.username  # git username
+        build_data["password"] = plugin.password  # git password
+        build_data["tenant_id"] = tenant.tenant_id
+        build_data["ImageInfo"] = image_info
+        build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
+        origin = plugin.origin
+        if origin == "sys":
+            plugin_from = "yb"
+        elif origin == "market":
+            plugin_from = "ys"
+        else:
+            plugin_from = None
+        build_data["plugin_from"] = plugin_from
+
+        body = remote_plugin_client.build_plugin(session, region, tenant.tenant_name, plugin.plugin_id, build_data)
+        return body
 
     def get_plugin_buildversion(self, session, plugin_id, version):
         return session.execute(select(PluginBuildVersion).where(
