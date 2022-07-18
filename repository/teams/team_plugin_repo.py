@@ -265,10 +265,11 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
             TeamPlugin.tenant_id == tenant_id,
             TeamPlugin.origin == origin)).scalars().all()
 
-    def get_by_type_plugins(self, session: SessionClass, plugin_type, origin):
+    def get_by_type_plugins(self, session: SessionClass, plugin_type, origin, service_region):
         return session.execute(select(TeamPlugin).where(
             TeamPlugin.origin_share_id == plugin_type,
-            TeamPlugin.origin == origin)).scalars().all()
+            TeamPlugin.origin == origin,
+            TeamPlugin.region == service_region)).scalars().all()
 
 
 plugin_repo = TenantPluginRepository(TeamPlugin)

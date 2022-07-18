@@ -87,7 +87,7 @@ async def install_sys_plugin(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys")
+    plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys", service.service_region)
     if not plugins:
         plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team, region=response_region,
                                                       plugin_type=plugin_type, build_version=build_version)
