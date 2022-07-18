@@ -289,8 +289,8 @@ class PluginService(object):
         plugins = plugin_repo.get_by_share_plugins(session, tenant_id, origin)
         return plugins
 
-    def get_by_type_plugins(self, session: SessionClass, plugin_type, origin):
-        plugins = plugin_repo.get_by_type_plugins(session, plugin_type, origin)
+    def get_by_type_plugins(self, session: SessionClass, plugin_type, origin, service_region):
+        plugins = plugin_repo.get_by_type_plugins(session, plugin_type, origin, service_region)
         return plugins
 
 
