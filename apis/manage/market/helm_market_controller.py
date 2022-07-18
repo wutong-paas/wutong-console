@@ -7,7 +7,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from models.users.users import Users
 from schemas.response import Response
-from pyhelm.chartbuilder import ChartBuilder
+# from pyhelm.chartbuilder import ChartBuilder
 import subprocess
 
 from service.market_app_service import market_app_service
@@ -50,10 +50,12 @@ async def helm_app_install(
     is_deploy = data.get("is_deploy")
     install_from_cloud = data.get("install_from_cloud")
 
-    chart = ChartBuilder({"name": helm_name, "source":
-        {"type": "repo",
-         "location": helm_url}})
-
+    # todo
+    chart = {}
+    # chart = ChartBuilder({"name": helm_name, "source":
+    #     {"type": "repo",
+    #      "location": helm_url}})
+    #
     res = subprocess.Popen("helm template " + chart.source_directory +
                            " --output-dir " + chart.source_directory + "manifests",
                            shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
