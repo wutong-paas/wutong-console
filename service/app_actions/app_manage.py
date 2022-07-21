@@ -174,7 +174,7 @@ class AppManageService(AppManageBase):
         dep_relation_repo.delete_service_relation(session, tenant.tenant_id, service.service_id)
         relations = dep_relation_repo.get_dependency_by_dep_id(session, tenant.tenant_id, service.service_id)
         if relations:
-            relations.delete()
+            dep_relation_repo.delete_dependency_by_dep_id(session, tenant.tenant_id, service.service_id)
         mnt_repo.delete_mnt(session, service.service_id)
         port_repo.delete_service_port(session, tenant.tenant_id, service.service_id)
         volume_repo.delete_service_volumes(session, service.service_id)
@@ -193,8 +193,8 @@ class AppManageService(AppManageBase):
         component_graph_service.delete_by_component_id(session, service.service_id)
         app_config_group_service_repo.delete_effective_service(session=session, service_id=service.service_id)
         if service.tenant_service_group_id > 0:
-            count = service_info_repo.get_services_by_service_group_id(session=session,
-                                                                       service_group_id=service.tenant_service_group_id).count()
+            count = len(service_info_repo.get_services_by_service_group_id(session=session,
+                                                                           service_group_id=service.tenant_service_group_id))
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(session=session,
                                                                             pk=service.tenant_service_group_id)
