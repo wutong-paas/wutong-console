@@ -90,7 +90,8 @@ class NewComponents(object):
             outer_envs = component_tmpl.get("service_connect_info_map_list")
             envs = self._template_to_envs(cpt, inner_envs, outer_envs)
             # volumes
-            volumes, config_files = self._template_to_volumes(session, cpt, component_tmpl.get("service_volume_map_list"))
+            volumes, config_files = self._template_to_volumes(session, cpt,
+                                                              component_tmpl.get("service_volume_map_list"))
             # probe
             probes = self._template_to_probes(session, cpt, component_tmpl.get("probes"))
             # extend info
@@ -307,15 +308,27 @@ class NewComponents(object):
         domain_name = self._create_default_domain(component.service_alias, port.container_port)
         return ServiceDomain(
             service_id=component.service_id,
-            service_name=component.service_name,
+            service_name=component.service_alias,
             domain_name=domain_name,
             create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             container_port=port.container_port,
             protocol="http",
             http_rule_id=make_uuid(domain_name),
             tenant_id=self.tenant.tenant_id,
-            service_alias=component.service_alias,
-            region_id=self.region.region_id)
+            service_alias=component.service_cname,
+            region_id=self.region.region_id,
+            domain_path="/",
+            domain_cookie="",
+            domain_heander="",
+            domain_type="www",
+            auto_ssl=0,
+            certificate_id=0,
+            is_senior=0,
+            is_outer_service=1,
+            path_rewrite=0,
+            the_weight=100,
+            rule_extensions="",
+            type=0)
 
     def _template_to_volumes(self, session, component, volumes):
         if not volumes:
@@ -333,7 +346,8 @@ class NewComponents(object):
                     config_files.append(config_file)
                 else:
                     settings = volume_service.get_best_suitable_volume_settings(session,
-                                                                                self.tenant, component, volume["volume_type"],
+                                                                                self.tenant, component,
+                                                                                volume["volume_type"],
                                                                                 volume.get("access_mode"),
                                                                                 volume.get("share_policy"),
                                                                                 volume.get("backup_policy"), None,
@@ -483,7 +497,8 @@ class NewComponents(object):
 
         return service_domains, configs
 
-    def _ensure_default_http_rule(self, component: TeamComponentInfo, http_rules: [ServiceDomain], ports: [TeamComponentPort]):
+    def _ensure_default_http_rule(self, component: TeamComponentInfo, http_rules: [ServiceDomain],
+                                  ports: [TeamComponentPort]):
         new_http_rules = {}
         for rule in http_rules:
             rules = new_http_rules.get(rule.container_port, [])
@@ -532,23 +547,23 @@ class NewComponents(object):
             rule_id=rule_id,
             value=json.dumps({
                 "proxy_buffer_numbers":
-                ingress["proxy_buffer_numbers"] if ingress.get("proxy_buffer_numbers") else 4,
+                    ingress["proxy_buffer_numbers"] if ingress.get("proxy_buffer_numbers") else 4,
                 "proxy_buffer_size":
-                ingress["proxy_buffer_size"] if ingress.get("proxy_buffer_size") else 4,
+                    ingress["proxy_buffer_size"] if ingress.get("proxy_buffer_size") else 4,
                 "proxy_body_size":
-                ingress["request_body_size_limit"] if ingress.get("request_body_size_limit") else 0,
+                    ingress["request_body_size_limit"] if ingress.get("request_body_size_limit") else 0,
                 "proxy_connect_timeout":
-                ingress["connection_timeout"] if ingress.get("connection_timeout") else 5,
+                    ingress["connection_timeout"] if ingress.get("connection_timeout") else 5,
                 "proxy_read_timeout":
-                ingress["response_timeout"] if ingress.get("response_timeout") else 60,
+                    ingress["response_timeout"] if ingress.get("response_timeout") else 60,
                 "proxy_send_timeout":
-                ingress["request_timeout"] if ingress.get("request_timeout") else 60,
+                    ingress["request_timeout"] if ingress.get("request_timeout") else 60,
                 "proxy_buffering":
-                "off",
+                    "off",
                 "WebSocket":
-                ingress["websocket"] if ingress.get("websocket") else False,
+                    ingress["websocket"] if ingress.get("websocket") else False,
                 "set_headers":
-                ingress.get("proxy_header"),
+                    ingress.get("proxy_header"),
             }))
 
     @staticmethod

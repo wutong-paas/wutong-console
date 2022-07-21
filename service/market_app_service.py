@@ -533,7 +533,7 @@ class MarketAppService(object):
         }
         add_model: TeamApplication = TeamApplication(**params)
         session.add(add_model)
-        # session.flush()
+        session.flush()
 
         return add_model
 
