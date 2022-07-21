@@ -521,6 +521,11 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
             TeamComponentRelation.tenant_id == tenant_id,
             TeamComponentRelation.dep_service_id == dep_service_id))).scalars().all()
 
+    def delete_dependency_by_dep_id(self, session, tenant_id, dep_service_id):
+        return session.execute(delete(TeamComponentRelation).where(
+            TeamComponentRelation.tenant_id == tenant_id,
+            TeamComponentRelation.dep_service_id == dep_service_id))
+
     def get_dependency_by_dep_service_ids(self, session, tenant_id, service_id, dep_service_ids):
         return (session.execute(select(TeamComponentRelation).where(
             TeamComponentRelation.tenant_id == tenant_id,
