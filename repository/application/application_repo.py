@@ -28,6 +28,17 @@ class ApplicationRepository(BaseRepository[Application]):
                 Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
+    def get_hn_tenant_region_groups(self, session, team_id, query="", app_type=""):
+        sql = select(Application).where(Application.tenant_id == team_id,
+                                        Application.group_name.contains(query)).order_by(
+            Application.update_time.desc(), Application.order_index.desc())
+        if app_type:
+            sql = select(Application).where(Application.tenant_id == team_id,
+                                            Application.app_type == app_type,
+                                            Application.group_name.contains(query)).order_by(
+                Application.update_time.desc(), Application.order_index.desc())
+        return session.execute(sql).scalars().all()
+
     def get_tenant_region_groups_count(self, session, team_id, region):
         sql = select(Application).where(Application.tenant_id == team_id,
                                         Application.region_name == region)
