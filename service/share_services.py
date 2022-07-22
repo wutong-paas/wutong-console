@@ -285,9 +285,8 @@ class ShareService(object):
                 if plugins:
                     for plugin_info in plugins:
                         # one account for one plugin
-                        # todo 已删除
-                        # share_image_info = app_store.get_app_hub_info(session, market, app_model_id, share_team.enterprise_id)
-                        # plugin_info["plugin_image"] = share_image_info
+                        share_image_info = app_store.get_app_hub_info(session, market, app_model_id, share_team.enterprise_id)
+                        plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
                             team_name=share_team.tenant_name,

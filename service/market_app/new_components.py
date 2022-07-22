@@ -267,14 +267,14 @@ class NewComponents(object):
         new_ports = []
         for port in ports:
             component_port = port["container_port"]
-            k8s_service_name = port.get("k8s_service_name") if port.get(
-                "k8s_service_name") else component.service_alias + "-" + str(component_port)
+            k8s_service_name = component.service_alias + "-" + str(component_port)
             try:
                 port_service.check_k8s_service_name(session, component.tenant_id, k8s_service_name)
             except ErrK8sServiceNameExists:
                 k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
             except AbortRequest:
                 k8s_service_name = component.service_alias + "-" + str(component_port)
+            port_alias = component.service_alias.upper() + str(component_port)
             port = TeamComponentPort(
                 tenant_id=component.tenant_id,
                 service_id=component.service_id,
@@ -282,7 +282,7 @@ class NewComponents(object):
                 mapping_port=int(component_port),
                 lb_mapping_port=0,
                 protocol=port.get("protocol", "tcp"),
-                port_alias=port.get("port_alias", ""),
+                port_alias=port_alias,
                 is_inner_service=port.get("is_inner_service", False),
                 is_outer_service=port.get("is_outer_service", False),
                 k8s_service_name=k8s_service_name,
