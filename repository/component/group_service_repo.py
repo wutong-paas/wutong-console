@@ -115,6 +115,11 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
             ComponentApplicationRelation.region_name == region_name))).scalars().all()
         return len(count)
 
+    def get_hn_team_service_num_by_team_id(self, session, team_id):
+        count = (session.execute(select(ComponentApplicationRelation).where(
+            ComponentApplicationRelation.tenant_id == team_id))).scalars().all()
+        return len(count)
+
     def get_services_in_multi_apps_with_app_info(self, session, group_ids):
         ids = "{0}".format(",".join(str(group_id) for group_id in group_ids))
         sql = """
