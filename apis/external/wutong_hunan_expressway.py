@@ -20,7 +20,7 @@ from service.team_service import team_services
 router = APIRouter()
 
 
-@router.get("/v1.0/expressway/{region_name}/{enterprise_id}/cluster", response_model=Response, name="获取集群节点信息")
+@router.get("/v1.0/metrics/{region_name}/{enterprise_id}/cluster", response_model=Response, name="获取集群节点信息")
 async def get_store(
         region_name: Optional[str] = None,
         enterprise_id: Optional[str] = None,
@@ -74,7 +74,7 @@ async def get_store(
     return JSONResponse(general_message(200, "success", "获取成功", bean=info), status_code=200)
 
 
-@router.get("/v1.0/expressway/{region_name}/{enterprise_id}/overview/app", response_model=Response, name="总览-应用信息")
+@router.get("/v1.0/metrics/{region_name}/{enterprise_id}/overview/app", response_model=Response, name="总览-应用信息")
 async def overview_app(
         region_name: Optional[str] = None,
         enterprise_id: Optional[str] = None,
@@ -140,7 +140,7 @@ async def overview_app(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/v1.0/expressway/{region_name}/{enterprise_id}/tenant/info", response_model=Response, name="总览-团队信息")
+@router.get("/v1.0/metrics/{region_name}/{enterprise_id}/tenant/info", response_model=Response, name="总览-团队信息")
 async def overview_tenant(
         region_name: Optional[str] = None,
         enterprise_id: Optional[str] = None,
@@ -178,7 +178,7 @@ async def overview_tenant(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/v1.0/expressway/{region_name}/{enterprise_id}/event", response_model=Response, name="集群事件统计")
+@router.get("/v1.0/metrics/{region_name}/{enterprise_id}/event", response_model=Response, name="集群事件统计")
 async def get_region_event(
         region_name: Optional[str] = None,
         enterprise_id: Optional[str] = None,
