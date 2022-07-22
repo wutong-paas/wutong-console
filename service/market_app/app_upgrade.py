@@ -710,7 +710,8 @@ class AppUpgrade(MarketApp):
                 username=plugin_tmpl["plugin_image"]["hub_user"],
                 password=plugin_tmpl["plugin_image"]["hub_password"],
                 origin="sys",
-                origin_share_id=plugin_tmpl["plugin_key"])
+                origin_share_id=plugin_tmpl["plugin_key"],
+                plugin_name=plugin_tmpl["plugin_name"])
 
             build_version = self._create_build_version(plugin.plugin_id, plugin_tmpl)
             config_groups, config_items = self._create_config_groups(plugin.plugin_id, build_version,
@@ -743,6 +744,7 @@ class AppUpgrade(MarketApp):
             min_cpu=min_cpu,
             image_tag=image_tag,
             plugin_version_status="fixed",
+            update_info=plugin_tmpl.get('desc')
         )
 
     @staticmethod
