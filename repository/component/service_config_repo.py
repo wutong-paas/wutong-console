@@ -403,9 +403,9 @@ class TenantServiceVolumnRepository(BaseRepository[TeamComponentVolume]):
 
     def delete_file_by_volume(self, session, volume: TeamComponentVolume):
         session.execute(delete(TeamComponentConfigurationFile).where(
-            or_(and_(TeamComponentConfigurationFile.service_id == volume.service_id,
-                     TeamComponentConfigurationFile.volume_id == volume.ID),
-                TeamComponentConfigurationFile.volume_name == volume.volume_name)))
+            and_(TeamComponentConfigurationFile.service_id == volume.service_id,
+                 or_(TeamComponentConfigurationFile.volume_id == volume.ID,
+                     TeamComponentConfigurationFile.volume_name == volume.volume_name))))
 
     def get_services_volumes_by_config(self, session, service_ids, CONFIG, mounted_ids):
         return session.execute(select(TeamComponentVolume).where(
