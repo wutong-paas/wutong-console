@@ -59,11 +59,11 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
 
     def get_access_token_url(self, home_url=None):
         home_url.strip().strip("/")
-        return "/".join([home_url, "gateway/wutong-idaas-auth/auth/token"])
+        return "/".join([home_url, "idaas-gateway/wutong-idaas-auth/auth/token"])
 
     def get_user_url(self, home_url=None):
         home_url.strip().strip("/")
-        return "/".join([home_url, "gateway/wutong-idaas-auth/authz/oauth2/userinfojson"])
+        return "/".join([home_url, "idaas-gateway/wutong-idaas-auth/authz/oauth2/userinfojson"])
 
     def get_logout_url(self, home_url=None):
         home_url.strip().strip("/")
