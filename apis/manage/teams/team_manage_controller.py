@@ -190,23 +190,25 @@ async def overview_team_app_info(request: Request,
     总览 团队应用信息
     """
     query = request.query_params.get("query", "")
-    # page = int(request.query_params.get("page", 1))
-    # page_size = int(request.query_params.get("page_size", 10))
+    status = request.query_params.get("status", "all")
 
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    # region_name = request.headers.get("X_REGION_NAME")
     region_name = region.region_name
 
     groups = application_repo.get_tenant_region_groups(session, team.tenant_id, region_name, query)
+    group_ids = [group.ID for group in groups]
     total = len(groups)
     app_num_dict = {"total": total}
+    groups, count = application_service.get_apps_by_status(session=session, app_ids=group_ids, region=region_name,
+                                                           tenant_name=team_name, tenant=team, status=status)
+    app_num_dict.update(count)
     start = (page - 1) * page_size
     end = page * page_size
     apps = []
     if groups:
-        group_ids = [group.ID for group in groups]
+        group_ids = list(groups.keys())
         group_ids = group_ids[start:end]
         apps = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids, region=region_name,
                                                            tenant_name=team_name, tenant=team)
