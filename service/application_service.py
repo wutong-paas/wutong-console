@@ -1372,7 +1372,8 @@ class ApplicationService(object):
             "running": 0,
             "closed": 0,
             "abnormal": 0,
-            "nil": 0
+            "nil": 0,
+            "starting": 0
         }
         app_list = application_repo.get_multi_app_info(session, app_ids)
         service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
