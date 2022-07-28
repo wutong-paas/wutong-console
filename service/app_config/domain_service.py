@@ -50,10 +50,10 @@ class DomainService(object):
             raise ServiceHandleException(
                 status_code=400, error_code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
-        s_domain = domain_repo.get_domain_by_domain_name(session, domain_name)
-        if s_domain and s_domain.tenant_id != team_id and s_domain.region_id == region_id:
-            raise ServiceHandleException(
-                status_code=400, error_code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
+        # s_domain = domain_repo.get_domain_by_domain_name(session, domain_name)
+        # if s_domain and s_domain.tenant_id != team_id and s_domain.region_id == region_id:
+        #     raise ServiceHandleException(
+        #         status_code=400, error_code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
         if len(domain_name) > 256:
             raise ServiceHandleException(
                 status_code=400, error_code=400, msg="domain more than 256 bytes", msg_show="域名超过256个字符")
