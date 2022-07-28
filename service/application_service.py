@@ -1357,13 +1357,43 @@ class ApplicationService(object):
         # Returns the relationship between console application ID and status
         app_id_status_rels = dict()
         region_app_id_status_rels = dict()
-        for app_status in app_statuses:
-            region_app_id_status_rels[app_status.get("app_id", "")] = app_status
+        if app_statuses:
+            for app_status in app_statuses:
+                region_app_id_status_rels[app_status.get("app_id", "")] = app_status
         for app_id in app_ids:
             if not app_id_rels.get(app_id):
                 continue
             app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
         return app_id_status_rels
+
+    def get_apps_by_status(self, session: SessionClass, app_ids, region, tenant_name, tenant,
+                           status="all"):
+        count = {
+            "running": 0,
+            "closed": 0,
+            "abnormal": 0,
+            "nil": 0,
+            "starting": 0
+        }
+        app_list = application_repo.get_multi_app_info(session, app_ids)
+        service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
+        service_ids = [service.service_id for service in service_list]
+        status_list = base_service.status_multi_service(session=session, region=region, tenant_name=tenant_name,
+                                                        service_ids=service_ids, enterprise_id=tenant.enterprise_id)
+        if status_list is None:
+            raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
+        app_id_statuses = self.get_region_app_statuses(session=session, tenant_name=tenant_name, region_name=region,
+                                                       app_ids=app_ids)
+        apps = dict()
+        for app in app_list:
+            app_status = app_id_statuses.get(app.ID)
+            if app_status:
+                count[app_status["status"].lower()] += 1
+                if status == "all" or app_status["status"] == status.upper():
+                    apps[app.ID] = {
+                        "group_id": app.ID
+                    }
+        return apps, count
 
     def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_name, tenant):
         app_list = application_repo.get_multi_app_info(session, app_ids)
