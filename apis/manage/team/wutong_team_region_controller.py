@@ -103,6 +103,35 @@ async def open_regions(request: Request,
     return JSONResponse(result, result["code"])
 
 
+@router.delete("/teams/{team_name}/region", response_model=Response, name="团队卸载数据中心")
+async def delete_region(request: Request,
+                        session: SessionClass = Depends(deps.get_session),
+                        user=Depends(deps.get_current_user),
+                        team=Depends(deps.get_current_team)) -> Any:
+    """
+    为团队关闭数据中心
+    ---
+    parameters:
+        - name: team_name
+          description: 当前团队名字
+          required: true
+          type: string
+          paramType: path
+        - name: region_name
+          description: 要关闭的数据中心名称
+          required: true
+          type: string
+          paramType: body
+    """
+    data = await request.json()
+    region_name = data.get("region_name", None)
+    if not region_name:
+        return JSONResponse(general_message(400, "params error", "参数异常"), status_code=400)
+    region_services.delete_tenant_on_region(session, team.enterprise_id, team.tenant_name, region_name, user)
+    result = general_message(200, "success", "团队关闭数据中心{0}成功".format(region_name))
+    return JSONResponse(result, status_code=result["code"])
+
+
 @router.get("/teams/{team_name}/regions/{region_name}/features", response_model=Response, name="获取指定数据中心的授权功能列表")
 async def team_app_group(region_name: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
