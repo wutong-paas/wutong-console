@@ -1374,6 +1374,7 @@ class ApplicationService(object):
             "abnormal": 0,
             "nil": 0,
             "starting": 0,
+            "deployed": 0,
             "": 0
         }
         app_list = application_repo.get_multi_app_info(session, app_ids)
