@@ -191,7 +191,6 @@ async def overview_team_app_info(request: Request,
     """
     query = request.query_params.get("query", "")
     status = request.query_params.get("status", "all")
-    return_apps = []
     count = {
         "running": 0,
         "closed": 0,
@@ -216,19 +215,13 @@ async def overview_team_app_info(request: Request,
     apps = []
     if groups:
         group_ids = [group.ID for group in groups]
-        apps = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids, region=region_name,
-                                                           tenant_name=team_name, tenant=team)
+        apps, count = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids,
+                                                                  region=region_name,
+                                                                  tenant_name=team_name, tenant=team, status=status)
 
-    if status == "all":
-        return_apps = apps
-    for app in apps:
-        app_status = app["status"].lower()
-        if status == app_status:
-            return_apps.append(app)
-        count[app_status] += 1
+    apps = apps[start:end]
     app_num_dict.update(count)
-    return_apps = return_apps[start:end]
-    return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(return_apps), bean=app_num_dict),
+    return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict),
                         status_code=200)
 
 
