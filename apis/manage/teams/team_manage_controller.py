@@ -191,6 +191,17 @@ async def overview_team_app_info(request: Request,
     """
     query = request.query_params.get("query", "")
     status = request.query_params.get("status", "all")
+    return_apps = []
+    count = {
+        "running": 0,
+        "closed": 0,
+        "abnormal": 0,
+        "nil": 0,
+        "starting": 0,
+        "deployed": 0,
+        "unknown": 0,
+        "": 0
+    }
 
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
@@ -198,22 +209,26 @@ async def overview_team_app_info(request: Request,
     region_name = region.region_name
 
     groups = application_repo.get_tenant_region_groups(session, team.tenant_id, region_name, query)
-    group_ids = [group.ID for group in groups]
     total = len(groups)
     app_num_dict = {"total": total}
-    groups, count = application_service.get_apps_by_status(session=session, app_ids=group_ids, region=region_name,
-                                                           tenant_name=team_name, tenant=team, status=status)
-    app_num_dict.update(count)
     start = (page - 1) * page_size
     end = page * page_size
     apps = []
     if groups:
-        group_ids = list(groups.keys())
-        group_ids = group_ids[start:end]
+        group_ids = [group.ID for group in groups]
         apps = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids, region=region_name,
                                                            tenant_name=team_name, tenant=team)
 
-    return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict),
+    if status == "all":
+        return_apps = apps
+    for app in apps:
+        app_status = app["status"].lower()
+        if status == app_status:
+            return_apps.append(app)
+        count[app_status] += 1
+    app_num_dict.update(count)
+    return_apps = return_apps[start:end]
+    return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(return_apps), bean=app_num_dict),
                         status_code=200)
 
 
