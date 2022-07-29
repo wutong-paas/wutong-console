@@ -1366,7 +1366,17 @@ class ApplicationService(object):
             app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
         return app_id_status_rels
 
-    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_name, tenant):
+    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_name, tenant, status="all"):
+        count = {
+            "running": 0,
+            "closed": 0,
+            "abnormal": 0,
+            "nil": 0,
+            "starting": 0,
+            "deployed": 0,
+            "unknown": 0,
+            "": 0
+        }
         app_list = application_repo.get_multi_app_info(session, app_ids)
         service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
         service_ids = [service.service_id for service in service_list]
@@ -1375,54 +1385,59 @@ class ApplicationService(object):
         service_status = dict()
         if status_list is None:
             raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
-        for status in status_list:
-            service_status[status["service_id"]] = status
+        for status_dict in status_list:
+            service_status[status_dict["service_id"]] = status_dict
         app_id_statuses = self.get_region_app_statuses(session=session, tenant_name=tenant_name, region_name=region,
                                                        app_ids=app_ids)
         apps = dict()
         for app in app_list:
             app_status = app_id_statuses.get(app.ID)
-            apps[app.ID] = {
-                "group_id": app.ID,
-                "update_time": app.update_time,
-                "create_time": app.create_time,
-                "group_name": app.group_name,
-                "group_note": app.note,
-                "service_list": [],
-                "used_mem": app_status.get("memory", 0) if app_status else 0,
-                "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
-                "logo": app.logo,
-                "accesses": [],
-            }
+            if app_status:
+                count[app_status["status"].lower()] += 1
+                if status == "all" or app_status["status"] == status.upper():
+                    apps[app.ID] = {
+                        "group_id": app.ID,
+                        "update_time": app.update_time,
+                        "create_time": app.create_time,
+                        "group_name": app.group_name,
+                        "group_note": app.note,
+                        "service_list": [],
+                        "used_mem": app_status.get("memory", 0) if app_status else 0,
+                        "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
+                        "logo": app.logo,
+                        "accesses": [],
+                    }
         # 获取应用下组件的访问地址
         accesses = port_service.list_access_infos(session=session, tenant=tenant, services=service_list)
         for service in service_list:
             svc_sas = service_status.get(service.service_id, {"status": "failure",
                                                               "used_mem": 0})
-            apps[service.group_id]["service_list"].append({"status": svc_sas["status"],
-                                                           "min_memory": service.min_memory})
-            apps[service.group_id]["accesses"].append(accesses[service.service_id])
+            if service.group_id in apps.keys():
+                apps[service.group_id]["service_list"].append({"status": svc_sas["status"],
+                                                               "min_memory": service.min_memory})
+                apps[service.group_id]["accesses"].append(accesses[service.service_id])
 
         re_app_list = []
         for a in app_list:
             app = apps.get(a.ID)
-            app["services_num"] = len(app["service_list"])
-            if not app.get("run_service_num"):
-                app["run_service_num"] = 0
-            if not app.get("used_mem"):
-                app["used_mem"] = 0
-            if not app.get("allocate_mem"):
-                app["allocate_mem"] = 0
-            for svc in app["service_list"]:
-                app["allocate_mem"] += svc["min_memory"]
-                if svc["status"] in ["running", "upgrade", "starting", "some_abnormal"]:
-                    # if is running used_mem ++
-                    app["run_service_num"] += 1
-            if app["used_mem"] > app["allocate_mem"]:
-                app["allocate_mem"] = app["used_mem"]
-            app.pop("service_list")
-            re_app_list.append(app)
-        return re_app_list
+            if app:
+                app["services_num"] = len(app["service_list"])
+                if not app.get("run_service_num"):
+                    app["run_service_num"] = 0
+                if not app.get("used_mem"):
+                    app["used_mem"] = 0
+                if not app.get("allocate_mem"):
+                    app["allocate_mem"] = 0
+                for svc in app["service_list"]:
+                    app["allocate_mem"] += svc["min_memory"]
+                    if svc["status"] in ["running", "upgrade", "starting", "some_abnormal"]:
+                        # if is running used_mem ++
+                        app["run_service_num"] += 1
+                if app["used_mem"] > app["allocate_mem"]:
+                    app["allocate_mem"] = app["used_mem"]
+                app.pop("service_list")
+                re_app_list.append(app)
+        return re_app_list, count
 
     def get_groups_and_services(self, session: SessionClass, tenant, region, query="", app_type=""):
         groups = application_repo.get_tenant_region_groups(session, tenant.tenant_id, region, query, app_type)
