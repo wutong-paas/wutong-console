@@ -40,7 +40,7 @@ def encode_params(params: dict, secret: str, method, sorted_dict_body: dict = No
 
     # 加签
     code_str = method + "&%2F&" + param_encode_str
-    code_str = code_str.replace("+", "%20").replace("*", "%2A").replace("~", "%7E")
+    code_str = code_str.replace("+", "%20").replace("*", "%2A").replace("%7E", "~")
     sign_str = hash_hmac(secret=secret, code=code_str)
     logger.info("参数加签,参数:{},加签:{}", code_str, sign_str)
 
