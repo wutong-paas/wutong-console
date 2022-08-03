@@ -1,7 +1,5 @@
 import datetime
 from typing import Optional, Any
-
-import pytz
 from fastapi import Depends, APIRouter
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -227,7 +225,7 @@ async def get_region_event(
         except Exception as e:
             logger.exception(e)
 
-        now = datetime.datetime.now(pytz.timezone('Asia/Shanghai'))
+        now = datetime.datetime.now()
         now_time = now.strftime("%Y-%m-%d %H:%M:%S")
         for event in event_list:
             events.append({
