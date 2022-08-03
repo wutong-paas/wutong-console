@@ -81,7 +81,7 @@ class TeamComponentInfo(Base):
     open_webhooks = Column(Boolean, comment="是否开启自动触发部署功能(兼容老版本组件)", nullable=False, default=False)
     service_source = Column(String(15), comment="组件来源", nullable=True, default="")
     create_status = Column(String(15), comment="组件创建状态 creating|complete", nullable=True)
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     check_uuid = Column(String(36), comment="组件检测ID", nullable=True, default="")
     check_event_id = Column(String(32), comment="组件检测事件ID", nullable=True, default="")
     docker_cmd = Column(String(1024), comment="镜像创建命令", nullable=True)
@@ -405,7 +405,7 @@ class TeamServiceBackup(Base):
     backup_id = Column(String(32), unique=True)
     backup_data = Column(Text, comment="内容")
     create_time = Column(DateTime(), default=datetime.now, comment="创建时间", nullable=False)
-    update_time = Column(DateTime(), default=datetime.now, comment="更新时间", nullable=False)
+    update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now, comment="更新时间", nullable=False)
 
 
 class ComponentLabels(Base):
@@ -548,7 +548,7 @@ class TeamComponentInfoDelete(Base):
     expired_time = Column(DateTime(), comment="过期时间", nullable=True)
     service_source = Column(String(15), default="source_code", nullable=True, comment="组件来源")
     create_status = Column(String(15), nullable=True, comment="组件创建状态 creating|complete")
-    update_time = Column(DateTime(), default=datetime.now, comment="更新时间", nullable=True)
+    update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now, comment="更新时间", nullable=True)
     tenant_service_group_id = Column(Integer, default=0, comment="组件归属的组件组id")
     open_webhooks = Column(Boolean, default=False, comment='是否开启自动触发部署功能(兼容老版本组件)')
     check_uuid = Column(String(36), nullable=True, default="", comment="组件id")
@@ -678,7 +678,7 @@ class ComponentRecycleBin(Base):
     service_source = Column(
         String(15), default="", nullable=True, comment="应用来源(source_code, market, docker_run, docker_compose)")
     create_status = Column(String(15), nullable=True, comment="应用创建状态 creating|complete")
-    update_time = Column(DateTime(), default=datetime.now, comment="更新时间", nullable=False)
+    update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now, comment="更新时间", nullable=False)
     check_uuid = Column(String(36), nullable=True, default="", comment="应用检测ID")
     check_event_id = Column(String(32), nullable=True, default="", comment="应用检测事件ID")
     docker_cmd = Column(String(1024), nullable=True, comment="镜像创建命令")

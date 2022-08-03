@@ -30,7 +30,7 @@ class TeamInfo(Base):
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     creater = Column(Integer, nullable=False, default=0, comment="租户创建者")
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     pay_level = Column(String(30), comment="付费级别", nullable=False, default='free')
     expired_time = Column(DateTime(), nullable=True, comment="过期时间")
     tenant_alias = Column(String(64), comment="团队别名", nullable=True, default='')
@@ -243,7 +243,7 @@ class ConsoleConfig(Base):
     key = Column(String(100), comment="配置名称")
     value = Column(String(1000), comment="配置值")
     description = Column(Text(), nullable=True, default="", comment="说明")
-    update_time = Column(DateTime(), comment="更新时间", nullable=True)
+    update_time = Column(DateTime(), onupdate=datetime.now, comment="更新时间", nullable=True)
 
 
 class ConsoleSysConfig(Base):
@@ -292,7 +292,7 @@ class UserMessage(Base):
     content = Column(String(1000), comment="消息内容", nullable=False)
     is_read = Column(Boolean, comment="是否已读", nullable=False, default=False)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=True, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     msg_type = Column(String(32), comment="消息类型", nullable=False)
     announcement_id = Column(String(32), comment="公告ID", nullable=True)
     title = Column(String(64), comment="消息标题", nullable=False, default="title")

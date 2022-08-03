@@ -18,7 +18,7 @@ class TeamRegionInfo(Base):
     is_init = Column(Boolean, comment="是否创建租户网络", nullable=False, default=False)
     service_status = Column(Integer, comment="组件状态", nullable=False, default=1)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     region_tenant_name = Column(String(64), comment="数据中心租户名", nullable=True, default='')
     region_tenant_id = Column(String(32), comment="数据中心租户id", nullable=True, default='')
     region_scope = Column(String(32), comment="数据中心类型", nullable=True, default='')
