@@ -33,5 +33,5 @@ class TeamEnterpriseToken(Base):
     crt = Column(Text, comment="客户端证书", nullable=True, default='')
     key = Column(Text, comment="客户端证书key", nullable=True, default='')
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=True, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
 

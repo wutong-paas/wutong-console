@@ -118,6 +118,6 @@ class UserFavorite(Base):
     url = Column(String(255), comment="收藏视图链接")
     user_id = Column(Integer, comment="用户id")
     create_time = Column(DateTime(), default=datetime.now)
-    update_time = Column(DateTime(), default=datetime.now)
+    update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now)
     custom_sort = Column(Integer, comment="用户自定义排序")
     is_default = Column(Boolean(), default=False, comment="用户自定义排序")

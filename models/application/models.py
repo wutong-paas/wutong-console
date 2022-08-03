@@ -26,7 +26,7 @@ class Application(Base):
         nullable=True,
         default=GovernanceModeEnum.BUILD_IN_SERVICE_MESH.name)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     app_type = Column(String(255), comment="应用类型", nullable=False, default="wutong")
     app_store_name = Column(String(255), comment="应用商店名称", nullable=True)
     app_store_url = Column(String(255), comment="应用商店 URL", nullable=True)
@@ -65,7 +65,7 @@ class ApplicationConfigGroup(Base):
 
     ID = Column(Integer, primary_key=True)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     app_id = Column(Integer, comment='应用id', nullable=False)
     config_group_name = Column(String(64), comment="配置组名", nullable=False)
     deploy_type = Column(String(32), comment="部署类型", nullable=False)
@@ -79,7 +79,7 @@ class ConfigGroupItem(Base):
 
     ID = Column(Integer, primary_key=True)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     app_id = Column(Integer, comment='应用id', nullable=False)
     config_group_name = Column(String(64), comment="配置组名", nullable=False)
     item_key = Column(String(1024), comment="配置项目密钥", nullable=False)
@@ -92,7 +92,7 @@ class ConfigGroupService(Base):
 
     ID = Column(Integer, primary_key=True)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     app_id = Column(Integer, comment='应用id', nullable=False)
     config_group_name = Column(String(64), comment="配置组名", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
@@ -122,7 +122,7 @@ class ServiceShareRecord(Base):
     share_store_name = Column(String(64), comment="分享应用商店名称，用于记录发布范围指定的应用商店名", nullable=True)
     share_app_model_name = Column(String(64), comment="分享应用模板名称", nullable=True)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
 
     def __unicode__(self):
         return self.to_dict()
@@ -145,7 +145,7 @@ class ServiceShareRecordEvent(Base):
     event_id = Column(String(32), comment="介质同步事件ID", nullable=False, default="")
     event_status = Column(String(32), comment="事件状态", nullable=False, default="not_start")
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
 
     def __unicode__(self):
         return self.to_dict()
@@ -208,7 +208,7 @@ class GroupAppBackupImportRecord(Base):
     status = Column(String(15), comment="时间请求状态", nullable=True)
     file_temp_dir = Column(String(256), comment="目录地址", nullable=True, default="")
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=True, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     team_name = Column(String(64), comment="正在导入的团队名称", nullable=True)
     region = Column(String(64), comment="数据中心", nullable=True)
 
@@ -227,7 +227,7 @@ class ApplicationUpgradeRecord(Base):
     old_version = Column(String(20), comment="旧版本号", nullable=False, default='')
     status = Column(Integer, comment="升级状态", nullable=False, default=ApplicationUpgradeStatus.NOT.value)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     market_name = Column(String(64), comment="商店标识", nullable=True)
     is_from_cloud = Column(Boolean, comment="应用来源", nullable=False, default=False)
     upgrade_group_id = Column(Integer, comment="升级组件组id", nullable=False, default=0)
@@ -279,7 +279,7 @@ class ApplicationUpgradeSnapshot(Base):
 
     ID = Column(Integer, primary_key=True)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=True, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     tenant_id = Column(String(32), comment="租户id", nullable=False)
     upgrade_group_id = Column(Integer, comment="升级组件组id", nullable=False, default=0)
     snapshot_id = Column(String(32), comment="快照id", nullable=False)
@@ -333,7 +333,7 @@ class ServiceUpgradeRecord(Base):
     event_id = Column(String(32), nullable=True)
     update = Column(Text, comment="升级信息", nullable=False)
     status = Column(Integer, default=ApplicationUpgradeStatus.NOT.value, comment="升级状态", nullable=False)
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
 
     def is_finished(self):
@@ -353,7 +353,7 @@ class ApplicationExportRecord(Base):
     event_id = Column(String(32), nullable=True, comment="事件id")
     status = Column(String(10), nullable=True, comment="事件请求状态")
     file_path = Column(String(256), nullable=True, comment="文件地址")
-    update_time = Column(DateTime(), nullable=True, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
     enterprise_id = Column(String(32), comment="企业ID", nullable=False)
     region_name = Column(String(32), nullable=True, comment="执行导出的集群ID")

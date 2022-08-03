@@ -195,4 +195,4 @@ class PluginShareRecordEvent(Base):
     event_id = Column(String(32), default="", comment="介质同步事件ID", nullable=False)
     event_status = Column(String(32), default="not_start", comment="事件状态", nullable=False)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=False, default=datetime.now, comment="更新时间")
+    update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
