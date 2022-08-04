@@ -693,9 +693,19 @@ class AppUpgrade(MarketApp):
                 continue
 
             image = None
-            if plugin_tmpl["share_image"]:
-                image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
-                image = image_and_tag[0]
+            username = None
+            passwd = None
+            plugin_image = None
+            if "share_image" in plugin_tmpl:
+                if plugin_tmpl["share_image"]:
+                    image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
+                    image = image_and_tag[0]
+
+            if "plugin_image" in plugin_tmpl:
+                plugin_image = plugin_tmpl["plugin_image"]
+                username = plugin_tmpl["plugin_image"]["hub_user"]
+                passwd = plugin_tmpl["plugin_image"]["hub_password"]
+
             plugin = TeamPlugin(
                 tenant_id=self.tenant.tenant_id,
                 region=self.region_name,
@@ -707,8 +717,8 @@ class AppUpgrade(MarketApp):
                 build_source="image",
                 image=image,
                 code_repo=plugin_tmpl["code_repo"],
-                username=plugin_tmpl["plugin_image"]["hub_user"],
-                password=plugin_tmpl["plugin_image"]["hub_password"],
+                username=username,
+                password=passwd,
                 origin="sys",
                 origin_share_id=plugin_tmpl["plugin_key"],
                 plugin_name=plugin_tmpl["plugin_name"])
@@ -716,18 +726,19 @@ class AppUpgrade(MarketApp):
             build_version = self._create_build_version(plugin.plugin_id, plugin_tmpl)
             config_groups, config_items = self._create_config_groups(plugin.plugin_id, build_version,
                                                                      plugin_tmpl.get("config_groups", []))
-            plugins.append(Plugin(plugin, build_version, config_groups, config_items, plugin_tmpl["plugin_image"]))
+            plugins.append(Plugin(plugin, build_version, config_groups, config_items, plugin_image))
 
         return plugins
 
     def _create_build_version(self, plugin_id, plugin_tmpl):
         image_tag = None
-        if plugin_tmpl["share_image"]:
-            image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
-            if len(image_and_tag) > 1:
-                image_tag = image_and_tag[1]
-            else:
-                image_tag = "latest"
+        if "share_image" in plugin_tmpl:
+            if plugin_tmpl["share_image"]:
+                image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
+                if len(image_and_tag) > 1:
+                    image_tag = image_and_tag[1]
+                else:
+                    image_tag = "latest"
 
         min_memory = plugin_tmpl.get('min_memory', 128)
         min_cpu = int(min_memory) / 128 * 20
