@@ -9,12 +9,10 @@ from fastapi.responses import JSONResponse
 from jose import jwt
 from loguru import logger
 from sqlalchemy import select
-from starlette import status
 
 from core import deps
 from core.setting import role_required
 from core.setting import settings
-from core.utils.oauth.oauth_types import NoSupportOAuthType
 from core.utils.perms import list_enterprise_perms_by_roles
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -145,23 +143,6 @@ async def user_logout(request: Request, session: SessionClass = Depends(deps.get
         response.delete_cookie('uid')
         response.delete_cookie('token')
         response.delete_cookie('third_token')
-
-        try:
-            api = request.app.state.api
-        except NoSupportOAuthType as e:
-            logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 404, "msg_show": "未找到oauth服务"}
-            return JSONResponse(rst, status_code=status.HTTP_200_OK)
-        try:
-            status_code = api.logout()
-            if status_code != 200:
-                rst = {"data": {"bean": None}, "status": status_code, "msg_show": "idaas登出失败"}
-                return JSONResponse(rst, status_code=status.HTTP_200_OK)
-        except Exception as e:
-            logger.exception(e)
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": "idaas登出失败"}
-            return JSONResponse(rst, status_code=status.HTTP_200_OK)
-
         return response
     except Exception as e:
         logger.exception(e)
