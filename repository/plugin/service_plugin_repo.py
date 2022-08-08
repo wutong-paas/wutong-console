@@ -63,6 +63,13 @@ class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
             TeamComponentPluginRelation.plugin_status == 1))
         return results.scalars().all()
 
+    def delete_service_plugin_relation_by_service_id(self, session, service_id, build_error_plugin_ids):
+        session.execute(delete(TeamComponentPluginRelation).where(
+            TeamComponentPluginRelation.service_id == service_id,
+            TeamComponentPluginRelation.plugin_status == 1,
+            TeamComponentPluginRelation.plugin_id.in_(build_error_plugin_ids)
+        ))
+
     def get_service_plugin_relation(self, session, service_id):
         results = session.execute(select(TeamComponentPluginRelation).where(
             TeamComponentPluginRelation.service_id == service_id))
@@ -341,6 +348,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                             plugin_dict.update({"plugin_status": plugin_rel.plugin_status})
                             plugin_dict.update({"min_cpu": plugin_rel.min_cpu})
                             plugin_dict.update({"build_version": plugin_rel.build_version})
+                            plugin_dict.update({"new_build_version": build_version})
                             plugin_dict.update({"plugin_id": plugin_id})
                             installed_plugins.append(plugin_dict.copy())
                             is_open = True
