@@ -286,7 +286,7 @@ async def add_http_domain(request: Request, session: SessionClass = Depends(deps
                 group_name = group.group_name if group else ''
                 g_id = int(gsr.group_id)
         if domain.certificate_id:
-            certificate_info = domain_repo.get_certificate_by_pk(int(domain.certificate_id))
+            certificate_info = domain_repo.get_certificate_by_pk(session, int(domain.certificate_id))
 
             bean.update({"certificate_name": certificate_info.alias})
         bean.update({"service_alias": service_alias})

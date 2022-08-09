@@ -58,7 +58,7 @@ class DomainService(object):
             raise ServiceHandleException(
                 status_code=400, error_code=400, msg="domain more than 256 bytes", msg_show="域名超过256个字符")
         if certificate_id:
-            certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
+            certificate_info = domain_repo.get_certificate_by_pk(session, int(certificate_id))
             cert = base64.b64decode(certificate_info.certificate).decode()
             data = analyze_cert(cert)
             sans = data["issued_to"]
@@ -153,7 +153,7 @@ class DomainService(object):
         certificate_info = None
         http_rule_id = make_uuid(domain_name)
         if certificate_id:
-            certificate_info = domain_repo.get_certificate_by_pk(int(certificate_id))
+            certificate_info = domain_repo.get_certificate_by_pk(session, int(certificate_id))
         data = dict()
         data["domain"] = domain_name
         data["service_id"] = service.service_id
@@ -523,7 +523,7 @@ class DomainService(object):
 
         certificate_info = None
         if domain_info["certificate_id"]:
-            certificate_info = domain_repo.get_certificate_by_pk(int(domain_info["certificate_id"]))
+            certificate_info = domain_repo.get_certificate_by_pk(session, int(domain_info["certificate_id"]))
 
         data = dict()
         data["domain"] = domain_info["domain_name"]
