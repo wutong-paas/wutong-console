@@ -260,7 +260,7 @@ class GroupAppCopyService(object):
                         event_id = make_uuid()
                         plugin_version.event_id = event_id
                         image_tag = (plugin_version.image_tag if plugin_version.image_tag else "latest")
-                        plugin_service.create_region_plugin(region_name, tenant, plugin, image_tag=image_tag)
+                        plugin_service.create_region_plugin(session, region_name, tenant, plugin, image_tag=image_tag)
                         ret = plugin_service.build_plugin(session, region_name, plugin, plugin_version, user, tenant, event_id)
                         plugin_version.build_status = ret.get('bean').get('status')
                         # plugin_version.save()

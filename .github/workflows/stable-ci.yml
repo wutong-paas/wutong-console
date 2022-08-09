@@ -40,14 +40,14 @@ jobs:
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 
-      - name: Deploy to mng cluster
-        id: k8s_deploy
-        uses: actions-hub/kubectl@master
-        env:
-          KUBE_CONFIG: ${{ secrets.MNG_KUBE_CONFIG }}
-        with:
-          args: set image deployment/${{ env.TITLE }} -n wt-system console=${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.BASE_VERSION }}
-          
+#      - name: Deploy to mng cluster
+#        id: k8s_deploy
+#        uses: actions-hub/kubectl@master
+#        env:
+#          KUBE_CONFIG: ${{ secrets.MNG_KUBE_CONFIG }}
+#        with:
+#          args: set image deployment/${{ env.TITLE }} -n wt-system console=${{ secrets.DOMESTIC_DOCKER_SERVER }}/wutong/${{ env.TITLE }}:${{ env.BASE_VERSION }}
+#
       - name: Deploy to zlit mng cluster
         id: k8s_deploy_zlit
         uses: actions-hub/kubectl@master
