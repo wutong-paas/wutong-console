@@ -56,7 +56,7 @@ async def get_backup_info(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/groupapp/{group_id}/backup", response_model=Response, name="查询备份信息")
+@router.post("/teams/{team_name}/groupapp/{group_id}/backup", response_model=Response, name="应用备份")
 async def get_backup_info(request: Request,
                           group_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),

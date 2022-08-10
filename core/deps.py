@@ -22,12 +22,12 @@ async def get_session() -> SessionClass:
     try:
         yield session
         session.commit()
-        session.expunge_all()
     except Exception as e:
         logger.exception(e)
         session.rollback()
         raise
     finally:
+        session.expunge_all()
         session.close()
 
 
