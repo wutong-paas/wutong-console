@@ -312,7 +312,10 @@ class GroupAppBackupService(object):
         if services:
             return 409, "请确保需要导入的组中不存在组件", None
         content = upload_file
-        data = json.loads(AuthCode.decode(content, "GOODRAINLOVE"))
+        try:
+            data = json.loads(AuthCode.decode(content, "GOODRAINLOVE"))
+        except:
+            return 400, "文件错误", None
         current_backup = backup_record_repo.get_record_by_group_id_and_backup_id(session, group_id, data["backup_id"])
         if current_backup:
             return 412, "当前团队已导入过该备份", None
