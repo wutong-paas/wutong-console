@@ -357,7 +357,7 @@ class ApplicationService(object):
         """
         self.check_app_name(session, tenant, region_name, app_name, k8s_app=k8s_app)
         # check parameter for helm app
-        app_type = AppType.rainbond.name
+        app_type = AppType.wutong.name
         if app_store_name or app_template_name or version:
             app_type = AppType.helm.name
             if not app_store_name:
@@ -561,7 +561,7 @@ class ApplicationService(object):
         new_service.service_id = service_id
         new_service.service_alias = service_alias
         new_service.creater = user.user_id
-        new_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + service_id
+        new_service.host_path = "/wtdata/tenant/" + tenant.tenant_id + "/service/" + service_id
         new_service.docker_cmd = docker_cmd
         new_service.image = ""
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias

@@ -262,7 +262,7 @@ class Component(object):
         old_volumes = {volume.volume_name: volume for volume in self.volumes}
         for volume in volumes.get("add"):
             volume["service_id"] = self.component.service_id
-            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_id, self.component.service_id,
+            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_id, self.component.service_id,
                                                                    volume["volume_path"])
             volume["host_path"] = host_path
             file_content = volume.get("file_content")
