@@ -132,7 +132,7 @@ class ComposeService(object):
         tenant_service.service_type = "application"
         tenant_service.total_memory = 0
         tenant_service.volume_mount_path = ""
-        tenant_service.host_path = "/grdata/tenant/" + tenant.tenant_id + "/service/" + tenant_service.service_id
+        tenant_service.host_path = "/wtdata/tenant/" + tenant.tenant_id + "/service/" + tenant_service.service_id
         tenant_service.code_from = "image_manual"
         tenant_service.language = "docker-compose"
         tenant_service.service_source = AppConstants.DOCKER_COMPOSE

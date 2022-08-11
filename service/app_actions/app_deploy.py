@@ -716,7 +716,7 @@ class MarketService(object):
     def _update_volumes(self, session, volumes):
         for volume in volumes.get("add"):
             volume["service_id"] = self.service.service_id
-            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(self.tenant.tenant_id, self.service.service_id,
+            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(self.tenant.tenant_id, self.service.service_id,
                                                                    volume["volume_path"])
             volume["host_path"] = host_path
             volume["category"] = "app_publish"

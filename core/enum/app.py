@@ -23,7 +23,7 @@ class GovernanceModeEnum(AutoNumber):
 
 
 class AppType(AutoNumber):
-    rainbond = ()
+    wutong = ()
     helm = ()
 
 

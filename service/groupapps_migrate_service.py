@@ -399,7 +399,7 @@ class GroupappsMigrateService(object):
                 volume["volume_type"] = settings["volume_type"]
             new_volume = TeamComponentVolume(**volume)
             new_volume.service_id = service.service_id
-            host_path = "/grdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id,
+            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id,
                                                                    new_volume.volume_path)
             new_volume.host_path = host_path
             volume_list.append(new_volume)
