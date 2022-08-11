@@ -724,6 +724,7 @@ class GroupappsMigrateService(object):
                 service_mnt_list[0:0] = list(service_mnts)
             # 更新状态
             ts.create_status = "complete"
+            session.merge(ts)
 
         # restore plugin info
         self.__save_plugins(session=session, region_name=migrate_region, tenant=migrate_tenant,

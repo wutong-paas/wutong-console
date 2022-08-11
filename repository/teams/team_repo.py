@@ -167,7 +167,8 @@ class TeamRepository(BaseRepository[TeamInfo]):
             TeamComponentInfo.service_id.in_(service_ids))).scalars().all()
 
     def save_tenant_service_info(self, session, ts):
-        session.merge(ts)
+        session.add(ts)
+        session.flush()
 
     def get_team_region_by_name(self, session, team_id, region_name):
         return session.execute(select(TeamRegionInfo).where(
