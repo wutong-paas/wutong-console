@@ -596,7 +596,7 @@ class ApplicationService(object):
         return True, "success"
 
     def create_service_alias(self, session: SessionClass, service_id):
-        service_alias = "gr" + service_id[-6:]
+        service_alias = "wt" + service_id[-6:]
         svc = (
             session.execute(
                 select(TeamComponentInfo).where(TeamComponentInfo.service_alias == service_alias))
