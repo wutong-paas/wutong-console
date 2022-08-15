@@ -64,7 +64,7 @@ class ComponentCheckService(object):
             elif service.service_source == AppConstants.SOURCE_CODE:
                 service.cmd = "start web"
             service.language = lang
-            service.save()
+            # service.save()
             # transaction.savepoint_commit(sid)
         except Exception as e:
             logger.exception(e)

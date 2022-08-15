@@ -140,7 +140,7 @@ async def get_app_detail(request: Request,
                                     old_version = int(extend_info["source_deploy_version"])
                                     if new_version > old_version:
                                         service.is_upgrate = True
-                                        service.save()
+                                        # service.save()
                                         service_model["is_upgrade"] = True
                                         bean.update({"service": service_model})
                             elif "service_share_uuid" not in app and "service_key" in app:
@@ -149,7 +149,7 @@ async def get_app_detail(request: Request,
                                     old_version = int(extend_info["source_deploy_version"])
                                     if new_version > old_version:
                                         service.is_upgrate = True
-                                        service.save()
+                                        # service.save()
                                         service_model["is_upgrade"] = True
                                         bean.update({"service": service_model})
         except Exception as e:
