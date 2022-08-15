@@ -18,8 +18,7 @@ def get_sync_event_result(session: SessionClass, region_name, tenant_name, recor
     ret = body.get('bean')
     if ret and ret.get('status'):
         record_event.event_status = ret.get("status")
-        # todo save
-        record_event.save()
+        # record_event.save()
     return record_event
 
 

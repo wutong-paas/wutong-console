@@ -32,6 +32,7 @@ async def market_plugins(page: int = 1,
     result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
     return JSONResponse(result, status_code=result["code"])
 
+
 @router.get("/plugin/plugins", response_model=Response, name="内部插件市场插件列表")
 async def internal_market_plugins(page: int = 1,
                                   limit: int = 10,
