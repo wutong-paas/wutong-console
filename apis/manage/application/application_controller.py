@@ -481,7 +481,7 @@ async def get_app_model(group_id: Optional[str] = None, session: SessionClass = 
     except ServiceHandleException as e:
         if e.status_code != 404:
             raise e
-    return JSONResponse(general_message(200, "success", "创建成功", list=apps), status_code=200)
+    return JSONResponse(general_message(200, "success", "创建成功", list=jsonable_encoder(apps)), status_code=200)
 
 
 @router.get("/teams/{team_name}/groups/{group_id}/upgrade-records", response_model=Response, name="查询升级记录集合")

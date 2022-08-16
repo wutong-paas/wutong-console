@@ -57,6 +57,7 @@ class UpgradeService(object):
         }
         record = ApplicationUpgradeRecord(**record)
         session.add(record)
+        session.flush()
         return jsonable_encoder(record)
 
     def get_app_not_upgrade_record(self, session: SessionClass, tenant_id, group_id, group_key):
