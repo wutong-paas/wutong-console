@@ -89,7 +89,7 @@ class AppConfigGroupService(object):
         cgroup_info = []
         config_groups = app_config_group_repo.list(session, region_name, app_id)
         if query:
-            config_groups = config_groups.filter(config_group_name__contains=query)
+            config_groups = app_config_group_repo.list_query(session, region_name, app_id, query)
         params = Params(page=page, size=page_size)
         config_groups_paginator = paginate(config_groups, params)
         config_groups_item = config_groups_paginator.items
