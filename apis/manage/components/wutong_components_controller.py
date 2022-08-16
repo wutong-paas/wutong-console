@@ -12,7 +12,7 @@ from clients.remote_component_client import remote_component_client
 from core import deps
 from core.enum.component_enum import is_support
 from core.utils.constants import PluginCategoryConstants
-from core.utils.reqparse import parse_argument
+from core.utils.reqparse import parse_argument, parse_item
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists
@@ -21,6 +21,7 @@ from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFoun
 from models.component.models import ComponentEnvVar
 from models.users.users import Users
 from repository.application.app_repository import service_webhooks_repo
+from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -37,6 +38,7 @@ from service.git_service import git_service
 from service.market_app_service import market_app_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.probe_service import probe_service
+from service.upgrade_service import upgrade_service
 from service.user_service import user_svc
 
 router = APIRouter()
@@ -128,7 +130,9 @@ async def get_pods_info(serviceAlias: Optional[str] = None,
                     container_list.append(container_dict)
                     if service.k8s_component_name.startswith(key):
                         if len(container_list) > 1:
-                            container_list[0], container_list[len(container_list) - 1] = container_list[len(container_list) - 1], container_list[0]
+                            container_list[0], container_list[len(container_list) - 1] = container_list[
+                                                                                             len(container_list) - 1], \
+                                                                                         container_list[0]
                 bean["container"] = container_list
                 res.append(bean)
             return res
@@ -521,6 +525,29 @@ async def get_market_service_upgrade(serviceAlias: Optional[str] = None,
         logger.debug(e)
         return JSONResponse(general_message(200, "success", "查询成功", list=versions), status_code=200)
     return JSONResponse(general_message(200, "success", "查询成功", list=versions), status_code=200)
+
+
+@router.post("/teams/{team_name}/apps/{serviceAlias}/market_service/upgrade", response_model=Response,
+             name="云市安装的组件升级")
+async def market_service_upgrade(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
+
+    version = await parse_item(request, "group_version", required=True)
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    if not service:
+        return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    # get app
+    app = application_repo.get_by_service_id(session, team.tenant_id, service.service_id)
+
+    upgrade_service.upgrade_component(session, team, region, user, app, service, version)
+    return JSONResponse(general_message(200, "success", "升级成功"), status_code=200)
 
 
 @router.get("/teams/{team_name}/groups/{group_id}/apps/{app_id}/components", response_model=Response, name="获取组件实例")

@@ -344,7 +344,7 @@ class MarketService(object):
                     func = self.update_funcs.get(k, None)
                     if func is None:
                         continue
-                    if k == "volumes":
+                    if k == "volumes" or k == "ports" or k == "connect_infos":
                         func(session, v)
                     else:
                         func(v)
@@ -487,13 +487,13 @@ class MarketService(object):
         self.service.version = v["new"]
         self.service.save()
 
-    def _update_inner_envs(self, envs):
-        self._update_envs(envs, "inner")
+    def _update_inner_envs(self, session, envs):
+        self._update_envs(session, envs, "inner")
 
-    def _update_outer_envs(self, envs):
-        self._update_envs(envs, "outer")
+    def _update_outer_envs(self, session, envs):
+        self._update_envs(session, envs, "outer")
 
-    def _update_envs(self, envs, scope):
+    def _update_envs(self, session, envs, scope):
         if envs is None:
             return
         logger.debug("service id: {}; update envs; data: {}".format(self.service.service_id, envs))
@@ -510,7 +510,7 @@ class MarketService(object):
             if container_port == 0 and value == "**None**":
                 value = self.service.service_id[:8]
             try:
-                env_var_service.create_env_var(self.service, container_port, name, attr_name, value, is_change, scope)
+                env_var_service.create_env_var(session, self.service, container_port, name, attr_name, value, is_change, scope)
             except (EnvAlreadyExist, InvalidEnvName) as e:
                 logger.warning("failed to create env: {}; will ignore this env".format(e))
 
@@ -643,7 +643,7 @@ class MarketService(object):
         port["mapping_port"] = container_port
         port["port_alias"] = port_alias
 
-    def _update_ports(self, ports):
+    def _update_ports(self, session, ports):
         if ports is None:
             return
 
@@ -661,7 +661,7 @@ class MarketService(object):
             port_repo.update(**port)
         if not envs["add"]:
             return
-        self._update_envs(envs, "outer")
+        self._update_envs(session, envs, "outer")
 
     def _sync_ports(self, session, ports):
         """

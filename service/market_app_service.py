@@ -6,7 +6,7 @@ from fastapi.encoders import jsonable_encoder
 from jsonpath import jsonpath
 from loguru import logger
 from sqlalchemy import select, delete
-
+from appstore.app_store_client import app_store_client
 from clients.remote_component_client import remote_component_client
 from common.base_client_service import get_tenant_region_info
 from core.enum.component_enum import Kind
@@ -16,7 +16,7 @@ from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFoun
 from models.application.models import Application
 from models.component.models import TeamApplication
 from models.market.models import CenterApp, CenterAppTagsRelation, CenterAppVersion, \
-    AppImportRecord, CenterAppTag
+    AppImportRecord, CenterAppTag, AppMarket
 from models.teams import TeamInfo
 from models.users.users import Users
 from repository.application.app_repository import app_tag_repo, app_repo
@@ -31,6 +31,42 @@ from service.user_service import user_svc
 
 
 class MarketAppService(object):
+
+    def cloud_app_model_to_db_model(self, market: AppMarket, app_id, version, for_install=False):
+        app = app_store_client.get_app(market, app_id)
+        app_version = None
+        app_template = None
+        try:
+            if version:
+                app_template = app_store_client.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
+        except ServiceHandleException as e:
+            if e.status_code != 404:
+                logger.exception(e)
+            app_template = None
+        wutong_app = CenterApp(
+            app_id=app.app_key_id,
+            app_name=app.name,
+            dev_status=app.dev_status,
+            source="market",
+            scope="goodrain",
+            describe=app.desc,
+            details=app.introduction,
+            pic=app.logo,
+            create_time=app.create_time,
+            update_time=app.update_time)
+        wutong_app.market_name = market.name
+        if app_template:
+            app_version = CenterAppVersion(
+                app_id=app.app_key_id,
+                app_template=app_template.template,
+                version=app_template.version,
+                version_alias=app_template.version_alias,
+                template_version=app_template.rainbond_version,
+                app_version_info=app_template.description,
+                update_time=app_template.update_time,
+                is_official=1)
+            app_version.template_type = app_template.template_type
+        return wutong_app, app_version
 
     def update_wutong_app_install_num(self, session, enterprise_id, app_id, app_version):
         app_repo.add_wutong_install_num(session, enterprise_id, app_id, app_version)

@@ -56,7 +56,7 @@ class ComponentGraphRepository(BaseRepository[ComponentGraph]):
 
     def overwrite_by_component_ids(self, session, component_ids, component_graphs):
         session.execute(delete(ComponentGraph).where(
-            ComponentGraph.service_id.in_(component_ids)
+            ComponentGraph.component_id.in_(component_ids)
         ))
         session.add_all(component_graphs)
 

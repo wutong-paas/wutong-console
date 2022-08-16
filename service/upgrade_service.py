@@ -1,19 +1,23 @@
+import json
 from datetime import datetime
-
+from json import JSONDecodeError
 from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import Params, paginate
 from loguru import logger
-
 from clients.remote_build_client import remote_build_client
 from database.session import SessionClass
 from exceptions.bcode import ErrLastRecordUnfinished
+from exceptions.main import AbortRequest
 from models.application.models import ApplicationUpgradeStatus, ServiceUpgradeRecord, ApplicationUpgradeRecord, ApplicationUpgradeRecordType, \
     Application
 from models.teams import TeamInfo
 from repository.application.app_upgrade_repo import upgrade_repo
-from repository.component.component_repo import tenant_service_group_repo
+from repository.application.application_repo import app_market_repo
+from repository.component.component_repo import tenant_service_group_repo, service_source_repo
 from repository.component.component_upgrade_record_repo import component_upgrade_record_repo
+from repository.market.center_repo import center_app_repo
 from service.component_group import ComponentGroup
+from service.market_app.app_upgrade import AppUpgrade
 
 
 class UpgradeService(object):
@@ -30,6 +34,47 @@ class UpgradeService(object):
                 "timeout": ApplicationUpgradeStatus.ROLLBACK.value,
             },
         }
+
+    @staticmethod
+    def _app_template(session, enterprise_id, app_model_key, version, app_template_source):
+        if not app_template_source.is_install_from_cloud():
+            _, app_version = center_app_repo.get_wutong_app_and_version(session, enterprise_id, app_model_key, version)
+        else:
+            market = app_market_repo.get_app_market_by_name(
+                session, enterprise_id, app_template_source.get_market_name(), raise_exception=True)
+            _, app_version = cloud_app_model_to_db_model(session, market, app_model_key, version)
+
+        if not app_version:
+            raise AbortRequest("app template not found", "找不到应用模板", status_code=404, error_code=404)
+
+        try:
+            app_template = json.loads(app_version.app_template)
+            app_template["update_time"] = app_version.update_time
+            return app_template
+        except JSONDecodeError:
+            raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
+
+    def upgrade_component(self, session, tenant, region, user, app, component, version):
+        component_group = tenant_service_group_repo.get_component_group(session, component.upgrade_group_id)
+        app_template_source = service_source_repo.get_service_source(session, component.tenant_id, component.component_id)
+        app_template = self._app_template(session, user.enterprise_id, component_group.group_key, version, app_template_source)
+
+        app_upgrade = AppUpgrade(
+            session,
+            tenant.enterprise_id,
+            tenant,
+            region,
+            user,
+            app,
+            version,
+            component_group,
+            app_template,
+            app_template_source.is_install_from_cloud(),
+            app_template_source.get_market_name(),
+            component_keys=[component.service_key],
+            is_deploy=True,
+            is_upgrade_one=True)
+        app_upgrade.upgrade(session)
 
     def create_upgrade_record(self, session, enterprise_id, tenant: TeamInfo, app: Application, upgrade_group_id):
         component_group = tenant_service_group_repo.get_component_group(session, upgrade_group_id)

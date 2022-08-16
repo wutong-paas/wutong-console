@@ -322,7 +322,8 @@ class AppUpgrade(MarketApp):
             self.is_deploy,
             support_labels=self.support_labels).components
         # components that need to be updated
-        update_components = UpdateComponents(self.original_app, self.app_model_key, self.app_template, self.version,
+        update_components = UpdateComponents(session, self.original_app, self.app_model_key, self.app_template,
+                                             self.version,
                                              self.component_keys, self.property_changes).components
 
         components = new_components + update_components

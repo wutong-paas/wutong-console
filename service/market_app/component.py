@@ -55,7 +55,7 @@ class Component(object):
         self.support_labels = {label.label_name: label for label in support_labels}
         self.action_type = ActionType.NOTHING.value
 
-    def set_changes(self, tenant, region, changes, governance_mode):
+    def set_changes(self, session, tenant, region, changes, governance_mode):
         """
         Set changes to the component
         """
@@ -64,7 +64,7 @@ class Component(object):
             if not changes.get(key):
                 continue
             update_func = update_funcs[key]
-            update_func(changes.get(key))
+            update_func(session, changes.get(key))
 
         self.ensure_port_envs(governance_mode)
 
@@ -115,18 +115,18 @@ class Component(object):
             "plugin_deps": self._update_plugin_deps,
         }
 
-    def _update_plugin_deps(self, plugin_deps):
+    def _update_plugin_deps(self, session, plugin_deps):
         if not plugin_deps.get("add"):
             return
         self.update_action_type(ActionType.UPDATE.value)
 
-    def _update_deploy_version(self, dv):
+    def _update_deploy_version(self, session, dv):
         if not dv["is_change"]:
             return
         self.component.deploy_version = dv["new"]
         self.update_action_type(ActionType.BUILD.value)
 
-    def _update_version(self, v):
+    def _update_version(self, session, v):
         if not v["is_change"]:
             return
         self.component.version = v["new"]
@@ -193,7 +193,7 @@ class Component(object):
                 old_port.is_outer_service = port["is_outer_service"]
         self.update_action_type(ActionType.UPDATE.value)
 
-    def _update_component_graphs(self, component_graphs):
+    def _update_component_graphs(self, session, component_graphs):
         if not component_graphs:
             return
         graphs = component_graphs.get("add", [])
@@ -213,7 +213,7 @@ class Component(object):
             old_graph.sequence = graph.get("sequence", 99)
         self.update_action_type(ActionType.UPDATE.value)
 
-    def _update_component_monitors(self, component_monitors):
+    def _update_component_monitors(self, session, component_monitors):
         if not component_monitors:
             return
         monitors = component_monitors.get("add", [])
@@ -224,7 +224,7 @@ class Component(object):
             self.monitors.append(new_monitor)
         self.update_action_type(ActionType.UPDATE.value)
 
-    def _update_labels(self, labels):
+    def _update_labels(self, session, labels):
         if not labels:
             return
         labels = labels.get("add", [])
@@ -258,7 +258,7 @@ class Component(object):
         port["mapping_port"] = container_port
         port["port_alias"] = port_alias
 
-    def _update_volumes(self, volumes):
+    def _update_volumes(self, session, volumes):
         old_volumes = {volume.volume_name: volume for volume in self.volumes}
         for volume in volumes.get("add"):
             volume["service_id"] = self.component.service_id
@@ -289,7 +289,7 @@ class Component(object):
         self.config_files = old_config_files.values()
         self.update_action_type(ActionType.UPDATE.value)
 
-    def _update_probe(self, probe):
+    def _update_probe(self, session, probe):
         old_probes = {probe.mode: probe for probe in self.probes}
 
         new_probes = []
