@@ -254,6 +254,11 @@ class TenantServiceEndpoints(BaseRepository[ThirdPartyComponentEndpoints]):
 
 class ServiceExtendRepository(BaseRepository[ComponentExtendMethod]):
 
+    def bulk_create_or_update(self, session, extend_infos):
+        session.execute(delete(ComponentExtendMethod).where(
+            ComponentExtendMethod.ID.in_([ei.ID for ei in extend_infos])))
+        session.add_all(extend_infos)
+
     def get_extend_method_by_service(self, session, service):
         if service.service_source == "market":
             return (session.execute(select(ComponentExtendMethod).where(

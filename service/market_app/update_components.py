@@ -14,7 +14,7 @@ class UpdateComponents(object):
     components that need to be updated.
     """
 
-    def __init__(self, original_app: OriginalApp, app_model_key, app_template, version, components_keys, property_changes):
+    def __init__(self, session, original_app: OriginalApp, app_model_key, app_template, version, components_keys, property_changes):
         """
         components_keys: component keys that the user select.
         """
@@ -26,9 +26,9 @@ class UpdateComponents(object):
         self.property_changes = property_changes
         # update service_key and service_share_uuid based on the new app template
         self._ensure_component_keys(self.original_app.components())
-        self.components = self._create_update_components()
+        self.components = self._create_update_components(session)
 
-    def _create_update_components(self):
+    def _create_update_components(self, session):
         """
         component templates + existing components => update components
         """
@@ -45,7 +45,7 @@ class UpdateComponents(object):
         for cpt in components:
             component_tmpl = get_component_template(cpt, self.app_template)
             if component_tmpl:
-                cpt.set_changes(self.original_app.tenant, self.original_app.region, cpt_changes[cpt.component.component_id],
+                cpt.set_changes(session, self.original_app.tenant, self.original_app.region, cpt_changes[cpt.component.component_id],
                                 self.original_app.governance_mode)
                 cpt.component.image = component_tmpl["share_image"]
                 cpt.component.cmd = component_tmpl.get("cmd", "")

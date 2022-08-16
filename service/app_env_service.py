@@ -17,6 +17,28 @@ class AppEnvVarService(object):
                            'PATH',
                            'POD_NET_IP', 'LOG_MATCH')
 
+    def create_env_var(self, session, service, container_port, name, attr_name, attr_value, is_change=False, scope="outer"):
+        """
+        raise: EnvAlreadyExist
+        raise: InvalidEnvName
+        """
+        self.check_env(session, service, attr_name, attr_value)
+        if len(str(attr_value)) > 65532:
+            attr_value = str(attr_value)[:65532]
+        tenantServiceEnvVar = {}
+        tenantServiceEnvVar["tenant_id"] = service.tenant_id
+        tenantServiceEnvVar["service_id"] = service.service_id
+        tenantServiceEnvVar['container_port'] = container_port
+        tenantServiceEnvVar["name"] = name
+        tenantServiceEnvVar["attr_name"] = attr_name
+        tenantServiceEnvVar["attr_value"] = attr_value
+        tenantServiceEnvVar["is_change"] = is_change
+        tenantServiceEnvVar["scope"] = scope
+        tse = ComponentEnvVar(**tenantServiceEnvVar)
+        session.add(tse)
+        session.flush()
+        return tse
+
     def check_env(self, session, component, attr_name, attr_value):
         if env_var_repo.get_service_env_by_attr_name(session, component.tenant_id, component.service_id, attr_name):
             raise EnvAlreadyExist()

@@ -216,8 +216,11 @@ class NewApp(object):
 
         components = [cpt.component for cpt in self.update_components]
         component_ids = [cpt.component_id for cpt in components]
-        session.add_all(components)
-        session.add_all(sources)
+        try:
+            session.add_all(components)
+            session.add_all(sources)
+        except:
+            pass
         extend_repo.bulk_create_or_update(session, extend_infos)
         env_var_repo.overwrite_by_component_ids(session, component_ids, envs)
         port_repo.overwrite_by_component_ids(session, component_ids, ports)

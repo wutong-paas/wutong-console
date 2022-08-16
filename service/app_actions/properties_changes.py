@@ -91,11 +91,11 @@ class PropertiesChanges(object):
         if dep_volumes:
             result["dep_volumes"] = dep_volumes
 
-        plugin_component_configs = self.plugin_changes(session=session,
-                                                       new_plugins=component.get("service_related_plugin_config", []))
-        if plugin_component_configs:
-            logger.debug("plugin changes: {}".format(json.dumps(plugin_component_configs)))
-            result["plugins"] = plugin_component_configs
+        # plugin_component_configs = self.plugin_changes(session=session,
+        #                                                new_plugins=component.get("service_related_plugin_config", []))
+        # if plugin_component_configs:
+        #     logger.debug("plugin changes: {}".format(json.dumps(plugin_component_configs)))
+        #     result["plugins"] = plugin_component_configs
 
         app_config_groups = self.app_config_group_changes(template)
         if app_config_groups:
