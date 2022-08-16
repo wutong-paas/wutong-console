@@ -177,6 +177,14 @@ class ApplicationConfigGroupRepository(BaseRepository[ConfigGroupService]):
                 ApplicationConfigGroup.create_time.desc())
         ).scalars().all()
 
+    def list_query(self, session, region_name, app_id, query):
+        return session.execute(
+            select(ApplicationConfigGroup).where(ApplicationConfigGroup.region_name == region_name,
+                                                 ApplicationConfigGroup.app_id == app_id,
+                                                 ApplicationConfigGroup.config_group_name.contains(query)).order_by(
+                ApplicationConfigGroup.create_time.desc())
+        ).scalars().all()
+
     def create(self, session, **group_req):
         acg = ApplicationConfigGroup(**group_req)
         session.add(acg)
