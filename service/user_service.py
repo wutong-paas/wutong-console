@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import binascii
 import copy
+import datetime
 import os
 import pickle
 import re
@@ -372,8 +373,19 @@ class UserService(object):
         u = q.scalars().first()
         if not u:
             return None, '用户不存在', 404
+        if u.login_sta:
+            if (datetime.datetime.now() - u.login_suo).total_seconds() < 15 * 60:
+                return None, '账户已被锁定15分钟', 400
         if not u.check_password(password):
+            u.pass_errnum = u.pass_errnum + 1
+            if u.pass_errnum >= 5:
+                u.login_sta = True
+                u.login_suo = datetime.datetime.now()
+                return None, '密码不正确,账户锁定15分钟', 400
             return None, '密码不正确', 400
+        u.login_sta = False
+        u.login_suo = None
+        u.pass_errnum = 0
         return u, "验证成功", 200
 
     def num_to_char(self, num):
@@ -401,10 +413,7 @@ class UserService(object):
     def check_user_password(self, session, user_id, password):
         u = user_repo.get_user_by_user_id(session=session, user_id=user_id)
         if u:
-            default_pass = u.check_password("goodrain")
-            if not default_pass:
-                return u.check_password(password)
-            return default_pass
+            return u.check_password(password)
         else:
             return None
 
@@ -415,6 +424,14 @@ class UserService(object):
         else:
             if len(new_password) < 8:
                 return False, "密码不能小于8位"
+            has_number = any([i.isdigit() for i in new_password])
+            my_re = re.compile(r'[A-Za-z]', re.S)
+            has_char = re.findall(my_re, new_password)
+            has_special = re.search(r"\W", new_password)
+
+            if not (has_char and has_special and has_number):
+                return False, "请确保密码包含字母、数字和特殊字符"
+
             u.set_password(new_password)
             session.add(u)
             session.flush()

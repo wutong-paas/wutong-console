@@ -344,7 +344,7 @@ async def change_password(request: Request,
                 code = 200
                 result = general_message(200, "change password success", "密码修改成功")
             else:
-                result = general_message(400, "password change failed", "密码修改失败")
+                result = general_message(400, "password change failed", info)
         return JSONResponse(result, status_code=result["code"])
     except Exception as e:
         logger.exception(e)
