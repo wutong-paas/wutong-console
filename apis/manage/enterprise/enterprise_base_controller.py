@@ -45,6 +45,7 @@ async def get_info(session: SessionClass = Depends(deps.get_session)) -> Any:
         data["is_regist"] = os.getenv('IS_REGIST', {"enable": 1,
                                                     "value": ""
                                                     })
+    data["login_timeout"] = 15
     result = general_message(200, "success", "查询成功", bean=data, initialize_info=initialize_info)
     return JSONResponse(result, status_code=result["code"])
 
