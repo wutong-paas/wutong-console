@@ -1,4 +1,5 @@
 import pickle
+import re
 import time
 from datetime import datetime, timedelta
 from typing import Any
@@ -175,9 +176,18 @@ async def user_register(request: Request, session: SessionClass = Depends(deps.g
     user = Users(**user_info)
     user.set_password(password)
 
+    has_number = any([i.isdigit() for i in password])
+    my_re = re.compile(r'[A-Za-z]', re.S)
+    has_char = re.findall(my_re, password)
+    has_special = re.search(r"\W", password)
+
     if len(password) < 8:
         result = general_message(400, "len error", "密码长度最少为8位")
-        return JSONResponse(result)
+        return JSONResponse(result, status_code=400)
+
+    if not (has_char and has_special and has_number):
+        result = general_message(400, "complexity error", "请确保密码包含字母、数字和特殊字符")
+        return JSONResponse(result, status_code=400)
 
     # check user info
     try:
@@ -188,14 +198,6 @@ async def user_register(request: Request, session: SessionClass = Depends(deps.g
     user_svc.create_user(session=session, user=user)
 
     enterprise = enterprise_repo.get_enterprise_first(session=session)
-
-    # check user info
-    # try:
-    #     user_svc.check_params(session, user_name, email, password, re_password, user.enterprise_id, phone)
-    # except AbortRequest as e:
-    #     return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
-
-    # user_svc.create_user(session, user)
 
     if not enterprise:
         enter_name = from_data["enter_name"]

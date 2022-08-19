@@ -1,3 +1,4 @@
+import re
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Request
@@ -80,9 +81,19 @@ async def add_users(
     phone = data.get("phone", None)
     real_name = data.get("real_name", None)
     tenant = team_services.get_tenant_by_tenant_name(session, tenant_name)
+
+    has_number = any([i.isdigit() for i in password])
+    my_re = re.compile(r'[A-Za-z]', re.S)
+    has_char = re.findall(my_re, password)
+    has_special = re.search(r"\W", password)
+
     if len(password) < 8:
         result = general_message(400, "len error", "密码长度最少为8位")
-        return JSONResponse(result)
+        return JSONResponse(result, status_code=400)
+
+    if not (has_char and has_special and has_number):
+        result = general_message(400, "complexity error", "请确保密码包含字母、数字和特殊字符")
+        return JSONResponse(result, status_code=400)
     # check user info
     try:
         user_svc.check_params(session, user_name, email, password, re_password, user.enterprise_id, phone)
