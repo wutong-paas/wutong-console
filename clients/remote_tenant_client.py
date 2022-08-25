@@ -73,5 +73,16 @@ class RemoteTenantClient(ApiBaseHttpClient):
         res, body = self._delete(url, self.default_headers, region=region)
         return body
 
+    # 获取kubeconfig
+    def get_kubeconfig(self, session, region, tenant_name):
+        """获取kubeconfig"""
+
+        url, token = get_region_access_info(tenant_name, region, session)
+        url = url + "/v2/tenants/{0}/kubeconfig".format(tenant_name)
+
+        self._set_headers(token)
+        res, body = self._get(url, self.default_headers, region=region)
+        return body
+
 
 remote_tenant_client = RemoteTenantClient()
