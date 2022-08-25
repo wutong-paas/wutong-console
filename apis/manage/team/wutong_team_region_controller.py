@@ -1,14 +1,17 @@
+import io
 from typing import Optional, Any
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, StreamingResponse
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
+from clients.remote_tenant_client import remote_tenant_client
 from core import deps
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.region_service import region_services
 
@@ -393,3 +396,21 @@ async def manager(
         response = None
     # response = self.finalize_response(request, response, *args, **kwargs)
     return response
+
+
+@router.get("/teams/{team_name}/kubeconfig", response_model=Response, name="获取kubeconfig")
+async def get_kubeconfig(request: Request,
+                         team_name: Optional[str] = None,
+                         team=Depends(deps.get_current_team),
+                         session: SessionClass = Depends(deps.get_session)) -> Any:
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    res = remote_tenant_client.get_kubeconfig(session, region.region_name, team_name)
+    if res:
+        file = io.StringIO(res['bean'])
+        response = StreamingResponse(file, media_type='application/')
+        response.init_headers({"Content-Disposition": "kubeconfig"})
+        return response
+    else:
+        return JSONResponse(general_message(400, "get kubeconfig failed", "获取kubeconfig失败"), status_code=400)
