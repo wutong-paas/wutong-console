@@ -403,7 +403,6 @@ async def manager(
 async def get_kubeconfig(request: Request,
                          team_name: Optional[str] = None,
                          team=Depends(deps.get_current_team),
-                         user: Users = Depends(deps.get_current_user),
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
@@ -411,8 +410,8 @@ async def get_kubeconfig(request: Request,
     res = remote_tenant_client.get_kubeconfig(session, region.region_name, team_name)
     if res:
         file = io.StringIO(res['bean'])
-        response = StreamingResponse(file, media_type='application/')
-        response.init_headers({"Content-Disposition": "kubeconfig"})
+        response = StreamingResponse(file)
+        response.init_headers({"Content-Disposition": "attchment; filename=kubeconfig"})
         return response
     else:
         return JSONResponse(general_message(400, "get kubeconfig failed", "获取kubeconfig失败"), status_code=400)
