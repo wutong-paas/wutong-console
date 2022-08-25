@@ -10,6 +10,7 @@ from clients.remote_tenant_client import remote_tenant_client
 from core import deps
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
+from models.users.users import Users
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -402,6 +403,7 @@ async def manager(
 async def get_kubeconfig(request: Request,
                          team_name: Optional[str] = None,
                          team=Depends(deps.get_current_team),
+                         user: Users = Depends(deps.get_current_user),
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
