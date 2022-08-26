@@ -19,10 +19,69 @@ from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
+from service.cert_service import cert_service
 
 
 class DomainService(object):
     HTTP = "http"
+
+    def delete_certificate_by_pk(self, session, pk):
+        cert = domain_repo.get_certificate_by_pk(session, pk)
+        if not cert:
+            raise ServiceHandleException("certificate not found", "证书不存在", 404, 404)
+
+        # can't delete the cerificate that till has http rules
+        http_rules = domain_repo.list_service_domains_by_cert_id(session, pk)
+        if http_rules:
+            raise ServiceHandleException("the certificate still has http rules", "仍有网关策略在使用该证书", 400, 400)
+
+        domain_repo.delete_certificate_by_pk(session, pk)
+
+    def update_certificate(self, session, tenant, certificate_id, alias, certificate, private_key, certificate_type):
+        cert_is_effective(certificate, private_key)
+        cert = domain_repo.get_certificate_by_pk(session, certificate_id)
+        if cert is None:
+            raise ServiceHandleException("certificate not found", "证书不存在", 404, 404)
+        if cert.alias != alias:
+            self.__check_certificate_alias(session, tenant, alias)
+            cert.alias = alias
+        if certificate:
+            cert.certificate = base64.b64encode(bytes(certificate, 'utf-8'))
+        if certificate_type:
+            cert.certificate_type = certificate_type
+        if private_key:
+            cert.private_key = private_key
+        # cert.save()
+
+        # update all ingress related to the certificate
+        body = {
+            "certificate_id": cert.certificate_id,
+            "certificate_name": "foobar",
+            "certificate": base64.b64decode(cert.certificate).decode(),
+            "private_key": cert.private_key,
+        }
+        team_regions = cert_service.get_team_usable_regions(session, tenant.tenant_name, tenant.enterprise_id)
+        for team_region in team_regions:
+            try:
+                remote_build_client.update_ingresses_by_certificate(session, team_region.region_name,
+                                                                    tenant.tenant_name, body)
+            except Exception as e:
+                logger.debug(e)
+                continue
+        return cert
+
+    def get_certificate_by_pk(self, session, pk):
+        certificate = domain_repo.get_certificate_by_pk(session, pk)
+        if not certificate:
+            return 404, "证书不存在", None
+        data = dict()
+        data["alias"] = certificate.alias
+        data["certificate_type"] = certificate.certificate_type
+        data["id"] = certificate.ID
+        data["tenant_id"] = certificate.tenant_id
+        data["certificate"] = base64.b64decode(certificate.certificate).decode()
+        data["private_key"] = certificate.private_key
+        return 200, "success", data
 
     def __check_certificate_alias(self, session, tenant, alias):
         if domain_repo.get_certificate_by_alias(session, tenant.tenant_id, alias):

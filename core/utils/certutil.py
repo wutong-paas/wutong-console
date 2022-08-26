@@ -3,6 +3,8 @@
 import datetime
 import time
 from OpenSSL import crypto
+from loguru import logger
+
 from core.utils.exception import err_cert_expired, err_invalid_cert, err_invalid_private_key, err_cert_mismatch
 from exceptions.main import ServiceHandleException
 
