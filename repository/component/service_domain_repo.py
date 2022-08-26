@@ -9,6 +9,10 @@ from repository.base import BaseRepository
 
 class ServiceDomainRepository(BaseRepository[ServiceDomain]):
 
+    def list_service_domains_by_cert_id(self, session, certificate_id):
+        return session.execute(select(ServiceDomain).where(
+            ServiceDomain.certificate_id == certificate_id)).scalars().all()
+
     def add_certificate(self, session, tenant_id, alias, certificate_id, certificate, private_key, certificate_type):
         service_domain_certificate = dict()
         service_domain_certificate["tenant_id"] = tenant_id
@@ -73,6 +77,10 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
     def get_certificate_by_pk(self, session, pk):
         return (session.execute(select(ServiceDomainCertificate).where(
             ServiceDomainCertificate.ID == pk))).scalars().first()
+
+    def delete_certificate_by_pk(self, session, pk):
+        session.execute(delete(ServiceDomainCertificate).where(
+            ServiceDomainCertificate.ID == pk))
 
     def get_tenant_certificate_page(self, session, tenant_id, start, end):
         """提供指定位置和数量的数据"""

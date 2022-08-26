@@ -133,6 +133,12 @@ class RegionRepo(BaseRepository[RegionConfig]):
             RegionConfig.enterprise_id == enterprise_id,
             not_(RegionConfig.region_name.in_(opened_regions_name))))).scalars().all()
 
+    def get_usable_cert_regions(self, session: SessionClass, enterprise_id):
+        """获取可使用的数据中心"""
+        return (session.execute(select(RegionConfig).where(
+            RegionConfig.status == "1",
+            RegionConfig.enterprise_id == enterprise_id))).scalars().all()
+
     def get_usable_regions_by_enterprise_id(self, session: SessionClass, enterprise_id):
         """获取可使用的数据中心"""
         return (session.execute(select(RegionConfig).where(

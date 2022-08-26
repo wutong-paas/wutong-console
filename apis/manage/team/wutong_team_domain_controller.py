@@ -384,3 +384,48 @@ async def add_tenant_certificates(request: Request,
         return JSONResponse(result, status_code=result["code"])
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
+
+
+@router.get("/teams/{team_name}/certificates/{certificate_id}", response_model=Response, name="获取网关证书")
+async def get_certificates(request: Request,
+                           certificate_id: Optional[str] = None,
+                           session: SessionClass = Depends(deps.get_session)
+                           ) -> Any:
+    code, msg, certificate = domain_service.get_certificate_by_pk(session, certificate_id)
+    if code != 200:
+        return JSONResponse(general_message(code, "delete error", msg), status_code=code)
+
+    result = general_message(200, "success", "查询成功", bean=certificate)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.put("/teams/{team_name}/certificates/{certificate_id}", response_model=Response, name="修改网关证书")
+async def modify_certificates(request: Request,
+                              certificate_id: Optional[str] = None,
+                              session: SessionClass = Depends(deps.get_session),
+                              team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
+    if not certificate_id:
+        return JSONResponse(general_message(400, "no param certificate_id", "缺少未指明具体证书"), status_code=400)
+    new_alias = data.get("alias", None)
+    if len(new_alias) > 64:
+        return JSONResponse(general_message(400, "alias len is not allow more than 64", "证书名称最大长度64位"), status_code=400)
+
+    private_key = data.get("private_key", None)
+    certificate = data.get("certificate", None)
+    certificate_type = data.get("certificate_type", None)
+    domain_service.update_certificate(session, team, certificate_id, new_alias, certificate, private_key,
+                                      certificate_type)
+    result = general_message(200, "success", "证书修改成功")
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.delete("/teams/{team_name}/certificates/{certificate_id}", response_model=Response, name="删除网关证书")
+async def delete_certificates(request: Request,
+                              certificate_id: Optional[str] = None,
+                              session: SessionClass = Depends(deps.get_session),
+                              user=Depends(deps.get_current_user)) -> Any:
+
+    domain_service.delete_certificate_by_pk(session, certificate_id)
+    result = general_message(200, "success", "证书删除成功")
+    return JSONResponse(result, status_code=result["code"])
