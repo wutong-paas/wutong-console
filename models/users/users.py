@@ -38,9 +38,6 @@ class Users(Base):
     sso_user_token = Column(String(256), comment="统一认证中心的user_token", default='', nullable=True)
     enterprise_id = Column(String(32), comment="统一认证中心的enterprise_id", default='', nullable=True)
     enterprise_center_user_id = Column(String(32), comment="统一认证中心的user", default='', nullable=True)
-    login_sta = Column(Boolean, comment="登录是否锁定", default=False, nullable=True)
-    login_suo = Column(DateTime(), comment="登录锁定时间", nullable=True)
-    pass_errnum = Column(Integer, comment="用户密码输错次数", default=0, nullable=True)
 
     def set_password(self, raw_password):
         self.password = encrypt_passwd(self.email + raw_password)
