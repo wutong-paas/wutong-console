@@ -1,5 +1,4 @@
 import pickle
-import re
 import time
 from typing import Optional, Any
 
@@ -161,18 +160,10 @@ async def add_users(
     phone = params.phone
     real_name = params.realname
 
-    has_number = any([i.isdigit() for i in password])
-    my_re = re.compile(r'[A-Za-z]', re.S)
-    has_char = re.findall(my_re, password)
-    has_special = re.search(r"\W", password)
-
     if len(password) < 8:
         result = general_message(400, "len error", "密码长度最少为8位")
         return JSONResponse(result, status_code=400)
 
-    if not (has_char and has_special and has_number):
-        result = general_message(400, "complexity error", "请确保密码包含字母、数字和特殊字符")
-        return JSONResponse(result, status_code=400)
     # check user info
     user = user_svc.devops_get_current_user(session, authorization)
     if user_svc.get_user_by_email(session, email):
