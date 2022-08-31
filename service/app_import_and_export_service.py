@@ -317,7 +317,8 @@ class AppExportService(object):
             "group_key": app.app_id,
             "version": app_version.version,
             "format": export_format,
-            "group_metadata": self.__get_app_metata(app, app_version)
+            "group_metadata": self.__get_app_metata(app, app_version),
+            "with_image_data": False
         }
 
         try:
