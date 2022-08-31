@@ -54,7 +54,7 @@ async def modify_build_source(request: Request,
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     try:
         data = await request.json()
-        image = data.get("image", None).strip()
+        image = data.get("image", None)
         cmd = data.get("cmd", None)
         service_source = data.get("service_source")
         git_url = data.get("git_url", None)
@@ -65,6 +65,7 @@ async def modify_build_source(request: Request,
         user_id = user.user_id
         oauth_service_id = data.get("service_id")
         git_full_name = data.get("full_name")
+        server_type = data.get("server_type", "")
 
         if not service_source:
             return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
@@ -88,6 +89,8 @@ async def modify_build_source(request: Request,
         if service_source == "source_code":
             if code_version:
                 service.code_version = code_version
+            elif server_type == "oss":
+                service.code_version = ""
             else:
                 service.code_version = "master"
             if git_url:
@@ -118,9 +121,17 @@ async def modify_build_source(request: Request,
                     service.creater = user_id
                 else:
                     service.git_url = git_url
+            service.service_source = service_source
+            service.code_from = ""
+            service.server_type = server_type
+            service.cmd = ""
+            service.image = ""
+            service.service_key = "application"
             # service_repo.save_service(service)
         elif service_source == "docker_run":
+            service.service_source = "docker_run"
             if image:
+                image = image.strip()
                 version = image.split(':')[-1]
                 if not version:
                     version = "latest"
@@ -128,6 +139,10 @@ async def modify_build_source(request: Request,
                 service.image = image
                 service.version = version
             service.cmd = cmd
+            service.server_type = server_type
+            service.git_url = ""
+            service.code_from = "image_manual"
+            service.service_key = "application"
             # service_repo.save_service(service)
         result = general_message(200, "success", "修改成功")
     except Exception as e:
