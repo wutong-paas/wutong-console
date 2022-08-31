@@ -556,6 +556,7 @@ async def deploy_business_component(
     image_type = "docker_image"
     p = Pinyin()
     k8s_component_name = p.get_pinyin(params.component_name)
+    k8s_component_name = k8s_component_name.lower()
     if k8s_component_name and application_service.is_k8s_component_name_duplicate(session,
                                                                                   application_id,
                                                                                   k8s_component_name):
