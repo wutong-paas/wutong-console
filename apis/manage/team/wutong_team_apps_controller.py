@@ -85,6 +85,8 @@ async def get_app_detail(request: Request,
      """
     is_filebrowser_plugin = False
     bean = dict()
+    logger.debug("serviceAlias ==== {0}, tenant_id ==== {1}".format(serviceAlias, team.tenant_id))
+    session.flush()
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
