@@ -294,7 +294,7 @@ class AppExportService(object):
                     return region_services.get_region_by_region_id(session, data[0]["region_id"])
         raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
 
-    def export_app(self, session, eid, app_id, version, export_format):
+    def export_app(self, session, eid, app_id, version, export_format, is_export_image):
         app, app_version = center_app_repo.get_wutong_app_and_version(session, eid, app_id, version)
         if not app or not app_version:
             raise RbdAppNotFound("未找到该应用")
@@ -318,7 +318,7 @@ class AppExportService(object):
             "version": app_version.version,
             "format": export_format,
             "group_metadata": self.__get_app_metata(app, app_version),
-            "with_image_data": False
+            "with_image_data": is_export_image
         }
 
         try:
