@@ -334,7 +334,8 @@ class AppExportService(object):
             "format": export_format,
             "status": "exporting",
             "enterprise_id": eid,
-            "region_name": region.region_name
+            "region_name": region.region_name,
+            "is_export_image": is_export_image
         }
 
         return app_export_record_repo.create_app_export_record(session, **params)
@@ -390,7 +391,8 @@ class AppExportService(object):
                             self._wrapper_director_download_url(session,
                                                                 export_record.region_name,
                                                                 export_record.file_path.replace(
-                                                                    "/v2", ""))
+                                                                    "/v2", "")),
+                        "is_export_image": True if export_record.is_export_image else False
                     })
                 if export_record.format == "docker-compose":
                     docker_compose_init_data.update({
@@ -402,7 +404,8 @@ class AppExportService(object):
                             self._wrapper_director_download_url(session,
                                                                 export_record.region_name,
                                                                 export_record.file_path.replace(
-                                                                    "/v2", ""))
+                                                                    "/v2", "")),
+                        "is_export_image": True if export_record.is_export_image else False
                     })
 
         result = {"wutong_app": wutong_app_init_data, "docker_compose": docker_compose_init_data}

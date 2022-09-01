@@ -357,3 +357,4 @@ class ApplicationExportRecord(Base):
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
     enterprise_id = Column(String(32), comment="企业ID", nullable=False)
     region_name = Column(String(32), nullable=True, comment="执行导出的集群ID")
+    is_export_image = Column(Boolean, nullable=True, comment="是否导出镜像", default=False)
