@@ -128,7 +128,7 @@ class AppImportService(object):
                     app_version.version_alias = version_alias,
                 else:
                     # create a new version
-                    wutong_app_versions.append(self.create_app_version(app, import_record, app_template))
+                    wutong_app_versions.append(self.create_app_version(session, app, import_record, app_template))
             else:
                 image_base64_string = app_template.pop("image_base64_string", "")
                 if annotations.get("image_base64_string"):
