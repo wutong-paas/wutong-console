@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, BIGINT
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 from database.session import Base
 
@@ -54,7 +55,7 @@ class CenterAppVersion(Base):
     dev_status = Column(String(32), default="", nullable=True, comment="开发状态")
     source = Column(String(15), default="", nullable=True, comment="应用来源(本地创建、云商店)")
     scope = Column(String(15), default="", nullable=True, comment="应用分享范围")
-    app_template = Column(Text, comment="全量应用与插件配置信息", nullable=False)
+    app_template = Column(LONGTEXT, comment="全量应用与插件配置信息", nullable=False)
     template_version = Column(String(10), default="v2", comment="模板版本", nullable=False)
     create_time = Column(DateTime(), default=datetime.now, nullable=True, comment="创建时间")
     update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now, nullable=True, comment="更新时间")
