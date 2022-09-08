@@ -94,7 +94,7 @@ class RegionService(object):
 
             module_dir = os.path.dirname(__file__) + '/plugin/'
             file_path = os.path.join(module_dir, 'init_app_default.json')
-            with open(file_path) as f:
+            with open(file_path, encoding='utf-8') as f:
                 default_app_config = json.load(f)
                 version_template = default_app_config["version_template"]
                 app_version = json.dumps(version_template)
@@ -119,8 +119,10 @@ class RegionService(object):
                 record_id=0,
                 share_team=team.tenant_name,
                 share_user=1,
-                scope=scope)
+                scope=scope,
+                app_version_info="")
             session.add(wutong_app_version)
+            session.flush()
             # Create default components
             app_model_key = app_uuid
             version = "1.0"
