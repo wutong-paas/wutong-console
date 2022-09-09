@@ -54,7 +54,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         self._set_headers(token)
         logger.debug("create tenant url :{0}".format(url))
         try:
-            res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+            res, body = self._post(url, self.default_headers, session=session, region=region, body=json.dumps(data))
             return res, body
         except ApiBaseHttpClient.CallApiError as e:
             if "namespace exists" in e.message['body'].get('msg', ""):
