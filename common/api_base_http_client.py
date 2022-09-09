@@ -260,7 +260,7 @@ class ApiBaseHttpClient(object):
         key = hash(region_config.url + region_config.ssl_ca_cert + region_config.cert_file + region_config.key_file)
         self.clients[key] = None
 
-    def _request(self, url, method, headers=None, body=None, *args, **kwargs):
+    def _request(self, url, method, session=SessionClass(), headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 3)
         d_connect, d_red = get_default_timeout_config()
@@ -270,7 +270,7 @@ class ApiBaseHttpClient(object):
             region = region_name
             region_name = region.region_name
         else:
-            region = region_config_repo.get_region_config_by_region_name(SessionClass(), region_name)
+            region = region_config_repo.get_region_config_by_region_name(session, region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
@@ -333,9 +333,9 @@ class ApiBaseHttpClient(object):
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 
-    def _post(self, url, headers, body=None, *args, **kwargs):
+    def _post(self, url, headers, body=None, session=SessionClass(), *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'POST', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'POST', session=session, headers=headers, body=body, *args, **kwargs)
         else:
             response, content = self._request(url, 'POST', headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'POST', response, content)
