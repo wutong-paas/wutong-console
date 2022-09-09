@@ -345,7 +345,7 @@ class MarketService(object):
                     if func is None:
                         continue
                     if k == "volumes" or k == "ports" or k == "connect_infos" or k == "envs"\
-                            or k == "slug_path" or k == "image":
+                            or k == "slug_path" or k == "image" or k == "plugins":
                         func(session, v)
                     else:
                         func(v)
