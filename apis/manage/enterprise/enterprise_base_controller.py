@@ -13,6 +13,7 @@ from core.utils.reqparse import bool_argument, parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException
+from repository.region.region_info_repo import region_repo
 from repository.users.perms_repo import perms_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import RegionApiBaseHttpClient
@@ -164,6 +165,20 @@ async def modify_region_config(request: Request,
     data = await request.json()
     region = region_services.update_enterprise_region(session, enterprise_id, region_id, data)
     result = general_message(200, "success", "更新成功", bean=region)
+    return JSONResponse(result, status_code=result.get("code", 200))
+
+
+@router.delete("/enterprise/{enterprise_id}/regions/{region_id}", response_model=Response, name="删除集群")
+async def delete_region(request: Request,
+                        enterprise_id: Optional[str] = None,
+                        region_id: Optional[str] = None,
+                        user=Depends(deps.get_current_user),
+                        session: SessionClass = Depends(deps.get_session)) -> Any:
+    region = region_repo.get_region_by_region_id(session, region_id)
+    if not region:
+        raise ServiceHandleException(status_code=404, msg="集群已不存在")
+    region_repo.del_by_enterprise_region_id(session, enterprise_id, region_id)
+    result = general_message(200, "success", "删除成功")
     return JSONResponse(result, status_code=result.get("code", 200))
 
 

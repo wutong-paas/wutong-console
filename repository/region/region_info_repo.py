@@ -10,6 +10,13 @@ from repository.teams.team_repo import team_repo
 
 
 class RegionRepo(BaseRepository[RegionConfig]):
+
+    def del_by_enterprise_region_id(self, session, enterprise_id, region_id):
+        session.execute(delete(RegionConfig).where(
+            RegionConfig.enterprise_id == enterprise_id,
+            RegionConfig.region_id == region_id
+        ))
+
     def create_region(self, session, region_data):
         region_config = RegionConfig(**region_data)
         session.add(region_config)
