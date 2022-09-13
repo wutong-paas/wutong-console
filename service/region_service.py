@@ -148,7 +148,7 @@ class RegionService(object):
                                          msg_show="集群ID{0}已存在".format(region_data["region_name"]))
         try:
 
-            remote_build_client.test_region_api(region_data)
+            remote_build_client.test_region_api(session, region_data)
         except ServiceHandleException:
             raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
 

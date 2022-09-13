@@ -30,14 +30,14 @@ class HunanExpresswayClient(ApiBaseHttpClient):
         url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
         url = url + "/v2/cluster"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     def get_region_event(self, session, region, enterprise_id):
         url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
         url = url + "/v2/cluster/events"
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
 

@@ -50,7 +50,7 @@ async def get_cloud_market_apps(market_id: int = None,
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     market = wutong_market_repo.get_by_primary_key(session=session, primary_key=market_id)
     result = wutong_market_client.get_market_apps(
-        body=MarketAppQueryParam(current=current, size=size, queryVO=queryVO).dict(), market=market)
+        session=session, body=MarketAppQueryParam(current=current, size=size, queryVO=queryVO).dict(), market=market)
     return JSONResponse(general_message(200, "success", "操作成功", bean=jsonable_encoder(result)), status_code=200)
 
 
@@ -58,7 +58,7 @@ async def get_cloud_market_apps(market_id: int = None,
 async def get_cloud_market_app_detail(market_id: int = None, app_id: str = None,
                                       session: SessionClass = Depends(deps.get_session)) -> Any:
     market = wutong_market_repo.get_by_primary_key(session=session, primary_key=market_id)
-    result = wutong_market_client.get_market_app_detail(market=market, app_id=app_id)
+    result = wutong_market_client.get_market_app_detail(session=session, market=market, app_id=app_id)
     return JSONResponse(general_message(200, "success", "操作成功", bean=jsonable_encoder(result)), status_code=200)
 
 
@@ -95,7 +95,7 @@ async def get_cloud_app_versions(market_id: int = None, app_id: str = None,
             "app_id": app_id
         }
     }
-    app_versions = wutong_market_client.get_market_app_versions(market=market, query_body=query_body)
+    app_versions = wutong_market_client.get_market_app_versions(session=session, market=market, query_body=query_body)
     return JSONResponse(general_message(200, "success", "操作成功", list=jsonable_encoder(app_versions)), status_code=200)
 
 

@@ -37,7 +37,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/resources?enterprise_id=" + enterprise_id
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region, timeout=10)
+        res, body = self._get(session, url, self.default_headers, region=region, timeout=10)
         return body
 
     # 新建团队
@@ -54,7 +54,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         self._set_headers(token)
         logger.debug("create tenant url :{0}".format(url))
         try:
-            res, body = self._post(url, self.default_headers, session=session, region=region, body=json.dumps(data))
+            res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
             return res, body
         except ApiBaseHttpClient.CallApiError as e:
             if "namespace exists" in e.message['body'].get('msg', ""):
@@ -70,7 +70,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(session, url, self.default_headers, region=region)
         return body
 
     # 获取kubeconfig
@@ -81,7 +81,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/{0}/kubeconfig".format(tenant_name)
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
 

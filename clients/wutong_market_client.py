@@ -295,11 +295,11 @@ class MarketHttpClient(object):
             logger.exception(e)
             raise ServiceHandleException(error_code=10411, msg="Exception", msg_show="访问数据中心异常，请稍后重试")
 
-    def _get(self, url, headers, body=None, **kwargs):
+    def _get(self, session, url, headers, body=None, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'GET', headers=headers, body=body, **kwargs)
+            response, content = self._request(url, 'GET', session=session, headers=headers, body=body, **kwargs)
         else:
-            response, content = self._request(url, 'GET', headers=headers, **kwargs)
+            response, content = self._request(url, 'GET', session=session, headers=headers, **kwargs)
         preload_content = kwargs.get("preload_content")
         if preload_content is False:
             return response, None
@@ -307,11 +307,11 @@ class MarketHttpClient(object):
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 
-    def _post(self, url, headers, body=None, **kwargs):
+    def _post(self, session, url, headers, body=None, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'POST', headers=headers, body=body, **kwargs)
+            response, content = self._request(url, 'POST', session=session, headers=headers, body=body, **kwargs)
         else:
-            response, content = self._request(url, 'POST', headers=headers, **kwargs)
+            response, content = self._request(url, 'POST', session=session, headers=headers, **kwargs)
         res, res_body = self._check_status(url, 'POST', response, content)
         logger.info("发送HTTP请求,method:{},url:{},header:{},body:{},response:{}", "POST", url, headers, body, res_body)
         return res, res_body
@@ -322,12 +322,12 @@ class WutongMarketClient(MarketHttpClient):
         MarketHttpClient.__init__(self)
         self.default_headers = {'Connection': 'keep-alive', 'Content-Type': 'application/json'}
 
-    def check_store(self, url: str, access_key: str, access_secret: str):
+    def check_store(self, session, url: str, access_key: str, access_secret: str):
         sign_str, param_str = encode_params(params=build_sign_params(access_key=access_key),
                                             secret=access_secret, method="GET")
         try:
             url += "?Signature=" + quote(sign_str) + "&" + param_str
-            res, body = self._get(url, self.default_headers, timeout=10)
+            res, body = self._get(session, url, self.default_headers, timeout=10)
             if body.code == "0":
                 return body.data
             else:
@@ -341,7 +341,7 @@ class WutongMarketClient(MarketHttpClient):
             logger.error("远程校验店铺信息失败,error:{}", e)
             raise AbortRequest("远程校验店铺信息失败", "远程校验店铺信息失败", status_code=500, error_code=500)
 
-    def get_market_apps(self, body: dict, market: AppMarket):
+    def get_market_apps(self, session, body: dict, market: AppMarket):
         # 参数排序
         sorted_body = dict(sorted(body.items(), key=lambda x: x[0]))
         # 编码
@@ -353,7 +353,7 @@ class WutongMarketClient(MarketHttpClient):
                                                                              signature=quote(sign_str),
                                                                              param_str=param_str)
         try:
-            res, body = self._post(url, self.default_headers, body=json.dumps(sorted_body).replace(" ", ""))
+            res, body = self._post(session, url, self.default_headers, body=json.dumps(sorted_body).replace(" ", ""))
             logger.info("查询商店应用,params:{},resp:{}", json.dumps(sorted_body), json.dumps(body))
             if body.code == "0":
                 return body.data
@@ -367,7 +367,7 @@ class WutongMarketClient(MarketHttpClient):
             logger.error("获取远程商店应用列表失败,error:{}", e)
             raise AbortRequest("获取远程商店应用列表失败", "获取远程商店应用列表失败", status_code=500, error_code=500)
 
-    def get_market_app_detail(self, market: AppMarket, app_id: str):
+    def get_market_app_detail(self, session, market: AppMarket, app_id: str):
         """获取梧桐商店应用详情"""
         sign_str, param_str = encode_params(params=build_sign_params(access_key=market.access_key),
                                             secret=market.access_secret, method="GET")
@@ -376,13 +376,13 @@ class WutongMarketClient(MarketHttpClient):
                                                                                       app_id=app_id,
                                                                                       signature=quote(sign_str),
                                                                                       param_str=param_str)
-        res, body = self._get(url, self.default_headers, timeout=10)
+        res, body = self._get(session, url, self.default_headers, timeout=10)
         if body.code == "0":
             return body.data
         else:
             return {"status": body.code, "error_message": body.msg}
 
-    def push_local_app(self, param_body: dict, market: AppMarket, store_id: str):
+    def push_local_app(self, session, param_body: dict, market: AppMarket, store_id: str):
         sorted_body = dict(sorted(param_body.items(), key=lambda x: x[0]))
         sign_str, param_str = encode_params(params=build_sign_params(market.access_key), secret=market.access_secret,
                                             method="POST", sorted_dict_body=sorted_body)
@@ -392,7 +392,7 @@ class WutongMarketClient(MarketHttpClient):
                                                                                         signature=quote(sign_str),
                                                                                         param_str=param_str)
         try:
-            res, body = self._post(url, self.default_headers, body=json.dumps(sorted_body).replace(" ", ""))
+            res, body = self._post(session, url, self.default_headers, body=json.dumps(sorted_body).replace(" ", ""))
             logger.info("推送本地应用至远程仓库,params:{},resp:{}", json.dumps(sorted_body), json.dumps(body))
             if body.code == "0":
                 return body.data
@@ -406,7 +406,7 @@ class WutongMarketClient(MarketHttpClient):
             logger.error("推送本地应用至远程仓库,HTTP请求失败,error:{}", e)
             raise AbortRequest("推送本地应用至远程仓库,HTTP请求失败", "推送本地应用至远程仓库,HTTP请求失败", status_code=500, error_code=500)
 
-    def get_market_app_versions(self, market: AppMarket, query_body: dict):
+    def get_market_app_versions(self, session, market: AppMarket, query_body: dict):
         """获取梧桐商店应用版本列表"""
 
         # 参数排序
@@ -420,7 +420,7 @@ class WutongMarketClient(MarketHttpClient):
                                                                              signature=quote(sign_str),
                                                                              param_str=param_str)
         try:
-            res, body = self._post(url, self.default_headers, body=json.dumps(sorted_body).replace(" ", ""))
+            res, body = self._post(session, url, self.default_headers, body=json.dumps(sorted_body).replace(" ", ""))
             logger.info("查询商店应用版本列表,params:{},resp:{}", json.dumps(body), json.dumps(body))
             if body.code == "0":
                 return body.data
@@ -435,7 +435,7 @@ class WutongMarketClient(MarketHttpClient):
             logger.error("查询商店应用版本列表,HTTP请求失败,error:{}", e)
             raise AbortRequest("查询商店应用版本列表,HTTP请求失败", "查询商店应用版本列表,HTTP请求失败", status_code=500, error_code=500)
 
-    def get_market_app_version_detail(self, market: AppMarket, version_id: str):
+    def get_market_app_version_detail(self, session, market: AppMarket, version_id: str):
         """获取梧桐商店应用版本详情"""
         sign_str, param_str = encode_params(params=build_sign_params(access_key=market.access_key),
                                             secret=market.access_secret, method="GET")
@@ -444,7 +444,7 @@ class WutongMarketClient(MarketHttpClient):
                                                                                           version_id=version_id,
                                                                                           signature=quote(sign_str),
                                                                                           param_str=param_str)
-        res, body = self._get(url=url, headers=self.default_headers, timeout=10)
+        res, body = self._get(url=url, headers=self.default_headers, timeout=10, session=session)
         if body.code == "0":
             return body.data
         else:

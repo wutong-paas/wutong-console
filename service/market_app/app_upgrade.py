@@ -491,7 +491,7 @@ class AppUpgrade(MarketApp):
         self.record.status = status
         self.record.snapshot_id = snapshot.snapshot_id if snapshot else None
         self.record.version = self.version
-        self.record.save()
+        # self.record.save()
 
     def _take_snapshot(self, session):
         if self.is_upgrade_one:

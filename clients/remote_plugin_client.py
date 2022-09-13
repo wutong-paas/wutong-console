@@ -41,7 +41,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin"
 
         self._set_headers(token)
-        data = self._post(url, self.default_headers, json.dumps(body), region=region)
+        data = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return data
 
     def del_plugin_service_relation(self, session, region, tenant_name, plugin_id, service_alias):
@@ -58,7 +58,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id
 
         self._set_headers(token)
-        data = self._delete(url, self.default_headers, None, region=region)
+        data = self._delete(session, url, self.default_headers, None, region=region)
         return data
 
     def update_plugin_service_relation(self, session, region, tenant_name, service_alias, body):
@@ -76,7 +76,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin"
 
         self._set_headers(token)
-        data = self._put(url, self.default_headers, json.dumps(body), region=region)
+        data = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return data
 
     def post_plugin_attr(self, session, region, tenant_name, service_alias, plugin_id, body):
@@ -94,7 +94,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id + "/setenv"
 
         self._set_headers(token)
-        data = self._post(url, self.default_headers, json.dumps(body), region=region)
+        data = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return data
 
     def put_plugin_attr(self, session, region, tenant_name, service_alias, plugin_id, body):
@@ -113,7 +113,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id + "/upenv"
 
         self._set_headers(token)
-        data = self._put(url, self.default_headers, json.dumps(body), region=region)
+        data = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return data
 
     def create_plugin(self, session, region, tenant_name, body):
@@ -124,7 +124,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/plugin"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return res, body
 
     def build_plugin(self, session, region, tenant_name, plugin_id, body):
@@ -134,7 +134,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url += "/v2/tenants/{0}/plugin/{1}/build".format(tenant_region.region_tenant_name, plugin_id)
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def get_build_status(self, session, region, tenant_name, plugin_id, build_version):
@@ -145,7 +145,7 @@ class RemotePluginClient(ApiBaseHttpClient):
                                                                      build_version)
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
     def get_plugin_event_log(self, session, region, tenant_name, data):
@@ -155,7 +155,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         tenant_region = get_tenant_region_info(tenant_name, region, session)
         url += "/v2/tenants/{0}/event-log".format(tenant_region.region_tenant_name)
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(data), region=region)
+        res, body = self._post(session, url, self.default_headers, json.dumps(data), region=region)
         return body
 
     def delete_plugin_version(self, session, region, tenant_name, plugin_id, build_version):
@@ -167,7 +167,7 @@ class RemotePluginClient(ApiBaseHttpClient):
                                                                      build_version)
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(session, url, self.default_headers, region=region)
         return body
 
     def update_plugin_info(self, session, region, tenant_name, plugin_id, data):
@@ -183,7 +183,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         tenant_region = get_tenant_region_info(tenant_name, region, session)
         url += "/v2/tenants/{0}/plugin/{1}".format(tenant_region.region_tenant_name, plugin_id)
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, json.dumps(data), region=region)
+        res, body = self._put(session, url, self.default_headers, json.dumps(data), region=region)
         return body
 
     def delete_plugin(self, session, region, tenant_name, plugin_id):
@@ -198,7 +198,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         tenant_region = get_tenant_region_info(tenant_name, region, session)
         url += "/v2/tenants/{0}/plugin/{1}".format(tenant_region.region_tenant_name, plugin_id)
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(session, url, self.default_headers, region=region)
         return res, body
 
     def install_service_plugin(self, session, region, tenant_name, service_alias, body):
@@ -215,7 +215,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin"
 
         self._set_headers(token)
-        data = self._post(url, self.default_headers, json.dumps(body), region=region)
+        data = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return data
 
     def uninstall_service_plugin(self, session, region, tenant_name, plugin_id, service_alias, body={}):
@@ -232,7 +232,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         tenant_region = get_tenant_region_info(tenant_name, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/plugin/" + plugin_id
         self._set_headers(token)
-        data = self._delete(url, self.default_headers, json.dumps(body), region=region)
+        data = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return data
 
     def update_service_plugin_config(self, session, region, tenant_name, service_alias, plugin_id, body):
@@ -252,7 +252,7 @@ class RemotePluginClient(ApiBaseHttpClient):
               + service_alias + "/plugin/" + plugin_id + "/upenv"
 
         self._set_headers(token)
-        data = self._put(url, self.default_headers, json.dumps(body), region=region)
+        data = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return data
 
     def share_plugin(self, session, region_name, tenant_name, plugin_id, body):
@@ -261,7 +261,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         tenant_region = get_tenant_region_info(tenant_name, region_name, session)
         url = "{0}/v2/tenants/{1}/plugins/{2}/share".format(url, tenant_region.region_tenant_name, plugin_id)
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return res, body
 
     def share_plugin_result(self, session, region_name, tenant_name, plugin_id, region_share_id):
@@ -271,7 +271,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url = "{0}/v2/tenants/{1}/plugins/{2}/share/{3}".format(url, tenant_region.region_tenant_name, plugin_id,
                                                                 region_share_id)
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region_name)
+        res, body = self._get(session, url, self.default_headers, region=region_name)
         return res, body
 
     def sync_plugins(self, session, tenant_name, region_name, body):
@@ -284,7 +284,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region_name, session)
         url += "/v2/tenants/{tenant_name}/plugins".format(tenant_name=tenant_name)
         self._set_headers(token)
-        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        self._post(session, url, self.default_headers, body=json.dumps(body), region=region_name)
 
     def build_plugins(self, session, tenant_name, region_name, body):
         """
@@ -296,7 +296,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region_name, session)
         url += "/v2/tenants/{tenant_name}/batch-build-plugins".format(tenant_name=tenant_name)
         self._set_headers(token)
-        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        self._post(session, url, self.default_headers, body=json.dumps(body), region=region_name)
 
 
 remote_plugin_client = RemotePluginClient()

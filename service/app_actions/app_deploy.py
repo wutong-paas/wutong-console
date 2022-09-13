@@ -856,7 +856,7 @@ class MarketService(object):
         for dep_service in add:
             create_dep_service(dep_service["service_id"])
 
-    def _sync_dep_services(self, dep_services, session=SessionClass()):
+    def _sync_dep_services(self, session, dep_services):
         def sync_dep_service(dep_service_id):
             """
             raise RegionApiBaseHttpClient.CallApiError

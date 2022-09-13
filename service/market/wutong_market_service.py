@@ -59,7 +59,7 @@ def bind_wutong_market(session: SessionClass, enterprise_id: str, params: Market
         raise AbortRequest("store_id not found", "url格式错误,未找到store_id", status_code=400, error_code=400)
 
     # 添加校验
-    check_result = wutong_market_client.check_store(url=params.url, access_key=params.access_key,
+    check_result = wutong_market_client.check_store(session=session, url=params.url, access_key=params.access_key,
                                                     access_secret=params.access_secret)
     if not check_result:
         raise AbortRequest("params error", "店铺信息校验失败,请检查参数", status_code=400, error_code=400)
@@ -90,7 +90,8 @@ def install_cloud_market_app(session: SessionClass, user: Users, enterprise_id: 
         raise AbortRequest("application not found", "本地应用不存在", status_code=400, error_code=400)
     # 查询云市场应用信息 : 应用ID、应用名称
     market = wutong_market_repo.get_by_primary_key(session=session, primary_key=market_id)
-    app_version_detail = wutong_market_client.get_market_app_version_detail(market=market,
+    app_version_detail = wutong_market_client.get_market_app_version_detail(session=session,
+                                                                            market=market,
                                                                             version_id=params.market_app_version_id)
     # 获取应用模版信息
     app_template = json.loads(app_version_detail.assembly_info)
@@ -160,7 +161,7 @@ def push_local_application(session: SessionClass, store_id: str, service_share_r
         "assembly_info": center_app_version.app_template
     }
 
-    wutong_market_client.push_local_app(param_body=body, market=market, store_id=store_id)
+    wutong_market_client.push_local_app(session=session, param_body=body, market=market, store_id=store_id)
 
 
 def get_store_list(session: SessionClass, enterprise_id: str):

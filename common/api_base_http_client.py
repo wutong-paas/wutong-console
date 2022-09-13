@@ -260,7 +260,7 @@ class ApiBaseHttpClient(object):
         key = hash(region_config.url + region_config.ssl_ca_cert + region_config.cert_file + region_config.key_file)
         self.clients[key] = None
 
-    def _request(self, url, method, session=SessionClass(), headers=None, body=None, *args, **kwargs):
+    def _request(self, url, method, session, headers=None, body=None, *args, **kwargs):
         region_name = kwargs.get("region")
         retries = kwargs.get("retries", 3)
         d_connect, d_red = get_default_timeout_config()
@@ -322,38 +322,38 @@ class ApiBaseHttpClient(object):
             logger.exception(e)
             raise ServiceHandleException(error_code=10411, msg="Exception", msg_show="访问数据中心异常，请稍后重试")
 
-    def _get(self, url, headers, body=None, *args, **kwargs):
+    def _get(self, session, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'GET', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'GET', session=session, headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(url, 'GET', headers=headers, *args, **kwargs)
+            response, content = self._request(url, 'GET', session=session, headers=headers, *args, **kwargs)
         preload_content = kwargs.get("preload_content")
         if preload_content is False:
             return response, None
         res, body = self._check_status(url, 'GET', response, content)
         return res, body
 
-    def _post(self, url, headers, body=None, session=SessionClass(), *args, **kwargs):
+    def _post(self, session, url, headers, body=None, *args, **kwargs):
         if body is not None:
             response, content = self._request(url, 'POST', session=session, headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(url, 'POST', headers=headers, *args, **kwargs)
+            response, content = self._request(url, 'POST', session=session, headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'POST', response, content)
         return res, body
 
-    def _put(self, url, headers, body=None, *args, **kwargs):
+    def _put(self, session, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'PUT', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'PUT', session=session, headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(url, 'PUT', headers=headers, *args, **kwargs)
+            response, content = self._request(url, 'PUT', session=session, headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'PUT', response, content)
         return res, body
 
-    def _delete(self, url, headers, body=None, *args, **kwargs):
+    def _delete(self, session, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'DELETE', headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'DELETE', session=session, headers=headers, body=body, *args, **kwargs)
         else:
-            response, content = self._request(url, 'DELETE', headers=headers, *args, **kwargs)
+            response, content = self._request(url, 'DELETE', session=session, headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'DELETE', response, content)
         return res, body
 
