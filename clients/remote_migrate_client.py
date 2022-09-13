@@ -34,7 +34,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
         url += "/v2/app/export"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data).encode('utf-8'))
+        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data).encode('utf-8'))
         return res, body
 
     def get_app_export_status(self, session, region, enterprise_id, event_id):
@@ -42,7 +42,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
         url = url + "/v2/app/export/" + event_id
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     def import_app_2_enterprise(self, session, region, enterprise_id, data):
@@ -50,7 +50,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
         url += "/v2/app/import"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
     def import_app(self, session, region, tenant_name, data):
@@ -58,7 +58,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region, session)
         url += "/v2/app/import"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
     def get_app_import_status(self, session, region, tenant_name, event_id):
@@ -66,7 +66,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region, session)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     def get_enterprise_app_import_status(self, session, region, eid, event_id):
@@ -80,7 +80,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info_by_enterprise_id(eid, region, session)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     def get_enterprise_import_file_dir(self, session, region, eid, event_id):
@@ -94,7 +94,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info_by_enterprise_id(eid, region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     def get_import_file_dir(self, session, region, tenant_name, event_id):
@@ -102,7 +102,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     def delete_enterprise_import(self, session, region, eid, event_id):
@@ -116,7 +116,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info_by_enterprise_id(eid, region, session)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(session, url, self.default_headers, region=region)
         return res, body
 
     def delete_import(self, session, region, tenant_name, event_id):
@@ -124,7 +124,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region, session)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(session, url, self.default_headers, region=region)
         return res, body
 
     def create_import_file_dir(self, session, region, tenant_name, event_id):
@@ -132,7 +132,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region)
+        res, body = self._post(session, url, self.default_headers, region=region)
         return res, body
 
     def delete_enterprise_import_file_dir(self, session, region, eid, event_id):
@@ -146,7 +146,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info_by_enterprise_id(eid, region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(session, url, self.default_headers, region=region)
         return res, body
 
     def delete_import_file_dir(self, session, region, tenant_name, event_id):
@@ -154,7 +154,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(session, url, self.default_headers, region=region)
         return res, body
 
     def backup_group_apps(self, session, region, tenant_name, body):
@@ -170,7 +170,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(body))
+        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
     def get_backup_status_by_backup_id(self, session, region, tenant_name, backup_id):
@@ -186,7 +186,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + str(backup_id)
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
     def delete_backup_by_backup_id(self, session, region, tenant_name, backup_id):
@@ -202,7 +202,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + str(backup_id)
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region)
+        res, body = self._delete(session, url, self.default_headers, region=region)
         return body
 
     def get_backup_status_by_group_id(self, session, region, tenant_name, group_uuid):
@@ -218,7 +218,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups?group_id=" + str(group_uuid)
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
     def star_apps_migrate_task(self, session, region, tenant_name, backup_id, data):
@@ -228,7 +228,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backups/" + backup_id + "/restore"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
         return body
 
     def get_apps_migrate_status(self, session, region, tenant_name, backup_id, restore_id):
@@ -239,7 +239,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
               + backup_id + "/restore/" + restore_id
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region)
+        res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
     def copy_backup_data(self, session, region, tenant_name, data):
@@ -249,7 +249,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/groupapp/backupcopy"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region, body=json.dumps(data))
+        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
         return body
 
 

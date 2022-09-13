@@ -45,7 +45,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/install"
 
         self._set_headers(token)
-        _, _ = self._post(url, self.default_headers, region=region_name, body=json.dumps(data))
+        _, _ = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(data))
 
     def list_app_services(self, session, region_name, tenant_name, region_app_id):
         """
@@ -60,7 +60,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/services"
 
         self._set_headers(token)
-        _, body = self._get(url, self.default_headers, region=region_name)
+        _, body = self._get(session, url, self.default_headers, region=region_name)
         return body["list"]
 
     def create_application(self, session, region_name, tenant_name, body):
@@ -76,7 +76,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
     def batch_create_application(self, session, region_name, tenant_name, body):
@@ -92,7 +92,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/batch_create_apps"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("list", None)
 
     def update_service_app_id(self, session, region_name, tenant_name, service_alias, body):
@@ -109,7 +109,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(body))
+        res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
     def batch_update_service_app_id(self, session, region_name, tenant_name, app_id, body):
@@ -126,7 +126,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/services"
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(body))
+        res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
     def update_app(self, session, region_name, tenant_name, app_id, body):
@@ -143,7 +143,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(body))
+        res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
     def create_app_config_group(self, session, region_name, tenant_name, app_id, body):
@@ -160,7 +160,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/configgroups"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, region=region_name, body=json.dumps(body))
+        res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
     def update_app_config_group(self, session, region_name, tenant_name, app_id, config_group_name, body):
@@ -178,7 +178,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/configgroups/" + config_group_name
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region_name, body=json.dumps(body))
+        res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
     def delete_app(self, session, region_name, tenant_name, app_id, data={}):
@@ -194,7 +194,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id
 
         self._set_headers(token)
-        _, _ = self._delete(url, self.default_headers, region=region_name, body=json.dumps(data))
+        _, _ = self._delete(session, url, self.default_headers, region=region_name, body=json.dumps(data))
 
     def delete_app_config_group(self, session, region_name, tenant_name, app_id, config_group_name):
         """
@@ -210,7 +210,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/configgroups/" + config_group_name
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, region=region_name)
+        res, body = self._delete(session, url, self.default_headers, region=region_name)
         return res, body
 
     def check_app_governance_mode(self, session, region_name, tenant_name, region_app_id, query):
@@ -221,7 +221,7 @@ class RemoteAppClient(ApiBaseHttpClient):
             region_app_id, query)
 
         self._set_headers(token)
-        _, _ = self._get(url, self.default_headers, region=region_name)
+        _, _ = self._get(session, url, self.default_headers, region=region_name)
 
     def parse_app_services(self, session, region_name, tenant_name, app_id, values):
         """
@@ -256,7 +256,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/releases"
 
         self._set_headers(token)
-        _, body = self._get(url, self.default_headers, region=region_name)
+        _, body = self._get(session, url, self.default_headers, region=region_name)
         return body["list"]
 
     def sync_components(self, session, tenant_name, region_name, app_id, components):
@@ -270,7 +270,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_name, region_name, session)
         url += "/v2/tenants/{tenant_name}/apps/{app_id}/components".format(tenant_name=tenant_name, app_id=app_id)
         self._set_headers(token)
-        self._post(url, self.default_headers, body=json.dumps(components), region=region_name)
+        self._post(session, url, self.default_headers, body=json.dumps(components), region=region_name)
 
     def sync_config_groups(self, session, tenant_name, region_name, app_id, body):
         """
@@ -284,7 +284,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url += "/v2/tenants/{tenant_name}/apps/{app_id}/app-config-groups".format(tenant_name=tenant_name,
                                                                                   app_id=app_id)
         self._set_headers(token)
-        self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
+        self._post(session, url, self.default_headers, body=json.dumps(body), region=region_name)
 
     def update_app_ports(self, session, region_name, tenant_name, app_id, data):
         """
@@ -300,7 +300,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/ports"
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, body=json.dumps(data), region=region_name)
+        res, body = self._put(session, url, self.default_headers, body=json.dumps(data), region=region_name)
         return body
 
     def get_app_status(self, session, region_name, tenant_name, region_app_id):
@@ -316,7 +316,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/status"
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, region=region_name)
+        res, body = self._put(session, url, self.default_headers, region=region_name)
         return body["bean"]
 
     def get_app_detect_process(self, session, region_name, tenant_name, region_app_id):
@@ -332,7 +332,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/detect-process"
 
         self._set_headers(token)
-        res, body = self._get(url, self.default_headers, region=region_name)
+        res, body = self._get(session, url, self.default_headers, region=region_name)
         return body["list"]
 
     def get_headers(self, environ):

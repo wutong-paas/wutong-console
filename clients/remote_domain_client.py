@@ -42,7 +42,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains"
 
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def unbind_domain(self, session, region, tenant_name, service_alias, body):
@@ -59,7 +59,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains/" + \
               body["domain"]
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def bind_http_domain(self, session, region, tenant_name, body):
@@ -75,7 +75,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         body["tenant_id"] = tenant_region.region_tenant_id
         url = url + "/v2/tenants/" + tenant_name + "/http-rule"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def update_http_domain(self, session, region, tenant_name, body):
@@ -92,7 +92,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def delete_http_domain(self, session, region, tenant_name, body):
@@ -107,7 +107,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_name + "/http-rule"
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def bind_tcp_domain(self, session, region, tenant_name, body):
@@ -123,7 +123,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         body["tenant_id"] = tenant_region.region_tenant_id
         url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
         self._set_headers(token)
-        res, body = self._post(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def update_tcp_domain(self, session, region, tenant_name, body):
@@ -140,7 +140,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
 
         self._set_headers(token)
-        res, body = self._put(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
     def unbind_tcp_domain(self, session, region, tenant_name, body):
@@ -155,7 +155,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
 
         self._set_headers(token)
-        res, body = self._delete(url, self.default_headers, json.dumps(body), region=region)
+        res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
 
