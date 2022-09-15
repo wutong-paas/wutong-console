@@ -34,6 +34,7 @@ class TeamComponentInfo(Base):
     min_node = Column(Integer, comment="实例数量", nullable=False, default=1)
     min_cpu = Column(Integer, comment="cpu分配额 1000=1core", nullable=False, default=500)
     container_gpu = Column(Integer, comment="gpu显存数量", nullable=False, default=0)
+    gpu_type = Column(String(32), comment="gpu类型", nullable=True)
     min_memory = Column(Integer, comment="内存大小单位（M）", nullable=False, default=256)
 
     # deprecated
