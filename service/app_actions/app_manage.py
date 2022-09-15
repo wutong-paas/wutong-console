@@ -1597,7 +1597,7 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             raise ErrThirdComponentStartFailed()
 
-    def vertical_upgrade(self, session, tenant, service, user, new_memory, new_gpu=None, new_cpu=None):
+    def vertical_upgrade(self, session, tenant, service, user, new_memory, new_gpu_type=None, new_gpu=None, new_cpu=None):
         """组件垂直升级"""
         new_memory = int(new_memory)
         if new_memory > 65536 or new_memory < 0:
@@ -1614,6 +1614,8 @@ class AppManageService(AppManageBase):
             body["container_cpu"] = new_cpu
             if new_gpu is not None and type(new_gpu) == int:
                 body["container_gpu"] = new_gpu
+            if new_gpu_type is not None and new_gpu_type != '':
+                body["container_gpu_type"] = new_gpu_type
             body["operator"] = str(user.nick_name)
             body["enterprise_id"] = tenant.enterprise_id
             try:
@@ -1622,6 +1624,7 @@ class AppManageService(AppManageBase):
                                                          service.service_alias, body)
                 service.min_cpu = new_cpu
                 service.min_memory = new_memory
+                service.gpu_type = new_gpu_type
                 service.container_gpu = new_gpu
                 service.update_time = datetime.datetime.now()
             except remote_component_client.CallApiError as e:

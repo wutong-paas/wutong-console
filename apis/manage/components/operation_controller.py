@@ -350,6 +350,7 @@ async def component_vertical(request: Request,
     try:
         data = await request.json()
         new_memory = data.get("new_memory", 0)
+        new_gpu_type = data.get("new_gpu_type", None)
         new_gpu = data.get("new_gpu", None)
         new_cpu = data.get("new_cpu", None)
         service = service_info_repo.get_service(session, service_alias, team.tenant_id)
@@ -359,6 +360,7 @@ async def component_vertical(request: Request,
             service,
             user,
             int(new_memory),
+            new_gpu_type=new_gpu_type,
             new_gpu=new_gpu,
             new_cpu=new_cpu)
         bean = {}

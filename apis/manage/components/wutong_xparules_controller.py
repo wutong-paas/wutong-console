@@ -138,8 +138,13 @@ async def get_extend_method(serviceAlias: Optional[str] = None,
         "current_node": service.min_node,
         "current_memory": service.min_memory,
         "current_gpu": service.container_gpu,
+        "current_gpu_type": service.gpu_type,
         "extend_method": service.extend_method,
-        "current_cpu": service.min_cpu
+        "current_cpu": service.min_cpu,
+        "gpu_type_list": [
+            "nvidia.com/gpu",
+            "amd.com/gpu"
+        ]
     }
     result = general_message(200, "success", "操作成功", bean=bean)
     return JSONResponse(result, status_code=result["code"])
