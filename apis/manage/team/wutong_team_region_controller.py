@@ -146,6 +146,8 @@ async def team_app_group(region_name: Optional[str] = None,
 
     """
     features = region_services.get_region_license_features(session=session, tenant=team, region_name=region_name)
+    # todo
+    features.append({"code": 'GPU'})
     result = general_message(200, 'query success', '集群授权功能获取成功', list=features)
     return JSONResponse(result, status_code=200)
 
