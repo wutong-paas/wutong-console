@@ -115,6 +115,29 @@ class AppManageService(AppManageBase):
     def __init__(self):
         super().__init__()
 
+    def roll_back(self, session, tenant, service, user, deploy_version, upgrade_or_rollback):
+        if service.create_status == "complete":
+            res, data = remote_build_client.get_service_build_version_by_id(session, service.service_region,
+                                                                            tenant.tenant_name,
+                                                                            service.service_alias, deploy_version)
+            is_version_exist = data['bean']['status']
+            if not is_version_exist:
+                return 404, "当前版本可能已被系统清理或删除"
+            body = dict()
+            body["operator"] = str(user.nick_name)
+            body["upgrade_version"] = deploy_version
+            body["service_id"] = service.service_id
+            body["enterprise_id"] = tenant.enterprise_id
+            try:
+                remote_component_client.rollback(session, service.service_region, tenant.tenant_name, service.service_alias, body)
+            except remote_component_client.CallApiError as e:
+                logger.exception(e)
+                return 507, "组件异常"
+            except remote_component_client.CallApiFrequentError as e:
+                logger.exception(e)
+                return 409, "操作过于频繁，请稍后再试"
+        return 200, "操作成功"
+
     def delete_again(self, session, user, tenant, service, is_force):
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
@@ -1597,7 +1620,8 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             raise ErrThirdComponentStartFailed()
 
-    def vertical_upgrade(self, session, tenant, service, user, new_memory, new_gpu_type=None, new_gpu=None, new_cpu=None):
+    def vertical_upgrade(self, session, tenant, service, user, new_memory, new_gpu_type=None, new_gpu=None,
+                         new_cpu=None):
         """组件垂直升级"""
         new_memory = int(new_memory)
         if new_memory > 65536 or new_memory < 0:

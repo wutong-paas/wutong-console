@@ -535,7 +535,6 @@ async def market_service_upgrade(
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
         user=Depends(deps.get_current_user)) -> Any:
-
     version = await parse_item(request, "group_version", required=True)
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not service:
@@ -779,4 +778,103 @@ async def get_code_branch(
     branches = git_service.get_service_code_branch(session, user, service)
     bean = {"current_version": service.code_version}
     result = general_message(200, "success", "查询成功", bean=bean, list=branches)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/apps/{serviceAlias}/rollback", response_model=Response,
+             name="组件版本回滚")
+async def components_rollback(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
+    """
+    回滚组件
+    ---
+    parameters:
+        - name: tenantName
+          description: 租户名
+          required: true
+          type: string
+          paramType: path
+        - name: serviceAlias
+          description: 组件别名
+          required: true
+          type: string
+          paramType: path
+        - name: deploy_version
+          description: 回滚的版本
+          required: true
+          type: string
+          paramType: form
+
+    """
+    try:
+        data = await request.json()
+        deploy_version = data.get("deploy_version", None)
+        upgrade_or_rollback = data.get("upgrade_or_rollback", None)
+        if not deploy_version or not upgrade_or_rollback:
+            return Response(general_message(400, "deploy version is not found", "请指明版本及操作类型"), status=400)
+
+        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        code, msg = app_manage_service.roll_back(session,
+                                                 team, service, user, deploy_version,
+                                                 upgrade_or_rollback)
+        bean = {}
+        if code != 200:
+            return JSONResponse(general_message(code, "roll back app error", msg, bean=bean), status_code=code)
+        result = general_message(code, "success", "操作成功", bean=bean)
+    except ResourceNotEnoughException as re:
+        raise re
+    except AccountOverdueException as re:
+        logger.exception(re)
+        return JSONResponse(general_message(10410, "resource is not enough", "failed"), status_code=412)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.delete("/teams/{team_name}/apps/{serviceAlias}/version/{version_id}", response_model=Response,
+               name="删除组件的某次构建版本")
+async def delete_components_version(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        version_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
+    """
+    删除组件的某次构建版本
+    ---
+    parameters:
+        - name: tenantName
+          description: 租户名
+          required: true
+          type: string
+          paramType: path
+        - name: serviceAlias
+          description: 组件别名
+          required: true
+          type: string
+          paramType: path
+        - name: version_id
+          description: 版本ID
+          required: true
+          type: string
+          paramType: path
+
+    """
+    if not version_id:
+        return JSONResponse(general_message(400, "attr_name not specify", "请指定需要删除的具体版本"), status_code=400)
+
+    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    response_region = region.region_name
+    remote_build_client.delete_service_build_version(session, response_region, team.tenant_name,
+                                                     service.service_alias,
+                                                     version_id)
+    # event_repo.delete_event_by_build_version(self.service.service_id, version_id)
+    result = general_message(200, "success", "删除成功")
     return JSONResponse(result, status_code=result["code"])
