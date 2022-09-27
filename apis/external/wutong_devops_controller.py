@@ -657,16 +657,19 @@ async def deploy_component(
 
     """
     try:
+        logger.debug("code ===== " + params.component_code)
         result = general_message(200, "success", "成功")
         user = user_svc.devops_get_current_user(session=session, token=authorization)
         tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
         service = service_info_repo.get_service(session, params.component_code, tenant.tenant_id)
         oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
-
+        logger.debug("service_alias ==== {0} 111111 service.service_source ==== {1}", service.service_alias,
+                     service.service_source)
         if params.docker_image is not None:
             devops_repo.modify_source(session, service, params.docker_image,
                                       params.registry_user, params.registry_password)
-
+        logger.debug("service_alias ==== {0} 222222 service.service_source ==== {1}", service.service_alias,
+                     service.service_source)
         if params.env_variables is not None:
             for env_variables in params.env_variables:
                 if env_variables.key is not None:
@@ -713,6 +716,8 @@ async def deploy_component(
 
         session.flush()
         group_version = None
+        logger.debug("service_alias ==== {0} 333333 service.service_source ==== {1}", service.service_alias,
+                     service.service_source)
         code, msg, _ = app_deploy_service.deploy(
             session, tenant, service, user, version=group_version, oauth_instance=oauth_instance)
         bean = {}
