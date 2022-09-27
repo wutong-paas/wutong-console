@@ -114,8 +114,8 @@ class ServiceShareRecord(Base):
     share_app_version_info = Column(String(255), comment="应用组发布版本描述", default="", nullable=False)
     is_success = Column(Boolean, comment="发布是否成功", nullable=False)
     step = Column(Integer, comment="当前发布进度", nullable=False, default=0)
-    # 1 发布中 2 取消发布 3 发布完成
-    status = Column(Integer, comment="当前发布状态 1, 2, 3", nullable=False, default=0)
+    # 0 发布中 1 发布完成 2 取消发布 3 已删除
+    status = Column(Integer, comment="当前发布状态 0, 1, 2, 3", nullable=False, default=0)
     app_id = Column(String(64), comment="应用id", nullable=True)
     scope = Column(String(64), comment="分享范围", nullable=True)
     share_app_market_name = Column(String(64), comment="分享应用商店标识", nullable=True)
