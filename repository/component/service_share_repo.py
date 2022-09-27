@@ -35,7 +35,8 @@ class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
         :return:
         """
         return (session.execute(
-            select(func.count(ServiceShareRecord.ID)).where(ServiceShareRecord.group_id == app_id)
+            select(func.count(ServiceShareRecord.ID)).where(ServiceShareRecord.group_id == app_id,
+                                                            ServiceShareRecord.status.in_([0, 1, 2]))
         )).first()[0]
 
     def get_service_share_records_by_groupid(self, session, team_name, group_id, page=1, page_size=10):
