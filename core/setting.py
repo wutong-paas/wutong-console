@@ -1,9 +1,11 @@
 import os
+import sys
 from typing import List
-
+from loguru import logger
 from pydantic import BaseSettings
-
 from core.auth.role_required import RoleRequired
+
+logger.remove()
 
 
 class Settings(BaseSettings):
@@ -34,6 +36,19 @@ class Settings(BaseSettings):
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
     SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+
+    # 日志级别
+    # CRITICAL = 50
+    # FATAL = CRITICAL
+    # ERROR = 40
+    # WARNING = 30
+    # WARN = WARNING
+    # INFO = 20
+    # DEBUG = 10
+    # NOTSET = 0
+    log_level = os.environ.get("LOG_LEVEL", 10)
+    logger.add(sys.stdout, level=log_level)
+    # logger.add("errlog/somefile.log", enqueue=True, level=logging.ERROR, retention="1 days")
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 

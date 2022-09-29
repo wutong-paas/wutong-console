@@ -69,6 +69,12 @@ class AppRepo(object):
                 CenterAppVersion.version == version))
         ).scalars().first()
 
+    def get_app_by_app_id(self, session, app_id):
+        return (
+            session.execute(select(CenterApp).where(
+                CenterApp.ID == app_id))
+        ).scalars().first()
+
     def get_enterpirse_app_by_key_and_version(self, session, enterprise_id, group_key, group_version):
         app = (session.execute(select(CenterApp).where(
             CenterApp.enterprise_id == enterprise_id,
