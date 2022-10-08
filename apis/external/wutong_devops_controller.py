@@ -34,7 +34,7 @@ from repository.teams.team_region_repo import team_region_repo
 from repository.teams.team_repo import team_repo
 from repository.teams.team_roles_repo import TeamRolesRepository
 from repository.users.user_repo import user_repo
-from schemas.components import BuildSourceParam, DeployBusinessParams, DevopsJudgeIsExistParam
+from schemas.components import BuildSourceParam, DeployBusinessParams
 from schemas.market import MarketAppModelParam, DevopsMarketAppCreateParam
 from schemas.response import Response
 from schemas.team import CreateTeamParam, CreateTeamUserParam, DeleteTeamUserParam
@@ -800,17 +800,18 @@ async def get_team_regions(
 @router.get("/v1.0/devops/teams/{team_name}/checkResource", response_model=Response, name="查询团队绑定集群")
 async def check_resource(
         request: Request,
-        params: DevopsJudgeIsExistParam,
+        application_code: Optional[int] = -1,
+        component_code: Optional[str] = None,
         authorization: Optional[str] = Depends(oauth2_scheme),
         team=Depends(deps.get_current_team),
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     is_app = True
     is_component = True
-    app = app_repo.get_app_by_app_id(session, params.application_code)
+    app = app_repo.get_app_by_app_id(session, application_code)
     if not app:
         is_app = False
-    service = service_info_repo.get_service_by_tenant_and_alias(session, team.tenant_id, params.component_code)
+    service = service_info_repo.get_service_by_tenant_and_alias(session, team.tenant_id, component_code)
     if not service:
         is_component = False
     data = {
