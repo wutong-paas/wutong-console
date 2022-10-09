@@ -152,6 +152,12 @@ class ShareService(object):
                 continue
 
             config = configs.get(sd.http_rule_id, {})
+            header_list = config["set_headers"]
+            header = {}
+            for head in header_list:
+                header.update({head["item_key"]: head["item_value"]})
+            config.update({"set_headers": header})
+
             ingress_http_route = {
                 "default_domain": sd.type == 0,
                 "location": sd.domain_path,
