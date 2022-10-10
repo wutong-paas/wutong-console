@@ -248,7 +248,7 @@ async def get_region_event(
             cpu_percent = used_cpu / total_cpu
             memory_percent = used_memory / total_memory
             pod_percent = used_pod / total_pod
-            storage_percent = used_storage / total_storage
+            storage_percent = used_storage / total_storage if total_storage != 0 else 0
             if cpu_percent >= 0.80:
                 if cpu_percent >= 1.20:
                     events.append({

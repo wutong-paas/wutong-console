@@ -54,7 +54,12 @@ class PluginService(object):
         plugin_data = dict()
         plugin_data["build_model"] = tenant_plugin.build_source
         plugin_data["git_url"] = tenant_plugin.code_repo
-        plugin_data["image_url"] = "{0}:{1}".format(tenant_plugin.image, image_tag)
+        image = tenant_plugin.image
+        version = image.split(':')[-1]
+        if not version:
+            plugin_data["image_url"] = "{0}:{1}".format(tenant_plugin.image, image_tag)
+        else:
+            plugin_data["image_url"] = tenant_plugin.image
         plugin_data["plugin_id"] = tenant_plugin.plugin_id
         plugin_data["plugin_info"] = tenant_plugin.desc
         plugin_data["plugin_model"] = tenant_plugin.category
@@ -269,7 +274,12 @@ class PluginService(object):
         data = dict()
         data["build_model"] = tenant_plugin.build_source
         data["git_url"] = tenant_plugin.code_repo
-        data["image_url"] = "{0}:{1}".format(tenant_plugin.image, plugin_build_version.image_tag)
+        image = tenant_plugin.image
+        version = image.split(':')[-1]
+        if not version:
+            data["image_url"] = "{0}:{1}".format(tenant_plugin.image, plugin_build_version.image_tag)
+        else:
+            data["image_url"] = tenant_plugin.image
         data["plugin_info"] = tenant_plugin.desc
         data["plugin_model"] = tenant_plugin.category
         data["plugin_name"] = tenant_plugin.plugin_name
