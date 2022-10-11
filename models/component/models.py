@@ -254,7 +254,7 @@ class ComponentEnvVar(Base):
     tenant_id = Column(String(32), comment="租户id", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
     container_port = Column(Integer, comment="端口", nullable=False, default=0)
-    name = Column(String(1024), comment="名称", nullable=False)
+    name = Column(String(1024), comment="名称", nullable=True)
     attr_name = Column(String(1024), comment="属性", nullable=False)
     attr_value = Column(Text, comment="值", nullable=False)
     is_change = Column(Boolean, comment="是否可改变", nullable=False, default=False)
