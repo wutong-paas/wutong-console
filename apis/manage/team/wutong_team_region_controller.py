@@ -12,6 +12,7 @@ from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from models.users.users import Users
 from repository.component.group_service_repo import service_info_repo
+from repository.region.region_app_repo import region_app_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.region_service import region_services
@@ -417,3 +418,29 @@ async def get_kubeconfig(request: Request,
         return response
     else:
         return JSONResponse(general_message(400, "get kubeconfig failed", "获取kubeconfig失败"), status_code=400)
+
+
+@router.post("/teams/{team_name}/apps/{app_id}/kuberesources", response_model=Response,
+             name="获取组件kuberesources")
+async def get_components_kuberesources(request: Request,
+                                       team_name: Optional[str] = None,
+                                       app_id: Optional[str] = None,
+                                       custom_namespace: Optional[str] = "default",
+                                       team=Depends(deps.get_current_team),
+                                       session: SessionClass = Depends(deps.get_session)) -> Any:
+    data = await request.json()
+    service_alias = data.get("service_alias", None)
+    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    region_app_id = region_app_repo.get_region_app_id(session, region.region_name, app_id)
+    res = remote_tenant_client.get_kuberesources(session, region.region_name, team_name, region_app_id, service_alias,
+                                                 custom_namespace)
+    if res:
+        file = io.StringIO(res['bean'])
+        response = StreamingResponse(file)
+        # response.init_headers({"Content-Disposition": "attchment; filename=kuberesources"})
+        return response
+    else:
+        return JSONResponse(general_message(400, "get kuberesources failed", "获取kuberesources"), status_code=400)
