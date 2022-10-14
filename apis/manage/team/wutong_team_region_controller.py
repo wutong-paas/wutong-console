@@ -425,11 +425,11 @@ async def get_kubeconfig(request: Request,
 async def get_components_kuberesources(request: Request,
                                        team_name: Optional[str] = None,
                                        app_id: Optional[str] = None,
-                                       namespace: Optional[str] = "default",
                                        team=Depends(deps.get_current_team),
                                        session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     service_alias = data.get("service_alias", None)
+    namespace = data.get("namespace", "default")
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
