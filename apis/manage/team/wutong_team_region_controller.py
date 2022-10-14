@@ -425,7 +425,7 @@ async def get_kubeconfig(request: Request,
 async def get_components_kuberesources(request: Request,
                                        team_name: Optional[str] = None,
                                        app_id: Optional[str] = None,
-                                       custom_namespace: Optional[str] = "default",
+                                       namespace: Optional[str] = "default",
                                        team=Depends(deps.get_current_team),
                                        session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
@@ -436,7 +436,7 @@ async def get_components_kuberesources(request: Request,
 
     region_app_id = region_app_repo.get_region_app_id(session, region.region_name, app_id)
     res = remote_tenant_client.get_kuberesources(session, region.region_name, team_name, region_app_id, service_alias,
-                                                 custom_namespace)
+                                                 namespace)
     if res:
         file = io.StringIO(res['bean'])
         response = StreamingResponse(file)
