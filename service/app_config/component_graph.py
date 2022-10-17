@@ -58,7 +58,7 @@ class ComponentGraphService(object):
             for filename in os.listdir(path_to_graphs):
                 path = path_to_graphs + "/" + filename
                 try:
-                    with open(path) as f:
+                    with open(path, encoding='utf-8') as f:
                         name, _ = os.path.splitext(filename)
                         internal_graphs[name] = json.load(f)
                         filenames.append(name)
@@ -87,7 +87,7 @@ class ComponentGraphService(object):
         seq = self._next_sequence(session=session, component_id=component_id)
         for graph in internal_graphs.get(graph_name):
             try:
-                _ = component_graph_repo.get_by_title(component_id, graph.get("title"))
+                _ = component_graph_repo.get_by_title(session, component_id, graph.get("title"))
                 continue
             except ErrComponentGraphNotFound:
                 pass
