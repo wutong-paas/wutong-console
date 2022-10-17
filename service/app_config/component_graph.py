@@ -107,7 +107,7 @@ class ComponentGraphService(object):
                     sequence=seq,
                 ))
             seq += 1
-        component_graph_repo.bulk_create(graphs)
+        component_graph_repo.bulk_create(session, graphs)
 
     def bulk_create(self, session: SessionClass, component_id, graphs):
         if not graphs:
