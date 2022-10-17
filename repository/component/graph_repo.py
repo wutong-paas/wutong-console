@@ -7,6 +7,13 @@ from repository.base import BaseRepository
 
 class ComponentGraphRepository(BaseRepository[ComponentGraph]):
 
+    def batch_delete(self, session, component_id, graph_ids):
+        session.execute(delete(ComponentGraph).where(
+            ComponentGraph.component_id == component_id,
+            ComponentGraph.graph_id.in_(graph_ids)
+        ))
+        session.flush()
+
     def update(self, session, component_id, graph_id, **data):
         session.execute(update(ComponentGraph).where(
             ComponentGraph.component_id == component_id,

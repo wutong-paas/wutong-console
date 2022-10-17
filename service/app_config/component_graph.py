@@ -17,6 +17,9 @@ from service.app_config.promql_service import BASE_DIR, promql_service
 
 class ComponentGraphService(object):
 
+    def batch_delete(self, session, component_id, graph_ids):
+        component_graph_repo.batch_delete(session, component_id, graph_ids)
+
     @staticmethod
     def _sequence_move_back(session, component_id, left_sequence, right_sequence):
         graphs = component_graph_repo.list_between_sequence(

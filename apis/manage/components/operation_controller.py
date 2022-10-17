@@ -509,6 +509,18 @@ async def add_component_graphs(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
+@router.delete("/teams/{team_name}/apps/{service_alias}/graphs", response_model=Response, name="批量删除组件图表")
+async def delete_component_graphs(request: Request,
+                                  service_alias: Optional[str] = None,
+                                  session: SessionClass = Depends(deps.get_session),
+                                  team=Depends(deps.get_current_team)) -> Any:
+    graph_ids = await parse_item(request, "graph_ids", required=True)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
+    component_graph_service.batch_delete(session, service.service_id, graph_ids)
+    result = general_message(200, "success", "删除成功")
+    return JSONResponse(result, status_code=result["code"])
+
+
 @router.put("/teams/{team_name}/apps/{service_alias}/service_monitor/{name}", response_model=Response, name="修改监控点")
 async def modify_component_monitor(request: Request,
                                    service_alias: Optional[str] = None,
