@@ -11,6 +11,7 @@ from clients.remote_component_client import remote_component_client
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
 from core.utils.oauth.oauth_types import support_oauth_type
+from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message, general_data
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentBuildFailed
@@ -428,6 +429,20 @@ async def component_graphs(service_alias: Optional[str] = None,
 async def component_graphs() -> Any:
     graphs = component_graph_service.list_internal_graphs()
     result = general_message(200, "success", "查询成功", list=graphs)
+    return JSONResponse(result, status_code=result["code"])
+
+
+@router.post("/teams/{team_name}/apps/{service_alias}/internal-graphs", response_model=Response, name="一键导入内部图表")
+async def import_component_graphs(request: Request,
+                                  service_alias: Optional[str] = None,
+                                  session: SessionClass = Depends(deps.get_session),
+                                  user=Depends(deps.get_current_user),
+                                  team=Depends(deps.get_current_team)
+                                  ) -> Any:
+    graph_name = await parse_item(request, "graph_name", required=True)
+    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
+    component_graph_service.create_internal_graphs(session, service.service_id, graph_name)
+    result = general_message(200, "success", "导入成功")
     return JSONResponse(result, status_code=result["code"])
 
 
