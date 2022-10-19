@@ -819,3 +819,44 @@ async def check_resource(
         "is_component": is_component
     }
     return JSONResponse(general_message(200, "success", "查询成功", bean=data), status_code=200)
+
+
+@router.delete("/v1.0/devops/teams/{team_name}/users/batch/delete", response_model=Response, name="删除团队成员")
+async def delete_team_user(request: Request,
+                           team_name: Optional[str] = None,
+                           session: SessionClass = Depends(deps.get_session),
+                           authorization: Optional[str] = Depends(oauth2_scheme),
+                           team=Depends(deps.get_current_team)) -> Any:
+    """
+            删除租户内的用户
+            (可批量可单个)
+
+            """
+    try:
+        from_data = await request.json()
+        user_ids = from_data["user_ids"]
+        if not user_ids:
+            return general_message(400, "failed", "删除成员不能为空")
+
+        user: Users = user_svc.devops_get_current_user(session=session, token=authorization)
+        if user.user_id in user_ids:
+            return JSONResponse(general_message(400, "failed", "不能删除自己"), status_code=400)
+
+        for user_id in user_ids:
+            if user_id == team.creater:
+                return JSONResponse(general_message(400, "failed", "不能删除团队创建者！"), 400)
+        try:
+            team_services.batch_delete_users(request=request, session=session, tenant_name=team_name,
+                                             user_id_list=user_ids)
+            result = general_message(200, "delete the success", "删除成功")
+        except ServiceHandleException as e:
+            logger.exception(e)
+            result = general_message(400, e.msg, e.msg_show)
+        except Exception as e:
+            logger.exception(e)
+            result = error_message()
+        return JSONResponse(result, status_code=result["code"])
+    except Exception as e:
+        logger.exception(e)
+        result = error_message()
+    return JSONResponse(result, status_code=result["code"])
