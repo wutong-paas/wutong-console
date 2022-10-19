@@ -99,6 +99,7 @@ class TeamService(object):
             "enterprise_id": tenant.enterprise_id,
             "owner": tenant.creater,
             "owner_name": owner_name,
+            "namespace": tenant.namespace
         }
 
         if request_user:
