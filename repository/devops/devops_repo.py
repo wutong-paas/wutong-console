@@ -47,7 +47,7 @@ class DevopsRepository:
         )).scalars().first()
 
         if not env:
-            return general_message(400, "delete env not found", "需要删除的环境变量未找到")
+            return general_message(200, "delete env not found", "需要删除的环境变量未找到")
         env_var_service.delete_env_by_env_id(session=session, tenant=tenant, service=service, env_id=env.ID,
                                              user_name=user.nick_name)
         return general_message(200, "success", "删除成功")
