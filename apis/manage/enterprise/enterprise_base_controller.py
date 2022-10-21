@@ -13,6 +13,8 @@ from core.utils.reqparse import bool_argument, parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException
+from models.users.users import Users
+from repository.enterprise.enterprise_user_perm_repo import enterprise_user_perm_repo
 from repository.region.region_info_repo import region_repo
 from repository.users.perms_repo import perms_repo
 from schemas.response import Response
@@ -33,6 +35,8 @@ async def get_info(session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     initialize_info = perms_repo.initialize_permission_settings(session)
     register_config = platform_config_service.get_config_by_key(session, "IS_REGIST")
+    log_query_config = platform_config_service.get_config_by_key(session, "LOG_QUERY")
+    call_link_config = platform_config_service.get_config_by_key(session, "CALL_LINK_QUERY")
     data = platform_config_service.initialization_or_get_config(session=session)
     if data.get("enterprise_id", None) is None:
         data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
@@ -324,3 +328,41 @@ async def set_region_config(request: Request,
     else:
         result = general_message(500, "failed", "创建失败")
         return JSONResponse(result, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@router.put("/enterprise/{enterprise_id}/log_query", response_model=Response, name="配置日志查询开关")
+async def set_log_query(request: Request,
+                        enterprise_id: Optional[str] = None,
+                        session: SessionClass = Depends(deps.get_session),
+                        user: Users = Depends(deps.get_current_user)) -> Any:
+    enable = bool_argument(await parse_item(request, "enable", required=True))
+    admin = enterprise_user_perm_repo.is_admin(session, user_id=user.user_id, eid=enterprise_id)
+    if admin:
+        if enable is False:
+            # 修改全局配置
+            platform_config_service.update_config(session, "LOG_QUERY", {"enable": False, "value": None})
+            return JSONResponse(general_message(200, "close log_query", "关闭日志查询"), status_code=200)
+        else:
+            platform_config_service.update_config(session, "LOG_QUERY", {"enable": True, "value": None})
+            return JSONResponse(general_message(200, "open log_query", "开启日志查询"), status_code=200)
+    else:
+        return JSONResponse(general_message(400, "no jurisdiction", "没有权限"), status_code=400)
+
+
+@router.put("/enterprise/{enterprise_id}/call_link", response_model=Response, name="配置调用链路查询开关")
+async def set_call_link(request: Request,
+                        enterprise_id: Optional[str] = None,
+                        session: SessionClass = Depends(deps.get_session),
+                        user: Users = Depends(deps.get_current_user)) -> Any:
+    enable = bool_argument(await parse_item(request, "enable", required=True))
+    admin = enterprise_user_perm_repo.is_admin(session, user_id=user.user_id, eid=enterprise_id)
+    if admin:
+        if enable is False:
+            # 修改全局配置
+            platform_config_service.update_config(session, "CALL_LINK_QUERY", {"enable": False, "value": None})
+            return JSONResponse(general_message(200, "close call_link_query", "关闭调用链路查询"), status_code=200)
+        else:
+            platform_config_service.update_config(session, "CALL_LINK_QUERY", {"enable": True, "value": None})
+            return JSONResponse(general_message(200, "open call_link_query", "开启调用链路查询"), status_code=200)
+    else:
+        return JSONResponse(general_message(400, "no jurisdiction", "没有权限"), status_code=400)
