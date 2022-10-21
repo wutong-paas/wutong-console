@@ -202,6 +202,8 @@ class PlatformConfigService(ConfigService):
             "DOCUMENT",
             "OFFICIAL_DEMO",
             ConfigKeyEnum.ENTERPRISE_EDITION.name,
+            "LOG_QUERY",
+            "CALL_LINK_QUERY",
         ]
         self.cfg_keys_value = {
             "TITLE": {
@@ -241,6 +243,16 @@ class PlatformConfigService(ConfigService):
                 "value": "false",
                 "desc": "是否是企业版",
                 "enable": True
+            },
+            "LOG_QUERY": {
+                "value": None,
+                "desc": "用于对采集到的日志进行筛选查询与分析",
+                "enable": False
+            },
+            "CALL_LINK_QUERY": {
+                "value": None,
+                "desc": "用于对采集到的调用链路进行查询与分析",
+                "enable": False
             },
         }
 
