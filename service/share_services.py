@@ -1039,7 +1039,7 @@ class ShareService(object):
         for graph in graphs:
             if not result.get(graph.component_id):
                 result[graph.component_id] = []
-            g = graph.to_dict()
+            g = jsonable_encoder(graph)
             del g["ID"]
             result[graph.component_id].append(g)
         return result
