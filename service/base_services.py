@@ -21,6 +21,7 @@ class BaseService:
         query_sql = '''
             SELECT
                 t.service_id,
+                t.k8s_component_name,
                 t.service_alias,
                 t.create_status,
                 t.service_cname,
