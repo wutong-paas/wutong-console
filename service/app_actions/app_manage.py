@@ -185,6 +185,7 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
+            data.pop("gpu_type")
         try:
             delete_service_repo.create_delete_service(session, **data)
         except Exception as e:
