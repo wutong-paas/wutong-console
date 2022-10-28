@@ -26,9 +26,9 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
             TeamComponentPort.port_alias == alias)).scalars().first()
 
     def overwrite_by_component_ids(self, session, component_ids, ports):
-        session.execute(delete(TeamComponentPort).where(
-            TeamComponentPort.service_id.in_(component_ids)))
-        session.add_all(ports)
+        for port in ports:
+            session.merge(port)
+        session.flush()
 
     def list_by_k8s_service_names(self, session, tenant_id, k8s_service_names):
         return session.execute(select(TeamComponentPort).where(

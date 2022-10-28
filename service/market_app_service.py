@@ -13,24 +13,36 @@ from core.enum.component_enum import Kind
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, AbortRequest
-from models.application.models import Application
+from models.application.models import Application, ApplicationUpgradeRecord
 from models.component.models import TeamApplication
 from models.market.models import CenterApp, CenterAppTagsRelation, CenterAppVersion, \
     AppImportRecord, CenterAppTag, AppMarket
 from models.teams import TeamInfo
 from models.users.users import Users
 from repository.application.app_repository import app_tag_repo, app_repo
+from repository.application.app_upgrade_repo import upgrade_repo
+from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.market.center_repo import center_app_repo
 from repository.teams.team_repo import team_repo
 from service.application_service import application_service
+from service.component_group import ComponentGroup
 from service.market_app.app_upgrade import AppUpgrade
-from service.upgrade_service import upgrade_service
 from service.user_service import user_svc
 
 
 class MarketAppService(object):
+
+    def list_app_upgradeable_versions(self, session, enterprise_id, record: ApplicationUpgradeRecord):
+        component_group = tenant_service_group_repo.get_component_group(session, record.upgrade_group_id)
+        component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
+        app_template_source = component_group.app_template_source(session)
+        market = app_market_repo.get_app_market_by_name(session, enterprise_id, app_template_source.get_market_name())
+        return self.__get_upgradeable_versions(session,
+                                               enterprise_id, component_group.app_model_key, component_group.version,
+                                               app_template_source.get_template_update_time(),
+                                               component_group.is_install_from_cloud(session), market)
 
     def cloud_app_model_to_db_model(self, market: AppMarket, app_id, version, for_install=False):
         app = app_store_client.get_app(market, app_id)
@@ -38,7 +50,8 @@ class MarketAppService(object):
         app_template = None
         try:
             if version:
-                app_template = app_store_client.get_app_version(market, app_id, version, for_install=for_install, get_template=True)
+                app_template = app_store_client.get_app_version(market, app_id, version, for_install=for_install,
+                                                                get_template=True)
         except ServiceHandleException as e:
             if e.status_code != 404:
                 logger.exception(e)
@@ -416,7 +429,7 @@ class MarketAppService(object):
 
                 # todo
                 # if record:
-                    # version.share_user = record.user_name
+                # version.share_user = record.user_name
 
             app_with_versions[version.version] = version
             if version.version not in apv_ver_nums:
@@ -656,6 +669,16 @@ class MarketAppService(object):
             return app_info_list
         return []
 
+    def get_app_not_upgrade_record(self, session: SessionClass, tenant_id, group_id, group_key):
+        """获取未完成升级记录"""
+        result = upgrade_repo.get_app_not_upgrade_record(session=session,
+                                                         tenant_id=tenant_id,
+                                                         group_id=int(group_id),
+                                                         group_key=group_key)
+        if not result:
+            return ApplicationUpgradeRecord()
+        return result
+
     def yield_app_info(self, session: SessionClass, app_models, tenant, app_id):
         for upgrade_key in app_models:
             app_model_key = upgrade_key.split("-")[0]
@@ -688,9 +711,9 @@ class MarketAppService(object):
                 'is_official': app_model.is_official,
                 'details': app_model.details
             }
-            not_upgrade_record = upgrade_service.get_app_not_upgrade_record(session=session, tenant_id=tenant.tenant_id,
-                                                                            group_id=app_id,
-                                                                            group_key=app_model_key)
+            not_upgrade_record = self.get_app_not_upgrade_record(session=session, tenant_id=tenant.tenant_id,
+                                                                 group_id=app_id,
+                                                                 group_key=app_model_key)
             versions = self.__get_upgradeable_versions(session,
                                                        tenant.enterprise_id, app_model_key, version,
                                                        component_source.get_template_update_time(),
@@ -975,7 +998,8 @@ class MarketAppService(object):
             market = None
             install_from_cloud = component_source.is_install_from_cloud()
 
-            return self.__get_upgradeable_versions(tenant.enterprise_id, component_source.group_key,
+            return self.__get_upgradeable_versions(session,
+                                                   tenant.enterprise_id, component_source.group_key,
                                                    component_source.version,
                                                    component_source.get_template_update_time(), install_from_cloud,
                                                    market)

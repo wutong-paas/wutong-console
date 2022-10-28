@@ -1,24 +1,21 @@
 import datetime
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from urllib3.exceptions import MaxRetryError
-
 from clients.remote_component_client import remote_component_client
-from common.response import MessageResponse
 from core import deps
 from core.enum.app import GovernanceModeEnum
 from core.utils.crypt import make_uuid
-from core.utils.reqparse import parse_argument, parse_item
+from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message, general_data
 from core.utils.validation import is_qualified_name
 from database.session import SessionClass
-from exceptions.bcode import ErrQualifiedName, ErrLastRecordUnfinished
+from exceptions.bcode import ErrQualifiedName
 from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException
-from models.application.models import Application, ComponentApplicationRelation, ApplicationUpgradeRecordType
+from models.application.models import Application, ComponentApplicationRelation
 from models.users.users import Users
 from repository.application.application_repo import application_repo
 from repository.component.compose_repo import compose_repo
@@ -38,7 +35,6 @@ from service.compose_service import compose_service
 from service.helm_app_service import helm_app_service
 from service.market_app_service import market_app_service
 from service.share_services import share_service
-from service.upgrade_service import upgrade_service
 
 router = APIRouter()
 
@@ -482,54 +478,6 @@ async def get_app_model(group_id: Optional[str] = None, session: SessionClass = 
         if e.status_code != 404:
             raise e
     return JSONResponse(general_message(200, "success", "创建成功", list=jsonable_encoder(apps)), status_code=200)
-
-
-@router.get("/teams/{team_name}/groups/{group_id}/upgrade-records", response_model=Response, name="查询升级记录集合")
-async def get_app_model(request: Request,
-                        team_name: Optional[str] = None,
-                        group_id: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session),
-                        team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
-    if not region:
-        return general_message(400, "not found region", "数据中心不存在")
-    region_name = region.region_name
-    page = parse_argument(request, 'page', value_type=int, default=1)
-    page_size = parse_argument(request, 'page_size', value_type=int, default=10)
-    records, total = upgrade_service.list_records(session=session, tenant_name=team_name, region_name=region_name,
-                                                  app_id=group_id,
-                                                  record_type=ApplicationUpgradeRecordType.UPGRADE.value, page=page,
-                                                  page_size=page_size)
-    return MessageResponse(msg="success", bean={"total": total}, list=records)
-
-
-@router.post("/teams/{team_name}/groups/{group_id}/upgrade-records", response_model=Response, name="升级应用模型")
-async def upgrade_app_model(request: Request,
-                            group_id: Optional[str] = None,
-                            session: SessionClass = Depends(deps.get_session),
-                            user=Depends(deps.get_current_user),
-                            team=Depends(deps.get_current_team)) -> Any:
-    app = application_repo.get_group_by_id(session, group_id)
-    upgrade_group_id = await parse_item(request, 'upgrade_group_id', required=True)
-    try:
-        record = upgrade_service.create_upgrade_record(session, user.enterprise_id, team, app, upgrade_group_id)
-    except ErrLastRecordUnfinished as e:
-        return JSONResponse(
-            general_message(msg=e.msg, msg_show=e.msg_show, code=e.status_code), status_code=e.status_code)
-    return MessageResponse(msg="success", bean=record)
-
-
-@router.get("/teams/{team_name}/groups/{group_id}/last-upgrade-record", response_model=Response, name="查询上一次升级记录")
-async def get_app_ver(request: Request,
-                      group_id: Optional[str] = None,
-                      session: SessionClass = Depends(deps.get_session),
-                      team=Depends(deps.get_current_team)) -> Any:
-    app = application_repo.get_group_by_id(session, group_id)
-    upgrade_group_id = parse_argument(request, "upgrade_group_id")
-    record_type = parse_argument(request, "record_type")
-    record = upgrade_service.get_latest_upgrade_record(session=session, tenant=team, app=app,
-                                                       upgrade_group_id=upgrade_group_id, record_type=record_type)
-    return MessageResponse(msg="success", bean=record)
 
 
 @router.get("/teams/{team_name}/groups/{group_id}/configgroups", response_model=Response, name="查询应用配置")
