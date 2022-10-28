@@ -10,7 +10,7 @@ class AppSnapshotRepo(object):
     def get_by_snapshot_id(session, snapshot_id):
         auss = session.execute(select(ApplicationUpgradeSnapshot).where(
             ApplicationUpgradeSnapshot.snapshot_id == snapshot_id
-        )).scalars().all()
+        )).scalars().first()
         if not auss:
             raise ErrAppSnapshotNotFound
         return auss
@@ -20,7 +20,8 @@ class AppSnapshotRepo(object):
             self.get_by_snapshot_id(session, snapshot.snapshot_id)
             raise ErrAppSnapshotExists
         except ErrAppSnapshotNotFound:
-            snapshot.save()
+            session.merge(snapshot)
+            session.flush()
             return snapshot
 
 

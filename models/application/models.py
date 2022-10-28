@@ -1,7 +1,9 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text
+from fastapi.encoders import jsonable_encoder
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy.orm import relationship
 
 from core.enum.app import GovernanceModeEnum, ApplicationUpgradeStatus, ApplicationUpgradeRecordType
 from database.session import Base
@@ -235,8 +237,10 @@ class ApplicationUpgradeRecord(Base):
     record_type = Column(String(64), comment="记录类型, 升级/回滚", nullable=True)
     parent_id = Column(Integer, comment="回滚记录对应的升级记录ID", nullable=False, default=0)
 
+    service_upgrade_records = relationship("ServiceUpgradeRecord", back_populates="app_upgrade_record")
+
     def to_dict(self):
-        record = super(ApplicationUpgradeRecord, self).to_dict()
+        record = jsonable_encoder(super(ApplicationUpgradeRecord, self))
         record["can_rollback"] = self.can_rollback()
         record["is_finished"] = self.is_finished()
         return record
@@ -326,6 +330,17 @@ class ServiceUpgradeRecord(Base):
     class UpgradeType(Enum):
         UPGRADE = 'upgrade'
         ADD = 'add'
+
+    app_upgrade_record_id = Column(
+        Integer, ForeignKey('app_upgrade_record.ID')
+    )
+
+    service_id = Column(
+        String, ForeignKey('tenant_service.service_id')
+    )
+
+    app_upgrade_record = relationship("ApplicationUpgradeRecord", back_populates="service_upgrade_records")
+    service = relationship("TeamComponentInfo")
 
     ID = Column(Integer, primary_key=True)
     service_cname = Column(String(100), comment="服务名", nullable=False)

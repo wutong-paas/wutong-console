@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from apis.external import wutong_devops_controller, wutong_hunan_expressway
 from apis.manage.application import application_controller, wutong_topological_controller, wutong_temas_controller, \
-    domain_controller, app_backup_controller
+    domain_controller, app_backup_controller, app_upgrade_controller
 from apis.manage.common import common_controller
 from apis.manage.components import operation_controller, batch_operation_controller, third_party_controller
 from apis.manage.components import wutong_components_controller
@@ -58,6 +58,7 @@ api_router.include_router(application_controller.router, tags=["团队应用接�
 api_router.include_router(wutong_temas_controller.router, tags=["应用接口"])
 api_router.include_router(wutong_topological_controller.router, tags=["应用拓扑图接口"])
 api_router.include_router(domain_controller.router, tags=["应用网关"])
+api_router.include_router(app_upgrade_controller.router, tags=["应用升级"])
 
 # 梧桐应用市场
 api_router.include_router(wutong_market_controller.router, tags=["梧桐应用市场"])

@@ -4,6 +4,7 @@ import logging
 import copy
 from datetime import datetime
 
+from fastapi.encoders import jsonable_encoder
 from loguru import logger
 
 from clients.remote_plugin_client import remote_plugin_client
@@ -290,6 +291,7 @@ class AppUpgrade(MarketApp):
                 upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value,
                 event_id=event_id,
                 status=ApplicationUpgradeStatus.UPGRADING.value,
+                update=""
             )
             if cpt.action_type == ActionType.NOTHING.value:
                 record.status = ApplicationUpgradeStatus.UPGRADED.value
@@ -299,6 +301,7 @@ class AppUpgrade(MarketApp):
                 continue
             records.append(record)
         session.add_all(records)
+        session.flush()
 
     def _save_app(self, session):
         snapshot = self._take_snapshot(session)
@@ -520,7 +523,7 @@ class AppUpgrade(MarketApp):
                 snapshot_id=make_uuid(),
                 snapshot=json.dumps({
                     "components": components,
-                    "component_group": self.component_group.component_group.to_dict(),
+                    "component_group": jsonable_encoder(self.component_group.component_group),
                 }),
             ))
         return snapshot

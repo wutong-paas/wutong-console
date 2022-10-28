@@ -29,7 +29,8 @@ class ComponentGroup(object):
         source = self.app_template_source(session)
         return source.is_install_from_cloud()
 
-    def save(self):
+    def save(self, session):
         if not self.need_save:
             return
-        # session.add(self.component_group)
+        session.merge(self.component_group)
+        session.flush()

@@ -84,7 +84,7 @@ class NewApp(object):
         # config group
         self._save_config_groups(session)
         # component group
-        self.component_group.save()
+        self.component_group.save(session)
 
     def components(self):
         return self._ensure_components(self._components())
@@ -216,11 +216,11 @@ class NewApp(object):
 
         components = [cpt.component for cpt in self.update_components]
         component_ids = [cpt.component_id for cpt in components]
-        try:
-            session.add_all(components)
-            session.add_all(sources)
-        except:
-            pass
+        for component in components:
+            session.merge(component)
+        for source in sources:
+            session.merge(source)
+        session.flush()
         extend_repo.bulk_create_or_update(session, extend_infos)
         env_var_repo.overwrite_by_component_ids(session, component_ids, envs)
         port_repo.overwrite_by_component_ids(session, component_ids, ports)

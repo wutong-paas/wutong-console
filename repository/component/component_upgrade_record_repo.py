@@ -13,14 +13,12 @@ class ComponentUpgradeRecordRepository(BaseRepository[ServiceUpgradeRecord]):
 
     def save(self, session, app_upgrade_record):
         session.merge(app_upgrade_record)
+        session.flush()
         
-
     def bulk_update(self, session, records):
-        session.execute(delete(ServiceUpgradeRecord).where(
-            ServiceUpgradeRecord.ID.in_([record.ID for record in records])
-        ))
-        session.add_all(records)
-        
+        for record in records:
+            session.merge(record)
+        session.flush()
 
 
 component_upgrade_record_repo = ComponentUpgradeRecordRepository(ServiceUpgradeRecord)

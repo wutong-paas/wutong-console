@@ -518,7 +518,7 @@ async def get_market_service_upgrade(serviceAlias: Optional[str] = None,
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     versions = []
     try:
-        versions = market_app_service.list_upgradeable_versions(team, service)
+        versions = market_app_service.list_upgradeable_versions(session, team, service)
     except RbdAppNotFound:
         return JSONResponse(general_message(404, "service lost", "未找到该组件"), status_code=404)
     except Exception as e:

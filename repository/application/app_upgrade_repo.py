@@ -1,10 +1,36 @@
 from sqlalchemy import select, not_
 
+from exceptions.bcode import ErrAppUpgradeRecordNotFound
 from models.application.models import ApplicationUpgradeRecord, ApplicationUpgradeStatus
 from repository.base import BaseRepository
 
 
 class AppUpgradeRepository(BaseRepository[ApplicationUpgradeRecord]):
+
+    @staticmethod
+    def list_by_rollback_records(session, parent_id):
+        return session.execute(select(ApplicationUpgradeRecord).where(
+            ApplicationUpgradeRecord.parent_id == parent_id
+        ).order_by(ApplicationUpgradeRecord.create_time.desc())).scalars().all()
+
+    @staticmethod
+    def create_app_upgrade_record(session, **kwargs):
+        app_upgrade_record = ApplicationUpgradeRecord(**kwargs)
+        session.add(app_upgrade_record)
+        session.flush()
+        return app_upgrade_record
+
+    def change_app_record_status(self, session, app_record, status):
+        """改变应用升级记录状态"""
+        app_record.status = status
+
+    def get_by_record_id(self, session, record_id: int):
+        record = session.execute(select(ApplicationUpgradeRecord).where(
+            ApplicationUpgradeRecord.ID == record_id
+        )).scalars().first()
+        if not record:
+            raise ErrAppUpgradeRecordNotFound
+        return record
 
     def get_app_not_upgrade_record(self, session, tenant_id, group_id, group_key):
         result = session.execute(
