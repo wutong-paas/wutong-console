@@ -7,9 +7,9 @@ from repository.base import BaseRepository
 class ServiceEnvVarRepository(BaseRepository[ComponentEnvVar]):
 
     def overwrite_by_component_ids(self, session, component_ids, envs):
-        session.execute(delete(ComponentEnvVar).where(
-            ComponentEnvVar.service_id.in_(component_ids)))
-        session.add_all(envs)
+        for env in envs:
+            session.merge(env)
+        session.flush()
 
     def list_envs_by_component_ids(self, session, tenant_id, component_ids):
         return session.execute(select(ComponentEnvVar).where(

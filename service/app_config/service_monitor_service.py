@@ -13,10 +13,9 @@ from service.app_config.port_service import port_service
 class ComponentServiceMonitor(object):
 
     def overwrite_by_component_ids(self, session, component_ids, monitors):
-        session.execute(delete(ComponentMonitor).where(
-            ComponentMonitor.service_id.in_(component_ids)
-        ))
-        session.add_all(monitors)
+        for monitor in monitors:
+            session.merge(monitor)
+        session.flush()
 
     def delete_by_service_id(self, session, service_id):
         session.execute(

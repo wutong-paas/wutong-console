@@ -360,10 +360,9 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
 class TenantServiceVolumnRepository(BaseRepository[TeamComponentVolume]):
 
     def overwrite_by_component_ids(self, session, component_ids, volumes):
-        session.execute(delete(TeamComponentVolume).where(
-            TeamComponentVolume.service_id.in_(component_ids)
-        ))
-        session.add_all(volumes)
+        for volume in volumes:
+            session.merge(volume)
+        session.flush()
 
     def delete_service_volumes(self, session, service_id):
         session.execute(
