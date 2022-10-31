@@ -7,10 +7,9 @@ from repository.base import BaseRepository
 class ServiceProbeRepository(BaseRepository[ComponentProbe]):
 
     def overwrite_by_component_ids(self, session, component_ids, probes):
-        session.execute(delete(ComponentProbe).where(
-            ComponentProbe.service_id.in_(component_ids)
-        ))
-        session.add_all(probes)
+        for probe in probes:
+            session.merge(probe)
+        session.flush()
 
     def list_probes(self, session, service_id):
         return (session.execute(select(ComponentProbe).where(

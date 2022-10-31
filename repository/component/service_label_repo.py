@@ -8,10 +8,9 @@ from repository.base import BaseRepository
 class ServiceLabelsReporsitory(BaseRepository[ComponentLabels]):
 
     def overwrite_by_component_ids(self, session, component_ids, labels: [ComponentLabels]):
-        session.execute(delete(ComponentLabels).where(
-            ComponentLabels.service_id.in_(component_ids)
-        ))
-        session.add_all(labels)
+        for label in labels:
+            session.merge(label)
+        session.flush()
 
     def delete_service_all_labels(self, session, service_id):
         session.execute(
