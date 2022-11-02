@@ -196,12 +196,9 @@ class PropertyChanges(object):
             if new_port["container_port"] not in old_container_ports:
                 continue
             old_port = old_container_ports[new_port["container_port"]]
-            outer_change = new_port["is_outer_service"] and not old_port.is_outer_service
-            inner_change = new_port["is_inner_service"] and not old_port.is_inner_service
             protocol_change = new_port["protocol"] != old_port.protocol
-            port_alias_change = new_port["port_alias"] != old_port.port_alias
-            if outer_change or inner_change or protocol_change or port_alias_change:
-                update_ports.append(new_port)
+            if protocol_change:
+                create_ports.append(new_port)
         if not create_ports and not update_ports:
             return None
 
@@ -242,7 +239,7 @@ class PropertyChanges(object):
             config_file = config_files.get(new_volume["volume_name"])
             if config_file and config_file.file_content != new_volume[
                 "file_content"] or old_volume.mode != new_volume.get(
-                    "mode"):
+                "mode"):
                 update.append(new_volume)
         if not add and not update:
             return None

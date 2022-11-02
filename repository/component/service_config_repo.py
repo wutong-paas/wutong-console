@@ -26,6 +26,8 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
             TeamComponentPort.port_alias == alias)).scalars().first()
 
     def overwrite_by_component_ids(self, session, component_ids, ports):
+        session.execute(delete(TeamComponentPort).where(
+            TeamComponentPort.service_id.in_(component_ids)))
         for port in ports:
             session.merge(port)
         session.flush()
@@ -257,7 +259,9 @@ class ServiceExtendRepository(BaseRepository[ComponentExtendMethod]):
     def bulk_create_or_update(self, session, extend_infos):
         session.execute(delete(ComponentExtendMethod).where(
             ComponentExtendMethod.ID.in_([ei.ID for ei in extend_infos])))
-        session.add_all(extend_infos)
+        for extend_info in extend_infos:
+            session.merge(extend_info)
+        session.flush()
 
     def get_extend_method_by_service(self, session, service):
         if service.service_source == "market":
@@ -360,6 +364,8 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
 class TenantServiceVolumnRepository(BaseRepository[TeamComponentVolume]):
 
     def overwrite_by_component_ids(self, session, component_ids, volumes):
+        session.execute(delete(TeamComponentVolume).where(
+            TeamComponentVolume.service_id.in_(component_ids)))
         for volume in volumes:
             session.merge(volume)
         session.flush()

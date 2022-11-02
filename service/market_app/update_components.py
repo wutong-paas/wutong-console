@@ -44,11 +44,6 @@ class UpdateComponents(object):
         cpt_changes = {change["component_id"]: change for change in self.property_changes.changes}
         for cpt in components:
             component_tmpl = get_component_template(cpt, self.app_template)
-            ports = cpt.ports
-            for port in ports:
-                k8s_service_name = port.k8s_service_name
-                port_alias = k8s_service_name.split('-')[0].upper()
-                port.port_alias = port_alias
             if component_tmpl:
                 cpt.set_changes(session, self.original_app.tenant, self.original_app.region, cpt_changes[cpt.component.component_id],
                                 self.original_app.governance_mode)

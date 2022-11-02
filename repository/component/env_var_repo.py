@@ -1,5 +1,6 @@
 from sqlalchemy import select, delete
 
+from database.session import SessionClass
 from models.component.models import ComponentEnvVar
 from repository.base import BaseRepository
 
@@ -7,6 +8,8 @@ from repository.base import BaseRepository
 class ServiceEnvVarRepository(BaseRepository[ComponentEnvVar]):
 
     def overwrite_by_component_ids(self, session, component_ids, envs):
+        session.execute(delete(ComponentEnvVar).where(
+            ComponentEnvVar.service_id.in_(component_ids)))
         for env in envs:
             session.merge(env)
         session.flush()

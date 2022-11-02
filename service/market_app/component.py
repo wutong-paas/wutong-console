@@ -179,6 +179,9 @@ class Component(object):
             self._update_port_data(session, port)
             new_port = TeamComponentPort(**port)
             new_port.service_id = self.component.component_id
+            port_alias = new_port.port_alias.lower()
+            old_k8s_name = new_port.k8s_service_name.split('-')
+            new_port.k8s_service_name = port_alias + '-' + '-'.join(old_k8s_name[1:])
             self.ports.append(new_port)
 
         old_ports = {port.container_port: port for port in self.ports}
