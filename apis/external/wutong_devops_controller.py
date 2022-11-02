@@ -573,6 +573,9 @@ async def deploy_business_component(
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
+        application = application_repo.get_by_primary_key(session=session, primary_key=application_id)
+        if application and application.tenant_id != tenant.tenant_id:
+            return JSONResponse(general_message(400, "not found app at team", "应用不属于该团队"), status_code=400)
         # 查询当前用户
         user: Users = user_svc.devops_get_current_user(session=session, token=authorization)
 
