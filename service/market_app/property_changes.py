@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from fastapi.encoders import jsonable_encoder
 from loguru import logger
 
 from core.enum.enterprise_enum import ActionType
@@ -365,7 +366,7 @@ class PropertyChanges(object):
             if not plugin:
                 logger.warning("plugin {} not found".format(plugin_dep["plugin_key"]))
                 continue
-            plugin_dep["plugin"] = plugin.to_dict()
+            plugin_dep["plugin"] = jsonable_encoder(plugin)
             add.append(plugin_dep)
         if not add:
             return {}
