@@ -15,11 +15,12 @@ from service.plugin.plugin_version_service import plugin_version_service
 class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
     def overwrite_by_component_ids(self, session, component_ids, plugin_deps):
         plugin_deps = [plugin_dep for plugin_dep in plugin_deps if plugin_dep.service_id in component_ids]
-        # session.execute(delete(TeamComponentPluginRelation).where(
-        #     TeamComponentPluginRelation.service_id.in_(component_ids)
-        # ))
+        session.execute(delete(TeamComponentPluginRelation).where(
+            TeamComponentPluginRelation.service_id.in_(component_ids)
+        ))
         for plugin_dep in plugin_deps:
             session.merge(plugin_dep)
+        session.flush()
 
     def list_by_component_ids(self, session, service_ids):
         rels = session.execute(select(TeamComponentPluginRelation).where(
@@ -123,11 +124,12 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
 
     def overwrite_by_component_ids(self, session, component_ids, plugin_configs):
         plugin_configs = [config for config in plugin_configs if config.service_id in component_ids]
-        # session.execute(delete(ComponentPluginConfigVar).where(
-        #     ComponentPluginConfigVar.service_id.in_(component_ids)
-        # ))
+        session.execute(delete(ComponentPluginConfigVar).where(
+            ComponentPluginConfigVar.service_id.in_(component_ids)
+        ))
         for plugin_config in plugin_configs:
             session.merge(plugin_config)
+        session.flush()
 
     def list_by_component_ids(self, session, component_ids):
         configs = session.execute(select(ComponentPluginConfigVar).where(
