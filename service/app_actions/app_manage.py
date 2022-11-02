@@ -274,6 +274,7 @@ class AppManageService(AppManageBase):
             data.pop("open_webhooks")
             data.pop("server_type")
             data.pop("git_full_name")
+            data.pop("gpu_type")
         try:
             add_model: TeamComponentInfoDelete = TeamComponentInfoDelete(**data)
             session.add(add_model)

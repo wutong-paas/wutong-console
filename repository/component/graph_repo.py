@@ -62,6 +62,8 @@ class ComponentGraphRepository(BaseRepository[ComponentGraph]):
         return cg
 
     def overwrite_by_component_ids(self, session, component_ids, component_graphs):
+        session.execute(delete(ComponentGraph).where(
+            ComponentGraph.component_id.in_(component_ids)))
         for component_graph in component_graphs:
             session.merge(component_graph)
         session.flush()

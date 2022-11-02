@@ -50,9 +50,7 @@ class UpdateComponents(object):
                 cpt.component.image = component_tmpl["share_image"]
                 cpt.component.cmd = component_tmpl.get("cmd", "")
                 cpt.component.version = component_tmpl["version"]
-
             self._update_component_source(cpt.component_source, self.version, component_tmpl)
-
         return components
 
     def _ensure_component_keys(self, components: [Component]):
