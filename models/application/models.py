@@ -3,6 +3,7 @@ from enum import Enum
 
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import relationship
 
 from core.enum.app import GovernanceModeEnum, ApplicationUpgradeStatus, ApplicationUpgradeRecordType
@@ -287,7 +288,7 @@ class ApplicationUpgradeSnapshot(Base):
     tenant_id = Column(String(32), comment="租户id", nullable=False)
     upgrade_group_id = Column(Integer, comment="升级组件组id", nullable=False, default=0)
     snapshot_id = Column(String(32), comment="快照id", nullable=False)
-    snapshot = Column(Text, comment="快照", nullable=False)
+    snapshot = Column(LONGTEXT, comment="快照", nullable=False)
 
 
 class ComposeGroup(Base):

@@ -936,7 +936,7 @@ class AppPortService:
     def create_internal_port(self, session: SessionClass, tenant, component, container_port, user_name=''):
         try:
             self.add_service_port(
-                tenant, component, container_port, protocol="http", is_inner_service=True, user_name=user_name)
+                session, tenant, component, container_port, protocol="http", is_inner_service=True, user_name=user_name)
         except ErrComponentPortExists:
             # make sure port is internal
             port = port_repo.get_service_port_by_port(session, tenant.tenant_id, component.service_id, container_port)
