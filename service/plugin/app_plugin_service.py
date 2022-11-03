@@ -498,10 +498,10 @@ class AppPluginService(object):
     def create_monitor_resources(self, session: SessionClass, tenant, service, plugin_name, user=None):
         # service monitor
         try:
-            self.__create_service_monitor(tenant, service, plugin_name, user)
+            self.__create_service_monitor(session, tenant, service, plugin_name, user)
         except ErrServiceMonitorExists:
             # try again
-            self.__create_service_monitor(tenant, service, plugin_name, user)
+            self.__create_service_monitor(session, tenant, service, plugin_name, user)
 
         # component graphs
         self.__create_component_graphs(session=session, component_id=service.service_id, plugin_name=plugin_name)
