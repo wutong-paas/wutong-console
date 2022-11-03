@@ -33,6 +33,7 @@ from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
 from repository.teams.team_repo import team_repo
 from repository.teams.team_roles_repo import TeamRolesRepository
+from repository.users.user_oauth_repo import oauth_repo, oauth_user_repo
 from repository.users.user_repo import user_repo
 from schemas.components import BuildSourceParam, DeployBusinessParams
 from schemas.market import MarketAppModelParam, DevopsMarketAppCreateParam
@@ -160,6 +161,7 @@ async def add_users(
     re_password = params.re_password
     phone = params.phone
     real_name = params.realname
+    oauth_user_id = params.oauth_user_id
 
     if len(password) < 8:
         result = general_message(400, "len error", "密码长度最少为8位")
@@ -201,6 +203,29 @@ async def add_users(
                                                  real_name)
     session.add(user)
     session.flush()
+    user_id = user.user_id
+    idaas_oauth_service = oauth_repo.get_idaas_oauth_service(session)
+    oauth_user = oauth_user_repo.user_oauth_exists(session=session, service_id=idaas_oauth_service.ID, oauth_user_id=oauth_user_id)
+    link_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=idaas_oauth_service.ID, user_id=user_id)
+    if link_user is not None and link_user.oauth_user_id != oauth_user_id:
+        logger.warning("该用户已绑定其他账号")
+
+    if oauth_user is not None:
+        oauth_user.user_id = user_id
+    else:
+        oauth_user_repo.save_oauth(
+            session=session,
+            oauth_user_id=oauth_user_id,
+            oauth_user_name=user_name,
+            oauth_user_email=user.email,
+            user_id=user_id,
+            code="",
+            service_id=idaas_oauth_service.ID,
+            access_token="",
+            refresh_token="",
+            is_authenticated=True,
+            is_expired=False,
+        )
     result = general_message(200, "success", "注册成功", bean=jsonable_encoder(user))
     return JSONResponse(result, status_code=200)
 
