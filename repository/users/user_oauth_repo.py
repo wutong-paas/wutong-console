@@ -158,6 +158,13 @@ class OAuthRepo(BaseRepository[OAuthServices]):
                                         OAuthServices.is_console == 1)
         ).scalars().first()
 
+    def get_idaas_oauth_service(self, session):
+        return session.execute(
+            select(OAuthServices).where(OAuthServices.oauth_type == "idaas",
+                                        OAuthServices.is_deleted == 0,
+                                        OAuthServices.is_console == 1)
+        ).scalars().first()
+
     def get_user_oauth_by_user_id(self, session: SessionClass, service_id, user_id):
         result_oauth_user = session.execute(
             select(UserOAuthServices).where(UserOAuthServices.service_id == service_id,

@@ -15,3 +15,4 @@ class CreateUserParam(BaseModel):
     phone: Optional[str] = None
     realname: Optional[str] = None
     user_name: Optional[str] = None
+    oauth_user_id: Optional[str] = None
