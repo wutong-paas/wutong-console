@@ -29,6 +29,7 @@ from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.devops.devops_repo import devops_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
+from repository.expressway.hunan_expressway_repo import hunan_expressway_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
 from repository.teams.team_repo import team_repo
@@ -825,7 +826,7 @@ async def get_team_regions(
     return JSONResponse(general_message(200, "success", "查询成功", data=region_info_map), status_code=200)
 
 
-@router.get("/v1.0/devops/teams/{team_name}/checkResource", response_model=Response, name="查询团队绑定集群")
+@router.get("/v1.0/devops/teams/{team_name}/checkResource", response_model=Response, name="检查应用及组件是否存在")
 async def check_resource(
         request: Request,
         application_code: Optional[int] = -1,
@@ -836,7 +837,7 @@ async def check_resource(
 ) -> Any:
     is_app = True
     is_component = True
-    app = app_repo.get_app_by_app_id(session, application_code)
+    app = hunan_expressway_repo.get_app_by_app_id(session, application_code)
     if not app:
         is_app = False
     service = service_info_repo.get_service_by_tenant_and_alias(session, team.tenant_id, component_code)
