@@ -78,9 +78,9 @@ async def install_sys_plugin(request: Request,
     plugin_type = data.get("plugin_type", None)
     build_version = data.get("build_version", None)
     if not plugin_type:
-        return general_message(400, "plugin type is null", "请指明插件类型")
+        return JSONResponse(general_message(400, "plugin type is null", "请指明插件类型"), status_code=400)
     if plugin_type not in default_plugins:
-        return general_message(400, "plugin type not support", "插件类型不支持")
+        return JSONResponse(general_message(400, "plugin type not support", "插件类型不支持"), status_code=400)
 
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:

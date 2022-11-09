@@ -23,10 +23,10 @@ from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from service.app_config.component_graph import component_graph_service
-from service.app_config.env_service import env_var_service
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
 from service.app_config.volume_service import volume_service
+from service.app_env_service import env_var_service
 from service.plugin.plugin_config_service import plugin_config_service
 from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
@@ -670,13 +670,14 @@ class AppPluginService(object):
             if plugin_info.origin_share_id == "java_agent_plugin":
                 env_name = "JAVA_TOOL_OPTIONS"
                 env = session.execute(select(ComponentEnvVar).where(
-                    ComponentEnvVar.attr_name == env_name
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
                 )).scalars().first()
 
                 if not env:
                     env_var_service.add_service_env_var(session=session, tenant=tenant, service=service,
                                                         container_port=0, name=env_name, attr_name=env_name,
-                                                        attr_value=settings.INIT_AGENT_PLUGIN_ENV,
+                                                        attr_value=settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name,
                                                         is_change=True, scope="inner",
                                                         user_name=user.nick_name)
                 else:
