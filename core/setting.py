@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_DAY = 15
 
+    INIT_AGENT_PLUGIN_ENV = os.getenv("JAVA_TOOL_OPTIONS",
+                                      "-javaagent:/agent/agent.jar -Dotel.exporter.jaeger.endpoint=http://grafana-labs-traces-agent.wutong-obs:14250 -Dotel.traces.exporter=jaeger -Dotel.metrics.exporter=none -Dotel.resource.attributes=service.name=")
+
     EVENT_WEBSOCKET_URL = {
         'cloudbang': 'auto',
     }

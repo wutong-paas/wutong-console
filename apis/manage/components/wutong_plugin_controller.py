@@ -138,6 +138,10 @@ async def install_sys_plugin(request: Request,
                                            container_port="6173", user=user)
     app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
+    app_plugin_service.add_init_agent_mount(session=session, tenant=team, service=service, plugin_id=plugin_id,
+                                            plugin_version=build_version, user=user)
+    app_plugin_service.modify_init_agent_env(session=session, tenant=team, service=service, plugin_id=plugin_id,
+                                             user=user)
 
     result = general_message(200, "success", "安装成功")
     return JSONResponse(result, status_code=result["code"])
