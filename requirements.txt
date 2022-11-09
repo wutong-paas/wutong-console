@@ -32,5 +32,3 @@ python-gitlab==2.10.1
 PyYAML==6.0
 jsonpath==0.82
 openapi-client==1.1.7
-botocore==1.27.15
-pyhelm==2.14.5
