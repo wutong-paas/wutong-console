@@ -7,6 +7,7 @@ from addict import Dict
 from fastapi_pagination import Params, paginate
 from jsonpath import jsonpath
 from loguru import logger
+from sqlalchemy import select
 
 from clients.remote_plugin_client import remote_plugin_client
 from core.utils.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
@@ -15,18 +16,21 @@ from database.session import SessionClass
 from exceptions.bcode import ErrServiceMonitorExists, ErrRepeatMonitoringTarget, ErrInternalGraphsNotFound
 from exceptions.main import ServiceHandleException
 from models.application.plugin import ComponentPluginConfigVar
+from models.component.models import ComponentEnvVar
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo, volume_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from service.app_config.component_graph import component_graph_service
+from service.app_config.env_service import env_var_service
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
 from service.app_config.volume_service import volume_service
 from service.plugin.plugin_config_service import plugin_config_service
 from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
+from core.setting import settings
 
 has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_show="该组件已存在相同功能插件", status_code=400)
 
@@ -572,8 +576,8 @@ class AppPluginService(object):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
 
         if plugin_info:
-            if plugin_info.origin_share_id == "filebrowser_plugin"\
-                    or plugin_info.origin_share_id == "redis_dbgate_plugin"\
+            if plugin_info.origin_share_id == "filebrowser_plugin" \
+                    or plugin_info.origin_share_id == "redis_dbgate_plugin" \
                     or plugin_info.origin_share_id == "mysql_dbgate_plugin":
                 if plugin_info.origin_share_id == "filebrowser_plugin":
                     container_port = "6173"
@@ -628,6 +632,56 @@ class AppPluginService(object):
                     settings=settings,
                     user_name=user.nick_name,
                     mode=None)
+
+    def add_init_agent_mount(self, session: SessionClass, tenant, service, plugin_id, plugin_version, user=None):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
+        volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
+        if plugin_info:
+            if plugin_info.origin_share_id == "java_agent_plugin":
+
+                volumes = volume_service.get_service_volumes(session=session, tenant=tenant, service=service,
+                                                             is_config_file=False)
+
+                for volume in volumes:
+                    if volume["volume_path"] == "/agent":
+                        return
+
+                settings = {'volume_capacity': 1, 'provider_name': '',
+                            'access_mode': '',
+                            'share_policy': '', 'backup_policy': '',
+                            'reclaim_policy': '',
+                            'allow_expansion': False}
+                volume_service.add_service_volume(
+                    session=session,
+                    tenant=tenant,
+                    service=service,
+                    volume_path="/agent",
+                    volume_type="share-file",
+                    volume_name=volume_name,
+                    file_content="",
+                    settings=settings,
+                    user_name=user.nick_name,
+                    mode=None)
+
+    def modify_init_agent_env(self, session: SessionClass, tenant, service, plugin_id, user=None):
+
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
+        if plugin_info:
+            if plugin_info.origin_share_id == "java_agent_plugin":
+                env_name = "JAVA_TOOL_OPTIONS"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name
+                )).scalars().first()
+
+                if not env:
+                    env_var_service.add_service_env_var(session=session, tenant=tenant, service=service,
+                                                        container_port=0, name=env_name, attr_name=env_name,
+                                                        attr_value=settings.INIT_AGENT_PLUGIN_ENV,
+                                                        is_change=True, scope="inner",
+                                                        user_name=user.nick_name)
+                else:
+                    attr_value = settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name + " " + env.attr_value
+                    env.attr_value = attr_value
 
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):
         app_plugin_relation_repo.delete_service_plugin(session=session, service_id=service.service_id,
