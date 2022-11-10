@@ -157,10 +157,14 @@ class PluginService(object):
             plugin_base_info.origin_share_id = plugin_type
             # plugin_base_info.save()
 
+            build_cmd = ""
             if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin":
                 min_memory = 512
             elif plugin_type == "filebrowser_plugin":
                 min_memory = 256
+            elif plugin_type == "java_agent_plugin":
+                min_memory = 0
+                build_cmd = "cp agent.jar /agent/agent.jar"
             else:
                 min_memory = 64
 
@@ -172,7 +176,8 @@ class PluginService(object):
                                                                                build_status="unbuild",
                                                                                min_memory=min_memory,
                                                                                image_tag=image_tag,
-                                                                               build_version=build_version)
+                                                                               build_version=build_version,
+                                                                               build_cmd=build_cmd)
 
             plugin_config_meta_list = []
             config_items_list = []
