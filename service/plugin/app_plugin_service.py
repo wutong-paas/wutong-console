@@ -7,7 +7,7 @@ from addict import Dict
 from fastapi_pagination import Params, paginate
 from jsonpath import jsonpath
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from clients.remote_plugin_client import remote_plugin_client
 from core.utils.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
@@ -237,6 +237,31 @@ class AppPluginService(object):
                 port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
                                                            container_port=container_port,
                                                            user_name=user.nick_name)
+
+    def update_java_agent_plugin_env(self, session: SessionClass, team, service, plugin_id, user):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
+        if plugin_info:
+            if plugin_info.origin_share_id == "java_agent_plugin":
+                env_name = "JAVA_TOOL_OPTIONS"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+
+                if env:
+                    value = settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name
+                    old_attr_value = env.attr_value
+                    repl_value = old_attr_value.replace(value, '')
+                    if repl_value == '':
+                        env_var_service.delete_env_by_env_id(session=session, tenant=team, service=service,
+                                                             env_id=env.ID,
+                                                             user_name=user.nick_name)
+                    else:
+                        env_var_service.update_env_by_env_id(session=session, tenant=team,
+                                                             service=service,
+                                                             env_id=str(env.ID), name=env_name,
+                                                             attr_value=repl_value,
+                                                             user_name=user.nick_name)
 
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
