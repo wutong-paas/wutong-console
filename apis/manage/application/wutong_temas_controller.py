@@ -53,10 +53,10 @@ async def get_group_service_visit(service_alias: Optional[str] = None,
 
     try:
         if not service_alias:
-            return general_message(200, "not service", "当前组内无组件", bean={"is_null": True})
+            return JSONResponse(general_message(200, "not service", "当前组内无组件", bean={"is_null": True}), status_code=200)
         service_access_list = list()
         if not team:
-            return general_message(400, "not tenant", "团队不存在")
+            return JSONResponse(general_message(400, "not tenant", "团队不存在"), status_code=400)
         service_list = service_alias.split('-')
         for service_alias in service_list:
             bean = dict()
@@ -65,7 +65,7 @@ async def get_group_service_visit(service_alias: Optional[str] = None,
             bean["access_type"] = access_type
             bean["access_info"] = data
             service_access_list.append(bean)
-        return general_message(200, "success", "操作成功", list=service_access_list)
+        return JSONResponse(general_message(200, "success", "操作成功", list=service_access_list), status_code=200)
     except Exception as e:
         logger.exception(e)
         return error_message(e.__str__())

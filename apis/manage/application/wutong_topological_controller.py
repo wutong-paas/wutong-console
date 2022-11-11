@@ -29,17 +29,19 @@ async def get_topological(team_name, region_name, group_id: Optional[str] = None
     if group_id == "-1":
         no_service_list = service_info_repo.get_no_group_service_status_by_group_id(
             session=session, team_name=team_name, region_name=region_name)
-        return general_message(200, "query success", "应用查询成功", list=no_service_list)
+        return JSONResponse(general_message(200, "query success", "应用查询成功", list=no_service_list), status_code=200)
     else:
         if group_id is None or not group_id.isdigit():
             code = 400
-            return general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
+            return JSONResponse(general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字"),
+                                status_code=code)
         team_id = team.tenant_id
         group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
                                                                                group_id=group_id)
         if group_count == 0:
             code = 202
-            return general_message(code, "group is not yours!", "当前组已删除或您无权限查看!", bean={})
+            return JSONResponse(general_message(code, "group is not yours!", "当前组已删除或您无权限查看!", bean={}),
+                                status_code=code)
         topological_info = topological_service.get_group_topological_graph(session=session,
                                                                            group_id=group_id, region=region_name,
                                                                            team_name=team_name,

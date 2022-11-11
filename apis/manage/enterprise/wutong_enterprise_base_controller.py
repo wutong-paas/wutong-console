@@ -76,7 +76,7 @@ async def get_enterprise_list(session: SessionClass = Depends(deps.get_session),
         data = general_message(200, "success", "查询成功", list=enterprises_list)
         return data
     else:
-        return general_message(404, "failure", "未找到企业")
+        return JSONResponse(general_message(404, "failure", "未找到企业"), status_code=404)
 
 
 @router.get("/enterprise/registerstatus", response_model=Response, name="查询用户注册开启状态")

@@ -144,7 +144,7 @@ async def update_ports(request: Request,
 
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 

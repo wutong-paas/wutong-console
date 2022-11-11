@@ -110,14 +110,14 @@ async def get_check_uuid(service_alias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
                          team=Depends(deps.get_current_team)) -> Any:
     if not team:
-        return general_message(400, "not found team", "团队不存在")
+        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     check_uuid = (
         session.execute(
             select(TeamComponentInfo.check_uuid).where(TeamComponentInfo.service_alias == service_alias,
                                                        TeamComponentInfo.tenant_id == team.tenant_id))
     ).scalars().first()
 
-    return general_message(200, "success", "获取成功", bean={"check_uuid": check_uuid})
+    return JSONResponse(general_message(200, "success", "获取成功", bean={"check_uuid": check_uuid}), status_code=200)
 
 
 @router.get("/teams/{team_name}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
@@ -147,14 +147,14 @@ async def get_check_detail(check_uuid: Optional[str] = None,
 
     """
     if not check_uuid:
-        return general_message(400, "params error", "参数错误，请求参数应该包含请求的ID")
+        return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status_code=400)
     if not team:
-        return general_message(400, "not found team", "团队不存在")
+        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=TeamComponentInfo(service_alias=service_alias,
                                                                                  tenant_id=team.tenant_id))
     if not service:
-        return general_message(400, "not found service", "组件不存在")
+        return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     code, msg, data = component_check_service.get_service_check_info(session=session, tenant=team,
                                                                      region=service.service_region,
                                                                      check_uuid=check_uuid)
@@ -169,7 +169,7 @@ async def get_check_detail(check_uuid: Optional[str] = None,
             component_check_service.update_service_check_info(session=session, tenant=team, service=service,
                                                               data=data)
         check_brief_info = component_check_service.wrap_service_check_info(session=session, service=service, data=data)
-        return general_message(200, "success", "请求成功", bean=check_brief_info)
+        return JSONResponse(general_message(200, "success", "请求成功", bean=check_brief_info), status_code=200)
 
     if data["service_info"] and len(data["service_info"]) < 2:
         # No need to save env, ports and other information for multiple services here.
@@ -210,12 +210,12 @@ async def check(params: Optional[DockerRunCheckParam] = DockerRunCheckParam(),
 
     """
     if not team:
-        return general_message(400, "not found team", "团队不存在")
+        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=TeamComponentInfo(service_alias=service_alias,
                                                                                  tenant_id=team.tenant_id))
     if not service:
-        return general_message(400, "not found service", "组件不存在")
+        return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     code, msg, service_info = application_service.check_service(session=session, tenant=team, service=service,
                                                                 is_again=params.is_again, user=user)
     if code != 200:
@@ -249,12 +249,12 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
     probe = None
     is_deploy = params.is_deploy
     if not team:
-        return general_message(400, "not found team", "团队不存在")
+        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=TeamComponentInfo(service_alias=service_alias,
                                                                                  tenant_id=team.tenant_id))
     if not service:
-        return general_message(400, "not found service", "组件不存在")
+        return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     try:
         if service.service_source == "third_party":
             is_deploy = False
@@ -325,12 +325,12 @@ async def pod_detail(service_alias: Optional[str] = None,
                      team=Depends(deps.get_current_team)) -> Any:
     try:
         if not team:
-            return general_message(400, "not found team", "团队不存在")
+            return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
         service = team_component_repo.get_one_by_model(session=session,
                                                        query_model=TeamComponentInfo(service_alias=service_alias,
                                                                                      tenant_id=team.tenant_id))
         if not service:
-            return general_message(400, "not found service", "组件不存在")
+            return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
         data = remote_component_client.pod_detail(session,
                                                   service.service_region, team.tenant_name,
                                                   service.service_alias,

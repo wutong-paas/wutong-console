@@ -75,7 +75,7 @@ async def delete_team_user(request: Request,
         from_data = await request.json()
         user_ids = from_data["user_ids"]
         if not user_ids:
-            return general_message(400, "failed", "删除成员不能为空")
+            return JSONResponse(general_message(400, "failed", "删除成员不能为空"), status_code=400)
 
         if user.user_id in user_ids:
             return JSONResponse(general_message(400, "failed", "不能删除自己"), status_code=400)

@@ -320,7 +320,7 @@ async def delete_team_user(
     try:
         user_ids = params.user_ids
         if not user_ids:
-            return general_message(400, "failed", "删除成员不能为空")
+            return JSONResponse(general_message(400, "failed", "删除成员不能为空"), status_code=400)
 
         user = user_svc.devops_get_current_user(session=session, token=authorization)
 
@@ -865,7 +865,7 @@ async def delete_team_user(request: Request,
         from_data = await request.json()
         user_ids = from_data["user_ids"]
         if not user_ids:
-            return general_message(400, "failed", "删除成员不能为空")
+            return JSONResponse(general_message(400, "failed", "删除成员不能为空"), status_code=400)
 
         user: Users = user_svc.devops_get_current_user(session=session, token=authorization)
         if user.user_id in user_ids:
