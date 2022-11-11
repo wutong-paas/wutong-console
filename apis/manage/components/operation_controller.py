@@ -36,6 +36,7 @@ from service.application_service import application_service
 from service.component_service import component_check_service
 from service.monitor_service import monitor_service
 from service.multi_app_service import multi_app_service
+from service.region_service import region_services
 from service.user_service import user_svc
 
 router = APIRouter()
@@ -49,10 +50,12 @@ def validate_request(item, name):
 
 
 @router.post("/teams/{team_name}/apps/docker_run", response_model=Response, name="添加组件-指定镜像")
-async def docker_run(params: DockerRunParams,
-                     session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team)) -> Any:
+async def docker_run(
+        request: Request,
+        params: DockerRunParams,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     image和docker-run创建组件
     """
@@ -68,7 +71,7 @@ async def docker_run(params: DockerRunParams,
         # 查询当前团队
         if not team:
             return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
@@ -480,11 +483,13 @@ async def add_component_monitor(request: Request,
 
 
 @router.get("/teams/{team_name}/apps/{service_alias}/metrics", response_model=Response, name="查询组件指标")
-async def component_metrics(service_alias: Optional[str] = None,
-                            session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
+async def component_metrics(
+        request: Request,
+        service_alias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     service = service_info_repo.get_service(session, service_alias, team.tenant_id)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -613,7 +618,7 @@ async def get_check_detail(
     if not check_uuid:
         return JSONResponse(general_message(400, "params error", "the field 'check_uuid' is required"), status_code=400)
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -639,7 +644,7 @@ async def multi_create(
     if resp:
         return resp
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name

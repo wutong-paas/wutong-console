@@ -10,7 +10,7 @@ from clients.remote_tenant_client import remote_tenant_client
 from core.utils.crypt import make_uuid
 from core.utils.oauth.oauth_types import NoSupportOAuthType, get_oauth_instance
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, AbortRequest
 from models.market.models import CenterAppVersion
 from models.teams.enterprise import TeamEnterprise
 from models.users.oauth import OAuthServices
@@ -62,6 +62,29 @@ def get_region_list_by_team_name(session: SessionClass, team_name):
 
 
 class RegionService(object):
+
+    async def get_region_by_request(self, session, request):
+        try:
+            data = await request.json()
+        except:
+            data = {}
+        response_region = data.get("region_name", None)
+        if not response_region:
+            response_region = request.query_params.get("region_name", None)
+        if not response_region:
+            response_region = request.query_params.get("region", None)
+        if not response_region:
+            response_region = request.headers.get('X_REGION_NAME', None)
+        if not response_region:
+            response_region = request.cookies.get('region_name', None)
+        region_name = response_region
+        if not response_region:
+            raise ImportError("region_name not found !")
+        region = region_repo.get_region_by_region_name(session, region_name)
+        if not region:
+            raise AbortRequest("region not found", "数据中心不存在", status_code=404, error_code=404)
+        region = region
+        return region
 
     def get_public_key(self, session, tenant, region):
         try:

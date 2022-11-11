@@ -24,6 +24,7 @@ from schemas.components import ThirdPartyCreateParam
 from schemas.response import Response
 from service.app_config.port_service import endpoint_service
 from service.application_service import application_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -40,7 +41,7 @@ async def third_party(request: Request,
     """
     if not team:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -162,7 +163,7 @@ async def delete_third_party_pods(request: Request,
     endpoint_dict = dict()
     endpoint_dict["ep_id"] = ep_id
     service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name

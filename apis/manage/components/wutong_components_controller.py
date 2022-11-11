@@ -38,6 +38,7 @@ from service.git_service import git_service
 from service.market_app_service import market_app_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.probe_service import probe_service
+from service.region_service import region_services
 from service.upgrade_service import upgrade_service
 from service.user_service import user_svc
 
@@ -539,7 +540,7 @@ async def market_service_upgrade(
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     # get app
@@ -570,7 +571,7 @@ async def get_container_log(request: Request,
                             serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -633,7 +634,7 @@ async def docker_compose_components(
     code, msg, json_data = compose_service.yaml_to_json(yaml_content)
     if code != 200:
         return JSONResponse(general_message(code, "parse yaml error", msg), status_code=code)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     # 创建组
     group_info = application_service.create_app(
         session, team, region.region_name, group_name, group_note, user.get_username(), k8s_app=k8s_app)
@@ -868,7 +869,7 @@ async def delete_components_version(
 
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name

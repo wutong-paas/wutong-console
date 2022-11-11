@@ -13,6 +13,7 @@ from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_config.extend_service import extend_service
 from service.autoscaler_service import autoscaler_service, scaling_records_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -79,7 +80,7 @@ async def set_xparuler(request: Request,
     await validate_parameter(data)
 
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -98,7 +99,7 @@ async def get_xparecords(request: Request,
                          team=Depends(deps.get_current_team)) -> Any:
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -167,7 +168,7 @@ async def set_xparules_index(request: Request,
                              team=Depends(deps.get_current_team)) -> Any:
     data = await request.json()
     await validate_parameter(data)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name

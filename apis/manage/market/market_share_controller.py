@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from sqlalchemy import select, func, not_, update
+from starlette.requests import Request
 
 from core import deps
 from core.enum.component_enum import is_singleton
@@ -24,6 +25,7 @@ from schemas.response import Response
 from service.app_actions.app_log import event_service
 from service.market import wutong_market_service
 from service.market_app_service import market_app_service
+from service.region_service import region_services
 from service.share_services import share_service
 
 router = APIRouter()
@@ -134,15 +136,17 @@ async def get_share_info(scope: Optional[str] = None,
 
 
 @router.post("/teams/{team_name}/share/{share_id}/info", response_model=Response, name="生成分享应用实体，向数据中心发送分享任务")
-async def create_share_info(params: Optional[MarketAppShareInfoCreateParam] = None,
-                            use_force: Optional[bool] = False,
-                            share_id: Optional[str] = None,
-                            session: SessionClass = Depends(deps.get_session),
-                            user=Depends(deps.get_current_user),
-                            team=Depends(deps.get_current_team)) -> Any:
+async def create_share_info(
+        request: Request,
+        params: Optional[MarketAppShareInfoCreateParam] = None,
+        use_force: Optional[bool] = False,
+        share_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
     if not team:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -247,12 +251,14 @@ async def get_share_event(team_name: Optional[str] = None,
 
 @router.post("/teams/{team_name}/share/{share_id}/events/{event_id}", response_model=Response,
              name="分享应用")
-async def share_event(team_name: Optional[str] = None,
-                      share_id: Optional[str] = None,
-                      event_id: Optional[str] = None,
-                      session: SessionClass = Depends(deps.get_session),
-                      user=Depends(deps.get_current_user),
-                      team=Depends(deps.get_current_team)) -> Any:
+async def share_event(
+        request: Request,
+        team_name: Optional[str] = None,
+        share_id: Optional[str] = None,
+        event_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
     try:
         share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
         if not share_record:
@@ -266,7 +272,7 @@ async def share_event(team_name: Optional[str] = None,
             result = general_message(404, "not exist", "分享事件不存在")
             return JSONResponse(result, status_code=404)
 
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
@@ -284,13 +290,15 @@ async def share_event(team_name: Optional[str] = None,
 
 @router.get("/teams/{team_name}/share/{share_id}/events/{event_id}", response_model=Response,
             name="获取分享进度")
-async def get_share_info(team_name: Optional[str] = None,
-                         share_id: Optional[str] = None,
-                         event_id: Optional[str] = None,
-                         session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+async def get_share_info(
+        request: Request,
+        team_name: Optional[str] = None,
+        share_id: Optional[str] = None,
+        event_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     try:
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
@@ -404,9 +412,11 @@ async def share_app(team_name: Optional[str] = None,
 
 @router.get("/teams/{team_name}/events/{event_id}/log", response_model=Response,
             name="获取作用对象的event事件")
-async def get_object_log(event_id: Optional[str] = None,
-                         session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+async def get_object_log(
+        request: Request,
+        event_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     获取作用对象的event事件
     ---
@@ -426,7 +436,7 @@ async def get_object_log(event_id: Optional[str] = None,
         if event_id == "":
             result = general_message(200, "error", "event_id is required")
             return JSONResponse(result, status_code=result["code"])
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
@@ -441,6 +451,7 @@ async def get_object_log(event_id: Optional[str] = None,
 @router.post("/teams/{team_name}/share/{share_id}/events/{event_id}/plugin", response_model=Response,
              name="分享插件")
 async def share_plugin(
+        request: Request,
         team_name: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,
@@ -462,7 +473,7 @@ async def share_plugin(
         result = general_message(404, "not exist", "分享事件不存在")
         return JSONResponse(result, status_code=404)
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -479,6 +490,7 @@ async def share_plugin(
 @router.get("/teams/{team_name}/share/{share_id}/events/{event_id}/plugin", response_model=Response,
             name="获取分享插件进度")
 async def get_share_plugin(
+        request: Request,
         team_name: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,
@@ -504,7 +516,7 @@ async def get_share_plugin(
     if plugin_events[0].event_status == "success":
         result = general_message(200, "get sync share event result", "查询成功", bean=jsonable_encoder(plugin_events[0]))
         return JSONResponse(result, status_code=200)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
