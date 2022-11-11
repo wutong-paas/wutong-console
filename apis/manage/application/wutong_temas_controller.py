@@ -63,7 +63,7 @@ async def get_group_service_visit(service_alias: Optional[str] = None,
             service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
             access_type, data = port_service.get_access_info(session=session, tenant=team, service=service)
             bean["access_type"] = access_type
-            bean["access_info"] = data
+            bean["access_info"] = jsonable_encoder(data)
             service_access_list.append(bean)
         return JSONResponse(general_message(200, "success", "操作成功", list=service_access_list), status_code=200)
     except Exception as e:
