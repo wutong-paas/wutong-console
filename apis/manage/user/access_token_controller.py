@@ -70,7 +70,7 @@ async def get_access_token_detail(session: SessionClass = Depends(deps.get_sessi
                                   token_id: Optional[int] = None) -> Any:
     access_key = user_access_key_repo.get_by_primary_key(session=session, primary_key=token_id)
     if not access_key:
-        return general_message(404, "no found access key", "未找到该凭证")
+        return JSONResponse(general_message(404, "no found access key", "未找到该凭证"), status_code=404)
     return general_message(200, "success", None, bean=access_key)
 
 
@@ -86,7 +86,7 @@ async def update_access_token(session: SessionClass = Depends(deps.get_session),
         logger.exception(e)
         raise ServiceHandleException(msg="access key duplicate", msg_show="刷新失败，请重试")
     if not user_access_key:
-        return general_message(404, "no found access key", "未找到该凭证")
+        return JSONResponse(general_message(404, "no found access key", "未找到该凭证"), status_code=404)
     return general_message(200, "success", None, bean=jsonable_encoder(user_access_key))
 
 

@@ -252,10 +252,10 @@ async def team_app_group(request: Request,
              paramType: query
    """
     if not team:
-        return general_message(400, "tenant not exist", "团队不存在")
+        return JSONResponse(general_message(400, "tenant not exist", "团队不存在"), status_code=400)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
 
     query = request.query_params.get("query", "")
@@ -279,7 +279,7 @@ async def team_app_group(
     query_key = request.query_params.get("query_key", '')
     service_status = request.query_params.get("service_status", 'all')
     if not team:
-        return general_message(400, "tenant not exist", "{}团队不存在".format(team_name))
+        return JSONResponse(general_message(400, "tenant not exist", "{}团队不存在".format(team_name)), status_code=40)
     services_list = base_service.get_fuzzy_services_list(session=session,
                                                          team_id=team.tenant_id, region_name=region_name,
                                                          query_key=query_key, fields=fields, order=order)

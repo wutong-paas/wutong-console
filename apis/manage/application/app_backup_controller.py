@@ -32,7 +32,7 @@ async def get_team_backup_info(
         # page_size = int(request.query_params.get("page_size", 10))
         region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
         if not region:
-            return general_message(400, "not found region", "数据中心不存在")
+            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
         backups = groupapp_backup_service.get_all_group_back_up_info(session, team, response_region)
         params = Params(page=page, size=page_size)

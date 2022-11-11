@@ -27,7 +27,7 @@ async def get_app_model(request: Request,
                         team=Depends(deps.get_current_team)) -> Any:
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     page = parse_argument(request, 'page', value_type=int, default=1)
     page_size = parse_argument(request, 'page_size', value_type=int, default=10)

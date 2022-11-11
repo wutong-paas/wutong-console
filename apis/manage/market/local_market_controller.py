@@ -43,7 +43,7 @@ async def create_app_teams(enterprise_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
                            user=Depends(deps.get_current_user)) -> Any:
     if not user:
-        return general_message(400, "not found user", "用户不存在")
+        return JSONResponse(general_message(400, "not found user", "用户不存在"), status_code=400)
     teams = list()
     tenants = []
     enterprise = tenant_enterprise_repo.get_one_by_model(session=session,
@@ -124,7 +124,8 @@ async def update_app_template(params: Optional[MarketAppTemplateUpdateParam] = M
                               session: SessionClass = Depends(deps.get_session)) -> Any:
     name = params.name
     if not validate_name(name):
-        return general_message(400, "error params", "应用名称只支持中文、字母、数字和-_组合,并且必须以中文、字母、数字开始和结束")
+        return JSONResponse(general_message(400, "error params", "应用名称只支持中文、字母、数字和-_组合,并且必须以中文、字母、数字开始和结束"),
+                            status_code=400)
     describe = params.describe
     pic = params.pic
     details = params.details

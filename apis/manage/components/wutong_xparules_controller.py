@@ -81,7 +81,7 @@ async def set_xparuler(request: Request,
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     data["service_id"] = service.service_id
     res = autoscaler_service.create_autoscaler_rule(session, region_name, team.tenant_name,
@@ -100,7 +100,7 @@ async def get_xparecords(request: Request,
     page_size = int(request.query_params.get("page_size", 10))
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     data = scaling_records_service.list_scaling_records(session=session, region_name=region_name,

@@ -39,10 +39,10 @@ async def third_party(request: Request,
 
     """
     if not team:
-        return general_message(400, "not found team", "团队不存在")
+        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
 
     endpoints_type = params.endpoints_type
@@ -55,13 +55,14 @@ async def third_party(request: Request,
         raise ErrK8sComponentNameExists
 
     if not params.service_cname:
-        return general_message(400, "service_cname is null", "组件名未指明")
+        return JSONResponse(general_message(400, "service_cname is null", "组件名未指明"), status_code=400)
     if endpoints_type == "static":
         validate_endpoints_info(params.static)
     source_config = {}
     if endpoints_type == "kubernetes":
         if not service_name:
-            return general_message(400, "kubernetes service name is null", "Kubernetes Service名称必须指定")
+            return JSONResponse(general_message(400, "kubernetes service name is null", "Kubernetes Service名称必须指定"),
+                                status_code=400)
         source_config = {"service_name": service_name, "namespace": params.namespace}
     new_service = application_service.create_third_party_app(session=session, region=region_name, tenant=team,
                                                              user=user,

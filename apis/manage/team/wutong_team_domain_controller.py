@@ -161,7 +161,7 @@ async def service_tcp_domain(request: Request,
     tcp_rule_id = request.query_params.get("tcp_rule_id", None)
     # 判断参数
     if not tcp_rule_id:
-        return general_message(400, "parameters are missing", "参数缺失")
+        return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
 
     tcpdomain = tcp_domain_repo.get_service_tcpdomain_by_tcp_rule_id(tcp_rule_id)
     if tcpdomain:
@@ -201,15 +201,15 @@ async def service_tcp_domain(request: Request,
     default_ip = data.get("default_ip", None)
 
     if not team:
-        return general_message(400, "team not exist", "团队不存在")
+        return JSONResponse(general_message(400, "team not exist", "团队不存在"), status_code=400)
 
     # 判断参数
     if not tcp_rule_id:
-        return general_message(400, "parameters are missing", "参数缺失")
+        return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
 
     service = service_info_repo.get_service_by_service_id(session, service_id)
     if not service:
-        return general_message(400, "not service", "组件不存在")
+        return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
 
     # 查询端口协议
     tenant_service_port = port_service.get_service_port_by_port(session=session, service=service, port=container_port)
@@ -222,7 +222,7 @@ async def service_tcp_domain(request: Request,
     region = region_repo.get_region_by_region_name(session, service.service_region)
     service_tcpdomain = tcp_domain_repo.get_tcpdomain_by_end_point(region.region_id, end_point)
     if service_tcpdomain and service_tcpdomain[0].tcp_rule_id != tcp_rule_id:
-        return general_message(400, "failed", "策略已存在")
+        return JSONResponse(general_message(400, "failed", "策略已存在"), status_code=400)
 
     # 修改策略
     code, msg = domain_service.update_tcpdomain(session=session, tenant=team, user=user, service=service,
@@ -232,7 +232,7 @@ async def service_tcp_domain(request: Request,
                                                 default_ip=default_ip)
 
     if code != 200:
-        return general_message(code, "bind domain error", msg)
+        return JSONResponse(general_message(code, "bind domain error", msg), status_code=code)
 
     return general_message(200, "success", "策略修改成功")
 
@@ -306,7 +306,7 @@ async def get_domain_query(request: Request,
                         """.format(team.tenant_id, region.region_id, start, end))).fetchall()
     except Exception as e:
         logger.exception(e)
-        return general_message(405, "faild", "查询数据库失败")
+        return JSONResponse(general_message(405, "faild", "查询数据库失败"), status_code=405)
 
     # 拼接展示数据
     domain_list = list()

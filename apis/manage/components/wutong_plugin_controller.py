@@ -241,7 +241,7 @@ async def delete_plugin(plugin_id: Optional[str] = None,
     """
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     body = dict()
@@ -315,7 +315,7 @@ async def open_or_stop_plugin(request: Request,
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     data = await request.json()
     is_active = data.get("is_switch", True)
@@ -439,7 +439,7 @@ async def update_plugin_config(request: Request,
         return JSONResponse(general_message(400, "params error", "参数配置不可为空"), status_code=400)
     region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
     if not region:
-        return general_message(400, "not found region", "数据中心不存在")
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     pbv = plugin_version_service.get_newest_usable_plugin_version(session=session, tenant_id=team.tenant_id,

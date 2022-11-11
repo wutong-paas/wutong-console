@@ -147,7 +147,7 @@ async def user_logout(request: Request, session: SessionClass = Depends(deps.get
         return response
     except Exception as e:
         logger.exception(e)
-        return general_message(405, "logout failed", "登出失败")
+        return JSONResponse(general_message(405, "logout failed", "登出失败"), status_code=405)
 
 
 @router.post("/users/register", response_model=Response, name="用户注册")
