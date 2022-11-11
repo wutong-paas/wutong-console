@@ -469,6 +469,7 @@ async def get_app_state(
         page = 1
         page_size = 99
         application_id = request.query_params.get("application_id")
+        region_name = request.query_params.get("region_name")
         if application_id is None or not application_id.isdigit():
             code = 400
             result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
@@ -478,11 +479,6 @@ async def get_app_state(
         if not team:
             result = general_message(400, "tenant not exist", "{}团队不存在".format(team_code))
             return JSONResponse(result, status_code=400)
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        # region_name = request.headers.get("X_REGION_NAME")
-        region_name = region.region_name
 
         if application_id == "-1":
             # query service which not belong to any app
@@ -596,10 +592,6 @@ async def deploy_business_component(
         tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
         if not tenant:
             return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        region_name = region.region_name
         application = application_repo.get_by_primary_key(session=session, primary_key=application_id)
         if application and application.tenant_id != tenant.tenant_id:
             return JSONResponse(general_message(400, "not found app at team", "应用不属于该团队"), status_code=400)
@@ -607,7 +599,7 @@ async def deploy_business_component(
         user: Users = user_svc.devops_get_current_user(session=session, token=authorization)
 
         code, msg_show, new_service = application_service.create_docker_run_app(session=session,
-                                                                                region_name=region_name,
+                                                                                region_name=params.region_name,
                                                                                 tenant=tenant,
                                                                                 user=user,
                                                                                 service_cname=params.component_name,
@@ -624,7 +616,7 @@ async def deploy_business_component(
                                                            password=params.registry_password)
 
         code, msg_show = application_service.add_component_to_app(session=session, tenant=tenant,
-                                                                  region_name=region_name,
+                                                                  region_name=params.region_name,
                                                                   app_id=application_id,
                                                                   component_id=new_service.service_id)
         if code != 200:
@@ -790,12 +782,9 @@ async def market_create(
     tenant = team_services.devops_get_tenant(tenant_name=params.team_code, session=session)
     if not tenant:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     region_info = session.execute(select(RegionConfig).where(
-        RegionConfig.region_name == region.region_name
+        RegionConfig.region_name == params.region_name
     )).scalars().first()
 
     market_app_service.install_app(session=session, tenant=tenant, region=region_info,
