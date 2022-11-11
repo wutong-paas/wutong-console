@@ -31,6 +31,7 @@ class DeployBusinessParams(BaseModel):
     registry_user: Optional[str] = None
     dep_service_ids: Optional[str] = None
     env_variables: List[EnvVariablesParam] = None
+    region_name: Optional[str] = None
 
 
 class DockerRunCheckParam(BaseModel):
