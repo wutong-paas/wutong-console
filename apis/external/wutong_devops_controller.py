@@ -574,6 +574,7 @@ async def get_un_dependency(
 @router.post("/v1.0/devops/teams/{team_code}/applications/{application_id}/build", response_model=Response,
              name="部署业务组件")
 async def deploy_business_component(
+        request: Request,
         params: DeployBusinessParams,
         team_code: Optional[str] = None,
         application_id: Optional[str] = None,
@@ -595,7 +596,7 @@ async def deploy_business_component(
         tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
         if not tenant:
             return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-        region = team_region_repo.get_region_by_tenant_id(session, tenant.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
@@ -789,7 +790,7 @@ async def market_create(
     tenant = team_services.devops_get_tenant(tenant_name=params.team_code, session=session)
     if not tenant:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, tenant.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
