@@ -12,6 +12,7 @@ from repository.component.service_label_repo import node_label_repo, label_repo,
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.label_service import label_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -43,9 +44,11 @@ async def get_env(serviceAlias: Optional[str] = None,
 
 
 @router.get("/teams/{team_name}/apps/{serviceAlias}/labels/available", response_model=Response, name="添加特性获取可用标签")
-async def get_available_labels(serviceAlias: Optional[str] = None,
-                               session: SessionClass = Depends(deps.get_session),
-                               team=Depends(deps.get_current_team)) -> Any:
+async def get_available_labels(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     添加特性获取可用标签
     :param request:
@@ -53,7 +56,7 @@ async def get_available_labels(serviceAlias: Optional[str] = None,
     :param kwargs:
     :return:
     """
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name

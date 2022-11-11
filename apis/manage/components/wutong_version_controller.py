@@ -12,6 +12,7 @@ from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ async def get_version(request: Request,
     page = int(request.query_params.get("page_num", 1))
     page_size = int(request.query_params.get("page_size", 10))
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name

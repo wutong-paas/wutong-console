@@ -21,6 +21,7 @@ from repository.users.user_oauth_repo import oauth_repo
 from schemas.response import Response
 from service.application_service import application_service
 from service.base_services import base_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -215,7 +216,7 @@ async def code_create_component(
         if service_code_clone_url:
             service_code_clone_url = service_code_clone_url.strip()
 
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name

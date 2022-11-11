@@ -15,6 +15,7 @@ from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
 from service.backup_service import groupapp_backup_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -22,7 +23,7 @@ router = APIRouter()
 @router.get("/teams/{team_name}/all/groupapp/backup", response_model=Response,
             name="查询当前团队 数据中心下所有备份信息")
 async def get_team_backup_info(
-        # request: Request,
+        request: Request,
         page: int = Query(default=1, ge=1, le=9999),
         page_size: int = Query(default=10, ge=1, le=500),
         session: SessionClass = Depends(deps.get_session),
@@ -30,7 +31,7 @@ async def get_team_backup_info(
     try:
         # page = int(request.query_params.get("page", 1))
         # page_size = int(request.query_params.get("page_size", 10))
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name

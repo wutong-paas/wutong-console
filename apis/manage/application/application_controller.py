@@ -34,6 +34,7 @@ from service.component_service import component_check_service
 from service.compose_service import compose_service
 from service.helm_app_service import helm_app_service
 from service.market_app_service import market_app_service
+from service.region_service import region_services
 from service.share_services import share_service
 
 router = APIRouter()
@@ -97,9 +98,11 @@ async def create_app(params: TeamAppCreateRequest,
 
 
 @router.get("/teams/{team_name}/groups/{app_id}", response_model=Response, name="团队应用详情")
-async def get_app_detail(app_id: Optional[int] = None,
-                         session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+async def get_app_detail(
+        request: Request,
+        app_id: Optional[int] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     查询应用详情
     :param app_id:
@@ -107,7 +110,7 @@ async def get_app_detail(app_id: Optional[int] = None,
     """
     if not team:
         raise ServiceHandleException(msg="not found team", msg_show="团队不存在", status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         raise ServiceHandleException(msg="not found region", msg_show="数据中心不存在", status_code=400)
     region_name = region.region_name
@@ -133,7 +136,7 @@ async def update_app(request: Request,
     revision = data.get("revision", 0)
 
     # response_region = request.headers.get("X_REGION_NAME")
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -154,9 +157,11 @@ async def update_app(request: Request,
 
 
 @router.delete("/teams/{team_name}/groups/{app_id}", response_model=Response, name="删除团队应用")
-async def delete_app(app_id: Optional[str] = None,
-                     session: SessionClass = Depends(deps.get_session),
-                     team=Depends(deps.get_current_team)) -> Any:
+async def delete_app(
+        request: Request,
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     # todo
     """
     删除应用
@@ -175,7 +180,7 @@ async def delete_app(app_id: Optional[str] = None,
     """
     if not team:
         raise ServiceHandleException(msg="not found team", msg_show="团队不存在", status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         raise ServiceHandleException(msg="not found region", msg_show="数据中心不存在", status_code=400)
     region_name = region.region_name
@@ -190,12 +195,14 @@ async def delete_app(app_id: Optional[str] = None,
 
 
 @router.get("/teams/{team_name}/groups/{app_id}/status", response_model=Response, name="查询应用状态")
-async def get_app_status(app_id: Optional[str] = None,
-                         session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+async def get_app_status(
+        request: Request,
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     if not team:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -206,15 +213,17 @@ async def get_app_status(app_id: Optional[str] = None,
 
 
 @router.get("/teams/{team_name}/groups/{app_id}/upgradable_num", response_model=Response, name="查询待升级组件数量")
-async def get_upgradable_num(app_id: Optional[str] = None,
-                             session: SessionClass = Depends(deps.get_session),
-                             team=Depends(deps.get_current_team)) -> Any:
+async def get_upgradable_num(
+        request: Request,
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     data = dict()
     data['upgradable_num'] = 0
     try:
         if not team:
             return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
@@ -244,10 +253,12 @@ async def get_visit(app_id: Optional[str] = None,
 
 
 @router.put("/teams/{team_name}/groups/{app_id}/volumes", response_model=Response, name="批量修改该应用下有状态组件的存储路径")
-async def modify_storage_dir(app_id: Optional[str] = None,
-                             session: SessionClass = Depends(deps.get_session),
-                             team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+async def modify_storage_dir(
+        request: Request,
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     # region_name = request.headers.get("X_REGION_NAME")
@@ -260,10 +271,12 @@ async def modify_storage_dir(app_id: Optional[str] = None,
 
 
 @router.post("/teams/{team_name}/groups/{group_id}/common_operation", response_model=Response, name="应用操作")
-async def common_operation(params: CommonOperation,
-                           session: SessionClass = Depends(deps.get_session),
-                           user=Depends(deps.get_current_user),
-                           team=Depends(deps.get_current_team)) -> Any:
+async def common_operation(
+        request: Request,
+        params: CommonOperation,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
     action = params.action
     group_id = int(params.group_id)
     services = session.query(ComponentApplicationRelation).filter(
@@ -291,7 +304,7 @@ async def common_operation(params: CommonOperation,
     #     self.has_perms([300008, 400010])
     if not team:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -459,9 +472,11 @@ async def app_share(request: Request,
 
 
 @router.get("/teams/{team_name}/groups/{group_id}/apps", response_model=Response, name="查询当前应用下的应用模版列表及可升级性")
-async def get_app_model(group_id: Optional[str] = None, session: SessionClass = Depends(deps.get_session),
-                        team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+async def get_app_model(
+        request: Request,
+        group_id: Optional[str] = None, session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -495,7 +510,7 @@ async def get_config_groups(request: Request,
     #     page_size = int(request.query_params.get("page_size", 10))
     # except ValueError:
     #     page_size = 10
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -528,11 +543,13 @@ async def add_config_group(request: Request,
 
 
 @router.get("/teams/{team_name}/groups/{group_id}/configgroups/{name}", response_model=Response, name="获取应用配置组信息")
-async def get_config_group(group_id: Optional[str] = None,
-                           name: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+async def get_config_group(
+        request: Request,
+        group_id: Optional[str] = None,
+        name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -549,7 +566,7 @@ async def modify_config_group(request: Request,
                               session: SessionClass = Depends(deps.get_session),
                               team=Depends(deps.get_current_team)) -> Any:
     params = await request.json()
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -562,12 +579,14 @@ async def modify_config_group(request: Request,
 
 
 @router.delete("/teams/{team_name}/groups/{group_id}/configgroups/{name}", response_model=Response, name="删除应用配置组")
-async def delete_config_group(team_name: Optional[str] = None,
-                              group_id: Optional[str] = None,
-                              name: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+async def delete_config_group(
+        request: Request,
+        team_name: Optional[str] = None,
+        group_id: Optional[str] = None,
+        name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -585,7 +604,7 @@ async def app_governance_mode(request: Request,
     if governance_mode not in GovernanceModeEnum.names():
         raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -603,7 +622,7 @@ async def app_governance_mode(request: Request,
     if governance_mode not in GovernanceModeEnum.names():
         raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -616,10 +635,12 @@ async def app_governance_mode(request: Request,
 
 
 @router.get("/teams/{team_name}/groups/{app_id}/k8sservices", response_model=Response, name="查询k8s信息")
-async def app_governance_mode(app_id: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+async def app_governance_mode(
+        request: Request,
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -633,7 +654,7 @@ async def set_governance_mode(request: Request,
                               app_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
                               team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -656,12 +677,14 @@ async def set_governance_mode(request: Request,
 
 
 @router.get("/teams/{team_name}/groups/{app_id}/helmapp-components", response_model=Response, name="获取服务实例")
-async def get_helm_app_components(app_id: Optional[str] = None,
-                                  session: SessionClass = Depends(deps.get_session),
-                                  user=Depends(deps.get_current_user),
-                                  team=Depends(deps.get_current_team)) -> Any:
+async def get_helm_app_components(
+        request: Request,
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
     app = application_repo.get_group_by_id(session, app_id)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -671,11 +694,13 @@ async def get_helm_app_components(app_id: Optional[str] = None,
 
 
 @router.get("/teams/{team_name}/groups/{app_id}/releases", response_model=Response, name="获取应用升级记录")
-async def get_app_releases(team_name: Optional[str] = None,
-                           app_id: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+async def get_app_releases(
+        request: Request,
+        team_name: Optional[str] = None,
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -709,7 +734,7 @@ async def send_check_task(
     if not compose_id:
         return JSONResponse(general_message(400, "params error", "需要检测的compose ID "), status_code=400)
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
@@ -736,7 +761,7 @@ async def get_compose_check_info(
         if not compose_id:
             return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status_code=400)
 
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
@@ -822,7 +847,7 @@ async def install_market_app(
         team=Depends(deps.get_current_team)) -> Any:
     data = await request.json()
     overrides = data.get("overrides")
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -833,11 +858,12 @@ async def install_market_app(
 
 @router.get("/teams/{team_name}/groups/{group_id}/pods/{pod_name}", response_model=Response, name="查询实例信息")
 async def get_pod_view(
+        request: Request,
         pod_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name

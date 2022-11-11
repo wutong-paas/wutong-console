@@ -17,6 +17,7 @@ from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_config.domain_service import domain_service
 from service.app_config.port_service import port_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -142,7 +143,7 @@ async def update_ports(request: Request,
     if not container_port:
         raise AbortRequest("container_port not specify", "端口变量名未指定")
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name

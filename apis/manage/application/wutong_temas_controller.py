@@ -26,7 +26,7 @@ from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.domain_service import domain_service
 from service.app_config.port_service import port_service
-from service.region_service import EnterpriseConfigService
+from service.region_service import EnterpriseConfigService, region_services
 
 router = APIRouter()
 
@@ -254,7 +254,7 @@ async def set_domain_parameter(request: Request,
                                rule_id: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
                                team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -386,7 +386,7 @@ async def delete_http_domain(request: Request,
     http_rule_id = data.get("http_rule_id", None)
     if not http_rule_id or not service_id:
         return JSONResponse(general_message(400, "params error", "参数错误"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -543,7 +543,7 @@ async def delete_tcp_domain(request: Request,
     tcp_rule_id = data.get("tcp_rule_id", None)
     if not tcp_rule_id:
         return JSONResponse(general_message(400, "params error", "参数错误"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name

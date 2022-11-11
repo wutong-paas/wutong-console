@@ -82,7 +82,7 @@ async def market_create(params: Optional[MarketAppCreateParam] = MarketAppCreate
         return JSONResponse(general_message(400, "not found user", "用户不存在"), status_code=400)
     if not team:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 

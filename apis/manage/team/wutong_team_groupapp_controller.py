@@ -37,7 +37,7 @@ async def get_backup_info(request: Request,
         return JSONResponse(general_message(400, "group id is not found", "请指定需要查询的组"), status_code=400)
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -76,7 +76,7 @@ async def get_backup_info(request: Request,
     if not mode:
         return JSONResponse(general_message(400, "mode is null", "请选择备份模式"), status_code=400)
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -126,7 +126,7 @@ async def backup_app(request: Request,
         backup_id = request.query_params.get("backup_id", None)
         if not backup_id:
             return JSONResponse(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status_code=400)
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
@@ -155,7 +155,7 @@ async def delete_backup_app(request: Request,
     backup_id = data.get("backup_id", None)
     if not backup_id:
         return JSONResponse(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -256,7 +256,7 @@ async def get_app_migrate_state(request: Request,
     if not restore_id:
         return JSONResponse(general_message(400, "restore id is null", "请指明查询的备份ID"), status_code=400)
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -285,7 +285,7 @@ async def set_backup_info(request: Request,
         if len(file_data) > StorageUnit.ONE_MB * 2:
             return JSONResponse(general_message(400, "file is too large", "文件大小不能超过2M"), status_code=400)
 
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
@@ -302,10 +302,12 @@ async def set_backup_info(request: Request,
 
 
 @router.get("/teams/{team_name}/groupapp/{group_id}/copy", response_model=Response, name="获取应用复制信息")
-async def get_app_copy(group_id: Optional[str] = None,
-                       session: SessionClass = Depends(deps.get_session),
-                       team=Depends(deps.get_current_team)) -> Any:
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+async def get_app_copy(
+        request: Request,
+        group_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
@@ -330,7 +332,7 @@ async def app_copy(request: Request,
     tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(session, user, tar_team_name, tar_region_name,
                                                                          tar_group_id)
     try:
-        region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+        region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name

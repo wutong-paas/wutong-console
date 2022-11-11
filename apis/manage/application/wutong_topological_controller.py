@@ -13,6 +13,7 @@ from repository.component.service_config_repo import port_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_config.port_service import port_service
+from service.region_service import region_services
 from service.topological_service import topological_service
 
 router = APIRouter()
@@ -69,7 +70,7 @@ async def open_topological_port(
     close_outer = data.get("close_outer", False)
     container_port = data.get("container_port", None)
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -129,14 +130,16 @@ async def open_topological_port(
 
 
 @router.get("/teams/{team_name}/{group_id}/outer-service", response_model=Response, name="拓扑图中Internet详情")
-async def get_topological_internet_info(team_name: Optional[str] = None,
-                                        group_id: Optional[str] = None,
-                                        session: SessionClass = Depends(deps.get_session),
-                                        team=Depends(deps.get_current_team)) -> Any:
+async def get_topological_internet_info(
+        request: Request,
+        team_name: Optional[str] = None,
+        group_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     拓扑图中Internet详情
     """
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name

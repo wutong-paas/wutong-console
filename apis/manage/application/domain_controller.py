@@ -14,6 +14,7 @@ from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_config.domain_service import domain_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -27,7 +28,7 @@ async def get_domain_info(request: Request,
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     # todo 简化查询
@@ -89,7 +90,7 @@ async def get_tcp_domain_info(request: Request,
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 

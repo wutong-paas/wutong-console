@@ -19,6 +19,7 @@ from service.app_config.port_service import port_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
 from service.plugin_service import default_plugins, plugin_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -82,7 +83,7 @@ async def install_sys_plugin(request: Request,
     if plugin_type not in default_plugins:
         return JSONResponse(general_message(400, "plugin type not support", "插件类型不支持"), status_code=400)
 
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -181,7 +182,7 @@ async def install_plugin(request: Request,
           paramType: form
     """
     result = {}
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -214,11 +215,13 @@ async def install_plugin(request: Request,
 
 @router.delete("/teams/{team_name}/apps/{serviceAlias}/plugins/{plugin_id}/install", response_model=Response,
                name="组件卸载插件")
-async def delete_plugin(plugin_id: Optional[str] = None,
-                        serviceAlias: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session),
-                        user=Depends(deps.get_current_user),
-                        team=Depends(deps.get_current_team)) -> Any:
+async def delete_plugin(
+        request: Request,
+        plugin_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     组件卸载插件
     ---
@@ -239,7 +242,7 @@ async def delete_plugin(plugin_id: Optional[str] = None,
           type: string
           paramType: path
     """
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -313,7 +316,7 @@ async def open_or_stop_plugin(request: Request,
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin_id", "参数异常"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -437,7 +440,7 @@ async def update_plugin_config(request: Request,
     config = await request.json()
     if not config:
         return JSONResponse(general_message(400, "params error", "参数配置不可为空"), status_code=400)
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name

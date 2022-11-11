@@ -29,6 +29,7 @@ from service.app_actions.app_log import ws_service, event_service
 from service.application_service import application_service
 from service.compose_service import compose_service
 from service.market_app_service import market_app_service
+from service.region_service import region_services
 from service.team_service import team_services
 
 router = APIRouter()
@@ -205,7 +206,7 @@ async def get_events_info(request: Request,
     page_size = request.query_params.get("page_size", 6)
     target = request.query_params.get("target", "")
     targetAlias = request.query_params.get("targetAlias", "")
-    region = team_region_repo.get_region_by_tenant_id(session, team.tenant_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
