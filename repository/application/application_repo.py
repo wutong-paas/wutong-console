@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from sqlalchemy import select, update, not_, delete
@@ -189,6 +190,30 @@ class ApplicationRepository(BaseRepository[Application]):
 
 
 class AppMarketRepository(object):
+
+    def create_default_app_market_if_not_exists(self, session, eid):
+        access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "")
+        domain = os.getenv("DEFAULT_APP_MARKET_DOMAIN", "rainbond")
+        url = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
+        name = os.getenv("DEFAULT_APP_MARKET_NAME", "RainbondMarket")
+
+        markets = session.execute(select(AppMarket).where(
+            AppMarket.domain == domain,
+            AppMarket.url == url,
+            AppMarket.enterprise_id == eid
+        )).scalars().all()
+        if markets or os.getenv("DISABLE_DEFAULT_APP_MARKET", False):
+            return
+        app_market = AppMarket(
+            name=name,
+            url=url,
+            domain=domain,
+            type="rainstore",
+            access_key=access_key,
+            enterprise_id=eid,
+        )
+        session.add(app_market)
+        session.flush()
 
     def get_app_market_by_name(self, session, enterprise_id, name, raise_exception=False):
         market = session.execute(select(AppMarket).where(
