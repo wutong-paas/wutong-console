@@ -333,19 +333,18 @@ class ShareService(object):
                         delivered_type = delivered_type_map.get(service['service_id'], None)
                         if not delivered_type:
                             continue
-                        #     todo
-                        # if delivered_type == "slug":
-                        #     service['service_slug'] = app_store.get_slug_hub_info(session, market, app_model_id,
-                        #                                                           share_team.enterprise_id)
-                        #     service["share_type"] = "slug"
-                        #     if not service['service_slug']:
-                        #         return 400, "获取源码包上传地址错误", None
-                        # else:
-                        #     service["service_image"] = app_store.get_app_hub_info(session, market, app_model_id,
-                        #                                                           share_team.enterprise_id)
-                        #     service["share_type"] = "image"
-                        #     if not service["service_image"]:
-                        #         return 400, "获取镜像上传地址错误", None
+                        if delivered_type == "slug":
+                            service['service_slug'] = app_store.get_slug_hub_info(session, market, app_model_id,
+                                                                                  share_team.enterprise_id)
+                            service["share_type"] = "slug"
+                            if not service['service_slug']:
+                                return 400, "获取源码包上传地址错误", None
+                        else:
+                            service["service_image"] = app_store.get_app_hub_info(session, market, app_model_id,
+                                                                                  share_team.enterprise_id)
+                            service["share_type"] = "image"
+                            if not service["service_image"]:
+                                return 400, "获取镜像上传地址错误", None
 
                         # 处理依赖关系
                         self._handle_dependencies(service, dep_service_keys, use_force)

@@ -6,7 +6,7 @@ from fastapi.encoders import jsonable_encoder
 from jsonpath import jsonpath
 from loguru import logger
 from sqlalchemy import select, delete
-from appstore.app_store_client import app_store_client
+from appstore.app_store_client import app_store_client, get_market_client
 from clients.remote_component_client import remote_component_client
 from common.base_client_service import get_tenant_region_info
 from core.enum.component_enum import Kind
@@ -33,6 +33,90 @@ from service.user_service import user_svc
 
 
 class MarketAppService(object):
+
+    def get_market(self, store):
+        store_client = get_market_client(store.access_key, store.url)
+        data = store_client.get_market_info(market_domain=store.domain)
+        return data
+
+    def get_app_market(self, session, enterprise_id, market_name, extend="false", raise_exception=False):
+        market = app_market_repo.get_app_market_by_name(session, enterprise_id, market_name, raise_exception)
+        dt = {
+            "access_key": market.access_key,
+            "name": market.name,
+            "url": market.url,
+            "type": market.type,
+            "domain": market.domain,
+            "ID": market.ID,
+        }
+        if extend == "true":
+            version = "1.0"
+            try:
+                extend_info = self.get_market(market)
+                market.description = extend_info.description
+                market.alias = extend_info.name
+                market.status = extend_info.status
+                market.access_actions = extend_info.access_actions
+                version = extend_info.version if extend_info.version else version
+            except Exception as e:
+                logger.debug(e)
+                market.description = None
+                market.alias = None
+                market.status = 0
+                market.access_actions = []
+            if raise_exception:
+                if market.status == 0:
+                    raise ServiceHandleException(msg="call market error", msg_show="应用商店状态异常")
+            dt.update({
+                "description": market.description,
+                "alias": market.alias,
+                "status": market.status,
+                "access_actions": market.access_actions,
+                "version": version
+            })
+        return dt, market
+
+    def get_app_markets(self, enterprise_id, extend):
+        app_market_repo.create_default_app_market_if_not_exists(enterprise_id)
+
+        market_list = []
+        markets = app_market_repo.get_app_markets(enterprise_id)
+        for market in markets:
+            dt = {
+                "access_key": market.access_key,
+                "name": market.name,
+                "url": market.url,
+                "enterprise_id": market.enterprise_id,
+                "type": market.type,
+                "domain": market.domain,
+                "ID": market.ID,
+            }
+            if extend == "true":
+                version = "1.0"
+                try:
+                    extend_info = self.get_market(market)
+                    market.description = extend_info.description
+                    market.alias = extend_info.name
+                    market.status = extend_info.status
+                    market.create_time = extend_info.create_time
+                    market.access_actions = extend_info.access_actions
+                    version = extend_info.version if hasattr(extend_info, "version") else version
+                except Exception as e:
+                    logger.exception(e)
+                    market.description = None
+                    market.alias = market.name
+                    market.status = 0
+                    market.create_time = None
+                    market.access_actions = []
+                dt.update({
+                    "description": market.description,
+                    "alias": market.alias,
+                    "status": market.status,
+                    "access_actions": market.access_actions,
+                    "version": version
+                })
+            market_list.append(dt)
+        return market_list
 
     def list_app_upgradeable_versions(self, session, enterprise_id, record: ApplicationUpgradeRecord):
         component_group = tenant_service_group_repo.get_component_group(session, record.upgrade_group_id)
@@ -486,16 +570,17 @@ class MarketAppService(object):
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
-        # if install_from_cloud:
-        #     # todo
-        #     logger.info("install from cloud")
-        # else:
-        market_app, app_version = self.get_wutong_app_and_version(session, user.enterprise_id, app_model_key,
-                                                                  version)
-        if app_version and app_version.region_name and app_version.region_name != region.region_name:
-            raise AbortRequest(
-                msg="app version can not install to this region",
-                msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
+        if install_from_cloud:
+            _, market = market_app_service.get_app_market(session, tenant.enterprise_id, market_name, raise_exception=True)
+            market_app, app_version = market_app_service.cloud_app_model_to_db_model(
+                market, app_model_key, version, for_install=True)
+        else:
+            market_app, app_version = self.get_wutong_app_and_version(session, user.enterprise_id, app_model_key,
+                                                                      version)
+            if app_version and app_version.region_name and app_version.region_name != region.region_name:
+                raise AbortRequest(
+                    msg="app version can not install to this region",
+                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
         if not market_app:
             raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
         if not app_version:
