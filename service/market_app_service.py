@@ -570,7 +570,7 @@ class MarketAppService(object):
 
     def _create_tenant_service_group(self, session: SessionClass, region_name, tenant_id, group_id, app_key,
                                      app_version, app_name):
-        group_name = '_'.join(["gr", make_uuid()[-4:]])
+        group_name = '_'.join(["wt", make_uuid()[-4:]])
         params = {
             "tenant_id": tenant_id,
             "group_name": group_name,
@@ -839,8 +839,8 @@ class MarketAppService(object):
                             enable = True
                             break
                     container_port = port.get("containerPort")
-                    port_alias = "gr" + uuid[-6:] + str(container_port)
-                    k8s_name = "gr" + uuid[-6:] + '-' + str(container_port)
+                    port_alias = "wt" + uuid[-6:] + str(container_port)
+                    k8s_name = "wt" + uuid[-6:] + '-' + str(container_port)
                     port.update({"port_alias": port_alias.upper()})
                     port.update({"k8s_service_name": k8s_name.upper()})
                     port.update({"container_port": container_port})

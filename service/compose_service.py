@@ -108,7 +108,7 @@ class ComposeService(object):
         tenant_service.tenant_id = tenant.tenant_id
         tenant_service.service_id = make_uuid()
         tenant_service.service_cname = service_cname
-        tenant_service.service_alias = "gr" + tenant_service.service_id[-6:]
+        tenant_service.service_alias = "wt" + tenant_service.service_id[-6:]
         tenant_service.creater = user.user_id
         tenant_service.image = image
         tenant_service.service_region = region

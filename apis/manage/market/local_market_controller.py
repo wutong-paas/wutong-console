@@ -71,10 +71,12 @@ async def create_app_teams(enterprise_id: Optional[str] = None,
 
 
 @router.post("/teams/{team_name}/apps/market_create", response_model=Response, name="安装市场应用")
-async def market_create(params: Optional[MarketAppCreateParam] = MarketAppCreateParam(),
-                        session: SessionClass = Depends(deps.get_session),
-                        user=Depends(deps.get_current_user),
-                        team=Depends(deps.get_current_team)) -> Any:
+async def market_create(
+        request: Request,
+        params: Optional[MarketAppCreateParam] = MarketAppCreateParam(),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     创建应用市场应用
     """

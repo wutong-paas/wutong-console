@@ -39,7 +39,7 @@ class PluginService(object):
     def create_tenant_plugin(self, session: SessionClass, plugin_params):
         plugin_id = make_uuid()
         plugin_params["plugin_id"] = plugin_id
-        plugin_params["plugin_name"] = "gr" + plugin_id[:6]
+        plugin_params["plugin_name"] = "wt" + plugin_id[:6]
         if plugin_params["build_source"] == "dockerfile" and not plugin_params["code_repo"]:
             return 400, "代码仓库不能为空", None
         if plugin_params["build_source"] == "image" and not plugin_params["image"]:
