@@ -126,7 +126,7 @@ def install_cloud_market_app(session: SessionClass, user: Users, enterprise_id: 
 
 def create_tenant_service_group(session: SessionClass, region_name, tenant_id, group_id, app_key,
                                 app_version, app_name):
-    group_name = '_'.join(["gr", make_uuid()[-4:]])
+    group_name = '_'.join(["wt", make_uuid()[-4:]])
     params = {
         "tenant_id": tenant_id,
         "group_name": group_name,
