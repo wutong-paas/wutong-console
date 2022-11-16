@@ -42,14 +42,20 @@ async def get_domain_query(request: Request,
     # 查询分页排序
     if search_conditions:
         # 获取总数
-        res = session.execute("select count(sd.domain_name) \
+        parms = {
+            "tenant_id": team.tenant_id,
+            "region_id": region.region_id,
+            "search_conditions": search_conditions
+        }
+        sql = "select count(sd.domain_name) \
             from service_domain sd \
                 left join service_group_relation sgr on sd.service_id = sgr.service_id \
                 left join service_group sg on sgr.group_id = sg.id  \
-            where sd.tenant_id='{0}' and sd.region_id='{1}' \
-                and (sd.domain_name like '%{2}%' \
-                    or sd.service_alias like '%{2}%' \
-                    or sg.group_name like '%{2}%');".format(team.tenant_id, region.region_id, search_conditions))
+            where sd.tenant_id=:tenant_id and sd.region_id=:region_id \
+                and (sd.domain_name like :search_conditions \
+                    or sd.service_alias like :search_conditions \
+                    or sg.group_name like :search_conditions);"
+        res = session.execute(sql, parms)
         domain_count = res.fetchall()
 
         total = domain_count[0][0]
@@ -61,20 +67,27 @@ async def get_domain_query(request: Request,
         if remaining_num <= 0:
             tenant_tuples = []
         else:
-            tenant_tuples = (session.execute("select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
+            parms = {
+                "tenant_id": team.tenant_id,
+                "region_id": region.region_id,
+                "search_conditions": search_conditions,
+                "start": start,
+                "end": end
+            }
+            sql = "select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, \
                     sd.protocol, sd.service_name, sd.container_port, sd.http_rule_id, sd.service_id, \
                     sd.domain_path, sd.domain_cookie, sd.domain_heander, sd.the_weight, \
                     sd.is_outer_service, sd.path_rewrite, sd.rewrites \
                 from service_domain sd \
                     left join service_group_relation sgr on sd.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id \
-                where sd.tenant_id='{0}' \
-                    and sd.region_id='{1}' \
-                    and (sd.domain_name like '%{2}%' \
-                        or sd.service_alias like '%{2}%' \
-                        or sg.group_name like '%{2}%') \
-                order by type desc LIMIT {3},{4};".format(team.tenant_id, region.region_id, search_conditions, start,
-                                                          end))).fetchall()
+                where sd.tenant_id=:tenant_id \
+                    and sd.region_id=:region_id \
+                    and (sd.domain_name like :search_conditions \
+                        or sd.service_alias like :search_conditions \
+                        or sg.group_name like :search_conditions) \
+                order by type desc LIMIT :start,:end;"
+            tenant_tuples = session.execute(sql, parms).fetchall()
     else:
         # 获取总数
         domain_count = (session.execute(
