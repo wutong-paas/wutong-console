@@ -313,6 +313,12 @@ async def change_password(request: Request,
     """
     try:
         data = await request.json()
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        if settings.ORIGIN_REFERER_OFFICIAL_WEBSITE not in origin \
+                or settings.ORIGIN_REFERER_OFFICIAL_WEBSITE not in referer:
+            result = general_message(400, "password change failed", "密码修改失败")
+            return JSONResponse(result, status_code=400)
         password = data["password"]
         new_password = data["new_password"]
         new_password2 = data["new_password2"]
