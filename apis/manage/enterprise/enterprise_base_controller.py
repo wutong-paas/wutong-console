@@ -29,7 +29,6 @@ router = APIRouter()
 
 @router.get("/config/info", response_model=Response, name="获取集群配置信息")
 async def get_info(
-        user: Users = Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取集群配置信息
