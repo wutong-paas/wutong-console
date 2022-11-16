@@ -65,6 +65,8 @@ class Settings(BaseSettings):
         'cloudbang': 'auto',
     }
 
+    ORIGIN_REFERER_OFFICIAL_WEBSITE = os.getenv("official_website", "wutong.talkweb.com.cn")
+
     # 启动端口配置
     PORT = os.environ.get("PORT", 8888)
 

@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any, Optional
 
 from fastapi import APIRouter, Path, Depends, Request, Query
@@ -13,7 +14,7 @@ from core.utils.dependencies import DALGetter
 from core.utils.return_message import general_message, error_message
 from core.utils.validation import validate_name
 from database.session import SessionClass
-from exceptions.main import RegionNotFound, AbortRequest
+from exceptions.main import RegionNotFound, AbortRequest, ServiceHandleException
 from models.market.models import CenterAppTag
 from models.teams import PermRelTenant, RegionConfig
 from models.teams.enterprise import TeamEnterprise
@@ -188,6 +189,10 @@ async def app_models(request: Request,
 
     if tags:
         tags = json.loads(tags)
+
+    r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
+    if not r.match(app_name):
+        raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
 
     apps, count = market_app_service.get_visiable_apps(session, user, enterprise_id, scope, app_name, tags, is_complete,
                                                        page,
