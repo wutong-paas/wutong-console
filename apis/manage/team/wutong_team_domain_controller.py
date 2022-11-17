@@ -269,14 +269,19 @@ async def get_domain_query(request: Request,
         # 查询分页排序
         if search_conditions:
             # 获取总数
-            domain_count = (session.execute("select count(1) from service_tcp_domain std \
+            parms = {
+                "tenant_id": team.tenant_id,
+                "region_id": region.region_id,
+                "search_conditions": search_conditions
+            }
+            sql = "select count(1) from service_tcp_domain std \
                             left join service_group_relation sgr on std.service_id = sgr.service_id \
                             left join service_group sg on sgr.group_id = sg.id  \
-                        where std.tenant_id='{0}' and std.region_id='{1}' \
-                            and (std.end_point like '%{2}%' \
-                                or std.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%');".format(team.tenant_id, region.region_id,
-                                                                        search_conditions))).fetchall()
+                        where std.tenant_id=:tenant_id and std.region_id=:region_id \
+                            and (std.end_point like :search_conditions \
+                                or std.service_alias like :search_conditions \
+                                or sg.group_name like :search_conditions);"
+            domain_count = session.execute(sql, parms).fetchall()
 
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -285,18 +290,19 @@ async def get_domain_query(request: Request,
             if remaining_num < page_size:
                 end = remaining_num
 
-            tenant_tuples = (session.execute("select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
+            parms.update({"start": start})
+            parms.update({"end": end})
+            sql = "select std.end_point, std.type, std.protocol, std.service_name, std.service_alias, \
                             std.container_port, std.tcp_rule_id, std.service_id, std.is_outer_service \
                         from service_tcp_domain std \
                             left join service_group_relation sgr on std.service_id = sgr.service_id \
                             left join service_group sg on sgr.group_id = sg.id  \
-                        where std.tenant_id='{0}' and std.region_id='{1}' \
-                            and (std.end_point like '%{2}%' \
-                                or std.service_alias like '%{2}%' \
-                                or sg.group_name like '%{2}%') \
-                        order by type desc LIMIT {3},{4};".format(team.tenant_id, region.region_id, search_conditions,
-                                                                  start,
-                                                                  end))).fetchall()
+                        where std.tenant_id=:tenant_id and std.region_id=:region_id \
+                            and (std.end_point like :search_conditions \
+                                or std.service_alias like :search_conditions \
+                                or sg.group_name like :search_conditions) \
+                        order by type desc LIMIT :start,:end;"
+            tenant_tuples = session.execute(sql, parms).fetchall()
         else:
             # 获取总数
             domain_count = (session.execute(
