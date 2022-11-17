@@ -18,6 +18,12 @@ from repository.teams.team_repo import team_repo
 class BaseService:
 
     def get_group_services_list(self, session: SessionClass, team_id, region_name, group_id, query=""):
+        parms = {
+            "team_id": team_id,
+            "region_name": region_name,
+            "group_id": group_id,
+            "service_cname": query
+        }
         query_sql = '''
             SELECT
                 t.service_id,
@@ -36,15 +42,14 @@ class BaseService:
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
-                t.tenant_id = "{team_id}"
-                AND t.service_region = "{region_name}"
-                AND r.group_id = "{group_id}"
-                AND t.service_cname like "%{service_cname}%"
+                t.tenant_id = :team_id
+                AND t.service_region = :region_name
+                AND r.group_id = :group_id
+                AND t.service_cname like :service_cname
             ORDER BY
                 t.update_time DESC;
-        '''.format(
-            team_id=team_id, region_name=region_name, group_id=group_id, service_cname=query)
-        services = (session.execute(query_sql)).fetchall()
+        '''
+        services = session.execute(query_sql, parms).fetchall()
         return services
 
     def get_fuzzy_services_list(self, session: SessionClass, team_id, region_name, query_key, fields, order):
