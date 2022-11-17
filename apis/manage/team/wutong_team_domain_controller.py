@@ -52,9 +52,9 @@ async def get_domain_query(request: Request,
                 left join service_group_relation sgr on sd.service_id = sgr.service_id \
                 left join service_group sg on sgr.group_id = sg.id  \
             where sd.tenant_id=:tenant_id and sd.region_id=:region_id \
-                and (sd.domain_name like :search_conditions \
-                    or sd.service_alias like :search_conditions \
-                    or sg.group_name like :search_conditions);"
+                and (sd.domain_name like '%' :search_conditions '%' \
+                    or sd.service_alias like '%' :search_conditions '%' \
+                    or sg.group_name like '%' :search_conditions '%');"
         res = session.execute(sql, parms)
         domain_count = res.fetchall()
 
@@ -83,9 +83,9 @@ async def get_domain_query(request: Request,
                     left join service_group sg on sgr.group_id = sg.id \
                 where sd.tenant_id=:tenant_id \
                     and sd.region_id=:region_id \
-                    and (sd.domain_name like :search_conditions \
-                        or sd.service_alias like :search_conditions \
-                        or sg.group_name like :search_conditions) \
+                    and (sd.domain_name like '%' :search_conditions '%' \
+                        or sd.service_alias like '%' :search_conditions '%' \
+                        or sg.group_name like '%' :search_conditions '%') \
                 order by type desc LIMIT :start,:end;"
             tenant_tuples = session.execute(sql, parms).fetchall()
     else:
@@ -278,9 +278,9 @@ async def get_domain_query(request: Request,
                             left join service_group_relation sgr on std.service_id = sgr.service_id \
                             left join service_group sg on sgr.group_id = sg.id  \
                         where std.tenant_id=:tenant_id and std.region_id=:region_id \
-                            and (std.end_point like :search_conditions \
-                                or std.service_alias like :search_conditions \
-                                or sg.group_name like :search_conditions);"
+                            and (std.end_point like '%' :search_conditions '%' \
+                                or std.service_alias like '%' :search_conditions '%' \
+                                or sg.group_name like '%' :search_conditions '%');"
             domain_count = session.execute(sql, parms).fetchall()
 
             total = domain_count[0][0]
@@ -298,9 +298,9 @@ async def get_domain_query(request: Request,
                             left join service_group_relation sgr on std.service_id = sgr.service_id \
                             left join service_group sg on sgr.group_id = sg.id  \
                         where std.tenant_id=:tenant_id and std.region_id=:region_id \
-                            and (std.end_point like :search_conditions \
-                                or std.service_alias like :search_conditions \
-                                or sg.group_name like :search_conditions) \
+                            and (std.end_point like '%' :search_conditions '%' \
+                                or std.service_alias like '%' :search_conditions '%' \
+                                or sg.group_name like '%' :search_conditions '%') \
                         order by type desc LIMIT :start,:end;"
             tenant_tuples = session.execute(sql, parms).fetchall()
         else:
