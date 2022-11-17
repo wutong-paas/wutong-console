@@ -190,9 +190,13 @@ async def app_models(request: Request,
     if tags:
         tags = json.loads(tags)
 
-    r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
-    if not r.match(app_name):
-        raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
+    if app_name:
+        r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
+        if not r.match(app_name):
+            return JSONResponse(
+                general_message(200, "success", msg_show="查询成功", list=[], total=0,
+                                next_page=int(page) + 1),
+                status_code=200)
 
     apps, count = market_app_service.get_visiable_apps(session, user, enterprise_id, scope, app_name, tags, is_complete,
                                                        page,
