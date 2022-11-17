@@ -45,7 +45,7 @@ class BaseService:
                 t.tenant_id = :team_id
                 AND t.service_region = :region_name
                 AND r.group_id = :group_id
-                AND t.service_cname like :service_cname
+                AND t.service_cname like '%' :service_cname '%'
             ORDER BY
                 t.update_time DESC;
         '''
