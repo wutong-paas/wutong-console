@@ -263,6 +263,7 @@ async def get_user_details(session: SessionClass = Depends(deps.get_session),
             tenant_info["region"] = team_region_list
             tenant_info["creater"] = tenant.creater
             tenant_info["create_time"] = tenant.create_time
+            tenant_info["namespace"] = tenant.namespace
 
             if tenant.creater == user.user_id:
                 is_team_owner = True
