@@ -843,6 +843,24 @@ class RemoteBuildClient(ApiBaseHttpClient):
         logger.debug('-------1111--body----->{0}'.format(body))
         return res, body
 
+    # 修改tcp网关自定义配置项
+    def upgrade_tcp_configuration(self, session, region, tenant_name, service_alias, body):
+        """
+
+        :param region:
+        :param tenant_name:
+        :param service_alias:
+        :param body:
+        :return:
+        """
+        url, token = get_region_access_info(tenant_name, region, session)
+        tenant_region = get_tenant_region_info(tenant_name, region, session)
+        body["tenant_id"] = tenant_region.region_tenant_id
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/tcprule-config"
+        self._set_headers(token)
+        res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
+        return res, body
+
     def restore_properties(self, session, region, tenant_name, service_alias, uri, body):
         """When the upgrade fails, restore the properties of the service"""
 
