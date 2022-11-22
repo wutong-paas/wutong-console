@@ -537,12 +537,15 @@ class DomainService(object):
                     status_code=400,
                     error_code=400)
 
-    def update_http_rule_config(self, session: SessionClass, team, region_name, rule_id, configs):
-        self.check_set_header(session=session, set_headers=configs["set_headers"])
-        service_domain = domain_repo.get_service_domain_by_http_rule_id(session, rule_id)
-        if not service_domain:
-            raise AbortRequest("no domain", msg_show="策略不存在", status_code=404, error_code=None)
-        service = service_info_repo.get_service_by_service_id(session, service_domain.service_id)
+    def update_rule_config(self, session: SessionClass, team, region_name, rule_id, configs, type, service_id=None):
+        if type == "http":
+            self.check_set_header(session=session, set_headers=configs["set_headers"])
+            service_domain = domain_repo.get_service_domain_by_http_rule_id(session, rule_id)
+            if not service_domain:
+                raise AbortRequest("no domain", msg_show="策略不存在", status_code=404, error_code=None)
+            service = service_info_repo.get_service_by_service_id(session, service_domain.service_id)
+        else:
+            service = service_info_repo.get_service_by_service_id(session, service_id)
         if not service:
             raise AbortRequest("no service", msg_show="组件不存在", status_code=404, error_code=None)
         cf = configuration_repo.get_configuration_by_rule_id(session, rule_id)
@@ -550,9 +553,14 @@ class DomainService(object):
         gcc_dict["body"] = configs
         gcc_dict["rule_id"] = rule_id
         try:
-            res, data = remote_build_client.upgrade_configuration(session, region_name, team.tenant_name,
-                                                                  service.service_alias,
-                                                                  gcc_dict)
+            if type == "http":
+                res, data = remote_build_client.upgrade_configuration(session, region_name, team.tenant_name,
+                                                                      service.service_alias,
+                                                                      gcc_dict)
+            else:
+                res, data = remote_build_client.upgrade_tcp_configuration(session, region_name, team.tenant_name,
+                                                                          service.service_alias,
+                                                                          gcc_dict)
             if res.status == 200:
                 if cf:
                     cf.value = json.dumps(configs)

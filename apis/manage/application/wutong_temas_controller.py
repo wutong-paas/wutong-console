@@ -254,14 +254,16 @@ async def set_domain_parameter(request: Request,
                                rule_id: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
                                team=Depends(deps.get_current_team)) -> Any:
+    data = await request.json()
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    type_name = data.get("type", "http")
+    service_id = data.get("service_id", None)
     response_region = region.region_name
-    # todo await？？
     value = await parse_item(request, 'value', required=True, error='value is a required parameter')
-    domain_service.update_http_rule_config(session=session, team=team, region_name=response_region, rule_id=rule_id,
-                                           configs=value)
+    domain_service.update_rule_config(session=session, team=team, region_name=response_region, rule_id=rule_id,
+                                      configs=value, type=type_name, service_id=service_id)
     result = general_message(200, "success", "更新成功")
     return JSONResponse(result, status_code=200)
 
