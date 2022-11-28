@@ -710,8 +710,6 @@ class AppPluginService(object):
                                                         is_change=True, scope="inner",
                                                         user_name=user.nick_name)
                 else:
-                    if "-javaagent" in env.attr_value:
-                        print("111111")
                     attr_value = settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name + " " + env.attr_value
                     env.attr_value = attr_value
 
