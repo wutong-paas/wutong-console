@@ -252,7 +252,7 @@ class AppPluginService(object):
                     old_attr_value = env.attr_value
                     if "-javaagent" in env.attr_value:
                         start_index = old_attr_value.find("-javaagent")
-                        end_index = old_attr_value.find("ash") + len(service.k8s_component_name)
+                        end_index = old_attr_value.find(service.k8s_component_name) + len(service.k8s_component_name)
                         repl_value = old_attr_value[:start_index] + "" + old_attr_value[end_index:]
                     else:
                         return
