@@ -249,9 +249,13 @@ class AppPluginService(object):
                 )).scalars().first()
 
                 if env:
-                    value = settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name
                     old_attr_value = env.attr_value
-                    repl_value = old_attr_value.replace(value, '')
+                    if "-javaagent" in env.attr_value:
+                        start_index = old_attr_value.find("-javaagent")
+                        end_index = old_attr_value.find("ash") + len(service.k8s_component_name)
+                        repl_value = old_attr_value[:start_index] + "" + old_attr_value[end_index:]
+                    else:
+                        return
                     if repl_value == '':
                         env_var_service.delete_env_by_env_id(session=session, tenant=team, service=service,
                                                              env_id=env.ID,
@@ -706,6 +710,8 @@ class AppPluginService(object):
                                                         is_change=True, scope="inner",
                                                         user_name=user.nick_name)
                 else:
+                    if "-javaagent" in env.attr_value:
+                        print("111111")
                     attr_value = settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name + " " + env.attr_value
                     env.attr_value = attr_value
 
