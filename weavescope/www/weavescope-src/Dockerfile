@@ -1,7 +1,9 @@
-FROM node:6.9.0
-RUN npm install -g yarn
+FROM node:8.8 AS builder
 WORKDIR /home/weave
-COPY package.json yarn.lock /home/weave/
+COPY . .
 ENV NPM_CONFIG_LOGLEVEL=warn NPM_CONFIG_PROGRESS=false
-RUN yarn --pure-lockfile
-COPY webpack.local.config.js webpack.production.config.js server.js .babelrc .eslintrc .eslintignore /home/weave/
+RUN npm install && npm run build && ls
+
+FROM nginx
+WORKDIR /usr/share/nginx/weave
+COPY --from=builder /home/weave/dist  .

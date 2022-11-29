@@ -24,19 +24,14 @@ import { storageSet } from '../utils/storage-utils';
 import { getCurrentTopologyUrl } from '../utils/topology-utils';
 import {
   bufferDeltaUpdate,
-
   resetUpdateBuffer, resumeUpdate
 } from '../utils/update-buffer-utils';
 import {
   deletePipe, doControlRequest,
   getAllNodes,
-
-
   getNodeDetails, getNodesDelta, getResourceViewNodesSnapshot,
-
-
-  getTopologies,
-
+  Podname,Dateils,Disklist,Visitinfo,GetPods,
+  getTopologies,appVisitInfo,appModuleInfo,appInfo,
   stopPolling,
   teardownWebsockets
 } from '../utils/web-api-utils';
@@ -136,12 +131,14 @@ export function hoverMetric(metricType) {
 }
 
 export function unhoverMetric() {
+  console.log('10')
   return {
     type: ActionTypes.UNHOVER_METRIC,
   };
 }
 
 export function pinMetric(metricType) {
+  console.log('11')
   return (dispatch, getState) => {
     dispatch({
       type: ActionTypes.PIN_METRIC,
@@ -227,6 +224,7 @@ export function changeTopologyOption(option, value, topologyId, addOrRemove) {
       state.get('nodeDetails'),
       dispatch
     );
+    
   };
 }
 
@@ -362,9 +360,76 @@ export function clickNode(nodeId, label, origin, serviceAlias, serviceCname) {
       dispatch,
       serviceAlias
     );
+    Dateils(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch,
+      serviceAlias
+    );
+    Podname(serviceAlias)
+    Disklist(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch,
+      serviceAlias
+    )
+    Visitinfo(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch,
+      serviceAlias
+    )
+    GetPods(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch,
+      serviceAlias
+    )
+    // appVisitInfo(
+    //   state.get('topologyUrlsById'),
+    //   state.get('currentTopologyId'),
+    //   activeTopologyOptionsSelector(state),
+    //   state.get('nodeDetails'),
+    //   dispatch,
+    //   serviceAlias
+    // )
+    appModuleInfo(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch,
+      serviceAlias
+    )
+    appInfo(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch,
+      serviceAlias
+    )
+    getNodesDelta(
+      getCurrentTopologyUrl(state),
+      activeTopologyOptionsSelector(state),
+      dispatch
+    );
   };
 }
+export function clickPauseDatele(){
+  return (dispatch)=>{
+    Dateils(dispatch)
+  }
 
+}
 export function clickPauseUpdate() {
   return {
     type: ActionTypes.CLICK_PAUSE_UPDATE
@@ -426,7 +491,8 @@ export function clickShowTopologyForNode(topologyId, nodeId) {
     dispatch({
       type: ActionTypes.CLICK_SHOW_TOPOLOGY_FOR_NODE,
       topologyId,
-      nodeId
+      nodeId,
+
     });
     updateTopology(dispatch, getState);
   };
@@ -493,7 +559,7 @@ export function enterNode(nodeId) {
   };
 }
 
-export function focusSearch() {
+  export function focusSearch() {
   return (dispatch, getState) => {
     dispatch({ type: ActionTypes.FOCUS_SEARCH });
     // update nodes cache to allow search across all topologies,
@@ -660,6 +726,7 @@ export function receiveTopologies(topologies) {
       state.get('nodeDetails'),
       dispatch
     );
+    
     // Populate search matches on first load
     if (firstLoad && state.get('searchQuery')) {
       dispatch(focusSearch());
@@ -782,6 +849,7 @@ export function route(urlState) {
       state.get('nodeDetails'),
       dispatch
     );
+
     // If we are landing on the resource view page, we need to fetch not only all the
     // nodes for the current topology, but also the nodes of all the topologies that make
     // the layers in the resource view.

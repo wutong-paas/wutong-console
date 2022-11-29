@@ -3,3 +3,4 @@ build/
 coverage/
 test/*png
 weave-scope.tgz
+dist/
