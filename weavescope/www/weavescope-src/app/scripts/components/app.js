@@ -178,7 +178,7 @@ class App extends React.Component {
               left: monitorData.left,
               top: monitorData.top - 60,
               zIndex: 9999,
-              background: '#fff',
+              background: 'black',
             }}
           >
             吞吐率 - 点密度表示: {mData.throughput_rate || '-'} dps <br />{' '}

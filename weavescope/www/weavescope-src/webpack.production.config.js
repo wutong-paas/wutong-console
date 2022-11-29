@@ -1,3 +1,4 @@
+'use strict'
 const webpack = require('webpack');
 const autoprefixer = require('autoprefixer');
 const path = require('path');
@@ -36,7 +37,7 @@ module.exports = {
   },
 
   output: {
-    path: path.join(__dirname, '../weavescope/'),
+    path: path.join(__dirname, './dist'),
     filename: '[name]-[chunkhash].js',
     publicPath: PUBLIC_PATH
   },
@@ -61,7 +62,6 @@ module.exports = {
     // Webpack is opionated about how pkgs should be laid out:
     // https://github.com/webpack/webpack/issues/1617
     noParse: [/xterm\/dist\/xterm\.js/],
-
     rules: [
       {
         test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,

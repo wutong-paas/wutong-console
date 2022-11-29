@@ -279,7 +279,7 @@ function goodrainData2scopeData(data = {}) {
     id: 'The Internet',
     service_alias: 'internet',
     service_cname: 'The Internet',
-    label: 'The Internet',
+    label: '网关',
     shape: 'cloud',
     stack: true,
     stackNum: 1,
@@ -317,7 +317,7 @@ function goodrainData2scopeData(data = {}) {
       node.rank = node.cur_status;
       node.shape = 'hexagon';
       node.stack = true;
-      node.stackNum = getStackNum(item);
+      node.stackNum = 1;
       node.linkable = item.cur_status === 'running' ? 1 : 0;
       node.adjacency = data.json_svg[k] || [];
       add.push(node);
@@ -449,7 +449,6 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
     } else {
       url = `/console/teams/${tenantName}/topological/services/${serviceAlias}?region=${region}&_=${new Date().getTime()}`;
     }
-
     doRequest({
       url,
       success: (res) => {
@@ -479,7 +478,282 @@ export function getNodeDetails(topologyUrlsById, currentTopologyId, options, nod
     log('No details or url found for ', obj);
   }
 }
+//获取组件磁盘信息
+export function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName && serviceAlias !== 'internet') {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/apps/${serviceAlias}/resource?region=${region}&_=${new Date().getTime()}`;
 
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data.bean || {};
+        dispatch({
+          type:"DISK_DETAIL",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+// 获取运行实例
+export function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  console.log(serviceAlias,'serviceAlias')
+  if (serviceAlias && tenantName && serviceAlias !== 'internet') {
+    console.log('coming')
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data.list.new_pods || [];
+        dispatch({
+          type:"GET_PODS",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+//获取组件访问信息
+export function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName && serviceAlias !=='internet') {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/apps/${serviceAlias}/visit?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data.bean.access_info[0] || {};
+        dispatch({
+          type:"VISIT_INFO",
+          data
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+//获取应用访问信息
+export function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/group/service/visitservice_alias=${serviceAlias}?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+//应用下面的组件数量
+export function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/groups/${groupId}?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+//应用下的基本信息
+export function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch,serviceAlias){
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  let url = '';
+  if (serviceAlias && tenantName) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    url = `/console/teams/${tenantName}/groups/${groupId}/status?region=${region}&_=${new Date().getTime()}`;
+
+    doRequest({
+      url,
+      success: (res) => {
+        // res = res || {};
+
+        // res.rank = res.cur_status;
+        // if (obj.id === 'The Internet') {
+        //   res.cur_status = 'running';
+        // }
+        // res = res || {};
+        // const data = res.data.bean.access_info[0] || {};
+        // dispatch({
+        //   type:"VISIT_INFO",
+        //   data
+        // });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  }
+}
+// 获取pod_name值
+export function Podname(serviceAlias){
+
+  return new Promise((resolve,reject)=>{
+    const windowParent = window.parent;
+    const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+    const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+    let url = '';
+    if(serviceAlias && serviceAlias !=='internet'){
+      url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods?region=${region}&_=${new Date().getTime()}`;
+      doRequest({
+        url,
+        success: (res) => {
+          res = res || {};
+    
+          res.rank = res.cur_status;
+          res = res || {};
+          const data = res.data.list.new_pods[0].pod_name || [];
+          resolve(data)
+        },
+        error: (err) => {
+          log(`Error in node details request: ${err.responseText}`);
+          // dont treat missing node as error
+        }
+      });
+    }
+  })
+}
+// 获取实例中的容器信息
+export async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch, serviceAlias){
+  const padname=await Podname(serviceAlias)
+  const windowParent = window.parent;
+  const obj = nodeMap.last();
+  const tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
+  const region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+  const groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  if (obj && serviceAlias && tenantName && groupId && padname) {
+    const topologyUrl = topologyUrlsById.get(obj.topologyId);
+    let url = '';
+    if (obj.id === 'The Internet') {
+      url = `/console/teams/${tenantName}/${groupId}/outer-service?region=${region}&_=${new Date().getTime()}`;
+    } else {
+      url = `/console/teams/${tenantName}/apps/${serviceAlias}/pods/${padname}/detail?region=${region}&_=${new Date().getTime()}`;
+    }
+
+    doRequest({
+      url,
+      success: (res) => {
+        res = res || {};
+        res.rank = res.cur_status;
+        if (obj.id === 'The Internet') {
+          res.cur_status = 'running';
+        }
+        res = res || {};
+        const data = res.data || {};
+        const bean = data.bean || {};
+        bean.id = obj.id;
+        dispatch({
+          type:"INSTANCE",
+          bean
+        });
+      },
+      error: (err) => {
+        log(`Error in node details request: ${err.responseText}`);
+      }
+    });
+  } else if (obj) {
+    log('No details or url found for ', obj);
+  }
+}
 export function getApiDetails(dispatch) {
   clearTimeout(apiDetailsTimer);
   const url = `${getApiPath()}/api`;
