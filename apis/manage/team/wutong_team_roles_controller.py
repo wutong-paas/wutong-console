@@ -5,10 +5,9 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from core import deps
-from core.perm.perm import check_perm
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException, NoPermissionsError
+from exceptions.main import ServiceHandleException
 from repository.teams.team_roles_repo import team_roles_repo
 from schemas.response import Response
 from service.user_service import role_perm_service
@@ -31,11 +30,6 @@ async def get_team_roles_lc(team_name: Optional[str] = None,
 async def create_team_roles(request: Request,
                             team_name: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session)) -> Any:
-
-    is_perm = check_perm(session, user, team, "gatewayRule_describe")
-    if not is_perm:
-        raise NoPermissionsError
-
     try:
         data = await request.json()
         name = data.get("name")
