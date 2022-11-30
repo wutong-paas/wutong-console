@@ -5,9 +5,10 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, NoPermissionsError
 from repository.teams.team_roles_repo import team_roles_repo
 from schemas.response import Response
 from service.user_service import role_perm_service
@@ -29,7 +30,14 @@ async def get_team_roles_lc(team_name: Optional[str] = None,
 @router.post("/teams/{team_name}/roles", response_model=Response, name="团队角色创建")
 async def create_team_roles(request: Request,
                             team_name: Optional[str] = None,
-                            session: SessionClass = Depends(deps.get_session)) -> Any:
+                            session: SessionClass = Depends(deps.get_session),
+                            user=Depends(deps.get_current_user),
+                            team=Depends(deps.get_current_team)) -> Any:
+
+    is_perm = check_perm(session, user, team, "teamRole_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     try:
         data = await request.json()
         name = data.get("name")
@@ -64,7 +72,12 @@ async def get_team_role_id_perms(role_id: Optional[str] = None,
 async def get_team_role_id_perms(request: Request,
                                  role_id: Optional[str] = None,
                                  session: SessionClass = Depends(deps.get_session),
-                                 team=Depends(deps.get_current_team)) -> Any:
+                                 team=Depends(deps.get_current_team),
+                                 user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "teamRole_edit")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     perms_model = data.get("permissions")
     role = team_roles_repo.get_role_by_id(session, "team", team.tenant_id, role_id, with_default=True)
@@ -77,7 +90,12 @@ async def get_team_role_id_perms(request: Request,
 @router.delete("/teams/{team_name}/roles/{role_id}", response_model=Response, name="删除团队角色")
 async def delete_team_role(role_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           team=Depends(deps.get_current_team),
+                           user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "teamRole_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     team_roles_repo.delete_role(session, "team", team.tenant_id, role_id)
     result = general_message(200, "success", "删除角色成功")
     return JSONResponse(result, status_code=200)
@@ -87,7 +105,12 @@ async def delete_team_role(role_id: Optional[str] = None,
 async def update_team_role_id_perms(request: Request,
                                     role_id: Optional[str] = None,
                                     session: SessionClass = Depends(deps.get_session),
-                                    team=Depends(deps.get_current_team)) -> Any:
+                                    team=Depends(deps.get_current_team),
+                                    user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "teamRole_edit")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     name = data.get("name")
     role = team_roles_repo.update_role(session, "team", team.tenant_id, role_id, name)

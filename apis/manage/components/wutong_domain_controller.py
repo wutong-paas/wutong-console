@@ -5,9 +5,11 @@ from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.constants import DomainType
 from core.utils.return_message import general_message
 from database.session import SessionClass
+from exceptions.main import NoPermissionsError
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from schemas.response import Response
@@ -77,6 +79,10 @@ async def get_dependency_component(request: Request,
           paramType: form
 
     """
+    is_perm = check_perm(session, user, team, "component_port")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)
@@ -117,7 +123,8 @@ async def get_dependency_component(request: Request,
 async def delete_port_domain(request: Request,
                              serviceAlias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
-                             team=Depends(deps.get_current_team)) -> Any:
+                             team=Depends(deps.get_current_team),
+                             user=Depends(deps.get_current_user)) -> Any:
     """
     组件端口解绑域名
     ---
@@ -144,6 +151,10 @@ async def delete_port_domain(request: Request,
           paramType: form
 
     """
+    is_perm = check_perm(session, user, team, "component_port")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)

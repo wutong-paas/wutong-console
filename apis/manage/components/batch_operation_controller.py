@@ -5,8 +5,10 @@ from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.return_message import general_message
 from database.session import SessionClass
+from exceptions.main import NoPermissionsError
 from repository.teams.team_region_repo import team_region_repo
 from schemas.components import BatchActionParam
 from schemas.response import Response
@@ -36,18 +38,17 @@ async def batch_actions(
 
     if params.action not in ("stop", "start", "restart", "move", "upgrade", "deploy"):
         return JSONResponse(general_message(400, "param error", "操作类型错误"), status_code=400)
-    # if action == "stop":
-    #     self.has_perms([400008])
-    # if action == "start":
-    #     self.has_perms([400006])
-    # if action == "restart":
-    #     self.has_perms([400007])
-    # if action == "move":
-    #     self.has_perms([400003])
-    # if action == "upgrade":
-    #     self.has_perms([400009])
-    # if action == "deploy":
-    #     self.has_perms([400010])
+
+    perm_action = params.action
+    if params.action == "upgrade":
+        perm_action = "update"
+    if params.action == "deploy":
+        perm_action = "construct"
+
+    is_perm = check_perm(session, user, team, "component_" + perm_action)
+    if not is_perm:
+        raise NoPermissionsError
+
     service_id_list = params.service_ids.split(",")
     code, msg = app_manage_service.batch_action(session=session, region_name=region_name, tenant=team, user=user,
                                                 action=params.action, service_ids=service_id_list,

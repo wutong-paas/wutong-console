@@ -9,11 +9,12 @@ from starlette import status
 
 from apis.manage.components.wutong_domain_controller import validate_domain
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.constants import DomainType
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from exceptions.main import AbortRequest, ServiceHandleException
+from exceptions.main import AbortRequest, ServiceHandleException, NoPermissionsError
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.group_service_repo import service_info_repo
@@ -80,6 +81,10 @@ async def batch_delete_components(request: Request,
     批量删除组件
 
     """
+    is_perm = check_perm(session, user, team, "component_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     service_ids = data.get("service_ids", None)
     service_id_list = service_ids.split(",")
@@ -108,6 +113,10 @@ async def add_http_domain(request: Request,
     添加http策略
 
     """
+    is_perm = check_perm(session, user, team, "gatewayRule_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)
@@ -307,7 +316,12 @@ async def add_http_domain(request: Request, session: SessionClass = Depends(deps
 @router.put("/teams/{team_name}/httpdomain", response_model=Response, name="编辑http策略")
 async def add_http_domain(request: Request,
                           session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team)) -> Any:
+                          team=Depends(deps.get_current_team),
+                          user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_edit")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)
@@ -382,7 +396,12 @@ async def add_http_domain(request: Request,
 @router.delete("/teams/{team_name}/httpdomain", response_model=Response, name="删除http策略")
 async def delete_http_domain(request: Request,
                              session: SessionClass = Depends(deps.get_session),
-                             team=Depends(deps.get_current_team)) -> Any:
+                             team=Depends(deps.get_current_team),
+                             user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     service_id = data.get("service_id", None)
     http_rule_id = data.get("http_rule_id", None)
@@ -402,6 +421,10 @@ async def add_tcp_domain(request: Request,
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user),
                          team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     container_port = data.get("container_port", None)
     service_id = data.get("service_id", None)
@@ -492,6 +515,10 @@ async def set_tcp_domain(request: Request,
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user),
                          team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_edit")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     container_port = data.get("container_port", None)
     service_id = data.get("service_id", None)
@@ -540,7 +567,12 @@ async def set_tcp_domain(request: Request,
 @router.delete("/teams/{team_name}/tcpdomain", response_model=Response, name="删除单个tcp/udp策略信息")
 async def delete_tcp_domain(request: Request,
                             session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
+                            team=Depends(deps.get_current_team),
+                            user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     tcp_rule_id = data.get("tcp_rule_id", None)
     if not tcp_rule_id:

@@ -9,11 +9,12 @@ from loguru import logger
 
 from clients.remote_build_client import remote_build_client
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.return_message import general_message
 from core.utils.validation import validate_endpoints_info
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists
-from exceptions.main import ServiceHandleException, CheckThirdpartEndpointFailed
+from exceptions.main import ServiceHandleException, CheckThirdpartEndpointFailed, NoPermissionsError
 from models.component.models import ThirdPartyComponentEndpoints
 from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_info_repo
@@ -39,6 +40,10 @@ async def third_party(request: Request,
     创建第三方组件
 
     """
+    is_perm = check_perm(session, user, team, "component_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     if not team:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)

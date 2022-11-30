@@ -79,7 +79,7 @@ class RegionService(object):
             response_region = request.cookies.get('region_name', None)
         region_name = response_region
         if not response_region:
-            raise ImportError("region_name not found !")
+            raise AbortRequest("region not found", "数据中心不存在", status_code=404, error_code=404)
         region = region_repo.get_region_by_region_name(session, region_name)
         if not region:
             raise AbortRequest("region not found", "数据中心不存在", status_code=404, error_code=404)

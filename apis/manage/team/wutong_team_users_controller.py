@@ -7,9 +7,10 @@ from fastapi_pagination import paginate, Params
 from loguru import logger
 
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, NoPermissionsError
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.teams.team_repo import team_repo
 from repository.teams.team_roles_repo import team_roles_repo
@@ -71,6 +72,10 @@ async def delete_team_user(request: Request,
             (可批量可单个)
 
             """
+    is_perm = check_perm(session, user, team, "teamMember_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     try:
         from_data = await request.json()
         user_ids = from_data["user_ids"]
@@ -114,6 +119,9 @@ async def put_team_user_roles(request: Request,
                               user_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
                               team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "teamMember_delete")
+    if not is_perm:
+        raise NoPermissionsError
     user = None
     data = await request.json()
     roles = data.get("roles")

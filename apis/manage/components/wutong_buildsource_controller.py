@@ -8,11 +8,12 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.oauth.oauth_types import get_oauth_instance
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists
-from exceptions.main import ResourceNotEnoughException, AccountOverdueException
+from exceptions.main import ResourceNotEnoughException, AccountOverdueException, NoPermissionsError
 from repository.application.app_repository import service_webhooks_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.group_service_repo import service_info_repo
@@ -29,7 +30,8 @@ router = APIRouter()
 @router.get("/teams/{team_name}/apps/{serviceAlias}/buildsource", response_model=Response, name="查询构建源")
 async def get_build_source(serviceAlias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           team=Depends(deps.get_current_team),
+                           user=Depends(deps.get_current_user)) -> Any:
     """
     查询构建源信息
     ---
@@ -52,6 +54,10 @@ async def modify_build_source(request: Request,
     修改构建源
     ---
     """
+    is_perm = check_perm(session, user, team, "component_source")
+    if not is_perm:
+        raise NoPermissionsError
+
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     try:
         data = await request.json()
@@ -159,6 +165,10 @@ async def code_create_component(
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "component_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     group_id = data.get("group_id", -1)
     service_code_from = data.get("code_from", None)
