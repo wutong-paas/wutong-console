@@ -7,10 +7,11 @@ from sqlalchemy import select, func
 
 from clients.remote_build_client import remote_build_client
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, NoPermissionsError
 from models.teams import ServiceDomain, ServiceTcpDomain
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
@@ -30,7 +31,12 @@ router = APIRouter()
 @router.get("/teams/{team_name}/domain/query", response_model=Response, name="网关访问策略管理")
 async def get_domain_query(request: Request,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           team=Depends(deps.get_current_team),
+                           user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_describe")
+    if not is_perm:
+        raise NoPermissionsError
+
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
@@ -154,10 +160,15 @@ async def get_domain_query(request: Request,
 
 @router.get("/teams/{team_name}/domain/get_port", response_model=Response, name="获取可用的port")
 async def get_port(
-                   request: Request,
-                   team_name: Optional[str] = None,
-                   session: SessionClass = Depends(deps.get_session),
-                   team=Depends(deps.get_current_team)) -> Any:
+        request: Request,
+        team_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_describe")
+    if not is_perm:
+        raise NoPermissionsError
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -172,7 +183,14 @@ async def get_port(
 
 @router.get("/teams/{team_name}/tcpdomain", response_model=Response, name="tcp/udp策略操作")
 async def service_tcp_domain(request: Request,
-                             session: SessionClass = Depends(deps.get_session)) -> Any:
+                             session: SessionClass = Depends(deps.get_session),
+                             team=Depends(deps.get_current_team),
+                             user=Depends(deps.get_current_user)
+                             ) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_describe")
+    if not is_perm:
+        raise NoPermissionsError
+
     # 获取单个tcp/udp策略信息
     tcp_rule_id = request.query_params.get("tcp_rule_id", None)
     # 判断参数
@@ -207,6 +225,10 @@ async def service_tcp_domain(request: Request,
                              session: SessionClass = Depends(deps.get_session),
                              user=Depends(deps.get_current_user),
                              team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_edit")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     container_port = data.get("container_port", None)
     service_id = data.get("service_id", None)
@@ -256,7 +278,12 @@ async def service_tcp_domain(request: Request,
 @router.get("/teams/{team_name}/tcpdomain/query", response_model=Response, name="查询团队下tcp/udp策略")
 async def get_domain_query(request: Request,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           team=Depends(deps.get_current_team),
+                           user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "gatewayRule_describe")
+    if not is_perm:
+        raise NoPermissionsError
+
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
@@ -366,7 +393,8 @@ async def get_domain_query(request: Request,
 @router.get("/teams/{team_name}/certificates", response_model=Response, name="网关证书管理")
 async def get_tenant_certificates(request: Request,
                                   session: SessionClass = Depends(deps.get_session),
-                                  team=Depends(deps.get_current_team)) -> Any:
+                                  team=Depends(deps.get_current_team),
+                                  user=Depends(deps.get_current_user)) -> Any:
     """
     获取团队下的证书
     ---
@@ -389,7 +417,12 @@ async def get_tenant_certificates(request: Request,
 @router.post("/teams/{team_name}/certificates", response_model=Response, name="添加网关证书")
 async def add_tenant_certificates(request: Request,
                                   session: SessionClass = Depends(deps.get_session),
-                                  team=Depends(deps.get_current_team)) -> Any:
+                                  team=Depends(deps.get_current_team),
+                                  user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "certificate_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     alias = data.get("alias", None)
     if len(alias) > 64:
@@ -425,7 +458,12 @@ async def get_certificates(request: Request,
 async def modify_certificates(request: Request,
                               certificate_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
+                              team=Depends(deps.get_current_team),
+                              user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "certificate_edit")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     if not certificate_id:
         return JSONResponse(general_message(400, "no param certificate_id", "缺少未指明具体证书"), status_code=400)
@@ -446,7 +484,11 @@ async def modify_certificates(request: Request,
 async def delete_certificates(request: Request,
                               certificate_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
-                              user=Depends(deps.get_current_user)) -> Any:
+                              user=Depends(deps.get_current_user),
+                              team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "certificate_delete")
+    if not is_perm:
+        raise NoPermissionsError
 
     domain_service.delete_certificate_by_pk(session, certificate_id)
     result = general_message(200, "success", "证书删除成功")

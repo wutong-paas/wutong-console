@@ -8,10 +8,11 @@ from loguru import logger
 
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.constants import StorageUnit
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, NoPermissionsError
 from repository.application.app_migration_repo import migrate_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
@@ -32,6 +33,10 @@ async def get_backup_info(request: Request,
     """
     查询备份信息
     """
+    is_perm = check_perm(session, user, team, "app_backup")
+    if not is_perm:
+        raise NoPermissionsError
+
     group_id = request.query_params.get("group_id", None)
     if not group_id:
         return JSONResponse(general_message(400, "group id is not found", "请指定需要查询的组"), status_code=400)
@@ -66,6 +71,10 @@ async def get_backup_info(request: Request,
     应用备份
     ---
     """
+    is_perm = check_perm(session, user, team, "app_backup")
+    if not is_perm:
+        raise NoPermissionsError
+
     if not group_id:
         return JSONResponse(general_message(400, "group id is null", "请选择需要备份的组"), status_code=400)
     data = await request.json()
@@ -116,10 +125,15 @@ async def get_backup_info(request: Request,
 async def backup_app(request: Request,
                      group_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
-                     team=Depends(deps.get_current_team)) -> Any:
+                     team=Depends(deps.get_current_team),
+                     user=Depends(deps.get_current_user)) -> Any:
     """
     根据应用备份ID查询备份状态
     """
+    is_perm = check_perm(session, user, team, "app_backup")
+    if not is_perm:
+        raise NoPermissionsError
+
     try:
         if not group_id:
             return JSONResponse(general_message(400, "group id is null", "请选择需要备份的组"), status_code=400)
@@ -150,7 +164,12 @@ async def backup_app(request: Request,
 @router.delete("/teams/{team_name}/groupapp/{group_id}/backup", response_model=Response, name="删除应用备份")
 async def delete_backup_app(request: Request,
                             session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
+                            team=Depends(deps.get_current_team),
+                            user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "app_backup")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     backup_id = data.get("backup_id", None)
     if not backup_id:
@@ -208,6 +227,10 @@ async def app_migrate(request: Request,
     应用迁移
     ---
     """
+    is_perm = check_perm(session, user, cache_team, "app_migrate")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     migrate_region = data.get("region", None)
     team = data.get("team", None)
@@ -250,8 +273,7 @@ async def app_migrate(request: Request,
 async def get_app_migrate_state(request: Request,
                                 team_name: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session),
-                                user=Depends(deps.get_current_user),
-                                team=Depends(deps.get_current_team)) -> Any:
+                                user=Depends(deps.get_current_user)) -> Any:
     restore_id = request.query_params.get("restore_id", None)
     if not restore_id:
         return JSONResponse(general_message(400, "restore id is null", "请指明查询的备份ID"), status_code=400)
@@ -273,7 +295,12 @@ async def get_app_migrate_state(request: Request,
 async def set_backup_info(request: Request,
                           group_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team)) -> Any:
+                          team=Depends(deps.get_current_team),
+                          user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "app_backup")
+    if not is_perm:
+        raise NoPermissionsError
+
     try:
         form_data = await request.form()
         if not group_id:
@@ -306,7 +333,12 @@ async def get_app_copy(
         request: Request,
         group_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "app_copy")
+    if not is_perm:
+        raise NoPermissionsError
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -322,6 +354,10 @@ async def app_copy(request: Request,
                    user=Depends(deps.get_current_user),
                    team=Depends(deps.get_current_team),
                    session: SessionClass = Depends(deps.get_session)) -> Any:
+    is_perm = check_perm(session, user, team, "app_copy")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     services = data.get("services", [])
     tar_team_name = data.get("tar_team_name")

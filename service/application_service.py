@@ -1513,6 +1513,11 @@ class ApplicationService(object):
                                                            region_name, tenant.tenant_name, region_app_id,
                                                            governance_mode)
 
+    def get_app_by_app_id(self, session, app_id):
+        return session.execute(select(Application).where(
+            Application.ID == app_id
+        )).scalars().first()
+
     def delete_app(self, session: SessionClass, tenant, region_name, app_id, app_type):
         if app_type == AppType.helm.name:
             self._delete_helm_app(session, tenant, region_name, app_id)

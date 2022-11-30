@@ -6,8 +6,10 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 from clients.remote_plugin_client import remote_plugin_client
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.return_message import general_message
 from database.session import SessionClass
+from exceptions.main import NoPermissionsError
 from repository.component.group_service_repo import service_info_repo
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
@@ -51,6 +53,10 @@ async def get_plugin_list(request: Request,
           paramType: query
 
     """
+    is_perm = check_perm(session, user, team, "component_plugin")
+    if not is_perm:
+        raise NoPermissionsError
+
     origin = request.query_params.get("origin", "sys")
     if origin:
         if origin not in ("sys", "tenant", "shared"):
@@ -75,6 +81,10 @@ async def install_sys_plugin(request: Request,
                              session: SessionClass = Depends(deps.get_session),
                              user=Depends(deps.get_current_user),
                              team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "component_plugin")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     plugin_type = data.get("plugin_type", None)
     build_version = data.get("build_version", None)
@@ -181,6 +191,10 @@ async def install_plugin(request: Request,
           type: string
           paramType: form
     """
+    is_perm = check_perm(session, user, team, "component_plugin")
+    if not is_perm:
+        raise NoPermissionsError
+
     result = {}
     region = await region_services.get_region_by_request(session, request)
     if not region:
@@ -242,6 +256,10 @@ async def delete_plugin(
           type: string
           paramType: path
     """
+    is_perm = check_perm(session, user, team, "component_plugin")
+    if not is_perm:
+        raise NoPermissionsError
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -282,7 +300,8 @@ async def open_or_stop_plugin(request: Request,
                               plugin_id: Optional[str] = None,
                               serviceAlias: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
+                              team=Depends(deps.get_current_team),
+                              user=Depends(deps.get_current_user)) -> Any:
     """
     启停用组件插件
     ---
@@ -313,6 +332,10 @@ async def open_or_stop_plugin(request: Request,
           type: boolean
           paramType: form
     """
+    is_perm = check_perm(session, user, team, "component_plugin")
+    if not is_perm:
+        raise NoPermissionsError
+
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin_id", "参数异常"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)

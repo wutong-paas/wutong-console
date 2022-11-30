@@ -11,13 +11,14 @@ from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core import deps
 from core.enum.component_enum import is_support
+from core.perm.perm import check_perm
 from core.utils.constants import PluginCategoryConstants
 from core.utils.reqparse import parse_argument, parse_item
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
-    AccountOverdueException, AbortRequest, CallRegionAPIException, ErrInsufficientResource
+    AccountOverdueException, AbortRequest, CallRegionAPIException, ErrInsufficientResource, NoPermissionsError
 from models.component.models import ComponentEnvVar
 from models.users.users import Users
 from repository.application.app_repository import service_webhooks_repo
@@ -324,6 +325,10 @@ async def restart_component(serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             user=Depends(deps.get_current_user),
                             team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "component_restart")
+    if not is_perm:
+        raise NoPermissionsError
+
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session=session, user_id=user.user_id)
     code, msg = app_manage_service.restart(session=session, tenant=team, service=service, user=user)
@@ -339,6 +344,10 @@ async def stop_component(serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user),
                          team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "component_stop")
+    if not is_perm:
+        raise NoPermissionsError
+
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
 
     app_manage_service.stop(session=session, tenant=team, service=service, user=user)
@@ -351,6 +360,10 @@ async def start_component(serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
                           user=Depends(deps.get_current_user),
                           team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "component_start")
+    if not is_perm:
+        raise NoPermissionsError
+
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
     try:
@@ -375,6 +388,9 @@ async def upgrade_component(serviceAlias: Optional[str] = None,
     """
     更新
     """
+    is_perm = check_perm(session, user, team, "component_update")
+    if not is_perm:
+        raise NoPermissionsError
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
     try:
@@ -422,6 +438,10 @@ async def delete_component(request: Request,
                            session: SessionClass = Depends(deps.get_session),
                            user=Depends(deps.get_current_user),
                            team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "component_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     data = await request.json()
     is_force = data.get("is_force", False)
@@ -536,6 +556,11 @@ async def market_service_upgrade(
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
         user=Depends(deps.get_current_user)) -> Any:
+
+    is_perm = check_perm(session, user, team, "component_update")
+    if not is_perm:
+        raise NoPermissionsError
+
     version = await parse_item(request, "group_version", required=True)
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not service:
@@ -617,6 +642,10 @@ async def docker_compose_components(
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
         user: Users = Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "component_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     group_name = data.get("group_name", None)
     k8s_app = data.get("k8s_app", None)
@@ -811,6 +840,9 @@ async def components_rollback(
           paramType: form
 
     """
+    is_perm = check_perm(session, user, team, "component_rollback")
+    if not is_perm:
+        raise NoPermissionsError
     try:
         data = await request.json()
         deploy_version = data.get("deploy_version", None)

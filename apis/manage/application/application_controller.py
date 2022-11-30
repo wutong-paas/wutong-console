@@ -8,13 +8,15 @@ from urllib3.exceptions import MaxRetryError
 from clients.remote_component_client import remote_component_client
 from core import deps
 from core.enum.app import GovernanceModeEnum
+from core.perm.perm import check_perm
 from core.utils.crypt import make_uuid
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message, general_data
 from core.utils.validation import is_qualified_name
 from database.session import SessionClass
-from exceptions.bcode import ErrQualifiedName
-from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException
+from exceptions.bcode import ErrQualifiedName, ErrApplicationNotFound
+from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException, \
+    NoPermissionsError
 from models.application.models import Application, ComponentApplicationRelation
 from models.users.users import Users
 from repository.application.application_repo import application_repo
@@ -65,6 +67,10 @@ async def create_app(params: TeamAppCreateRequest,
     :param params:
     :return:
     """
+    is_perm = check_perm(session, user, team, "app_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     if len(params.note) > 2048:
         result = general_message(400, "node too long", "应用备注长度限制2048")
         return JSONResponse(result, status_code=result["code"])
@@ -102,7 +108,8 @@ async def get_app_detail(
         request: Request,
         app_id: Optional[int] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
     """
     查询应用详情
     :param app_id:
@@ -110,6 +117,11 @@ async def get_app_detail(
     """
     if not team:
         raise ServiceHandleException(msg="not found team", msg_show="团队不存在", status_code=400)
+
+    is_perm = check_perm(session, user, team, "app_describe")
+    if not is_perm:
+        return JSONResponse(general_message(10402, "no permissions", "没有操作权限"), status_code=403)
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         raise ServiceHandleException(msg="not found region", msg_show="数据中心不存在", status_code=400)
@@ -123,7 +135,13 @@ async def get_app_detail(
 async def update_app(request: Request,
                      app_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
-                     team=Depends(deps.get_current_team)) -> Any:
+                     team=Depends(deps.get_current_team),
+                     user=Depends(deps.get_current_user)) -> Any:
+
+    is_perm = check_perm(session, user, team, "app_update")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     app_name = data.get("app_name", None)
     note = data.get("note", "")
@@ -135,7 +153,6 @@ async def update_app(request: Request,
     version = data.get("version", "")
     revision = data.get("revision", 0)
 
-    # response_region = request.headers.get("X_REGION_NAME")
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -161,8 +178,8 @@ async def delete_app(
         request: Request,
         app_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
-    # todo
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
     """
     删除应用
     ---
@@ -180,11 +197,21 @@ async def delete_app(
     """
     if not team:
         raise ServiceHandleException(msg="not found team", msg_show="团队不存在", status_code=400)
+
+    is_perm = check_perm(session, user, team, "app_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         raise ServiceHandleException(msg="not found region", msg_show="数据中心不存在", status_code=400)
     region_name = region.region_name
-    app_type = session.query(Application.app_type).filter(Application.ID == app_id).first()[0]
+
+    group = application_service.get_app_by_app_id(session, app_id)
+    if not group:
+        raise ErrApplicationNotFound
+
+    app_type = group.app_type
     try:
         application_service.delete_app(session=session, tenant=team, region_name=region_name, app_id=app_id,
                                        app_type=app_type)
@@ -277,7 +304,19 @@ async def common_operation(
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         team=Depends(deps.get_current_team)) -> Any:
+
     action = params.action
+    perm_action = action
+
+    if action == "upgrade":
+        perm_action = "update"
+    if action == "deploy":
+        perm_action = "construct"
+
+    is_perm = check_perm(session, user, team, "app_" + perm_action)
+    if not is_perm:
+        raise NoPermissionsError
+
     group_id = int(params.group_id)
     services = session.query(ComponentApplicationRelation).filter(
         ComponentApplicationRelation.group_id == group_id).all()
@@ -294,14 +333,6 @@ async def common_operation(
         if service_obj and service_obj.service_source == "third_party":
             service_ids.remove(service_id)
 
-    # if action == "stop":
-    #     self.has_perms([300006, 400008])
-    # if action == "start":
-    #     self.has_perms([300005, 400006])
-    # if action == "upgrade":
-    #     self.has_perms([300007, 400009])
-    # if action == "deploy":
-    #     self.has_perms([300008, 400010])
     if not team:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
@@ -322,7 +353,13 @@ async def app_share_record(request: Request,
                            team_name: Optional[str] = None,
                            group_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           team=Depends(deps.get_current_team),
+                           user=Depends(deps.get_current_user)) -> Any:
+
+    is_perm = check_perm(session, user, team, "app_share")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = []
     market = dict()
     cloud_app = dict()
@@ -340,7 +377,7 @@ async def app_share_record(request: Request,
         store_name = share_record.share_store_name
         store_id = share_record.share_app_market_name
         scope = share_record.scope
-        if scope != "goodrain" and not app_model_name:
+        if scope != "wutong" and not app_model_name:
             app = center_app_repo.get_wutong_app_by_app_id(session=session, eid=team.enterprise_id,
                                                            app_id=share_record.app_id)
             app_model_name = app.app_name if app else ""
@@ -352,7 +389,7 @@ async def app_share_record(request: Request,
                 share_record.share_app_version_info = app_version.app_version_info
             share_record.share_app_model_name = app_model_name
             session.flush()
-        if scope == "goodrain" and store_id and share_record.app_id and not app_model_name:
+        if scope == "wutong" and store_id and share_record.app_id and not app_model_name:
             try:
                 mkt = market.get(share_record.share_app_market_name, None)
                 if not mkt:
@@ -401,7 +438,8 @@ async def app_share(request: Request,
                     team_name: Optional[str] = None,
                     group_id: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session),
-                    team=Depends(deps.get_current_team)) -> Any:
+                    team=Depends(deps.get_current_team),
+                    user=Depends(deps.get_current_user)) -> Any:
     """
     生成分享订单，会验证是否能够分享
     ---
@@ -417,6 +455,10 @@ async def app_share(request: Request,
           type: string
           paramType: path
     """
+    is_perm = check_perm(session, user, team, "app_share")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     scope = data.get("scope")
     market_name = None
@@ -495,21 +537,18 @@ async def get_app_model(
     return JSONResponse(general_message(200, "success", "创建成功", list=jsonable_encoder(apps)), status_code=200)
 
 
-@router.get("/teams/{team_name}/groups/{group_id}/configgroups", response_model=Response, name="查询应用配置")
+@router.get("/teams/{team_name}/groups/{group_id}/configgroups", response_model=Response, name="查询应用配置组")
 async def get_config_groups(request: Request,
                             page: int = Query(default=1, ge=1, le=9999),
                             page_size: int = Query(default=10, ge=1, le=500),
                             group_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
-    # try:
-    #     page = int(request.query_params.get("page", 1))
-    # except ValueError:
-    #     page = 1
-    # try:
-    #     page_size = int(request.query_params.get("page_size", 10))
-    # except ValueError:
-    #     page_size = 10
+                            team=Depends(deps.get_current_team),
+                            user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "app_config_group_describe")
+    if not is_perm:
+        raise NoPermissionsError
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -522,11 +561,17 @@ async def get_config_groups(request: Request,
         status_code=200)
 
 
-@router.post("/teams/{team_name}/groups/{group_id}/configgroups", response_model=Response, name="修改应用配置")
+@router.post("/teams/{team_name}/groups/{group_id}/configgroups", response_model=Response, name="创建应用配置组")
 async def add_config_group(request: Request,
                            team_name: Optional[str] = None,
                            group_id: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session)) -> Any:
+                           session: SessionClass = Depends(deps.get_session),
+                           team=Depends(deps.get_current_team),
+                           user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "app_config_group_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     params = await request.json()
     try:
         service_ids = params["service_ids"]
@@ -548,7 +593,12 @@ async def get_config_group(
         group_id: Optional[str] = None,
         name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "app_config_group_describe")
+    if not is_perm:
+        raise NoPermissionsError
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -564,7 +614,12 @@ async def modify_config_group(request: Request,
                               group_id: Optional[str] = None,
                               name: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
+                              team=Depends(deps.get_current_team),
+                              user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "app_config_group_edit")
+    if not is_perm:
+        raise NoPermissionsError
+
     params = await request.json()
     region = await region_services.get_region_by_request(session, request)
     if not region:
@@ -585,7 +640,12 @@ async def delete_config_group(
         group_id: Optional[str] = None,
         name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        team=Depends(deps.get_current_team),
+        user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "app_config_group_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)

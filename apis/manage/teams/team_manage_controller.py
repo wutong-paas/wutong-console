@@ -8,11 +8,12 @@ from fastapi_pagination import paginate, Params
 from loguru import logger
 
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.return_message import general_message
 from core.utils.validation import is_qualified_name
 from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrNamespaceExists
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, NoPermissionsError
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
@@ -37,6 +38,10 @@ async def close_teams_app(params: Optional[CloseTeamAppParam] = CloseTeamAppPara
                           session: SessionClass = Depends(deps.get_session),
                           user=Depends(deps.get_current_user),
                           team=Depends(deps.get_current_team)) -> Any:
+    is_perm = check_perm(session, user, team, "app_stop")
+    if not is_perm:
+        raise NoPermissionsError
+
     if params.region_name:
         app_manage_service.close_all_component_in_tenant(session=session, tenant=team, region_name=params.region_name,
                                                          user=user)
@@ -132,6 +137,10 @@ async def delete_team(request: Request,
     """
     删除当前团队
     """
+    is_perm = check_perm(session, user, team, "app_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     try:
         team_services.delete_by_tenant_id(session=session, user=user, tenant=team)
         request.app.state.redis.delete("team_%s" % team_name)
@@ -145,7 +154,13 @@ async def delete_team(request: Request,
 async def add_team_user(request: Request,
                         team_name: Optional[str] = None,
                         session: SessionClass = Depends(deps.get_session),
-                        team=Depends(deps.get_current_team)) -> Any:
+                        team=Depends(deps.get_current_team),
+                        user=Depends(deps.get_current_user)) -> Any:
+
+    is_perm = check_perm(session, user, team, "teamMember_create")
+    if not is_perm:
+        raise NoPermissionsError
+
     try:
         from_data = await request.json()
         user_ids = from_data['user_ids']
@@ -362,6 +377,10 @@ async def again_delete_app(request: Request,
     """
     二次确认删除组件
     """
+    is_perm = check_perm(session, user, team, "app_delete")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     service_id = data.get("service_id", None)
     service = service_info_repo.get_service_by_service_id(session, service_id)

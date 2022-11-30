@@ -10,13 +10,14 @@ from sqlalchemy import select
 from clients.remote_component_client import remote_component_client
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.oauth.oauth_types import support_oauth_type
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message, general_data
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentBuildFailed
 from exceptions.main import AccountOverdueException, ResourceNotEnoughException, ErrInsufficientResource, \
-    ServiceHandleException
+    ServiceHandleException, NoPermissionsError
 from models.component.models import TeamComponentInfo
 from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import service_info_repo
@@ -249,6 +250,10 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
           type: string
           paramType: path
     """
+    is_perm = check_perm(session, user, team, "component_construct")
+    if not is_perm:
+        raise NoPermissionsError
+
     probe = None
     is_deploy = params.is_deploy
     if not team:

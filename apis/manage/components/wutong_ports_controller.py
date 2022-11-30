@@ -6,11 +6,12 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from core import deps
+from core.perm.perm import check_perm
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentPortExists
-from exceptions.main import AbortRequest
+from exceptions.main import AbortRequest, NoPermissionsError
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.teams.team_region_repo import team_region_repo
@@ -25,7 +26,8 @@ router = APIRouter()
 @router.get("/teams/{team_name}/apps/{serviceAlias}/ports", response_model=Response, name="获取组件的端口信息")
 async def get_ports(serviceAlias: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session),
-                    team=Depends(deps.get_current_team)) -> Any:
+                    team=Depends(deps.get_current_team),
+                    user=Depends(deps.get_current_user)) -> Any:
     """
     获取组件的端口信息
     ---
@@ -41,6 +43,10 @@ async def get_ports(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
+    is_perm = check_perm(session, user, team, "component_port")
+    if not is_perm:
+        raise NoPermissionsError
+
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     tenant_service_ports = port_service.get_service_ports(session=session, service=service)
     port_list = []
@@ -134,6 +140,10 @@ async def update_ports(request: Request,
           paramType: path
 
     """
+    is_perm = check_perm(session, user, team, "component_port")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     action = data.get("action", None)
     port_alias = data.get("port_alias", None)
@@ -215,6 +225,10 @@ async def add_ports(request: Request,
           paramType: form
 
     """
+    is_perm = check_perm(session, user, team, "component_port")
+    if not is_perm:
+        raise NoPermissionsError
+
     data = await request.json()
     port = data.get("port", None)
     protocol = data.get("protocol", None)
@@ -273,6 +287,10 @@ async def delete_ports(serviceAlias: Optional[str] = None,
            paramType: path
 
      """
+    is_perm = check_perm(session, user, team, "component_port")
+    if not is_perm:
+        raise NoPermissionsError
+
     try:
         service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
         container_port = port
