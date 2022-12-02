@@ -39,8 +39,8 @@ async def obs_manager(
 
     remoteurl = "http://{0}:{1}/{2}".format(
         os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "57182"), url)
-    response = await remote_app_client.obs_proxy(
-        session, request,
+    response = await remote_app_client.proxy(
+        request,
         remoteurl,
         region,
         data_json,

@@ -372,67 +372,7 @@ class RemoteAppClient(ApiBaseHttpClient):
             # path relative
             return parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path.rsplit('/', 1)[0] + '/' + location
 
-    async def proxy(self, session, request, url, region_name, data_json, body, requests_args=None):
-        """
-        Forward as close to an exact copy of the request as possible along to the
-        given url.  Respond with as close to an exact copy of the resulting
-        response as possible.
-        If there are any additional arguments you wish to send to requests, put
-        them in the requests_args dictionary.
-        """
-        requests_args = (requests_args or {}).copy()
-        headers = jsonable_encoder(request.headers)  # self.get_headers(request.headers)
-
-        if 'headers' not in requests_args:
-            requests_args['headers'] = {}
-        if 'body' not in requests_args:
-            requests_args['body'] = json.dumps(data_json)
-        if 'fields' not in requests_args:
-            requests_args['fields'] = {}
-
-        if requests_args['body'] == '{}':
-            requests_args['body'] = body
-
-        # Overwrite any headers and params from the incoming request with explicitly
-        # specified values for the requests library.
-        headers.update(requests_args['headers'])
-
-        # If there's a content-length header from Django, it's probably in all-caps
-        # and requests might not notice it, so just remove it.
-        for key in list(headers.keys()):
-            if key.lower() == 'content-length':
-                del headers[key]
-
-        requests_args['headers'] = headers
-
-        region = region_repo.get_region_by_region_name(session, region_name)
-        if not region:
-            raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
-        client = self.get_client(region_config=region)
-        response = client.request(method=request.method, timeout=20, url="{}{}".format(region.url, url),
-                                  **requests_args)
-
-        from fastapi.responses import Response
-        proxy_response_headers = {}
-
-        excluded_headers = {'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers',
-                            'transfer-encoding', 'upgrade', 'content-encoding', 'content-length'}
-        for key, value in list(response.headers.items()):
-            if key.lower() in excluded_headers:
-                continue
-            elif key.lower() == 'location':
-                # If the location is relative at all, we want it to be absolute to
-                # the upstream server.
-                proxy_response_headers.update({key: self.make_absolute_location(response.url, value)})
-            else:
-                proxy_response_headers.update({key: value})
-
-        proxy_response_headers.update({"content-security-policy": "upgrade-insecure-requests"})
-
-        proxy_response = Response(response.data, headers=proxy_response_headers, status_code=response.status)
-        return proxy_response
-
-    async def obs_proxy(self, session, request, url, region, data_json, body, requests_args=None):
+    async def proxy(self, request, url, region, data_json, body, requests_args=None):
         """
         Forward as close to an exact copy of the request as possible along to the
         given url.  Respond with as close to an exact copy of the resulting

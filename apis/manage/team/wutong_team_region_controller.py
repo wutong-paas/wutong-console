@@ -11,9 +11,10 @@ from core import deps
 from core.perm.perm import check_perm
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from exceptions.main import NoPermissionsError
+from exceptions.main import NoPermissionsError, ServiceHandleException
 from repository.component.group_service_repo import service_info_repo
 from repository.region.region_app_repo import region_app_repo
+from repository.region.region_info_repo import region_repo
 from schemas.response import Response
 from service.region_service import region_services
 
@@ -403,10 +404,14 @@ async def manager(
             url_path = head_url + service_id + '/' + url + '?' + params,
             url_path = url_path[0]
         service = service_info_repo.get_service_by_service_id(session, service_id)
+        region = region_repo.get_region_by_region_name(session, service.service_region)
+        if not region:
+            raise ServiceHandleException("region {0} not found".format(service.service_region), error_code=10412)
+        remoteurl = "{}{}".format(region.url, url_path)
         response = await remote_app_client.proxy(
-            session, request,
-            url_path,
-            service.service_region,
+            request,
+            remoteurl,
+            region,
             data_json,
             body)
     except Exception as exc:
