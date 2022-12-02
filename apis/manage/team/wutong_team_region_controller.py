@@ -12,10 +12,8 @@ from core.perm.perm import check_perm
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.main import NoPermissionsError
-from models.users.users import Users
 from repository.component.group_service_repo import service_info_repo
 from repository.region.region_app_repo import region_app_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.region_service import region_services
 
