@@ -77,6 +77,8 @@ async def get_store(
         pod["free_pod"] += result_bean['total_capacity_pods']
 
     store["used_disk"] = round(store["used_disk"], 2)
+    store["total_memory"] = round(store["total_memory"], 2)
+    store["total_disk"] = round(store["total_disk"], 2)
     info = {
         "store": store,
         "pod": pod,
