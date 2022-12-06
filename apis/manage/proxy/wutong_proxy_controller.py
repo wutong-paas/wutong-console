@@ -1,21 +1,19 @@
 import os
-
+from typing import Optional, Any
 from fastapi import APIRouter, Request, Depends
 from starlette.responses import JSONResponse
-
 from clients.remote_app_client import remote_app_client
-from schemas.response import Response
-from typing import Optional, Any
 from core import deps
-from core.utils.return_message import general_message, error_message
+from core.utils.return_message import general_message
 from database.session import SessionClass
+from schemas.response import Response
 from service.region_service import region_services
 
 router = APIRouter()
 
 
 @router.api_route(
-    "/proxy/obs/{url:path}",
+    "/wt-proxy/{url:path}",
     methods=[
         "post",
         "get",
@@ -23,8 +21,8 @@ router = APIRouter()
         "put",
         "patch"],
     include_in_schema=False,
-    response_model=Response, name="可观测平台接口代理")
-async def obs_manager(
+    response_model=Response, name="接口代理")
+async def proxy(
         request: Request,
         url: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -38,7 +36,7 @@ async def obs_manager(
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     remoteurl = "http://{0}:{1}/{2}".format(
-        os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "57182"), url)
+        os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8089"), url)
     response = await remote_app_client.proxy(
         request,
         remoteurl,
