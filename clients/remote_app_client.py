@@ -372,7 +372,7 @@ class RemoteAppClient(ApiBaseHttpClient):
             # path relative
             return parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path.rsplit('/', 1)[0] + '/' + location
 
-    async def proxy(self, session, request, url, region_name, data_json, body, requests_args=None):
+    async def proxy(self, request, url, region, data_json, body, requests_args=None):
         """
         Forward as close to an exact copy of the request as possible along to the
         given url.  Respond with as close to an exact copy of the resulting
@@ -405,11 +405,8 @@ class RemoteAppClient(ApiBaseHttpClient):
 
         requests_args['headers'] = headers
 
-        region = region_repo.get_region_by_region_name(session, region_name)
-        if not region:
-            raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
-        response = client.request(method=request.method, timeout=20, url="{}{}".format(region.url, url),
+        response = client.request(method=request.method, timeout=20, url=url,
                                   **requests_args)
 
         from fastapi.responses import Response

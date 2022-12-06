@@ -31,7 +31,10 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         build_data["password"] = plugin.password  # git password
         build_data["tenant_id"] = tenant.tenant_id
         build_data["ImageInfo"] = image_info
-        build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
+        if len(plugin.image.split(':')) > 1:
+            build_data["build_image"] = plugin.image
+        else:
+            build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
         origin = plugin.origin
         if origin == "sys":
             plugin_from = "yb"
