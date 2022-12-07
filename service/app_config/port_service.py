@@ -134,6 +134,7 @@ class AppPortService:
         deal_port.protocol = protocol
         if protocol != "http":
             if deal_port.is_outer_service:
+                session.rollback()
                 return 400, "请关闭外部访问"
 
         if service.create_status == "complete":
