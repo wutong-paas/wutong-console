@@ -118,8 +118,9 @@ async def get_team_user_roles(session: SessionClass = Depends(deps.get_session),
 async def put_team_user_roles(request: Request,
                               user_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
-    is_perm = check_perm(session, user, team, "teamMember_delete")
+                              team=Depends(deps.get_current_team),
+                              user=Depends(deps.get_current_user)) -> Any:
+    is_perm = check_perm(session, user, team, "teamMember_edit")
     if not is_perm:
         raise NoPermissionsError
     user = None
