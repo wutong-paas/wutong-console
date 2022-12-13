@@ -242,7 +242,7 @@ class ShareService(object):
             if not market_id:
                 market_id = share_record.share_app_market_name
             if market_id:
-                scope = "goodrain"
+                scope = "wutong"
                 market = market_app_service.get_app_market_by_name(session=session,
                                                                    enterprise_id=share_team.enterprise_id,
                                                                    name=market_id,
@@ -1227,7 +1227,7 @@ class ShareService(object):
             session.execute(delete(CenterAppVersion).where(
                 CenterAppVersion.app_id == app.app_id,
                 CenterAppVersion.source == "local",
-                CenterAppVersion.scope == "goodrain",
+                CenterAppVersion.scope == "wutong",
                 CenterAppVersion.is_complete == 1
             ))
             session.flush()

@@ -278,14 +278,14 @@ class CenterRepository(BaseRepository[CenterApp]):
             conditions.append(CenterPlugin.category == category)
         if scope == 'team':
             conditions.append(CenterPlugin.share_team == tenant.tenant_name)
-        elif scope == 'goodrain':
+        elif scope == 'wutong':
             conditions.append(CenterPlugin.scope == scope)
         elif scope == 'enterprise':
             tenants = team_repo.get_teams_by_enterprise_id(session, tenant.enterprise_id)
             tenant_names = [t.tenant_name for t in tenants]
             conditions.append(or_(
                 (CenterPlugin.share_team.in_(tenant_names), CenterPlugin.scope == "enterprise"),
-                CenterPlugin.scope == "goodrain",
+                CenterPlugin.scope == "wutong",
                 (CenterPlugin.share_team == tenant.tenant_name, CenterPlugin.scope == "team")
             ))
         # 查询总数

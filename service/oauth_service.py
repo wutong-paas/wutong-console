@@ -105,7 +105,7 @@ class OAuthUserService(object):
             user_info["phone"] = oauth_user.phone
             user_info["real_name"] = oauth_user.real_name
             user_info["is_active"] = 1
-            password = "goodrain"
+            password = "wutong"
             user_info["enterprise_center_user_id"] = oauth_user.id
             user = Users(**user_info)
             user.set_password(password)
