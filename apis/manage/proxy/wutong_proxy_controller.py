@@ -35,8 +35,8 @@ async def proxy(
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
-    remoteurl = "http://{0}:{1}/{2}".format(
-        os.getenv("ADAPTOR_HOST", "127.0.0.1"), os.getenv("ADAPTOR_PORT", "8089"), url)
+    params = str(request.query_params)
+    remoteurl = "{}/{}?{}".format(region.url, url, params)
     response = await remote_app_client.proxy(
         request,
         remoteurl,
