@@ -80,7 +80,7 @@ class ApplicationService(object):
         tenant_service.min_cpu = baseService.calculate_service_cpu(region, 128)
         tenant_service.inner_port = 5000
         tenant_service.version = "81701"
-        tenant_service.namespace = "goodrain"
+        tenant_service.namespace = "wutong"
         tenant_service.update_version = 1
         tenant_service.port_type = "multi_outer"
         tenant_service.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -624,7 +624,7 @@ class ApplicationService(object):
         tenant_service.min_cpu = base_service.calculate_service_cpu(0)
         tenant_service.inner_port = 0
         tenant_service.version = "latest"
-        tenant_service.namespace = "goodrain"
+        tenant_service.namespace = "wutong"
         tenant_service.update_version = 1
         tenant_service.port_type = "multi_outer"
         tenant_service.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

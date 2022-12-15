@@ -462,7 +462,7 @@ async def app_share(request: Request,
     data = await request.json()
     scope = data.get("scope")
     market_name = None
-    if scope == "goodrain":
+    if scope == "wutong":
         target = data.get("target")
         market_name = target.get("store_id")
         if market_name is None:

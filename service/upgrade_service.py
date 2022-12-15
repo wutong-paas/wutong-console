@@ -202,7 +202,7 @@ class UpgradeService(object):
             app_name=app.name,
             dev_status=app.dev_status,
             source="market",
-            scope="goodrain",
+            scope="wutong",
             describe=app.desc,
             details=app.introduction,
             pic=app.logo,
