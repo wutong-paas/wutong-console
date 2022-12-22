@@ -1,6 +1,13 @@
+import json
+
+from loguru import logger
+
 from core.gitutlparse import parse
 from core.utils.constants import AppConstants
 from repository.teams.team_repo import team_gitlab_repo
+from service.base_services import CodeRepositoriesService
+
+codeRepositoriesService = CodeRepositoriesService()
 
 
 class GitCodeService(object):
@@ -13,7 +20,23 @@ class GitCodeService(object):
         else:
             return ["master"]
 
-    def get_code_branch(self, user, code_type, git_url, git_project_id, current_branch="master"):
+    def __get_github_branchs(self, session, user, parsed_git_url):
+        token = user.github_token
+        owner = parsed_git_url.owner
+        repo = parsed_git_url.repo
+        branchs = []
+        try:
+            repos = codeRepositoriesService.gitHub_ReposRefs(session, owner, repo, token)
+            reposList = json.loads(repos)
+            for reposJson in reposList:
+                ref = reposJson["ref"]
+                branchs.append(ref.split("/")[2])
+        except Exception as e:
+            logger.error('client_error', e)
+        branchs = ["1", "2", "3"]
+        return branchs
+
+    def get_code_branch(self, session, user, code_type, git_url, git_project_id, current_branch="master"):
         parsed_git_url = parse(git_url)
         host = parsed_git_url.host
         if host:
@@ -23,7 +46,7 @@ class GitCodeService(object):
                     return 400, "gitlab检测需提供检测的代码ID", None
                 branches = self.__get_gitlab_branchs(git_project_id)
             elif code_type == "github":
-                branches = self.__get_github_branchs(user, parsed_git_url)
+                branches = self.__get_github_branchs(session, user, parsed_git_url)
             else:
                 branches = [current_branch]
         else:
@@ -41,7 +64,7 @@ class GitCodeService(object):
                     if parsed_git_url.host.endswith('github.com'):
                         code_type = "github"
             code, msg, branchs = self.get_code_branch(
-                user, code_type, service.git_url, service.git_project_id, current_branch=service.code_version)
+                session, user, code_type, service.git_url, service.git_project_id, current_branch=service.code_version)
             if code != 200:
                 return []
             return branchs
