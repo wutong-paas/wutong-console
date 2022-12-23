@@ -76,6 +76,27 @@ class Settings(BaseSettings):
     SSO_LOGIN = True
     TENANT_VALID_TIME = 7
 
+    MODULES = {
+        "Owned_Fee": True,
+        "Memory_Limit": True,
+        "Finance_Center": True,
+        "Team_Invite": True,
+        "Monitor_Control": True,
+        "User_Register": True,
+        "Sms_Check": True,
+        "Email_Invite": True,
+        "Package_Show": True,
+        "RegionToken": True,
+        "Add_Port": False,
+        "License_Center": True,
+        "WeChat_Module": False,
+        "Docker_Console": True,
+        "Publish_YunShi": True,
+        "Publish_Service": False,
+        "Privite_Github": False,
+        "SSO_LOGIN": SSO_LOGIN == "TRUE",
+    }
+
     class Config:
         case_sensitive = True
 
