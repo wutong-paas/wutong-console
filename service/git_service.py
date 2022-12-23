@@ -33,7 +33,6 @@ class GitCodeService(object):
                 branchs.append(ref.split("/")[2])
         except Exception as e:
             logger.error('client_error', e)
-        branchs = ["1", "2", "3"]
         return branchs
 
     def get_code_branch(self, session, user, code_type, git_url, git_project_id, current_branch="master"):
