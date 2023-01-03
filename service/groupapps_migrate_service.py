@@ -341,7 +341,7 @@ class GroupappsMigrateService(object):
                                                                           tenant.tenant_name, data)
                             except Exception as e:
                                 logger.exception(e)
-                                domain_repo.delete_http_domains(http_rule_id)
+                                domain_repo.delete_http_domains(session, http_rule_id)
                                 return 412, "数据中心添加策略失败"
 
                     else:

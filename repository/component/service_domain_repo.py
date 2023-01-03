@@ -9,6 +9,12 @@ from repository.base import BaseRepository
 
 class ServiceDomainRepository(BaseRepository[ServiceDomain]):
 
+    def delete_http_domains(self, session, http_rule_id):
+        session.execute(delete(ServiceDomain).where(
+            ServiceDomain.http_rule_id == http_rule_id
+        ))
+        session.flush()
+
     def list_service_domains_by_cert_id(self, session, certificate_id):
         return session.execute(select(ServiceDomain).where(
             ServiceDomain.certificate_id == certificate_id)).scalars().all()
