@@ -20,7 +20,7 @@ python-jose==3.3.0
 
 python-multipart==0.0.5
 fastapi-pagination==0.9.1
-PyOpenSSL==22.0.0
+PyOpenSSL==23.0.0
 aiofiles==0.8.0
 validators==0.18.2
 requests==2.27.1
