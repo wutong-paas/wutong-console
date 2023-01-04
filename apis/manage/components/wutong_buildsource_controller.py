@@ -139,8 +139,10 @@ async def modify_build_source(request: Request,
             service.service_source = "docker_run"
             if image:
                 image = image.strip()
-                version = image.split(':')[-1]
-                if not version:
+                image_list = image.split(':')
+                if len(image_list) > 1:
+                    version = image_list[-1]
+                else:
                     version = "latest"
                     image = image + ":" + version
                 service.image = image
