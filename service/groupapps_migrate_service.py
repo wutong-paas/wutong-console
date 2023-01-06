@@ -358,7 +358,7 @@ class GroupappsMigrateService(object):
                                                                      True)
                             if int(res.status) != 200:
                                 continue
-                            end_point = str(region.tcpdomain) + ":" + str(data["bean"])
+                            end_point = "0.0.0.0:" + str(data["bean"])
                             service_id = service.service_id
                             service_name = service.service_alias
                             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
