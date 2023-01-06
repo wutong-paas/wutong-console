@@ -29,6 +29,7 @@ from repository.component.service_probe_repo import probe_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.plugin.plugin_config_repo import config_item_repo, config_group_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
+from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_repo import team_repo
@@ -357,7 +358,7 @@ class GroupappsMigrateService(object):
                                                                      True)
                             if int(res.status) != 200:
                                 continue
-                            end_point = str(region.tcpdomain) + ":" + str(data["bean"])
+                            end_point = "0.0.0.0:" + str(data["bean"])
                             service_id = service.service_id
                             service_name = service.service_alias
                             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -807,6 +808,15 @@ class GroupappsMigrateService(object):
                         self.update_migrate_original_group_id(session=session,
                                                               old_original_group_id=migrate_record.original_group_id,
                                                               new_original_group_id=migrate_record.group_id)
+                        region_app_id = region_app_repo.get_region_app_id(session,
+                                                                          migrate_record.migrate_region,
+                                                                          migrate_record.group_id)
+                        application_service.sync_app_services(migrate_team, session, migrate_record.migrate_region,
+                                                              migrate_record.group_id)
+                        remote_component_client.change_application_volumes(session,
+                                                                           migrate_team.tenant_name,
+                                                                           migrate_record.migrate_region,
+                                                                           region_app_id)
                 except Exception as e:
                     logger.exception(e)
                     status = "failed"
