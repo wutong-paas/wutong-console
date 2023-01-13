@@ -43,4 +43,8 @@ async def proxy(
         region,
         data_json,
         body)
-    return response
+    if response.status_code == 200:
+        return response
+    else:
+        return JSONResponse(general_message(response.status_code, bytes.decode(response.body), ""),
+                            status_code=response.status_code)

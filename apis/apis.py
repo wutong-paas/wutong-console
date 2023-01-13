@@ -15,6 +15,7 @@ from apis.manage.enterprise import wutong_enterprise_user_controller, wutong_ent
     wutong_enterprise_controller, enterprise_base_controller
 from apis.manage.market import local_market_controller, market_plugin_controller, market_share_controller, \
     helm_market_controller, wutong_market_controller
+from apis.manage.obs import wutong_obs_controller
 from apis.manage.proxy import wutong_proxy_controller
 from apis.manage.team import wutong_team_overview_controller, wutong_team_roles_controller, \
     wutong_team_plugins_controller, wutong_team_users_controller, wutong_team_domain_controller, \
@@ -106,3 +107,7 @@ api_router.include_router(wutong_team_groupapp_controller.router, tags=["groupap
 
 # proxy
 api_router.include_router(wutong_proxy_controller.router, tags=["proxy"])
+
+
+# obs
+api_router.include_router(wutong_obs_controller.router, tags=["obs"])
