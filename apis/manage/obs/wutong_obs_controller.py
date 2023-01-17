@@ -61,13 +61,15 @@ async def get_pods_info(
                     container_dict = dict()
                     memory_limit = float(val["memory_limit"]) / 1024 / 1024
                     memory_usage = float(val["memory_usage"]) / 1024 / 1024
-                    usage_rate = 0
-                    if memory_limit:
-                        usage_rate = memory_usage * 100 / memory_limit
-                    pod_memory_usage += memory_usage
-                    pod_usage_rate += usage_rate
-                    pod_cpu_usage += 0
-                    pod_cpu_rate += 0
+                    cpu_limit = float(val["cpu_limit"])
+                    cpu_usage = float(val["cpu_usage"])
+                    usage_rate = memory_usage * 100 / memory_limit if memory_limit else 0
+                    cpu_rate = cpu_usage * 100 / cpu_limit if cpu_limit else 0
+                    if key == service.k8s_component_name:
+                        pod_memory_usage += memory_usage
+                        pod_usage_rate += usage_rate
+                        pod_cpu_usage += cpu_usage
+                        pod_cpu_rate += cpu_rate
 
                 pod_info["memory_usage"] = round(pod_memory_usage, 2)
                 pod_info["memory_rate"] = round(pod_usage_rate, 2)
