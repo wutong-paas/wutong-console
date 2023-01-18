@@ -87,7 +87,6 @@ async def get_app_detail(request: Request,
      """
     is_filebrowser_plugin = False
     bean = dict()
-    logger.debug("serviceAlias ==== {0}, tenant_id ==== {1}".format(serviceAlias, team.tenant_id))
     time.sleep(0.5)
     session.flush()
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)

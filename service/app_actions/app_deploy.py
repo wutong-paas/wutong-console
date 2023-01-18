@@ -84,12 +84,8 @@ class AppDeployService(object):
 
     def pre_deploy_action(self, session, tenant, service, version=None):
         """perform pre-deployment actions"""
-        logger.debug("service_alias ==== {0} 555555 service.service_source ==== {1}", service.service_alias,
-                     service.service_source)
         if service.service_source == "market":
             self.impl = MarketService(session, tenant, service, version)
-        logger.debug("service_alias ==== {0} 666666 service.service_source ==== {1}", service.service_alias,
-                     service.service_source)
         self.impl.pre_action(session)
 
     def get_async_action(self):
@@ -111,8 +107,6 @@ class AppDeployService(object):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
-        logger.debug("service_alias ==== {0} 444444 service.service_source ==== {1}", service.service_alias,
-                     service.service_source)
         self.pre_deploy_action(session, tenant, service, version)
 
         return self.execute(session, tenant, service, user, version, committer_name, oauth_instance=oauth_instance)
@@ -759,8 +753,6 @@ class MarketService(object):
         for volume in volumes.get("add"):
             volume["enterprise_id"] = self.tenant.enterprise_id
             try:
-                logger.debug("service_alias ==== {0} 777777 service.service_source ==== {1}", self.service.service_alias,
-                             self.service.service_source)
                 remote_component_client.add_service_volumes(session,
                                                             self.service.service_region, self.tenant.tenant_name,
                                                             self.service.service_alias,
