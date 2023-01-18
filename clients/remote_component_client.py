@@ -490,7 +490,6 @@ class RemoteComponentClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        logger.debug("service_alias ==== {0} end", service_alias)
         url, token = get_region_access_info(tenant_name, region, session)
         tenant_region = get_tenant_region_info(tenant_name, region, session)
         tenant_name = tenant_region.region_tenant_name
