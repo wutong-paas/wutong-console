@@ -9,11 +9,13 @@ import re
 from jose import jwt
 from loguru import logger
 from sqlalchemy import select, or_, func, delete
+from starlette.responses import JSONResponse
 
 from core.setting import settings
 from core.utils import perms
 from core.utils.oauth.oauth_types import get_oauth_instance
 from core.utils.perms import get_perms_model, get_enterprise_perms_model, get_team_perms_model, TEAM, ENTERPRISE
+from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.exceptions import ErrCannotDelLastAdminUser, ErrAdminUserDoesNotExist, UserNotExistError
 from exceptions.main import ServiceHandleException, AbortRequest
@@ -27,6 +29,7 @@ from repository.users.role_perm_relation_repo import role_perm_repo
 from repository.users.user_role_repo import user_role_repo
 from repository.users.user_oauth_repo import oauth_user_repo
 from repository.users.user_repo import user_repo
+from service.app_actions.app_manage import app_manage_service
 
 error_messages = {
     'nick_name_used': "该用户名已存在",
@@ -63,6 +66,38 @@ def get_perms_name_code_kv():
 
 
 class UserService(object):
+
+    def deploy_service(self, session, tenant_obj, service_obj, user, committer_name=None, oauth_instance=None):
+        """重新构建"""
+        code, msg, event_id = app_manage_service.deploy(session, tenant_obj, service_obj, user, oauth_instance=oauth_instance)
+        bean = {}
+        if code != 200:
+            return JSONResponse(general_message(code, "deploy app error", msg, bean=bean), status_code=code)
+        result = general_message(code, "success", "重新构建成功", bean=bean)
+        return JSONResponse(result, status_code=200)
+
+    def init_webhook_user(self, session, service, hook_type, committer_name=None):
+        nick_name = hook_type
+        if service.oauth_service_id:
+            oauth_user = oauth_user_repo.get_user_oauth_by_oauth_user_name(service.oauth_service_id, committer_name)
+            if not oauth_user:
+                nick_name = committer_name
+            else:
+                user = session.execute(select(Users).where(
+                    Users.user_id == oauth_user.user_id
+                )).scalars().first()
+                if not user:
+                    nick_name = None
+                else:
+                    nick_name = user.get_name()
+            if not nick_name:
+                nick_name = hook_type
+        user_obj = session.execute(select(Users).where(
+            Users.user_id == service.creater,
+            Users.nick_name == nick_name
+        )).scalars().first()
+        return user_obj
+
     def is_user_admin_in_current_enterprise(self, session, current_user, enterprise_id):
         """判断用户在该企业下是否为管理员"""
         if current_user.enterprise_id != enterprise_id:
