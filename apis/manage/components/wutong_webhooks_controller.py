@@ -17,6 +17,7 @@ from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_component_repo import team_component_repo
 from schemas.response import Response
+from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
 from service.team_service import team_services
 from service.user_service import user_svc
@@ -302,7 +303,7 @@ async def update_deploy_mode(
         user_obj = user_svc.init_webhook_user(session, service_obj, "ImageWebhook", pusher)
         committer_name = pusher
         if status != "closed":
-            return user_svc.deploy_service(
+            return app_manage_service.deploy_service(
                 session=session, tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
         else:
             result = general_message(400, "failed", "组件状态处于关闭中，不支持自动构建")

@@ -4,6 +4,7 @@ import json
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from sqlalchemy import select, delete, func, or_
+from starlette.responses import JSONResponse
 
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
@@ -14,6 +15,7 @@ from core.utils.constants import AppConstants
 from core.utils.crypt import make_uuid
 from core.utils.oauth.base.exception import NoAccessKeyErr
 from core.utils.oauth.oauth_types import get_oauth_instance, NoSupportOAuthType
+from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.bcode import ErrThirdComponentStartFailed
 from exceptions.exceptions import ErrChangeServiceType, TenantNotExistError
@@ -114,6 +116,15 @@ class AppManageBase(object):
 class AppManageService(AppManageBase):
     def __init__(self):
         super().__init__()
+
+    def deploy_service(self, session, tenant_obj, service_obj, user, committer_name=None, oauth_instance=None):
+        """重新构建"""
+        code, msg, event_id = self.deploy(session, tenant_obj, service_obj, user)
+        bean = {}
+        if code != 200:
+            return JSONResponse(general_message(code, "deploy app error", msg, bean=bean), status_code=code)
+        result = general_message(code, "success", "重新构建成功", bean=bean)
+        return JSONResponse(result, status_code=200)
 
     def roll_back(self, session, tenant, service, user, deploy_version, upgrade_or_rollback):
         if service.create_status == "complete":
