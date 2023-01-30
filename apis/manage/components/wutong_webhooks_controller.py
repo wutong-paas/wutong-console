@@ -1,12 +1,12 @@
 import base64
 import os
 import pickle
+import re
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
+from git.refs import reference
 from loguru import logger
-
 from core import deps
 from core.utils.constants import AppConstants
 from core.utils.return_message import general_message, error_message
@@ -17,6 +17,9 @@ from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.team_component_repo import team_component_repo
 from schemas.response import Response
+from service.application_service import application_service
+from service.team_service import team_services
+from service.user_service import user_svc
 
 router = APIRouter()
 
@@ -230,3 +233,81 @@ async def update_deploy_mode(
                     service_webhook.trigger
             }),
         status_code=200)
+
+
+@router.post("/image/webhooks/{service_id}", response_model=Response, name="镜像仓库webhooks回调")
+async def update_deploy_mode(
+        request: Request,
+        service_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    try:
+        data = await request.json()
+        service_obj = service_info_repo.get_service_by_service_id(session, service_id)
+        if not service_obj:
+            result = general_message(400, "failed", "组件不存在")
+            return JSONResponse(result, status_code=400)
+        tenant_obj = team_services.get_team_by_team_id(session, service_obj.tenant_id)
+        service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
+            session, service_obj.service_id, "image_webhooks")
+        if not service_webhook.state:
+            result = general_message(400, "failed", "组件关闭了自动构建")
+            return JSONResponse(result, status_code=400)
+        # 校验
+        repository = data.get("repository")
+        if not repository:
+            logger.debug("缺少repository信息")
+            result = general_message(400, "failed", "缺少repository信息")
+            return JSONResponse(result, status_code=400)
+
+        push_data = data.get("push_data")
+        pusher = push_data.get("pusher")
+        tag = push_data.get("tag")
+        repo_name = repository.get("repo_name")
+        if not repo_name:
+            repository_namespace = repository.get("namespace")
+            repository_name = repository.get("name")
+            if repository_namespace and repository_name:
+                # maybe aliyun repo add fake host
+                repo_name = "fake.repo.aliyun.com/" + repository_namespace + "/" + repository_name
+            else:
+                repo_name = repository.get("repo_full_name")
+        if not repo_name:
+            result = general_message(400, "failed", "缺少repository名称信息")
+            return JSONResponse(result, status_code=400)
+
+        repo_ref = reference.Reference.parse(repo_name)
+        _, repo_name = repo_ref.split_hostname()
+        ref = reference.Reference.parse(service_obj.image)
+        hostname, name = ref.split_hostname()
+        if repo_name != name:
+            result = general_message(400, "failed", "镜像名称与组件构建源不符")
+            return JSONResponse(result, status_code=400)
+
+        # 标签匹配
+        if service_webhook.trigger:
+            # 如果有正则表达式根据正则触发
+            if not re.match(service_webhook.trigger, tag):
+                result = general_message(400, "failed", "镜像tag与正则表达式不匹配")
+                return JSONResponse(result, status_code=400)
+            service_info_repo.change_service_image_tag(service_obj, tag)
+        else:
+            # 如果没有根据标签触发
+            if tag != ref['tag']:
+                result = general_message(400, "failed", "镜像tag与组件构建源不符")
+                return JSONResponse(result, status_code=400)
+
+        # 获取组件状态
+        status_map = application_service.get_service_status(session, tenant_obj, service_obj)
+        status = status_map.get("status", None)
+        user_obj = user_svc.init_webhook_user(session, service_obj, "ImageWebhook", pusher)
+        committer_name = pusher
+        if status != "closed":
+            return user_svc.deploy_service(
+                session=session, tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
+        else:
+            result = general_message(400, "failed", "组件状态处于关闭中，不支持自动构建")
+            return JSONResponse(result, status_code=400)
+    except Exception as e:
+        logger.exception(e)
+        result = error_message("failed")
+        return JSONResponse(result, status_code=500)
