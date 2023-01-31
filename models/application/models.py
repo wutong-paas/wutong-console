@@ -337,7 +337,7 @@ class ServiceUpgradeRecord(Base):
     )
 
     service_id = Column(
-        String, ForeignKey('tenant_service.service_id')
+        String(32), ForeignKey('tenant_service.service_id')
     )
 
     app_upgrade_record = relationship("ApplicationUpgradeRecord", back_populates="service_upgrade_records")
