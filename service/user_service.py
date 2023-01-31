@@ -78,8 +78,7 @@ class UserService(object):
             if not nick_name:
                 nick_name = hook_type
         user_obj = session.execute(select(Users).where(
-            Users.user_id == service.creater,
-            Users.nick_name == nick_name
+            Users.user_id == service.creater
         )).scalars().first()
         return user_obj
 

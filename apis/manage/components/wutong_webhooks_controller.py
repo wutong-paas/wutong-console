@@ -5,7 +5,6 @@ import re
 from typing import Any, Optional
 from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
-from git.refs import reference
 from loguru import logger
 from core import deps
 from core.utils.constants import AppConstants
@@ -276,11 +275,8 @@ async def update_deploy_mode(
             result = general_message(400, "failed", "缺少repository名称信息")
             return JSONResponse(result, status_code=400)
 
-        repo_ref = reference.Reference.parse(repo_name)
-        _, repo_name = repo_ref.split_hostname()
-        ref = reference.Reference.parse(service_obj.image)
-        hostname, name = ref.split_hostname()
-        if repo_name != name:
+        ref_repo_name, ref_tag = service_obj.image.split(":")
+        if repo_name != ref_repo_name:
             result = general_message(400, "failed", "镜像名称与组件构建源不符")
             return JSONResponse(result, status_code=400)
 
@@ -290,13 +286,13 @@ async def update_deploy_mode(
             if not re.match(service_webhook.trigger, tag):
                 result = general_message(400, "failed", "镜像tag与正则表达式不匹配")
                 return JSONResponse(result, status_code=400)
-            service_info_repo.change_service_image_tag(service_obj, tag)
         else:
             # 如果没有根据标签触发
-            if tag != ref['tag']:
+            if tag != ref_tag:
                 result = general_message(400, "failed", "镜像tag与组件构建源不符")
                 return JSONResponse(result, status_code=400)
 
+        service_info_repo.change_service_image_tag(session, service_obj, tag)
         # 获取组件状态
         status_map = application_service.get_service_status(session, tenant_obj, service_obj)
         status = status_map.get("status", None)
