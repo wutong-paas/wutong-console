@@ -226,8 +226,8 @@ async def update_deploy_mode(
             "自动部署触发条件更新成功",
             bean={
                 "url":
-                    "{host}/console/image/webhooks/{service_id}".format(
-                        host=os.environ.get('DEFAULT_DOMAIN', "http://" + request.base_url.netloc),
+                    "{host}console/image/webhooks/{service_id}".format(
+                        host=os.environ.get('DEFAULT_DOMAIN', request.base_url),
                         service_id=service.service_id),
                 "trigger":
                     service_webhook.trigger
