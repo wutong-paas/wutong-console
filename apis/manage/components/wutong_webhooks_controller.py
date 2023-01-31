@@ -53,7 +53,7 @@ async def get_auto_url(request: Request,
 
         service_id = service_obj.service_id
         # 从环境变量中获取域名，没有在从请求中获取
-        host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.client.host)
+        host = os.environ.get('DEFAULT_DOMAIN', "http://" + request.base_url.hostname)
 
         service_webhook = service_webhooks_repo.get_or_create_service_webhook(session, service.service_id,
                                                                               deployment_way)
