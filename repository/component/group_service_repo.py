@@ -1,4 +1,3 @@
-from git.refs import reference
 from sqlalchemy import select, delete, not_, text
 from core.utils.status_translate import get_status_info_map
 from models.application.models import ComponentApplicationRelation
@@ -296,11 +295,12 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                                                 TeamComponentInfo.service_id == service_id))
         ).scalars().first()
 
-    def change_service_image_tag(self, service, tag):
+    def change_service_image_tag(self, session, service, tag):
         """改变镜像标签"""
-        ref = reference.Reference.parse(service.image)
-        service.image = "{}:{}".format(ref['name'], tag)
+        ref_repo_name, ref_tag = service.image.split(":")
+        service.image = "{}:{}".format(ref_repo_name, tag)
         service.version = tag
+        session.flush()
 
 
 service_info_repo = ServiceInfoRepository(TeamComponentInfo)
