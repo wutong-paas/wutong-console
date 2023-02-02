@@ -183,10 +183,10 @@ class ApiBaseHttpClient(object):
             if status == 412:
                 if body.get("msg") == "cluster_lack_of_memory":
                     raise ServiceHandleException(msg="cluster lack of memory", msg_show="集群可用资源不足，请联系集群管理员",
-                                                 status_code=status)
+                                                 status_code=412, error_code=10406)
                 if body.get("msg") == "tenant_lack_of_memory":
-                    raise ServiceHandleException(msg="tenant lack of memory", msg_show="团队使用内存已超过限额，请联系企业管理员增加限额",
-                                                 status_code=status)
+                    raise ServiceHandleException(msg="tenant lack of memory", msg_show="团队使用内存已超过限额",
+                                                 status_code=412, error_code=10413)
             raise self.CallApiError(self.api_type, url, method, res, body)
         else:
             return res, body
