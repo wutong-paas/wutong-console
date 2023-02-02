@@ -167,17 +167,12 @@ class ErrInsufficientResource(ServiceHandleException):
     pass
 
 
-class ErrClusterLackOfMemory(ErrInsufficientResource):
-    def __init__(self):
-        super(ErrClusterLackOfMemory, self).__init__("cluster lack of memory")
-        self.msg_show = "集群可用资源不足，请联系集群管理员"
-        self.status_code = 412
-        self.error_code = 10406
+class ErrClusterLackOfMemory(ServiceHandleException):
+    def __init__(self, msg="cluster lack of memory", msg_show="集群可用资源不足，请联系集群管理员", status_code=412, error_code=10406):
+        super(ErrClusterLackOfMemory, self).__init__(msg, msg_show, status_code, error_code)
 
 
-class ErrTenantLackOfMemory(ErrInsufficientResource):
-    def __init__(self):
-        super(ErrTenantLackOfMemory, self).__init__("tenant lack of memory")
-        self.msg_show = "团队使用内存已超过限额，请联系企业管理员增加限额"
-        self.status_code = 412
-        self.error_code = 10413
+class ErrTenantLackOfMemory(ServiceHandleException):
+    def __init__(self, msg="tenant lack of memory", msg_show="团队使用内存已超过限额，请联系企业管理员增加限额", status_code=412,
+                 error_code=10413):
+        super(ErrTenantLackOfMemory, self).__init__(msg, msg_show, status_code, error_code)
