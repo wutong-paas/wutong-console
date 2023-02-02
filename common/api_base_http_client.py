@@ -19,7 +19,6 @@ from exceptions.main import ServiceHandleException, ErrClusterLackOfMemory, ErrT
 from core.setting import settings
 from repository.region.region_config_repo import region_config_repo
 
-
 urllib3.disable_warnings()
 
 
@@ -122,7 +121,6 @@ class ApiBaseHttpClient(object):
         def __str__(self):
             return json.dumps(self.message)
 
-
     class CallApiFrequentError(Exception):
         """
         CallApiFrequentError
@@ -184,9 +182,11 @@ class ApiBaseHttpClient(object):
                 raise self.InvalidLicenseError()
             if status == 412:
                 if body.get("msg") == "cluster_lack_of_memory":
-                    raise ErrClusterLackOfMemory()
+                    raise ServiceHandleException(msg="cluster lack of memory", msg_show="集群可用资源不足，请联系集群管理员",
+                                                 status_code=status)
                 if body.get("msg") == "tenant_lack_of_memory":
-                    raise ErrTenantLackOfMemory()
+                    raise ServiceHandleException(msg="tenant lack of memory", msg_show="团队使用内存已超过限额，请联系企业管理员增加限额",
+                                                 status_code=status)
             raise self.CallApiError(self.api_type, url, method, res, body)
         else:
             return res, body
@@ -351,7 +351,8 @@ class ApiBaseHttpClient(object):
 
     def _delete(self, session, url, headers, body=None, *args, **kwargs):
         if body is not None:
-            response, content = self._request(url, 'DELETE', session=session, headers=headers, body=body, *args, **kwargs)
+            response, content = self._request(url, 'DELETE', session=session, headers=headers, body=body, *args,
+                                              **kwargs)
         else:
             response, content = self._request(url, 'DELETE', session=session, headers=headers, *args, **kwargs)
         res, body = self._check_status(url, 'DELETE', response, content)
