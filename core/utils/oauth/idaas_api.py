@@ -6,6 +6,7 @@ from core.utils.oauth.base.git_oauth import OAuth2Interface
 from core.utils.oauth.base.oauth import OAuth2User
 from core.utils.urlutil import set_get_url
 from exceptions.bcode import ErrUnAuthnOauthService, ErrExpiredAuthnOauthService
+from exceptions.main import ServiceHandleException
 
 
 class IDaaSOauth(object):
@@ -143,10 +144,12 @@ class IDaaSApiV1(IDaaSApiV1MiXin, OAuth2Interface):
         except Exception as e:
             logger.exception(e)
             raise NoAccessKeyErr("can not get user info")
-        if user:
+        code = user.get("code", None)
+        if not code:
             return OAuth2User(user["realname"], user["userId"], user["email"], user["username"],
                               user["mobile"]), access_token, refresh_token
-        return None, None, None
+        else:
+            raise ServiceHandleException(msg_show=user["msg"], msg="failed", status_code=code)
 
     def logout(self):
         try:
