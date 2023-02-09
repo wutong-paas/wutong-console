@@ -1,4 +1,5 @@
 # 初始化app实例
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +8,7 @@ from redis import StrictRedis
 from starlette.responses import JSONResponse
 
 from apis.apis import api_router
+from core.nacos import register_nacos, beat
 from core.utils.return_message import general_message
 from database.session import engine, Base, settings
 from exceptions.main import ServiceHandleException
@@ -17,6 +19,9 @@ if settings.ENV == "PROD":
     app = FastAPI(title=settings.APP_NAME, docs_url=None, redoc_url=None)
 else:
     app = FastAPI(title=settings.APP_NAME, openapi_url=f"{settings.API_PREFIX}/openapi.json")
+
+# 微服务注册
+register_nacos()
 
 
 @app.exception_handler(ServiceHandleException)
@@ -55,6 +60,10 @@ def startup_event():
     """
     Base.metadata.create_all(engine)
     app.state.redis = get_redis_pool()
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(beat, 'interval', seconds=5)
+    scheduler.start()
 
 
 @app.on_event('shutdown')
