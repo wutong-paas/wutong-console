@@ -4,6 +4,7 @@ from typing import List
 from loguru import logger
 from pydantic import BaseSettings
 from core.auth.role_required import RoleRequired
+import socket
 
 logger.remove()
 
@@ -96,6 +97,15 @@ class Settings(BaseSettings):
         "Privite_Github": False,
         "SSO_LOGIN": SSO_LOGIN == "TRUE",
     }
+
+    # nacos 配置
+    ip_address = socket.gethostbyname(socket.gethostname())
+    NACOS_HOST = os.environ.get("NACOS_HOST", "192.168.0.19:10848")
+    SERVER_NAMESPACE_ID = os.environ.get("SERVER_NAMESPACE_ID", "TEST")
+    SERVICE_NAME = "console"
+    SERVICE_IP = ip_address
+    SERVICE_PORT = "8888"
+    SERVICE_GROUP_NAME = os.environ.get("SERVICE_GROUP_NAME", "IDAAS")
 
     class Config:
         case_sensitive = True
