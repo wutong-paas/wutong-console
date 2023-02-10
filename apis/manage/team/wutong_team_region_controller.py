@@ -8,10 +8,9 @@ from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_tenant_client import remote_tenant_client
 from core import deps
-from core.perm.perm import check_perm
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from exceptions.main import NoPermissionsError, ServiceHandleException
+from exceptions.main import ServiceHandleException
 from repository.component.group_service_repo import service_info_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
@@ -78,10 +77,6 @@ async def open_region(request: Request,
           type: string
           paramType: body
     """
-    is_perm = check_perm(session, user, team, "teamRegion_install")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     region_name = data.get("region_name", None)
     if not region_name:
@@ -100,10 +95,6 @@ async def open_regions(request: Request,
     """
     为团队批量开通数据中心
     """
-    is_perm = check_perm(session, user, team, "teamRegion_install")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     region_names = data.get("region_names", None)
     if not region_names:
@@ -139,10 +130,6 @@ async def delete_region(request: Request,
           type: string
           paramType: body
     """
-    is_perm = check_perm(session, user, team, "teamRegion_uninstall")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     region_name = data.get("region_name", None)
     if not region_name:

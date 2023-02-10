@@ -1,25 +1,20 @@
 import datetime
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Params, paginate
 from loguru import logger
-
 from core import deps
-from core.perm.perm import check_perm
 from core.utils.constants import DefaultPluginConstants
 from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from exceptions.main import NoPermissionsError
 from models.application.plugin import PluginConfigGroup, PluginConfigItems
 from repository.component.service_share_repo import component_share_repo
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.teams.team_plugin_repo import plugin_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_config_service import plugin_config_service
@@ -129,10 +124,6 @@ async def create_plugins(request: Request,
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user),
                          team=Depends(deps.get_current_team)) -> Any:
-    is_perm = check_perm(session, user, team, "plugin_create")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     # 必要参数
     plugin_alias = data.get("plugin_alias", None)
@@ -359,10 +350,6 @@ async def modify_plugin_version(request: Request,
                                 session: SessionClass = Depends(deps.get_session),
                                 team=Depends(deps.get_current_team),
                                 user=Depends(deps.get_current_user)) -> Any:
-    is_perm = check_perm(session, user, team, "plugin_edit")
-    if not is_perm:
-        raise NoPermissionsError
-
     try:
         data = await request.json()
         region = await region_services.get_region_by_request(session, request)
@@ -606,10 +593,6 @@ async def delete_plugin(request: Request,
                         session: SessionClass = Depends(deps.get_session),
                         team=Depends(deps.get_current_team),
                         user=Depends(deps.get_current_user)) -> Any:
-    is_perm = check_perm(session, user, team, "plugin_delete")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     is_force = data.get("is_force", False)
     region = await region_services.get_region_by_request(session, request)

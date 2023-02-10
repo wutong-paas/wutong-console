@@ -1,15 +1,10 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
-
 from core import deps
-from core.perm.perm import check_perm
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.main import NoPermissionsError
-from repository.teams.team_region_repo import team_region_repo
 from schemas.components import BatchActionParam
 from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
@@ -44,10 +39,6 @@ async def batch_actions(
         perm_action = "update"
     if params.action == "deploy":
         perm_action = "construct"
-
-    is_perm = check_perm(session, user, team, "component_" + perm_action)
-    if not is_perm:
-        raise NoPermissionsError
 
     service_id_list = params.service_ids.split(",")
     code, msg = app_manage_service.batch_action(session=session, region_name=region_name, tenant=team, user=user,
