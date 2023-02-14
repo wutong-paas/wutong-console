@@ -1,20 +1,17 @@
 import json
 from typing import Any, Optional
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from starlette import status
-
 from apis.manage.components.wutong_domain_controller import validate_domain
 from core import deps
-from core.perm.perm import check_perm
 from core.utils.constants import DomainType
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from exceptions.main import AbortRequest, ServiceHandleException, NoPermissionsError
+from exceptions.main import AbortRequest, ServiceHandleException
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.group_service_repo import service_info_repo
@@ -22,7 +19,6 @@ from repository.component.service_config_repo import configuration_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.domain_service import domain_service
@@ -81,10 +77,6 @@ async def batch_delete_components(request: Request,
     批量删除组件
 
     """
-    is_perm = check_perm(session, user, team, "component_delete")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     service_ids = data.get("service_ids", None)
     service_id_list = service_ids.split(",")
@@ -113,10 +105,6 @@ async def add_http_domain(request: Request,
     添加http策略
 
     """
-    is_perm = check_perm(session, user, team, "gatewayRule_create")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)
@@ -318,10 +306,6 @@ async def add_http_domain(request: Request,
                           session: SessionClass = Depends(deps.get_session),
                           team=Depends(deps.get_current_team),
                           user=Depends(deps.get_current_user)) -> Any:
-    is_perm = check_perm(session, user, team, "gatewayRule_edit")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)
@@ -398,10 +382,6 @@ async def delete_http_domain(request: Request,
                              session: SessionClass = Depends(deps.get_session),
                              team=Depends(deps.get_current_team),
                              user=Depends(deps.get_current_user)) -> Any:
-    is_perm = check_perm(session, user, team, "gatewayRule_delete")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     service_id = data.get("service_id", None)
     http_rule_id = data.get("http_rule_id", None)
@@ -421,10 +401,6 @@ async def add_tcp_domain(request: Request,
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user),
                          team=Depends(deps.get_current_team)) -> Any:
-    is_perm = check_perm(session, user, team, "gatewayRule_create")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     container_port = data.get("container_port", None)
     service_id = data.get("service_id", None)
@@ -515,10 +491,6 @@ async def set_tcp_domain(request: Request,
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user),
                          team=Depends(deps.get_current_team)) -> Any:
-    is_perm = check_perm(session, user, team, "gatewayRule_edit")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     container_port = data.get("container_port", None)
     service_id = data.get("service_id", None)
@@ -569,10 +541,6 @@ async def delete_tcp_domain(request: Request,
                             session: SessionClass = Depends(deps.get_session),
                             team=Depends(deps.get_current_team),
                             user=Depends(deps.get_current_user)) -> Any:
-    is_perm = check_perm(session, user, team, "gatewayRule_delete")
-    if not is_perm:
-        raise NoPermissionsError
-
     data = await request.json()
     tcp_rule_id = data.get("tcp_rule_id", None)
     if not tcp_rule_id:
