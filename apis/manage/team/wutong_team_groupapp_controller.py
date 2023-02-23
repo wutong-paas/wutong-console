@@ -311,8 +311,7 @@ async def get_backup_info(request: Request,
                           team_name: Optional[str] = None,
                           group_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team),
-                          user=Depends(deps.get_current_user)) -> Any:
+                          team=Depends(deps.get_current_team)) -> Any:
     """
     一个组的备份导出
     ---
