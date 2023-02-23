@@ -630,7 +630,12 @@ class GroupappsMigrateService(object):
         new_service_mnt_relation_list = []
         if service_mnt_relation_list:
             for mnt in service_mnt_relation_list:
-                mnt.pop("ID")
+                try:
+                    mnt.pop("volume_type")
+                    mnt.pop("volume_id")
+                    mnt.pop("ID")
+                except:
+                    pass
                 new_service_mnt = TeamComponentMountRelation(**mnt)
                 new_service_mnt.tenant_id = tenant.tenant_id
                 new_service_mnt.service_id = old_new_service_id_map[mnt["service_id"]]
