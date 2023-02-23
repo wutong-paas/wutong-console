@@ -37,6 +37,19 @@ from service.region_service import EnterpriseConfigService
 
 
 class GroupAppBackupService(object):
+
+    def export_group_backup(self, session, tenant, backup_id):
+        backup_record = backup_record_repo.get_record_by_backup_id(session, tenant.tenant_id, backup_id)
+        if not backup_record:
+            return 404, "不存在该备份记录", None
+        # if backup_record.mode == "full-offline":
+        #     return 409, "本地备份数据暂不支持导出", None
+        if backup_record.status == "starting":
+            return 409, "正在备份中，请稍后重试", None
+
+        data_str = AuthCode.encode(json.dumps(jsonable_encoder(backup_record)), "WUTONGPAAS")
+        return 200, "success", data_str
+
     def get_group_back_up_info(self, session: SessionClass, tenant, region, group_id):
         return backup_record_repo.get_group_backup_records(session=session, team_id=tenant.tenant_id,
                                                            region_name=region, group_id=group_id)
@@ -313,7 +326,7 @@ class GroupAppBackupService(object):
             return 409, "请确保需要导入的组中不存在组件", None
         content = upload_file
         try:
-            data = json.loads(AuthCode.decode(content, "GOODRAINLOVE"))
+            data = json.loads(AuthCode.decode(content, "WUTONGPAAS"))
         except:
             return 400, "文件错误", None
         current_backup = backup_record_repo.get_record_by_group_id_and_backup_id(session, group_id, data["backup_id"])
