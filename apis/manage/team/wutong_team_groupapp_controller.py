@@ -1,10 +1,12 @@
+import io
 from typing import Any, Optional
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Params, paginate
 from loguru import logger
+from starlette.responses import StreamingResponse
+from urllib import parse
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
 from core.utils.constants import StorageUnit
@@ -12,8 +14,10 @@ from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.application.app_migration_repo import migrate_repo
+from repository.application.application_repo import application_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
+from service.backup_data_service import platform_data_services
 from service.backup_service import groupapp_backup_service
 from service.groupapps_migrate_service import migrate_service
 from service.groupcopy_service import groupapp_copy_service
@@ -300,6 +304,63 @@ async def set_backup_info(request: Request,
         logger.exception(e)
         result = error_message("导入失败")
     return JSONResponse(result, status_code=result["code"])
+
+
+@router.get("/teams/{team_name}/groupapp/{group_id}/backup/export", response_model=Response, name="导出备份")
+async def get_backup_info(request: Request,
+                          team_name: Optional[str] = None,
+                          group_id: Optional[str] = None,
+                          session: SessionClass = Depends(deps.get_session),
+                          team=Depends(deps.get_current_team),
+                          user=Depends(deps.get_current_user)) -> Any:
+    """
+    一个组的备份导出
+    ---
+    parameters:
+        - name: tenantName
+          description: 团队名称
+          required: true
+          type: string
+          paramType: path
+        - name: group_id
+          description: 组ID
+          required: true
+          type: string
+          paramType: path
+        - name: backup_id
+          description: 备份id
+          required: true
+          type: string
+          paramType: query
+
+    """
+    try:
+        if not group_id:
+            return JSONResponse(general_message(400, "group id is null", "请选择需要导出备份的组"), status_code=400)
+        if not team_name:
+            return JSONResponse(general_message(400, "group id is null", "请选择需要导出备份的组"), status_code=400)
+        if not team:
+            return JSONResponse(general_message(404, "team not found", "团队{0}不存在".format(team_name)), status_code=404)
+        group = application_repo.get_group_by_id(session, group_id)
+        if not group:
+            return JSONResponse(general_message(404, "group not found", "组{0}不存在".format(group_id)), status_code=404)
+        backup_id = request.query_params.get("backup_id", None)
+        if not backup_id:
+            return JSONResponse(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status_code=400)
+
+        code, msg, data_str = groupapp_backup_service.export_group_backup(session, team, backup_id)
+        if code != 200:
+            return JSONResponse(general_message(code, "export backup failed", msg), status_code=code)
+        file_name = group.group_name + ".bak"
+        file = io.StringIO(data_str)
+        response = StreamingResponse(file)
+        response.init_headers({"Content-Type": "application/octet-stream",
+                               "Content-Disposition": "attachment;filename*=UTF-8''" + parse.quote(file_name)})
+        return response
+    except Exception as e:
+        logger.exception(e)
+        result = error_message("failed")
+        return JSONResponse(result, status_code=result["code"])
 
 
 @router.get("/teams/{team_name}/groupapp/{group_id}/copy", response_model=Response, name="获取应用复制信息")
