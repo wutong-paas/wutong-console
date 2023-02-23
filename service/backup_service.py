@@ -47,7 +47,7 @@ class GroupAppBackupService(object):
         if backup_record.status == "starting":
             return 409, "正在备份中，请稍后重试", None
 
-        data_str = AuthCode.encode(json.dumps(jsonable_encoder(backup_record)), "GOODRAINLOVE")
+        data_str = AuthCode.encode(json.dumps(jsonable_encoder(backup_record)), "WUTONGPAAS")
         return 200, "success", data_str
 
     def get_group_back_up_info(self, session: SessionClass, tenant, region, group_id):
