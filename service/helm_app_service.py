@@ -5,7 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from clients.remote_app_client import remote_app_client
 from exceptions.bcode import ErrThirdComponentStartFailed
 from models.application.models import Application
-from models.teams import TeamInfo
+from models.teams import EnvInfo
 from repository.component.service_config_repo import service_endpoints_repo
 from repository.region.region_app_repo import region_app_repo
 from service.app_actions.app_manage import app_manage_service
@@ -13,7 +13,7 @@ from service.application_service import application_service
 
 
 class HelmAppService(object):
-    def list_components(self, session, tenant: TeamInfo, region_name: str, user, app: Application):
+    def list_components(self, session, tenant: EnvInfo, region_name: str, user, app: Application):
         # list kubernetes service
         services = self.list_services(session, tenant.tenant_name, region_name, app.app_id)
         # list components

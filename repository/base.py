@@ -5,7 +5,6 @@ from sqlalchemy import select, delete, update
 from sqlalchemy.orm import Session
 
 from database.session import Base
-from models.users.users import Users
 
 ModelType = TypeVar("ModelType", bound=Base)
 

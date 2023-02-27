@@ -17,7 +17,7 @@ from service.base_services import base_service
 from service.groupapps_migrate_service import migrate_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin_service import plugin_service
-from service.team_service import team_services
+from service.env_service import env_services
 
 
 class GroupAppCopyService(object):
@@ -49,7 +49,7 @@ class GroupAppCopyService(object):
         return group_services_list
 
     def check_and_get_team_group(self, session, user, team_name, region_name, group_id):
-        team = team_services.check_and_get_user_team_by_name_and_region(session, user.user_id, team_name, region_name)
+        team = env_services.check_and_get_user_team_by_name_and_region(session, user.user_id, team_name, region_name)
         if not team:
             raise ServiceHandleException(
                 msg="no found team or team not join this region", msg_show="目标团队不存在，或团队为加入该数据中心", status_code=404)

@@ -9,9 +9,9 @@ from models.application.models import ApplicationExportRecord
 from models.market import models
 from models.market.models import AppImportRecord
 from models.market.models import CenterApp, CenterAppVersion, CenterPlugin
-from models.teams import TeamInfo
+from models.teams import EnvInfo
 from repository.base import BaseRepository
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 from schemas import CenterAppCreate
 
 
@@ -249,7 +249,7 @@ class CenterRepository(BaseRepository[CenterApp]):
                           is_complete=None,
                           scope="",
                           source="",
-                          tenant: TeamInfo = None,
+                          tenant: EnvInfo = None,
                           page=1,
                           limit=10,
                           order_by="",
@@ -281,7 +281,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         elif scope == 'wutong':
             conditions.append(CenterPlugin.scope == scope)
         elif scope == 'enterprise':
-            tenants = team_repo.get_teams_by_enterprise_id(session, tenant.enterprise_id)
+            tenants = env_repo.get_teams_by_enterprise_id(session, tenant.enterprise_id)
             tenant_names = [t.tenant_name for t in tenants]
             conditions.append(or_(
                 (CenterPlugin.share_team.in_(tenant_names), CenterPlugin.scope == "enterprise"),

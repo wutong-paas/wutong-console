@@ -3,7 +3,6 @@ import sys
 from typing import List
 from loguru import logger
 from pydantic import BaseSettings
-from core.auth.role_required import RoleRequired
 import socket
 
 logger.remove()
@@ -36,7 +35,8 @@ class Settings(BaseSettings):
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
-    SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+    # SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+    SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@127.0.0.1:3306/console'
 
     # 日志级别
     # CRITICAL = 50
@@ -100,16 +100,24 @@ class Settings(BaseSettings):
 
     # nacos 配置
     ip_address = socket.gethostbyname(socket.gethostname())
-    NACOS_HOST = os.environ.get("NACOS_HOST", "192.168.0.19:10848")
+    NACOS_HOST = os.environ.get("NACOS_HOST", "192.168.213.195:8848")
     SERVER_NAMESPACE_ID = os.environ.get("SERVER_NAMESPACE_ID", "TEST")
-    SERVICE_NAME = "console"
+    SERVICE_NAME = "paas-console"
     SERVICE_IP = ip_address
     SERVICE_PORT = "8888"
     SERVICE_GROUP_NAME = os.environ.get("SERVICE_GROUP_NAME", "IDAAS")
+
+    source_code_type = {
+        "github": "",
+        "gitlab": "",
+        "gitee": "",
+        "aliyun": "",
+        "dingtalk": "",
+        "dbox": ""
+    }
 
     class Config:
         case_sensitive = True
 
 
 settings = Settings()
-role_required = RoleRequired()

@@ -12,7 +12,7 @@ def encrypt_passwd(string):
     return password
 
 
-def make_tenant_id():
+def make_env_id():
     return str(uuid.uuid4()).replace('-', '')
 
 

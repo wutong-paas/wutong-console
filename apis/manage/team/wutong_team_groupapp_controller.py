@@ -18,7 +18,7 @@ from service.backup_service import groupapp_backup_service
 from service.groupapps_migrate_service import migrate_service
 from service.groupcopy_service import groupapp_copy_service
 from service.region_service import EnterpriseConfigService, region_services
-from service.team_service import team_services
+from service.env_service import env_services
 
 router = APIRouter()
 
@@ -223,7 +223,7 @@ async def app_migrate(request: Request,
     response_region = region.region_name
     if not team:
         return JSONResponse(general_message(400, "team is null", "请指明要迁移的团队"), status_code=400)
-    migrate_team = team_services.get_tenant_by_tenant_name(session=session, tenant_name=team)
+    migrate_team = env_services.get_tenant_by_tenant_name(session=session, tenant_name=team)
     if not migrate_team:
         return JSONResponse(general_message(404, "team is not found", "需要迁移的团队{0}不存在".format(team)), status_code=404)
     regions = region_services.get_team_usable_regions(session=session, team_name=migrate_team.tenant_name,

@@ -10,6 +10,7 @@ from appstore.app_store_client import app_store_client, get_market_client
 from clients.remote_component_client import remote_component_client
 from common.base_client_service import get_tenant_region_info
 from core.enum.component_enum import Kind
+from core.idaasapi import idaas_api
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, AbortRequest
@@ -17,19 +18,17 @@ from models.application.models import Application, ApplicationUpgradeRecord
 from models.component.models import TeamApplication
 from models.market.models import CenterApp, CenterAppTagsRelation, CenterAppVersion, \
     AppImportRecord, CenterAppTag, AppMarket
-from models.teams import TeamInfo
-from models.users.users import Users
+from models.teams import EnvInfo
 from repository.application.app_repository import app_tag_repo, app_repo
 from repository.application.app_upgrade_repo import upgrade_repo
 from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.market.center_repo import center_app_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 from service.application_service import application_service
 from service.component_group import ComponentGroup
 from service.market_app.app_upgrade import AppUpgrade
-from service.user_service import user_svc
 
 
 class MarketAppService(object):
@@ -319,11 +318,11 @@ class MarketAppService(object):
                           need_install="false"):
         if scope == "team":
             # prepare teams
-            is_admin = user_svc.is_user_admin_in_current_enterprise(session, user, eid)
+            is_admin = None
             if is_admin:
                 teams = None
             else:
-                teams = team_repo.get_tenants_by_user_id(session, user.user_id)
+                teams = env_repo.get_tenants_by_user_id(session, user.user_id)
             if teams:
                 teams = [team.tenant_name for team in teams]
             apps = center_app_repo.get_wutong_app_in_teams_by_querey(session, eid, scope, teams, app_name,
@@ -448,7 +447,7 @@ class MarketAppService(object):
             create_team = app_info.get("create_team")
             if create_team:
                 team = (
-                    session.execute(select(TeamInfo).where(TeamInfo.tenant_name == create_team))
+                    session.execute(select(EnvInfo).where(EnvInfo.tenant_name == create_team))
                 ).scalars().first()
 
                 if team:
@@ -493,13 +492,8 @@ class MarketAppService(object):
             version.release_user = ""
             version.share_user_id = version.share_user
             version.share_user = ""
-            user = (
-                session.execute(select(Users).where(Users.user_id == version.release_user_id))
-            ).scalars().first()
-
-            share_user = (
-                session.execute(select(Users).where(Users.user_id == version.share_user_id))
-            ).scalars().first()
+            user = idaas_api.get_user_info(version.release_user_id)
+            share_user = idaas_api.get_user_info(version.share_user_id)
 
             if user:
                 version.release_user_id = user.user_id

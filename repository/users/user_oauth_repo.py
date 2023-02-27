@@ -2,8 +2,6 @@ import os
 
 from loguru import logger
 from sqlalchemy import select, delete, update
-
-from core.utils.oauth.oauth_types import support_oauth_type, get_oauth_instance
 from database.session import SessionClass
 from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.base import BaseRepository

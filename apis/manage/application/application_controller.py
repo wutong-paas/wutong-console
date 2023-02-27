@@ -17,7 +17,6 @@ from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrApplicationNotFound
 from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException
 from models.application.models import Application, ComponentApplicationRelation
-from models.users.users import Users
 from repository.application.application_repo import application_repo
 from repository.component.compose_repo import compose_repo
 from repository.component.group_service_repo import service_info_repo
@@ -761,7 +760,7 @@ async def get_compose_check_info(
         request: Request,
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     sid = None
     try:
         check_uuid = request.query_params.get("check_uuid", None)

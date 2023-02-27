@@ -16,7 +16,9 @@ class Application(Base):
     __tablename__ = 'service_group'
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_id = Column(String(32), comment="团队id", nullable=False)
+    env_id = Column(String(32), comment="环境id", nullable=False)
+    project_id = Column(String(32), comment="项目id", nullable=False)
     group_name = Column(String(128), comment="组名", nullable=False)
     region_name = Column(String(64), comment="区域中心名称", nullable=False)
     is_default = Column(Boolean, default=False, comment='默认组件', nullable=False)

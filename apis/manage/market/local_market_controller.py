@@ -18,7 +18,6 @@ from exceptions.main import RegionNotFound, AbortRequest, ServiceHandleException
 from models.market.models import CenterAppTag
 from models.teams import PermRelTenant, RegionConfig
 from models.teams.enterprise import TeamEnterprise
-from models.users.users import Users
 from repository.application.app_repository import app_tag_repo
 from repository.market.center_app_tag_repo import center_app_tag_repo
 from repository.market.center_repo import CenterRepository
@@ -26,15 +25,14 @@ from repository.region.region_config_repo import region_config_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
 from repository.teams.team_region_repo import team_region_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 from schemas import CenterAppCreate
 from schemas.market import MarketAppTemplateUpdateParam, MarketAppCreateParam
 from schemas.response import Response
 from service.app_import_and_export_service import import_service, export_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
-from service.team_service import team_services
-from service.user_service import user_svc
+from service.env_service import env_services
 
 router = APIRouter()
 
@@ -56,17 +54,17 @@ async def create_app_teams(enterprise_id: Optional[str] = None,
         ).scalars().all()
         tenant_ids = set(tenant_ids)
         for tenant_id in tenant_ids:
-            tn = team_repo.get_by_primary_key(session=session, primary_key=tenant_id)
+            tn = env_repo.get_by_primary_key(session=session, primary_key=tenant_id)
             if tn:
                 tenants.append(tn)
 
     if tenants:
         for tenant in tenants:
-            perms = user_svc.list_user_team_perms(session, user, tenant)
-            # todo 权限控制
-            if 200001 not in perms or 300002 not in perms or 400002 not in perms:
-                continue
-            region_teams = team_services.team_with_region_info(session=session, tenant=tenant, request_user=user)
+            # perms = user_svc.list_user_team_perms(session, user, tenant)
+            # # todo 权限控制
+            # if 200001 not in perms or 300002 not in perms or 400002 not in perms:
+            #     continue
+            region_teams = env_services.team_with_region_info(session=session, tenant=tenant, request_user=user)
             teams.append(region_teams)
     return general_message(200, "success", "查询成功", list=teams)
 
@@ -168,7 +166,7 @@ async def app_models(request: Request,
                      page: int = Query(default=1, ge=1, le=9999),
                      page_size: int = Query(default=10, ge=1, le=500),
                      session: SessionClass = Depends(deps.get_session),
-                     user: Users = Depends(deps.get_current_user)) -> Any:
+                     user=Depends(deps.get_current_user)) -> Any:
     """
     查询数据库
     :param session:
@@ -436,7 +434,7 @@ async def get_app_export_status(
         request: Request,
         enterprise_id: str = Path(..., title="enterprise_id"),
         session: SessionClass = Depends(deps.get_session),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     """
     获取应用导出状态
     ---
@@ -470,7 +468,7 @@ async def export_app_models(
         request: Request,
         enterprise_id: str = Path(..., title="enterprise_id"),
         session: SessionClass = Depends(deps.get_session),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     """
     导出应用市场应用
     ---

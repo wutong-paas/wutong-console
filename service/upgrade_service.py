@@ -15,7 +15,7 @@ from models.application.models import ApplicationUpgradeStatus, ServiceUpgradeRe
     ApplicationUpgradeRecordType, \
     Application
 from models.market.models import CenterAppVersion, AppMarket, CenterApp
-from models.teams import TeamInfo
+from models.teams import EnvInfo
 from repository.application.app_upgrade_repo import upgrade_repo
 from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
@@ -264,7 +264,7 @@ class UpgradeService(object):
             is_upgrade_one=True)
         app_upgrade.upgrade(session)
 
-    def create_upgrade_record(self, session, enterprise_id, tenant: TeamInfo, app: Application, upgrade_group_id):
+    def create_upgrade_record(self, session, enterprise_id, tenant: EnvInfo, app: Application, upgrade_group_id):
         component_group = tenant_service_group_repo.get_component_group(session, upgrade_group_id)
 
         # If there are unfinished record, it is not allowed to create new record
@@ -402,7 +402,7 @@ class UpgradeService(object):
         self.sync_unfinished_records(session=session, tenant_name=tenant_name, region_name=region_name, records=records)
         return [record.to_dict() for record in records], event_paginator.total
 
-    def get_latest_upgrade_record(self, session: SessionClass, tenant: TeamInfo, app: Application,
+    def get_latest_upgrade_record(self, session: SessionClass, tenant: EnvInfo, app: Application,
                                   upgrade_group_id=None, record_type=None):
         if upgrade_group_id:
             # check upgrade_group_id

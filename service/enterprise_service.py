@@ -1,17 +1,11 @@
 from loguru import logger
-
 from clients.remote_component_client import remote_component_client
 from database.session import SessionClass
-from exceptions.bcode import ErrUserNotFound, ErrTenantNotFound
 from exceptions.main import ServiceHandleException
 from models.teams.enterprise import TeamEnterprise
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
-from repository.teams.team_repo import team_repo
-from repository.users.user_repo import user_repo
-from service.team_service import team_services
-from service.user_service import user_kind_role_service
 
 
 class EnterpriseServices(object):
@@ -35,18 +29,6 @@ class EnterpriseServices(object):
         # session.add(enterprise)
         # session.flush()
         return enterprise
-
-    @staticmethod
-    def create_user_roles(session, eid, user_id, tenant_name, role_ids):
-        # the user must belong to the enterprise with eid
-        user = user_repo.get_enterprise_user_by_id(session, eid, user_id)
-        if not user:
-            raise ErrUserNotFound
-        tenant = team_repo.get_enterprise_team_by_name(session, eid, tenant_name)
-        if not tenant:
-            raise ErrTenantNotFound
-        team_services.add_user_to_team(session, tenant, user.user_id, role_ids=role_ids)
-        return user_kind_role_service.get_user_roles(session=session, kind="team", kind_id=tenant.tenant_id, user=user)
 
     def get_enterprise_runing_service(self, session: SessionClass, enterprise_id, regions):
 

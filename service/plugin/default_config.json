@@ -4,9 +4,9 @@
     "desc": "实现智能路由、A/B测试、灰度发布、端口复用等微服务治理功能",
     "category": "net-plugin:down",
     "code_repo": "",
-    "build_version": "1.0.0",
+    "build_version": "1.0.5",
     "build_source": "image",
-    "image": "registry.cn-hangzhou.aliyuncs.com/goodrain/rbd-mesh-data-panel:v5.5.0-release",
+    "image": "swr.cn-southwest-2.myhuaweicloud.com/wutong/wt-mesh-data-panel:v1.0.0-stable",
     "config_group": [
       {
         "service_meta_type": "downstream_port",
@@ -614,7 +614,7 @@
     "desc": "文件管理插件，挂载组件目录并与组件一同运行，并对外提供文件上传下载等服务。",
     "category": "general-plugin",
     "code_repo": "",
-    "build_version": "1.0.0",
+    "build_version": "1.0.5",
     "build_source": "image",
     "image": "wutongpaas/filebrowser:latest",
     "config_group": [

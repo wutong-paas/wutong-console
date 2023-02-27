@@ -3,17 +3,12 @@ import os
 import yaml
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from sqlalchemy import select, not_
-
 from clients.remote_build_client import remote_build_client
 from clients.remote_tenant_client import remote_tenant_client
 from core.utils.crypt import make_uuid
-from core.utils.oauth.oauth_types import NoSupportOAuthType, get_oauth_instance
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, AbortRequest
 from models.market.models import CenterAppVersion
-from models.teams.enterprise import TeamEnterprise
-from models.users.oauth import OAuthServices
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.config.config_repo import sys_config_repo
@@ -21,12 +16,11 @@ from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
 from service.base_services import base_service
 from service.market_app_service import market_app_service
-
 from service.platform_config_service import ConfigService
 from service.plugin_service import plugin_service
 
@@ -88,7 +82,8 @@ class RegionService(object):
 
     def get_public_key(self, session, tenant, region):
         try:
-            res, body = remote_build_client.get_region_publickey(session, tenant.tenant_name, region, tenant.enterprise_id, tenant.tenant_id)
+            res, body = remote_build_client.get_region_publickey(session, tenant.tenant_name, region,
+                                                                 tenant.enterprise_id, tenant.tenant_id)
             if body and "bean" in body:
                 return body["bean"]
             return {}
@@ -101,64 +96,6 @@ class RegionService(object):
         if region:
             return region.wsurl
         return ""
-
-    def _create_sample_application(self, session, ent, region, user):
-        try:
-            # create default team
-            team = team_repo.create_team(session, user, ent, None, None)
-            region_services.create_tenant_on_region(session, ent.enterprise_id, team.tenant_name, region.region_name,
-                                                    team.namespace)
-            # Do not create sample applications in offline environment
-            if os.getenv("IS_OFFLINE", False):
-                return region
-            # create sample applications
-            tenant = team_repo.get_team_by_team_name_and_eid(session, ent.enterprise_id, team.tenant_name)
-            group = application_repo.get_group_by_unique_key(session, tenant.tenant_id, region.region_name, "默认应用")
-
-            module_dir = os.path.dirname(__file__) + '/plugin/'
-            file_path = os.path.join(module_dir, 'init_app_default.json')
-            with open(file_path, encoding='utf-8') as f:
-                default_app_config = json.load(f)
-                version_template = default_app_config["version_template"]
-                app_version = json.dumps(version_template)
-
-            # Create component dependencies for application model installation
-            scope = default_app_config["scope"]
-            init_app_info = {
-                "app_name": default_app_config["app_name"],
-                "scope": scope,
-                "pic": default_app_config["pic"],
-                "describe": default_app_config["describe"],
-            }
-            app_uuid = make_uuid()
-            market_app_service.create_wutong_app(session, ent.enterprise_id, init_app_info, app_uuid)
-
-            wutong_app_version = CenterAppVersion(
-                app_template=app_version,
-                enterprise_id=ent.enterprise_id,
-                app_id=app_uuid,
-                version="1.0",
-                template_version="v1",
-                record_id=0,
-                share_team=team.tenant_name,
-                share_user=1,
-                scope=scope,
-                app_version_info="")
-            session.add(wutong_app_version)
-            session.flush()
-            # Create default components
-            app_model_key = app_uuid
-            version = "1.0"
-            app_id = group.ID
-            install_from_cloud = False
-            is_deploy = True
-            market_name = ""
-            market_app_service.install_app(session, tenant, region, user, app_id, app_model_key, version, market_name,
-                                           install_from_cloud, is_deploy)
-            return region
-        except Exception as e:
-            logger.exception(e)
-            return region
 
     def add_region(self, session, region_data, user):
         ent = enterprise_repo.get_enterprise_by_enterprise_id(session, region_data.get("enterprise_id"))
@@ -181,7 +118,7 @@ class RegionService(object):
 
         if exist_region:
             return region
-        return self._create_sample_application(session, ent, region, user)
+        return region
 
     def parse_token(self, token, region_name, region_alias, region_type):
         try:
@@ -339,7 +276,7 @@ class RegionService(object):
                     "is_active": region.is_active,
                     "is_init": region.is_init,
                     "region_scope": region.region_scope,
-                    "region_alisa": team_repo.get_region_alias(session, region.region_name),
+                    "region_alisa": env_repo.get_region_alias(session, region.region_name),
                     "region.region_tenant_id": region.region_tenant_id,
                     "create_time": region.create_time,
                     "desc": region_desc
@@ -348,45 +285,42 @@ class RegionService(object):
         else:
             return []
 
-    def create_tenant_on_region(self, session: SessionClass, enterprise_id, team_name, region_name, namespace):
-        tenant = team_repo.get_team_by_team_name_and_eid(session, enterprise_id, team_name)
-        region_config = region_repo.get_enterprise_region_by_region_name(session, enterprise_id, region_name)
+    def create_env_on_region(self, session: SessionClass, enterprise_id, env, region_name, namespace):
+        region_config = region_repo.get_enterprise_region_by_region_name(session, region_name)
         if not region_config:
             raise ServiceHandleException(msg="cluster not found", msg_show="需要开通的集群不存在")
-        tenant_region = region_repo.get_team_region_by_tenant_and_region(session, tenant.tenant_id, region_name)
-        if not tenant_region:
-            tenant_region_info = {"tenant_id": tenant.tenant_id, "region_name": region_name, "is_active": False}
-            tenant_region = region_repo.create_tenant_region(session, **tenant_region_info)
-        if not tenant_region.is_init:
-            res, body = remote_tenant_client.create_tenant(session, region_name, tenant.tenant_name, tenant.tenant_id,
-                                                           tenant.enterprise_id, namespace)
-            if res["status"] != 200 and body['msg'] != 'tenant name {} is exist'.format(tenant.tenant_name):
+        env_region = region_repo.get_team_region_by_tenant_and_region(session, env.env_id, region_name)
+        if not env_region:
+            env_region_info = {"env_id": env.env_id, "region_name": region_name, "is_active": False}
+            env_region = region_repo.create_tenant_region(session, **env_region_info)
+        if not env_region.is_init:
+            res, body = remote_tenant_client.create_env(session, region_name, env.team_name, env.tenant_id,
+                                                        env.enterprise_id, namespace)
+            if res["status"] != 200 and body['msg'] != 'env name {} is exist'.format(env.env_name):
                 logger.error(res)
                 raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")
-            tenant_region.is_active = True
-            tenant_region.is_init = True
-            tenant_region.region_tenant_id = tenant.tenant_id
-            tenant_region.region_tenant_name = tenant.tenant_name
-            tenant_region.region_scope = region_config.scope
-            tenant_region.enterprise_id = tenant.enterprise_id
+            env_region.is_active = True
+            env_region.is_init = True
+            env_region.region_env_id = env.env_id
+            env_region.region_env_name = env.env_name
+            env_region.region_scope = region_config.scope
+            env_region.enterprise_id = env.enterprise_id
         else:
-            if (not tenant_region.region_tenant_id) or \
-                    (not tenant_region.region_tenant_name) or \
-                    (not tenant_region.enterprise_id):
-                tenant_region.region_tenant_id = tenant.tenant_id
-                tenant_region.region_tenant_name = tenant.tenant_name
-                tenant_region.region_scope = region_config.scope
-                tenant_region.enterprise_id = tenant.enterprise_id
-        _ = application_service.create_default_app(session=session, tenant=tenant, region_name=region_name)
-        return tenant_region
+            if (not env_region.region_env_id) or \
+                    (not env_region.region_env_name) or \
+                    (not env_region.enterprise_id):
+                env_region.region_env_id = env.env_id
+                env_region.region_env_name = env.env_name
+                env_region.region_scope = region_config.scope
+                env_region.enterprise_id = env.enterprise_id
+        return env_region
 
-    def delete_tenant_on_region(self, session: SessionClass, enterprise_id, team_name, region_name, user):
-        tenant = team_repo.get_team_by_team_name_and_eid(session, enterprise_id, team_name)
-        tenant_region = region_repo.get_team_region_by_tenant_and_region(session, tenant.tenant_id, region_name)
-        if not tenant_region:
+    def delete_env_on_region(self, session: SessionClass, enterprise_id, env, region_name, user):
+        env_region = region_repo.get_team_region_by_tenant_and_region(session, env.env_id, region_name)
+        if not env_region:
             raise ServiceHandleException(msg="team not open cluster, not need close", msg_show="该团队未开通此集群，无需关闭")
         # start delete
-        region_config = region_repo.get_enterprise_region_by_region_name(session, enterprise_id, region_name)
+        region_config = region_repo.get_enterprise_region_by_region_name(session, region_name)
         ignore_cluster_resource = False
         if not region_config:
             # cluster spec info not found, cluster side resources are no longer operated on
@@ -396,14 +330,14 @@ class RegionService(object):
             # check cluster api health
             if not info or info["rbd_version"] == "":
                 ignore_cluster_resource = True
-        services = service_info_repo.get_services_by_team_and_region(session, tenant.tenant_id, region_name)
+        services = service_info_repo.get_services_by_team_and_region(session, env.env_id, region_name)
         if not ignore_cluster_resource and services and len(services) > 0:
             # check component status
             service_ids = [service.service_id for service in services]
             status_list = base_service.status_multi_service(session=session,
-                                                            region=region_name, tenant_name=tenant.tenant_name,
+                                                            region=region_name, tenant_name=env.env_name,
                                                             service_ids=service_ids,
-                                                            enterprise_id=tenant.enterprise_id)
+                                                            enterprise_id=env.enterprise_id)
             status_list = [x for x in [x["status"] for x in status_list] if x not in ["closed", "undeploy"]]
             if len(status_list) > 0:
                 raise ServiceHandleException(
@@ -413,23 +347,23 @@ class RegionService(object):
         # and removing the cluster only ensures that the component's resources are freed up.
         not_delete_from_cluster = False
         for service in services:
-            not_delete_from_cluster = app_manage_service.really_delete_service(session=session, tenant=tenant,
+            not_delete_from_cluster = app_manage_service.really_delete_service(session=session, tenant=env,
                                                                                service=service, user=user,
                                                                                ignore_cluster_result=ignore_cluster_resource,
                                                                                not_delete_from_cluster=not_delete_from_cluster)
-        plugins = plugin_repo.get_tenant_plugins(session, tenant.tenant_id, region_name)
+        plugins = plugin_repo.get_tenant_plugins(session, env.env_id, region_name)
         if plugins:
             for plugin in plugins:
-                plugin_service.delete_plugin(session=session, region=region_name, team=tenant,
+                plugin_service.delete_plugin(session=session, region=region_name, team=env,
                                              plugin_id=plugin.plugin_id,
                                              ignore_cluster_resource=ignore_cluster_resource,
                                              is_force=True)
 
-        application_repo.list_tenant_group_on_region(session, tenant, region_name).delete()
+        application_repo.list_tenant_group_on_region(session, env, region_name).delete()
         # delete tenant
         if not ignore_cluster_resource:
             try:
-                remote_tenant_client.delete_tenant(session, region_name, team_name)
+                remote_tenant_client.delete_tenant(session, region_name, env.env_name)
             except remote_tenant_client.CallApiError as e:
                 if e.status != 404:
                     logger.error("delete tenant failure {}".format(e.body))
@@ -437,7 +371,7 @@ class RegionService(object):
             except Exception as e:
                 logger.exception(e)
                 raise ServiceHandleException(msg="delete tenant from cluster failure", msg_show="从集群删除租户失败")
-        region_repo.delete_team_region_by_tenant_and_region(session, tenant.tenant_id, region_name)
+        region_repo.delete_team_region_by_tenant_and_region(session, env.env_id, region_name)
 
     def get_team_unopen_region(self, session: SessionClass, team_name, enterprise_id):
         team_opened_regions = region_repo.get_team_opened_region(session, team_name, is_init=True)
@@ -468,7 +402,6 @@ class EnterpriseConfigService(ConfigService):
     def __init__(self, eid):
         super(EnterpriseConfigService, self).__init__()
         self.enterprise_id = eid
-        self.base_cfg_keys = ["OAUTH_SERVICES"]
         self.cfg_keys = [
             "APPSTORE_IMAGE_HUB",
             "NEWBIE_GUIDE",
@@ -537,51 +470,7 @@ class EnterpriseConfigService(ConfigService):
         }
 
     def init_base_config_value(self, session):
-        self.base_cfg_keys_value = {
-            "OAUTH_SERVICES": {
-                "value": self.get_oauth_services(session),
-                "desc": "开启/关闭OAuthServices功能",
-                "enable": False
-            },
-        }
-
-    def get_oauth_services(self, session):
-        rst = []
-        enterprise = session.execute(select(TeamEnterprise).where(
-            TeamEnterprise.enterprise_id == self.enterprise_id)).scalars().first()
-        if enterprise.ID != 1:
-            oauth_services = session.execute(select(OAuthServices).where(
-                not_(OAuthServices.oauth_type == "enterprisecenter"),
-                OAuthServices.eid == enterprise.enterprise_id,
-                OAuthServices.is_deleted == 0,
-                OAuthServices.enable == 1
-            )).scalars().all()
-        else:
-            oauth_services = session.execute(select(OAuthServices).where(
-                OAuthServices.eid == enterprise.enterprise_id,
-                OAuthServices.is_deleted == 0,
-                OAuthServices.enable == 1
-            )).scalars().all()
-        if oauth_services:
-            for oauth_service in oauth_services:
-                try:
-                    api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
-                    authorize_url = api.get_authorize_url()
-                    rst.append({
-                        "service_id": oauth_service.ID,
-                        "enable": oauth_service.enable,
-                        "name": oauth_service.name,
-                        "oauth_type": oauth_service.oauth_type,
-                        "is_console": oauth_service.is_console,
-                        "home_url": oauth_service.home_url,
-                        "eid": oauth_service.eid,
-                        "is_auto_login": oauth_service.is_auto_login,
-                        "is_git": oauth_service.is_git,
-                        "authorize_url": authorize_url,
-                    })
-                except NoSupportOAuthType:
-                    continue
-        return rst
+        pass
 
     def get_config_by_key(self, session: SessionClass, key):
         return sys_config_repo.get_config_by_key_and_enterprise_id(session=session, key=key,

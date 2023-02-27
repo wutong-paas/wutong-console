@@ -10,8 +10,7 @@ from sqlalchemy import select
 from clients.remote_component_client import remote_component_client
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
-
-from core.utils.oauth.oauth_types import support_oauth_type
+from core.setting import settings
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message, general_data
 from database.session import SessionClass
@@ -37,7 +36,6 @@ from service.component_service import component_check_service
 from service.monitor_service import monitor_service
 from service.multi_app_service import multi_app_service
 from service.region_service import region_services
-from service.user_service import user_svc
 
 router = APIRouter()
 
@@ -180,7 +178,7 @@ async def get_check_detail(check_uuid: Optional[str] = None,
         component_check_service.save_service_check_info(session=session, tenant=team, service=service, data=data)
     check_brief_info = component_check_service.wrap_service_check_info(session=session, service=service, data=data)
     code_from = service.code_from
-    if code_from in list(support_oauth_type.keys()):
+    if code_from in list(settings.source_code_type.keys()):
         for i in check_brief_info["service_info"]:
             if i["type"] == "source_from":
                 result_url = re.split("[:,@]", i["value"])
@@ -403,7 +401,7 @@ async def component_horizontal(request: Request,
             return JSONResponse(general_message(400, "node is null", "请选择节点个数"), status_code=400)
 
         service = service_info_repo.get_service(session, service_alias, team.tenant_id)
-        oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session=session, user_id=user.user_id)
+        oauth_instance, _ = None, None
         app_manage_service.horizontal_upgrade(
             session, team, service, user, int(new_node), oauth_instance=oauth_instance)
         result = general_message(200, "success", "操作成功", bean={})

@@ -30,7 +30,7 @@ from service.application_service import application_service
 from service.compose_service import compose_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
-from service.team_service import team_services
+from service.env_service import env_services
 
 router = APIRouter()
 
@@ -246,5 +246,5 @@ async def check_resource_name(
     name = await parse_item(request, "name", required=True)
     rtype = await parse_item(request, "type", required=True)
     region_name = await parse_item(request, "region_name", required=True)
-    components = team_services.check_resource_name(session, team.tenant_name, region_name, rtype, name)
+    components = env_services.check_resource_name(session, team.tenant_name, region_name, rtype, name)
     return JSONResponse(general_message(200, "success", "查询成功", list=components), status_code=200)

@@ -4,41 +4,37 @@ from datetime import datetime
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, DECIMAL, Text
 from sqlalchemy_utils import ChoiceType
 
-from core.utils.crypt import make_tenant_id, make_uuid
+from core.utils.crypt import make_env_id, make_uuid
 from database.session import Base
 from core.setting import settings
 
-tenant_type = (("免费租户", "free"), ("付费租户", "payed"))
 tenant_identity = (("拥有者", "owner"), ("管理员", "admin"), ("开发者", "developer"), ("观察者", "viewer"), ("访问", "access"))
 
 
-class TeamInfo(Base):
+class EnvInfo(Base):
     """
-    租户表
+    环境表
     """
 
-    __tablename__ = 'tenant_info'
+    __tablename__ = 'env_info'
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(33), comment="租户id", nullable=False, unique=True, default=make_tenant_id)
-    tenant_name = Column(String(64), comment="租户名称", nullable=False, unique=True)
+    env_id = Column(String(33), comment="环境id", nullable=False, unique=True, default=make_env_id)
+    env_name = Column(String(64), comment="环境名称", nullable=False, unique=True)
+    team_name = Column(String(33), comment="团队名称", nullable=False, unique=True)
     # This property is deprecated
     # region = Column(String(64, default='', comment="区域中心,弃用")
-    is_active = Column(Boolean, comment="激活状态", nullable=False, default=True)
-    pay_type = Column(String(5), ChoiceType(tenant_type), comment="付费状态", nullable=False)
-    balance = Column(DECIMAL(10), comment="账户余额", nullable=False, default=0.00)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     creater = Column(Integer, nullable=False, default=0, comment="租户创建者")
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
     update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
-    pay_level = Column(String(30), comment="付费级别", nullable=False, default='free')
-    expired_time = Column(DateTime(), nullable=True, comment="过期时间")
-    tenant_alias = Column(String(64), comment="团队别名", nullable=True, default='')
-    enterprise_id = Column(String(32), ChoiceType(tenant_type), comment="企业id", nullable=True, default='')
-    namespace = Column(String(33), comment="团队的命名空间", unique=True, nullable=False)
+    env_alias = Column(String(64), comment="环境别名", nullable=True, default='')
+    enterprise_id = Column(String(32), comment="企业id", nullable=True, default='')
+    namespace = Column(String(33), comment="环境的命名空间", unique=True, nullable=False)
+    desc = Column(String(255), comment="描述", nullable=True)
 
     def __unicode__(self):
-        return self.tenant_name
+        return self.env_name
 
 
 class ServiceDomain(Base):

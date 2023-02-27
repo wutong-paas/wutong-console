@@ -332,7 +332,6 @@ class ComponentCheckService(object):
                                                              is_inner_service=False,
                                                              is_outer_service=True)
                 region_info = region_repo.get_enterprise_region_by_region_name(session=session,
-                                                                               enterprise_id=tenant.enterprise_id,
                                                                                region_name=service.service_region)
                 if region_info:
                     domain_service.create_default_gateway_rule(session=session, tenant=tenant, region_info=region_info,

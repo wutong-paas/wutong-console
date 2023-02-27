@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from models.application.models import Application, ComponentApplicationRelation
 from models.component.models import TeamComponentInfo
-from models.teams import TeamInfo
+from models.teams import EnvInfo
 
 
 class HunanExpresswayRepository(object):
@@ -17,8 +17,8 @@ class HunanExpresswayRepository(object):
         )).scalars().first()
 
     def get_tenant_by_tenant_id(self, session, tenant_id):
-        return session.execute(select(TeamInfo).where(
-            TeamInfo.tenant_id == tenant_id
+        return session.execute(select(EnvInfo).where(
+            EnvInfo.tenant_id == tenant_id
         )).scalars().first()
 
     def get_groups_by_service_id(self, session, service_ids):

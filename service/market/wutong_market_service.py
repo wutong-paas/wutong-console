@@ -6,21 +6,20 @@ from database.session import SessionClass
 from exceptions.main import AbortRequest
 from models.component.models import TeamApplication
 from models.market.models import AppMarket, CenterAppVersion
-from models.teams import TeamInfo, RegionConfig
-from models.users.users import Users
+from models.teams import EnvInfo, RegionConfig
 from repository.application.application_repo import application_repo
 from repository.market.center_app_version_repo import center_app_version_repo
 from repository.market.wutong_market_repo import wutong_market_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 from schemas.market import MarketCreateParam, MarketAppInstallParam
 from service.market_app.app_upgrade import AppUpgrade
-from service.team_service import team_services
+from service.env_service import env_services
 
 
 def get_wutong_markets(session: SessionClass, enterprise_id: str, user: str):
     # 查询用户团队权限信息
-    teams = team_services.get_teams_region_by_user_id(session=session, enterprise_id=enterprise_id, user=user)
+    teams = env_services.get_teams_region_by_user_id(session=session, enterprise_id=enterprise_id, user=user)
     if not teams:
         return []
     team_names = [team['team_name'] for team in teams]
@@ -82,7 +81,7 @@ def update_wutong_market(session: SessionClass, enterprise_id: str, market_id: s
                                                                                      enterprise_id=enterprise_id))
 
 
-def install_cloud_market_app(session: SessionClass, user: Users, enterprise_id: str, market_id: str,
+def install_cloud_market_app(session: SessionClass, user, enterprise_id: str, market_id: str,
                              params: MarketAppInstallParam):
     # 前置校验
     application = application_repo.get_by_primary_key(session=session, primary_key=params.application_id)
@@ -98,7 +97,7 @@ def install_cloud_market_app(session: SessionClass, user: Users, enterprise_id: 
     # app_template["update_time"] = app_version.update_time
 
     # 查询团队
-    team_info = team_repo.get_one_by_model(session=session, query_model=TeamInfo(tenant_id=application.tenant_id))
+    team_info = env_repo.get_one_by_model(session=session, query_model=EnvInfo(tenant_id=application.tenant_id))
     # 查询region
     region = region_repo.get_one_by_model(session=session,
                                           query_model=RegionConfig(region_name=application.region_name))

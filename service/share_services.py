@@ -857,7 +857,7 @@ class ShareService(object):
 
     def get_team_service_deploy_version(self, session, region, team, service_ids):
         try:
-            res, body = remote_build_client.get_team_services_deploy_version(session,
+            res, body = remote_build_client.get_env_services_deploy_version(session,
                                                                              region, team.tenant_name,
                                                                              {"service_ids": service_ids})
             if res.status == 200:

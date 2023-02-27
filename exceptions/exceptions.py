@@ -1,6 +1,20 @@
 from exceptions.main import ServiceHandleException
 
 
+class NoSupportOAuthType(Exception):
+    """
+    type not support
+    """
+
+
+class NoAccessKeyErr(Exception):
+    def __init__(self, value):
+        self.message = value
+
+    def __str__(self):
+        return self.message
+
+
 class ConfigExistError(Exception):
     """
     配置已存在
@@ -37,12 +51,6 @@ class LogoFormatError(BaseException):
 class LogoSizeError(BaseException):
     """
     logo大小错误
-    """
-
-
-class UserFavoriteNotExistError(BaseException):
-    """
-    用户收藏视图不存在
     """
 
 

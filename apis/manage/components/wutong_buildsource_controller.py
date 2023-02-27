@@ -6,7 +6,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from core import deps
-from core.utils.oauth.oauth_types import get_oauth_instance
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists

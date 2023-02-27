@@ -110,7 +110,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_team_services_deploy_version(self, session, region, tenant_name, data):
+    def get_env_services_deploy_version(self, session, region, tenant_name, data):
         """查询指定组件的部署版本"""
         url, token = get_region_access_info(tenant_name, region, session)
         tenant_region = get_tenant_region_info(tenant_name, region, session)

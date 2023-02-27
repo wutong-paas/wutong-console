@@ -6,12 +6,10 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 
 from core.enum.system_config import ConfigKeyEnum
-from core.utils.oauth.oauth_types import get_oauth_instance, NoSupportOAuthType
 from database.session import SessionClass
-from exceptions.exceptions import ConfigExistError
+from exceptions.exceptions import ConfigExistError, NoSupportOAuthType
 from models.teams import ConsoleSysConfig
 from models.users.oauth import OAuthServices
-from models.users.users import Users
 from repository.config.config_repo import sys_config_repo
 
 
@@ -190,9 +188,7 @@ class PlatformConfigService(ConfigService):
 
     def __init__(self):
         super(PlatformConfigService, self).__init__()
-        self.base_cfg_keys = ["IS_PUBLIC", "ENTERPRISE_CENTER_OAUTH", "VERSION", "IS_USER_REGISTER"]
-        if not os.getenv('IS_PUBLIC', False):
-            self.base_cfg_keys.append("OAUTH_SERVICES")
+        self.base_cfg_keys = ["IS_PUBLIC", "ENTERPRISE_CENTER_OAUTH", "VERSION"]
 
         self.cfg_keys = [
             "TITLE",
@@ -269,12 +265,6 @@ class PlatformConfigService(ConfigService):
         else:
             raise ConfigExistError("配置{}已存在".format(key))
 
-    def is_user_register(self, session):
-        user = (session.execute(select(Users.user_id))).scalars().first()
-        if user:
-            return True
-        return False
-
     def init_base_config_value(self, session):
         self.base_cfg_keys_value = {
             "IS_PUBLIC": {
@@ -293,45 +283,7 @@ class PlatformConfigService(ConfigService):
                 "desc": "平台版本",
                 "enable": True
             },
-            "IS_USER_REGISTER": {
-                "value": self.is_user_register(session),
-                "desc": "开启/关闭OAuthServices功能",
-                "enable": True
-            },
         }
-        if not os.getenv('IS_PUBLIC', False):
-            self.base_cfg_keys_value["OAUTH_SERVICES"] = {
-                "value": self.get_all_oauth_service(session),
-                "desc": "开启/关闭OAuthServices功能",
-                "enable": True
-            }
-
-    def get_all_oauth_service(self, session):
-        rst = []
-        oauth_services = session.execute(select(OAuthServices).where(
-            OAuthServices.is_deleted == 0,
-            OAuthServices.enable == 1
-        )).scalars().all()
-        if oauth_services:
-            for oauth_service in oauth_services:
-                try:
-                    api = get_oauth_instance(oauth_service.oauth_type, oauth_service, None)
-                    authorize_url = api.get_authorize_url()
-                    rst.append({
-                        "service_id": oauth_service.ID,
-                        "enable": oauth_service.enable,
-                        "name": oauth_service.name,
-                        "oauth_type": oauth_service.oauth_type,
-                        "is_console": oauth_service.is_console,
-                        "home_url": oauth_service.home_url,
-                        "eid": oauth_service.eid,
-                        "is_auto_login": oauth_service.is_auto_login,
-                        "is_git": oauth_service.is_git,
-                        "authorize_url": authorize_url,
-                    })
-                except NoSupportOAuthType:
-                    continue
-        return rst
 
 
 platform_config_service = PlatformConfigService()

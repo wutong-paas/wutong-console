@@ -32,7 +32,7 @@ from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_plugin_repo import plugin_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 from service.app_config.component_graph import component_graph_service
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
@@ -235,7 +235,7 @@ class GroupappsMigrateService(object):
             ts.extend_method = "state_multiple"
         if ts.extend_method == "stateless":
             ts.extend_method = "stateless_multiple"
-        team_repo.save_tenant_service_info(session, ts)
+        env_repo.save_tenant_service_info(session, ts)
         return ts
 
     def __save_port(self, session: SessionClass,
@@ -792,7 +792,7 @@ class GroupappsMigrateService(object):
                 service_change = bean["service_change"]
                 logger.debug("service change : {0}".format(service_change))
                 metadata = bean["metadata"]
-                migrate_team = team_repo.get_tenant_by_tenant_name(session=session,
+                migrate_team = env_repo.get_tenant_by_tenant_name(session=session,
                                                                    team_name=migrate_record.migrate_team)
                 try:
                     self.save_data(session,

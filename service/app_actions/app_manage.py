@@ -10,15 +10,14 @@ from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core.enum.component_enum import ComponentType, is_state, is_singleton
+from core.setting import settings
 from core.utils import slug_util
 from core.utils.constants import AppConstants
 from core.utils.crypt import make_uuid
-from core.utils.oauth.base.exception import NoAccessKeyErr
-from core.utils.oauth.oauth_types import get_oauth_instance, NoSupportOAuthType
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.bcode import ErrThirdComponentStartFailed
-from exceptions.exceptions import ErrChangeServiceType, TenantNotExistError
+from exceptions.exceptions import ErrChangeServiceType, TenantNotExistError, NoAccessKeyErr
 from exceptions.main import AbortRequest, ServiceHandleException
 from models.application.models import ComponentApplicationRelation, ComposeServiceRelation, ConfigGroupService, \
     ServiceShareRecordEvent, Application
@@ -30,7 +29,7 @@ from models.component.models import ComponentEvent, ComponentCreateStep, Compone
     ThirdPartyComponentEndpoints
 from models.region.models import RegionApp
 from models.relate.models import TeamComponentRelation
-from models.teams import ServiceDomain, ServiceTcpDomain, TeamInfo
+from models.teams import ServiceDomain, ServiceTcpDomain, EnvInfo
 from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.application.app_repository import recycle_bin_repo, relation_recycle_bin_repo, delete_service_repo
 from repository.application.application_repo import application_repo
@@ -1171,7 +1170,7 @@ class AppManageService(AppManageBase):
                     return 400, "该组件构建源基于Oauth对接的代码仓库，Oauth服务可能已被删除，请在构建源中重新配置", ""
                 try:
                     instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
-                except NoSupportOAuthType as e:
+                except settings.source_code_type as e:
                     logger.debug(e)
                     return 400, "该组件构建源代码仓库类型已不支持", ""
                 if not instance.is_git_oauth():
@@ -1275,7 +1274,7 @@ class AppManageService(AppManageBase):
         session.add(add_model)
 
         team = (
-            session.execute(select(TeamInfo).where(TeamInfo.tenant_id == service.tenant_id))
+            session.execute(select(EnvInfo).where(EnvInfo.tenant_id == service.tenant_id))
         ).scalars().first()
         if not team:
             raise TenantNotExistError

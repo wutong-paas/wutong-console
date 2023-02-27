@@ -1,8 +1,8 @@
 from sqlalchemy import select
 
-from models.region.models import TeamRegionInfo
+from models.region.models import EnvRegionInfo
 from repository.region.region_info_repo import region_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 
 
 class CertService(object):
@@ -11,11 +11,11 @@ class CertService(object):
         region_names = [r.region_name for r in usable_regions]
         team_opened_regions = region_repo.get_team_opened_region(session, team_name)
         if team_opened_regions:
-            tenant = team_repo.get_team_by_team_name(session, team_name)
-            team_opened_regions = session.execute(select(TeamRegionInfo).where(
-                TeamRegionInfo.tenant_id == tenant.tenant_id,
-                TeamRegionInfo.is_init == 1,
-                TeamRegionInfo.region_name.in_(region_names)
+            tenant = env_repo.get_team_by_team_name(session, team_name)
+            team_opened_regions = session.execute(select(EnvRegionInfo).where(
+                EnvRegionInfo.tenant_id == tenant.tenant_id,
+                EnvRegionInfo.is_init == 1,
+                EnvRegionInfo.region_name.in_(region_names)
             )).scalars().all()
         return team_opened_regions
 

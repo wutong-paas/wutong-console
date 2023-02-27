@@ -1,10 +1,7 @@
 import json
-
 from loguru import logger
-
 from core.gitutlparse import parse
 from core.utils.constants import AppConstants
-from repository.teams.team_repo import team_gitlab_repo
 from service.base_services import CodeRepositoriesService
 
 codeRepositoriesService = CodeRepositoriesService()
@@ -68,20 +65,6 @@ class GitCodeService(object):
                 return []
             return branchs
         return []
-
-    def get_gitlab_repo(self, session, tenant):
-        sql_repos = team_gitlab_repo.get_team_gitlab_by_team_id(session, tenant.tenant_id)
-        arr = []
-        if sql_repos:
-            for sqlobj in sql_repos:
-                d = {}
-                d["code_repos"] = sqlobj.respo_url
-                d["code_user"] = sqlobj.respo_url.split(":")[1].split("/")[0]
-                d["code_project_name"] = sqlobj.repo_name
-                d["code_id"] = sqlobj.git_project_id
-                d["code_version"] = sqlobj.code_version
-                arr.append(d)
-        return 200, "success", arr
 
 
 git_service = GitCodeService()

@@ -17,12 +17,11 @@ from apis.manage.market import local_market_controller, market_plugin_controller
     helm_market_controller, wutong_market_controller
 from apis.manage.obs import wutong_obs_controller
 from apis.manage.proxy import wutong_proxy_controller
-from apis.manage.team import wutong_team_overview_controller, wutong_team_roles_controller, \
-    wutong_team_plugins_controller, wutong_team_users_controller, wutong_team_domain_controller, \
+from apis.manage.team import wutong_team_overview_controller, \
+    wutong_team_plugins_controller, wutong_team_domain_controller, \
     wutong_team_region_controller, wutong_team_apps_controller, wutong_team_groupapp_controller
 from apis.manage.teams import team_manage_controller
-from apis.manage.user import access_token_controller, user_config_controller, user_manage_controller, \
-    user_oauth_controller
+from apis.manage.env import env_manage_controller
 
 api_router = APIRouter()
 
@@ -34,11 +33,6 @@ api_router.include_router(wutong_hunan_expressway.router, prefix="", tags=["湖�
 
 # 公共接口部分
 api_router.include_router(common_controller.router, tags=["公共部分接口"])
-
-# 用户
-api_router.include_router(access_token_controller.router, tags=["访问令牌操作接口"])
-api_router.include_router(user_config_controller.router, tags=["用户配置接口"])
-api_router.include_router(user_manage_controller.router, tags=["用户管理操作接口"])
 
 # 企业
 # todo 移除
@@ -69,13 +63,7 @@ api_router.include_router(wutong_market_controller.router, tags=["梧桐应用�
 api_router.include_router(operation_controller.router, tags=["组件操作接口"])
 api_router.include_router(batch_operation_controller.router, tags=["组件批量操作接口"])
 api_router.include_router(third_party_controller.router, tags=["第三方组件操作接口"])
-# todo
 api_router.include_router(wutong_components_controller.router, tags=["组件接口"])
-
-api_router.include_router(user_oauth_controller.router, tags=["oauth"])
-
-# # test
-# api_router.include_router(test.router, tags=["测试"])
 
 #
 api_router.include_router(wutong_version_controller.router, tags=["version"])
@@ -97,17 +85,14 @@ api_router.include_router(wutong_deploy_controller.router, tags=["deploy"])
 
 # team
 api_router.include_router(wutong_team_plugins_controller.router, tags=["plugins"])
-api_router.include_router(wutong_team_roles_controller.router, tags=["roles"])
 api_router.include_router(wutong_team_overview_controller.router, tags=["overview"])
-api_router.include_router(wutong_team_users_controller.router, tags=["users"])
 api_router.include_router(wutong_team_domain_controller.router, tags=["domain"])
 api_router.include_router(wutong_team_region_controller.router, tags=["region"])
 api_router.include_router(wutong_team_apps_controller.router, tags=["apps"])
 api_router.include_router(wutong_team_groupapp_controller.router, tags=["groupapp"])
-
 # proxy
 api_router.include_router(wutong_proxy_controller.router, tags=["proxy"])
-
-
 # obs
 api_router.include_router(wutong_obs_controller.router, tags=["obs"])
+# env
+api_router.include_router(env_manage_controller.router, tags=["env"])

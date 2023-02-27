@@ -7,7 +7,7 @@ from common.client_auth_service import client_auth_service
 from exceptions.main import ServiceHandleException
 from repository.region.region_config_repo import region_config_repo
 from repository.teams.team_region_repo import team_region_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 
 
 def get_region_access_info_by_enterprise_id(enterprise_id, region, session):
@@ -39,7 +39,7 @@ def get_tenant_region_info(tenant_name, region_name, session):
     """
     # todo
     logger.info("查询团队信息,param-name:{},param-region:{}", tenant_name, region_name)
-    tenant = team_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name)
+    tenant = env_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name)
     if tenant:
         tenant_region = team_region_repo.get_tenant_region_info_by_tenant_id_and_region_name(session,
                                                                                              tenant.tenant_id,

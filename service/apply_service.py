@@ -2,8 +2,7 @@ import datetime
 
 from exceptions.main import ServiceHandleException
 from repository.teams.team_applicants_repo import apply_repo
-from repository.teams.team_repo import team_repo
-from repository.users.user_repo import user_repo
+from repository.teams.env_repo import env_repo
 
 
 class ApplyService(object):
@@ -13,8 +12,8 @@ class ApplyService(object):
     def create_applicants(self, session, user_id, team_name):
         applicant = apply_repo.get_applicants_by_id_team_name(session=session, user_id=user_id, team_name=team_name)
         if not applicant:
-            team = team_repo.get_team_by_team_name(session=session, team_name=team_name)
-            user = user_repo.get_by_primary_key(session=session, primary_key=user_id)
+            team = env_repo.get_team_by_team_name(session=session, team_name=team_name)
+            user = idaas_api.get_user_info(user_id)
             info = {
                 "user_id": user_id,
                 "user_name": user.get_username(),
@@ -27,7 +26,7 @@ class ApplyService(object):
         if applicant.is_pass == 0:
             raise ServiceHandleException(msg="already applied for it", msg_show="该团队已经申请过")
         if applicant.is_pass == 1:
-            teams = team_repo.get_tenants_by_user_id(session, user_id)
+            teams = env_repo.get_tenants_by_user_id(session, user_id)
             tnames = [team.tenant_name for team in teams]
             if team_name in tnames:
                 raise ServiceHandleException(msg="already join for it", msg_show="您已加入该团队")

@@ -1,12 +1,10 @@
 from sqlalchemy import select, delete, not_
-
-from core.utils.crypt import make_tenant_id
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException, RegionNotFound
-from models.region.models import TeamRegionInfo
-from models.teams import RegionConfig, TeamInfo
+from exceptions.main import RegionNotFound
+from models.region.models import EnvRegionInfo
+from models.teams import RegionConfig
 from repository.base import BaseRepository
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 
 
 class RegionRepo(BaseRepository[RegionConfig]):
@@ -63,38 +61,38 @@ class RegionRepo(BaseRepository[RegionConfig]):
 
     def get_team_opened_region(self, session: SessionClass, team_name, is_init=None):
         """获取团队已开通的数据中心"""
-        tenant = team_repo.get_team_by_team_name(session, team_name)
+        tenant = env_repo.get_team_by_team_name(session, team_name)
         if not tenant:
             return None
         if not is_init:
-            results = session.execute(select(TeamRegionInfo).where(
-                TeamRegionInfo.tenant_id == tenant.tenant_id))
+            results = session.execute(select(EnvRegionInfo).where(
+                EnvRegionInfo.tenant_id == tenant.tenant_id))
         else:
-            results = session.execute(select(TeamRegionInfo).where(
-                TeamRegionInfo.tenant_id == tenant.tenant_id,
-                TeamRegionInfo.is_init == is_init))
+            results = session.execute(select(EnvRegionInfo).where(
+                EnvRegionInfo.tenant_id == tenant.tenant_id,
+                EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 
     def get_team_opened_region_name(self, session: SessionClass, team_name, region_names, is_init=None):
         """获取团队已开通的数据中心"""
-        tenant = team_repo.get_team_by_team_name(session, team_name)
+        tenant = env_repo.get_team_by_team_name(session, team_name)
         if not tenant:
             return None
         if not is_init:
-            results = session.execute(select(TeamRegionInfo).where(
-                TeamRegionInfo.tenant_id == tenant.tenant_id,
-                TeamRegionInfo.region_name.in_(region_names),
-                TeamRegionInfo.is_init == 1))
+            results = session.execute(select(EnvRegionInfo).where(
+                EnvRegionInfo.tenant_id == tenant.tenant_id,
+                EnvRegionInfo.region_name.in_(region_names),
+                EnvRegionInfo.is_init == 1))
         else:
-            results = session.execute(select(TeamRegionInfo).where(
-                TeamRegionInfo.tenant_id == tenant.tenant_id,
-                TeamRegionInfo.is_init == is_init))
+            results = session.execute(select(EnvRegionInfo).where(
+                EnvRegionInfo.tenant_id == tenant.tenant_id,
+                EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 
     def get_region_by_tenant_name(self, session: SessionClass, tenant_name):
-        tenant = team_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=True)
-        results = session.execute(select(TeamRegionInfo).where(
-            TeamRegionInfo.tenant_id == tenant.tenant_id))
+        tenant = env_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=True)
+        results = session.execute(select(EnvRegionInfo).where(
+            EnvRegionInfo.tenant_id == tenant.tenant_id))
         return results.scalars().all()
 
     def get_region_desc_by_region_name(self, session: SessionClass, region_name):
@@ -107,31 +105,30 @@ class RegionRepo(BaseRepository[RegionConfig]):
         else:
             return None
 
-    def get_enterprise_region_by_region_name(self, session: SessionClass, enterprise_id, region_name):
+    def get_enterprise_region_by_region_name(self, session: SessionClass, region_name):
         return session.execute(select(RegionConfig).where(
-            RegionConfig.enterprise_id == enterprise_id,
             RegionConfig.region_name == region_name)).scalars().first()
 
     def get_team_region_by_tenant_and_region(self, session: SessionClass, tenant_id, region):
-        return session.execute(select(TeamRegionInfo).where(
-            TeamRegionInfo.tenant_id == tenant_id,
-            TeamRegionInfo.region_name == region)).scalars().first()
+        return session.execute(select(EnvRegionInfo).where(
+            EnvRegionInfo.tenant_id == tenant_id,
+            EnvRegionInfo.region_name == region)).scalars().first()
 
     def delete_team_region_by_tenant_and_region(self, session: SessionClass, tenant_id, region):
-        session.execute(delete(TeamRegionInfo).where(
-            TeamRegionInfo.tenant_id == tenant_id,
-            TeamRegionInfo.region_name == region))
+        session.execute(delete(EnvRegionInfo).where(
+            EnvRegionInfo.tenant_id == tenant_id,
+            EnvRegionInfo.region_name == region))
         session.flush()
 
     def create_tenant_region(self, session: SessionClass, **params):
-        tenant_region_info = TeamRegionInfo(**params)
+        tenant_region_info = EnvRegionInfo(**params)
         session.add(tenant_region_info)
         session.flush()
         return tenant_region_info
 
-    def get_tenant_regions_by_teamid(self, session: SessionClass, team_id):
-        return session.execute(select(TeamRegionInfo).where(
-            TeamRegionInfo.tenant_id == team_id)).scalars().all()
+    def get_env_regions_by_envid(self, session: SessionClass, env_id):
+        return session.execute(select(EnvRegionInfo).where(
+            EnvRegionInfo.tenant_id == env_id)).scalars().all()
 
     def get_usable_regions(self, session: SessionClass, enterprise_id, opened_regions_name):
         """获取可使用的数据中心"""

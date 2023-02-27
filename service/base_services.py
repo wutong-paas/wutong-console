@@ -10,15 +10,13 @@ from core.git.gitlab_http import GitlabApi
 from core.git.regionapi import RegionInvokeApi
 from core.setting import settings
 from core.utils.custom_config import custom_config
-from core.utils.oauth.oauth_types import support_oauth_type
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from models.component.models import TeamComponentInfo
-from models.users.users import Users
 from repository.application.app_repository import app_repo
 from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import service_source_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 
 
 gitClient = GitlabApi()
@@ -137,7 +135,7 @@ class BaseService:
         apps = dict()
         markets = dict()
         build_infos = dict()
-        services = team_repo.list_by_component_ids(session=session, service_ids=service_ids)
+        services = env_repo.list_by_component_ids(session=session, service_ids=service_ids)
         svc_sources = service_source_repo.get_service_sources(session=session, team_id=tenant.tenant_id,
                                                               service_ids=service_ids)
         service_sources = {svc_ss.service_id: svc_ss for svc_ss in svc_sources}
@@ -145,7 +143,7 @@ class BaseService:
         for service in services:
             service_source = service_sources.get(service.service_id, None)
             code_from = service.code_from
-            oauth_type = list(support_oauth_type.keys())
+            oauth_type = list(settings.source_code_type.keys())
             if code_from in oauth_type:
                 result_url = re_split("[:,@]", service.git_url)
                 service.git_url = result_url[0] + '//' + result_url[-1]
@@ -249,7 +247,7 @@ class BaseService:
     def get_apps_deploy_versions(self, session, region, tenant_name, service_ids):
         data = {"service_ids": service_ids}
         try:
-            res, body = remote_build_client.get_team_services_deploy_version(session, region, tenant_name, data)
+            res, body = remote_build_client.get_env_services_deploy_version(session, region, tenant_name, data)
             return body["list"]
         except Exception as e:
             logger.exception(e)

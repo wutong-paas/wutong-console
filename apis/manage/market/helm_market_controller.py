@@ -5,7 +5,6 @@ from clients.remote_component_client import remote_component_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from models.users.users import Users
 from schemas.response import Response
 # from pyhelm.chartbuilder import ChartBuilder
 import subprocess
@@ -22,7 +21,7 @@ async def get_helm_apps(
         tenant_name: Optional[str] = None,
         region_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
     helm_namespace = data.get("helm_namespace")
     helm_list = remote_component_client.get_helm_chart_apps(session,
@@ -40,7 +39,7 @@ async def helm_app_install(
         request: Request,
         region_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        user: Users = Depends(deps.get_current_user),
+        user=Depends(deps.get_current_user),
         team=Depends(deps.get_current_team)) -> Any:
     data = await request.json()
     helm_url = data.get("helm_url")

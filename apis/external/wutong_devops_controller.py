@@ -1,441 +1,39 @@
-import pickle
-import time
 from typing import Optional, Any
-
 from fastapi import Depends, APIRouter, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.security import OAuth2PasswordBearer
 from fastapi_pagination import Params, paginate
 from loguru import logger
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from starlette.responses import JSONResponse
 from xpinyin import Pinyin
-
-from apis.manage.user.user_manage_controller import create_access_token
 from core import deps
-from core.setting import settings
-from core.utils.dependencies import DALGetter
 from core.utils.return_message import general_message, error_message
-from core.utils.validation import is_qualified_name
 from database.session import SessionClass
-from exceptions.bcode import ErrQualifiedName, ErrNamespaceExists
 from exceptions.exceptions import GroupNotExistError
-from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException
+from exceptions.main import ServiceHandleException, ResourceNotEnoughException, AccountOverdueException
 from models.teams import RegionConfig
-from models.users.users import UserAccessKey, Users
-from repository.application.app_repository import app_repo
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.devops.devops_repo import devops_repo
-from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.expressway.hunan_expressway_repo import hunan_expressway_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.team_region_repo import team_region_repo
-from repository.teams.team_repo import team_repo
-from repository.teams.team_roles_repo import TeamRolesRepository
-from repository.users.user_oauth_repo import oauth_repo, oauth_user_repo
-from repository.users.user_repo import user_repo
+from repository.teams.env_repo import env_repo
 from schemas.components import BuildSourceParam, DeployBusinessParams
-from schemas.market import MarketAppModelParam, DevopsMarketAppCreateParam
+from schemas.market import DevopsMarketAppCreateParam
 from schemas.response import Response
-from schemas.team import CreateTeamParam, CreateTeamUserParam, DeleteTeamUserParam
-from schemas.user import CreateAccessTokenParam, CreateUserParam
-from schemas.wutong_team_app import DevOpsTeamAppCreateParam
 from service.app_actions.app_deploy import app_deploy_service
 from service.app_actions.exception import ErrServiceSourceNotFound
 from service.app_config.app_relation_service import dependency_service
 from service.application_service import application_service
 from service.market_app_service import market_app_service
-from service.region_service import region_services
-from service.team_service import team_services
-from service.user_service import user_svc
+from service.env_service import env_services
 
 router = APIRouter()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token/")
-
-
-@router.post("/v1.0/devops/access_token", response_model=Response, name="获取token")
-async def create_access_devops_token(
-        params: Optional[CreateAccessTokenParam] = CreateAccessTokenParam(),
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    # 用户
-    user = session.execute(select(Users).where(
-        Users.nick_name == 'admin')).scalars().first()
-    if not params.note:
-        raise ServiceHandleException(msg="note can't be null", msg_show="注释不能为空")
-
-    user_access_key = session.execute(select(UserAccessKey).where(
-        UserAccessKey.note == params.note)).scalars().first()
-    if user_access_key:
-        return JSONResponse(general_message(200, None, None, bean=jsonable_encoder(user_access_key)), status_code=200)
-    try:
-        if params.age:
-            second_time = time.time() + float(params.age)
-            struct_time = time.localtime(second_time)  # 得到结构化时间格式
-            expire_time = time.strftime("%Y-%m-%d %H:%M:%S", struct_time)
-        else:
-            second_time = None
-            expire_time = None
-        key = create_access_token(user, second_time)
-        add_model: UserAccessKey = UserAccessKey(note=params.note, user_id=user.user_id,
-                                                 expire_time=expire_time, access_key=key)
-        session.add(add_model)
-        session.flush()
-        return JSONResponse(general_message(200, None, None, bean=jsonable_encoder(add_model)), status_code=200)
-    except ValueError as e:
-        logger.exception(e)
-        raise ServiceHandleException(msg="params error", msg_show="请检查参数是否合法")
-    except IntegrityError:
-        raise ServiceHandleException(msg="note duplicate", msg_show="令牌用途不能重复")
-
-
-@router.post("/v1.0/devops/add_team", response_model=Response, name="创建团队")
-async def add_team(
-        request: Request,
-        params: Optional[CreateTeamParam] = CreateTeamParam(),
-        authorization: Optional[str] = Depends(oauth2_scheme),
-        session: SessionClass = Depends(deps.get_session)
-) -> Any:
-    user = user_svc.devops_get_current_user(session=session, token=authorization)
-    team_alias = params.team_name
-    useable_regions = params.useable_regions
-    namespace = params.namespace
-    if not is_qualified_name(namespace):
-        raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
-    enterprise_id = user.enterprise_id
-
-    if not team_alias:
-        result = general_message(400, "failed", "团队名不能为空")
-        return JSONResponse(status_code=400, content=result)
-
-    regions = []
-    if useable_regions:
-        regions = useable_regions.split(",")
-
-    team = team_repo.team_is_exists_by_team_name(session, team_alias, enterprise_id)
-    if team:
-        result = general_message(200, "success", "该团队已存在", jsonable_encoder(team))
-        return JSONResponse(status_code=200, content=result)
-
-    enterprise = enterprise_repo.get_enterprise_by_enterprise_id(session, enterprise_id)
-    if not enterprise:
-        result = general_message(500, "user's enterprise is not found", "无企业信息")
-        return JSONResponse(status_code=500, content=result)
-
-    team = team_repo.create_team(session, user, enterprise, regions, team_alias, namespace)
-    exist_namespace_region_names = []
-
-    for r in regions:
-        try:
-            region_services.create_tenant_on_region(session=session, enterprise_id=enterprise.enterprise_id,
-                                                    team_name=team.tenant_name, region_name=r, namespace=team.namespace)
-        except ErrNamespaceExists:
-            exist_namespace_region_names.append(r)
-        except ServiceHandleException as e:
-            logger.error(e)
-        except Exception as e:
-            logger.error(e)
-    if len(exist_namespace_region_names) > 0:
-        exist_namespace_region = ""
-        for region_name in exist_namespace_region_names:
-            region = region_repo.get_region_by_region_name(session, region_name)
-            exist_namespace_region += " {}".format(region.region_alias)
-        return JSONResponse(
-            general_message(400, "success", "团队在集群【{} 】中已存在命名空间 {}".format(exist_namespace_region, team.namespace),
-                            bean=jsonable_encoder(team)))
-    request.app.state.redis.set("team_%s" % team.tenant_name, pickle.dumps(team), settings.REDIS_CACHE_TTL)
-    result = general_message(200, "success", "团队添加成功", bean=jsonable_encoder(team))
-    return JSONResponse(status_code=200, content=result)
-
-
-@router.post("/v1.0/devops/add_member", response_model=Response, name="成员注册")
-async def add_users(
-        request: Request,
-        params: Optional[CreateUserParam] = CreateUserParam(),
-        authorization: Optional[str] = Depends(oauth2_scheme),
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    user_name = params.user_name
-    email = params.email
-    password = params.password
-    re_password = params.re_password
-    phone = params.phone
-    real_name = params.realname
-    oauth_user_id = params.oauth_user_id
-
-    if len(password) < 8:
-        result = general_message(400, "len error", "密码长度最少为8位")
-        return JSONResponse(result, status_code=400)
-
-    # check user info
-    user = user_svc.devops_get_current_user(session, authorization)
-    if user_svc.get_user_by_email(session, email):
-        register_user = session.execute(select(Users).where(
-            Users.email == email,
-            Users.enterprise_id == user.enterprise_id
-        )).scalars().first()
-        return JSONResponse(
-            general_message(200, "email already exists", "邮箱{0}已存在".format(email),
-                            bean=jsonable_encoder(register_user)), status_code=200)
-    try:
-        res = user_svc.devops_check_params(session, user_name, email, password, re_password, user.enterprise_id, phone)
-        if res:
-            register_user = session.execute(select(Users).where(
-                Users.nick_name == user_name,
-                Users.enterprise_id == user.enterprise_id
-            )).scalars().first()
-            result = general_message(200, "success", "注册成功", bean=jsonable_encoder(register_user))
-            return JSONResponse(result, status_code=200)
-    except AbortRequest as e:
-        return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
-    client_ip = user_svc.get_client_ip(request)
-    # create user
-    oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
-
-    if oauth_instance:
-        user = user_svc.create_enterprise_center_user_set_password(session, user_name, email, password, "admin add",
-                                                                   user.enterprise_id,
-                                                                   client_ip, phone, real_name, oauth_instance)
-    else:
-        user = user_svc.create_user_set_password(session, user_name, email, password, "admin add", user.enterprise_id,
-                                                 client_ip,
-                                                 phone,
-                                                 real_name)
-    session.add(user)
-    session.flush()
-    user_id = user.user_id
-    idaas_oauth_service = oauth_repo.get_idaas_oauth_service(session)
-    oauth_user = oauth_user_repo.user_oauth_exists(session=session, service_id=idaas_oauth_service.ID, oauth_user_id=oauth_user_id)
-    link_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=idaas_oauth_service.ID, user_id=user_id)
-    if link_user is not None and link_user.oauth_user_id != oauth_user_id:
-        logger.warning("该用户已绑定其他账号")
-
-    if oauth_user is not None:
-        oauth_user.user_id = user_id
-    else:
-        oauth_user_repo.save_oauth(
-            session=session,
-            oauth_user_id=oauth_user_id,
-            oauth_user_name=user_name,
-            oauth_user_email=user.email,
-            user_id=user_id,
-            code="",
-            service_id=idaas_oauth_service.ID,
-            access_token="",
-            refresh_token="",
-            is_authenticated=True,
-            is_expired=False,
-        )
-    result = general_message(200, "success", "注册成功", bean=jsonable_encoder(user))
-    return JSONResponse(result, status_code=200)
-
-
-@router.get("/v1.0/devops/team_roles", response_model=Response, name="团队角色获取")
-async def get_team_roles_lc(
-        request: Request,
-        authorization: Optional[str] = Depends(oauth2_scheme),
-        dal: TeamRolesRepository = Depends(DALGetter(TeamRolesRepository)),
-        session: SessionClass = Depends(deps.get_session)
-) -> Any:
-    team_code = request.query_params.get("team_code")
-    roles = dal.get_role_by_team_name(session, "team", team_code)
-    data = []
-    for row in roles:
-        data.append({"name": row.name, "id": row.ID})
-    result = general_message(200, "success", None, list=data)
-    return JSONResponse(result, status_code=200)
-
-
-@router.post("/v1.0/devops/teams/{team_code}/add_team_user", response_model=Response, name="添加团队成员")
-async def add_team_user(
-        request: Request,
-        params: CreateTeamUserParam,
-        authorization: Optional[str] = Depends(oauth2_scheme),
-        team_code: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session)
-) -> Any:
-    try:
-        user_ids = params.user_ids
-        role_id = params.role_id
-        if not user_ids:
-            return JSONResponse(general_message(400, "failed", "用户名为空"), status_code=400)
-        if not role_id:
-            return JSONResponse(general_message(400, "failed", "角色ID为空"), status_code=400)
-        try:
-            user_ids = [int(user_id) for user_id in user_ids.split(",")]
-            role_ids = [int(user_id) for user_id in role_id.split(",")]
-        except Exception as e:
-            code = 400
-            logger.exception(e)
-            result = general_message(code, "Incorrect parameter format", "参数格式不正确")
-            return JSONResponse(result, status_code=result["code"])
-
-        team = team_services.devops_get_tenant(tenant_name=team_code, session=session)
-
-        if not team:
-            return JSONResponse(general_message(400, "tenant not exist", "{}团队不存在".format(team_code)),
-                                status_code=400)
-
-        user_id = team_services.user_is_exist_in_team(session=session, user_list=user_ids, tenant_name=team_code)
-        if user_id:
-            user_obj = user_repo.get_user_by_user_id(session=session, user_id=user_id)
-            code = 400
-            result = general_message(code, "user already exist", "用户{}已经存在".format(user_obj.nick_name))
-            return JSONResponse(result, status_code=result["code"])
-
-        code = 200
-        team_services.add_user_role_to_team(session=session, tenant=team, user_ids=user_ids, role_ids=role_ids)
-        result = general_message(code, "success", "用户添加到{}成功".format(team_code))
-    except ServiceHandleException as e:
-        code = 404
-        result = general_message(code, e.msg, e.msg_show)
-    return JSONResponse(result, status_code=result["code"])
-
-
-@router.delete("/v1.0/devops/teams/{team_code}/del_team_user", response_model=Response, name="删除团队成员")
-async def delete_team_user(
-        request: Request,
-        authorization: Optional[str] = Depends(oauth2_scheme),
-        team_code: Optional[str] = None,
-        params: Optional[DeleteTeamUserParam] = DeleteTeamUserParam(),
-        session: SessionClass = Depends(deps.get_session)
-) -> Any:
-    """
-            删除租户内的用户
-            (可批量可单个)
-            ---
-            parameters:
-                - name: team_name
-                  description: 团队名称
-                  required: true
-                  type: string
-                  paramType: path
-                - name: user_ids
-                  description: 用户名 user_id1,user_id2 ...
-                  required: true
-                  type: string
-                  paramType: body
-            """
-    try:
-        user_ids = params.user_ids
-        if not user_ids:
-            return JSONResponse(general_message(400, "failed", "删除成员不能为空"), status_code=400)
-
-        user = user_svc.devops_get_current_user(session=session, token=authorization)
-
-        if user.user_id in user_ids:
-            return JSONResponse(general_message(400, "failed", "不能删除自己"), status_code=400)
-
-        team = team_services.devops_get_tenant(tenant_name=team_code, session=session)
-        if not team:
-            return JSONResponse(general_message(400, "tenant not exist", "{}团队不存在".format(team_code)), status_code=400)
-
-        for user_id in user_ids:
-            if user_id == team.creater:
-                return JSONResponse(general_message(400, "failed", "不能删除团队创建者！"), 400)
-        try:
-            team_services.batch_delete_users(request=request, session=session, tenant_name=team_code,
-                                             user_id_list=user_ids)
-            result = general_message(200, "delete the success", "删除成功")
-        except ServiceHandleException as e:
-            logger.exception(e)
-            result = general_message(400, e.msg, e.msg_show)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message()
-        return JSONResponse(result, status_code=result["code"])
-    except Exception as e:
-        logger.exception(e)
-        result = error_message()
-    return JSONResponse(result, status_code=result["code"])
-
-
-@router.post("/v1.0/devops/teams/application", response_model=Response, name="创建应⽤")
-async def create_app(
-        request: Request,
-        params: DevOpsTeamAppCreateParam,
-        authorization: Optional[str] = Depends(oauth2_scheme),
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    if len(params.note) > 2048:
-        result = general_message(400, "node too long", "应用备注长度限制2048")
-        return JSONResponse(result, status_code=result["code"])
-    # 查询当前用户
-    user: Users = user_svc.devops_get_current_user(session=session, token=authorization)
-    # 查询当前团队
-    tenant = team_services.devops_get_tenant(tenant_name=params.team_code, session=session)
-    p = Pinyin()
-    k8s_app = p.get_pinyin(params.application_name)
-    app_template_name = None
-    app_store_name = None
-    app_store_url = None
-    version = None
-    if k8s_app and not is_qualified_name(k8s_app):
-        raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
-
-    if application_repo.is_k8s_app_duplicate(session, tenant.tenant_id, params.region_code, k8s_app, 0):
-        app = application_repo.get_app_by_k8s_app(session, tenant.tenant_id, params.region_code, k8s_app)
-        res = jsonable_encoder(app)
-        res["group_id"] = app.ID
-        res['application_id'] = app.ID
-        res['application_name'] = app.group_name
-        result = general_message(200, "success", "应用已存在", bean=res)
-        return JSONResponse(result, status_code=result["code"])
-
-    try:
-        data = application_service.create_app(
-            session=session,
-            tenant=tenant,
-            region_name=params.region_code,
-            app_name=params.application_name,
-            note=params.note,
-            username=user.get_username(),
-            app_store_name=app_store_name,
-            app_store_url=app_store_url,
-            app_template_name=app_template_name,
-            version=version,
-            eid=user.enterprise_id,
-            logo=params.logo,
-            k8s_app=k8s_app
-        )
-    except ServiceHandleException as e:
-        session.rollback()
-        return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
-    result = general_message(200, "success", "创建成功", bean=jsonable_encoder(data))
-    return JSONResponse(result, status_code=result["code"])
-
-
-@router.get("/v1.0/devops/base_component_models", response_model=Response, name="获取本地市场应用列表")
-async def app_models(
-        params: Optional[MarketAppModelParam] = MarketAppModelParam(),
-        authorization: Optional[str] = Depends(oauth2_scheme),
-        session: SessionClass = Depends(deps.get_session)
-) -> Any:
-    page = params.page
-    page_size = params.page_size
-    if page < 1:
-        page = 1
-    tags = []
-    is_complete = None
-    need_install = False
-    app_name = None
-    scope = "enterprise"
-    user = user_svc.devops_get_current_user(session=session, token=authorization)
-    apps, count = market_app_service.get_visiable_apps(session, user, user.enterprise_id, scope,
-                                                       app_name, tags, is_complete,
-                                                       page,
-                                                       page_size, need_install)
-
-    return JSONResponse(
-        general_message(200, "success", msg_show="查询成功", list=jsonable_encoder(apps), total=count,
-                        next_page=int(page) + 1),
-        status_code=200)
 
 
 @router.get("/v1.0/devops/teams/{team_code}/components", response_model=Response, name="组件列表")
 async def get_app_state(
         request: Request,
-        authorization: Optional[str] = Depends(oauth2_scheme),
         team_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
@@ -475,7 +73,7 @@ async def get_app_state(
             result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
             return JSONResponse(result, status_code=code)
         # region_name = request.headers.get("X_REGION_NAME")
-        team = team_services.devops_get_tenant(tenant_name=team_code, session=session)
+        team = env_services.devops_get_tenant(tenant_name=team_code, session=session)
         if not team:
             result = general_message(400, "tenant not exist", "{}团队不存在".format(team_code))
             return JSONResponse(result, status_code=400)
@@ -524,7 +122,6 @@ async def get_app_state(
 @router.get("/v1.0/devops/teams/components/dependency", response_model=Response, name="获取组件依赖组件")
 async def get_un_dependency(
         request: Request,
-        authorization: Optional[str] = Depends(oauth2_scheme),
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     page_num = 1
@@ -532,7 +129,7 @@ async def get_un_dependency(
     team_code = request.query_params.get("team_code")
     search_key = None
     condition = None
-    tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
+    tenant = env_services.devops_get_tenant(tenant_name=team_code, session=session)
     dependencies = dependency_service.get_dependencies(session=session, tenant=tenant)
     service_ids = [s.service_id for s in dependencies]
     service_group_map = application_service.get_services_group_name(session=session, service_ids=service_ids)
@@ -574,7 +171,7 @@ async def deploy_business_component(
         params: DeployBusinessParams,
         team_code: Optional[str] = None,
         application_id: Optional[str] = None,
-        authorization: Optional[str] = Depends(oauth2_scheme),
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     result = general_message(200, "success", "成功")
     image_type = "docker_image"
@@ -589,14 +186,12 @@ async def deploy_business_component(
         if not params.docker_image:
             return JSONResponse(general_message(400, "docker_cmd cannot be null", "参数错误"), status_code=400)
         # 查询当前团队
-        tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
+        tenant = env_services.devops_get_tenant(tenant_name=team_code, session=session)
         if not tenant:
             return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
         application = application_repo.get_by_primary_key(session=session, primary_key=application_id)
         if application and application.tenant_id != tenant.tenant_id:
             return JSONResponse(general_message(400, "not found app at team", "应用不属于该团队"), status_code=400)
-        # 查询当前用户
-        user: Users = user_svc.devops_get_current_user(session=session, token=authorization)
 
         code, msg_show, new_service = application_service.create_docker_run_app(session=session,
                                                                                 region_name=params.region_name,
@@ -659,7 +254,7 @@ async def deploy_business_component(
 async def deploy_component(
         request: Request,
         params: BuildSourceParam,
-        authorization: Optional[str] = Depends(oauth2_scheme),
+        user=Depends(deps.get_current_user),
         team_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
@@ -681,10 +276,9 @@ async def deploy_component(
     """
     try:
         result = general_message(200, "success", "成功")
-        user = user_svc.devops_get_current_user(session=session, token=authorization)
-        tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
+        tenant = env_services.devops_get_tenant(tenant_name=team_code, session=session)
         service = service_info_repo.get_service(session, params.component_code, tenant.tenant_id)
-        oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
+        oauth_instance, _ = None, None
         if params.docker_image is not None:
             devops_repo.modify_source(session, service, params.docker_image,
                                       params.registry_user, params.registry_password)
@@ -758,8 +352,8 @@ async def deploy_component(
 async def market_create(
         request: Request,
         params: DevopsMarketAppCreateParam,
-        session: SessionClass = Depends(deps.get_session),
-        authorization: Optional[str] = Depends(oauth2_scheme)
+        user=Depends(deps.get_current_user),
+        session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     """
     部署基础组件
@@ -767,12 +361,8 @@ async def market_create(
     install_from_cloud = False
     is_deploy = True
     market_name = ""
-    # 查询当前用户
-    user: Users = user_svc.devops_get_current_user(session=session, token=authorization)
-    if not user:
-        return JSONResponse(general_message(400, "not found user", "用户不存在"), status_code=400)
     # 查询当前团队
-    tenant = team_services.devops_get_tenant(tenant_name=params.team_code, session=session)
+    tenant = env_services.devops_get_tenant(tenant_name=params.team_code, session=session)
     if not tenant:
         return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
 
@@ -794,12 +384,11 @@ async def market_create(
 @router.get("/v1.0/devops/teams/{team_name}/regions", response_model=Response, name="查询团队绑定集群")
 async def get_team_regions(
         request: Request,
-        authorization: Optional[str] = Depends(oauth2_scheme),
         team=Depends(deps.get_current_team),
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     region_info_map = []
-    region_name_list = team_repo.get_team_region_names(session, team.tenant_id)
+    region_name_list = env_repo.get_team_region_names(session, team.tenant_id)
     if region_name_list:
         region_infos = region_repo.get_region_by_region_names(session, region_name_list)
         if region_infos:
@@ -814,7 +403,6 @@ async def check_resource(
         request: Request,
         application_code: Optional[int] = -1,
         component_code: Optional[str] = None,
-        authorization: Optional[str] = Depends(oauth2_scheme),
         team=Depends(deps.get_current_team),
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
@@ -831,44 +419,3 @@ async def check_resource(
         "is_component": is_component
     }
     return JSONResponse(general_message(200, "success", "查询成功", bean=data), status_code=200)
-
-
-@router.delete("/v1.0/devops/teams/{team_name}/users/batch/delete", response_model=Response, name="删除团队成员")
-async def delete_team_user(request: Request,
-                           team_name: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session),
-                           authorization: Optional[str] = Depends(oauth2_scheme),
-                           team=Depends(deps.get_current_team)) -> Any:
-    """
-            删除租户内的用户
-            (可批量可单个)
-
-            """
-    try:
-        from_data = await request.json()
-        user_ids = from_data["user_ids"]
-        if not user_ids:
-            return JSONResponse(general_message(400, "failed", "删除成员不能为空"), status_code=400)
-
-        user: Users = user_svc.devops_get_current_user(session=session, token=authorization)
-        if user.user_id in user_ids:
-            return JSONResponse(general_message(400, "failed", "不能删除自己"), status_code=400)
-
-        for user_id in user_ids:
-            if user_id == team.creater:
-                return JSONResponse(general_message(400, "failed", "不能删除团队创建者！"), 400)
-        try:
-            team_services.batch_delete_users(request=request, session=session, tenant_name=team_name,
-                                             user_id_list=user_ids)
-            result = general_message(200, "delete the success", "删除成功")
-        except ServiceHandleException as e:
-            logger.exception(e)
-            result = general_message(400, e.msg, e.msg_show)
-        except Exception as e:
-            logger.exception(e)
-            result = error_message()
-        return JSONResponse(result, status_code=result["code"])
-    except Exception as e:
-        logger.exception(e)
-        result = error_message()
-    return JSONResponse(result, status_code=result["code"])

@@ -9,7 +9,7 @@ from common.base_client_service import get_tenant_region_info, get_region_access
     get_region_access_info_by_enterprise_id
 from common.client_auth_service import client_auth_service
 from exceptions.main import ServiceHandleException
-from models.teams import TeamInfo, RegionConfig
+from models.teams import EnvInfo, RegionConfig
 
 
 class RemoteComponentClient(ApiBaseHttpClient):
@@ -715,7 +715,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         # 根据团队名获取其归属的企业在指定数据中心的访问信息
         token = None
         if tenant_name:
-            if type(tenant_name) == TeamInfo:
+            if type(tenant_name) == EnvInfo:
                 tenant_name = tenant_name.tenant_name
             url, token = client_auth_service.get_region_access_token_by_tenant(session, tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)

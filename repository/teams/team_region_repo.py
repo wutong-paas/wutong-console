@@ -2,12 +2,12 @@ from loguru import logger
 from sqlalchemy import select
 
 from database.session import SessionClass
-from models.region.models import TeamRegionInfo
-from models.teams import RegionConfig, TeamInfo
+from models.region.models import EnvRegionInfo
+from models.teams import RegionConfig, EnvInfo
 from repository.base import BaseRepository
 
 
-class TeamRegionRepository(BaseRepository[TeamRegionInfo]):
+class TeamRegionRepository(BaseRepository[EnvRegionInfo]):
     """
     TenantRegionRepository
     """
@@ -22,8 +22,8 @@ class TeamRegionRepository(BaseRepository[TeamRegionInfo]):
         
         logger.info("get_tenant_region_info_by_tenant_id_and_region,param-tenant_id:{},param-region:{}", tenant_id,
                     region_name)
-        sql = select(TeamRegionInfo).where(TeamRegionInfo.tenant_id == tenant_id,
-                                           TeamRegionInfo.region_name == region_name)
+        sql = select(EnvRegionInfo).where(EnvRegionInfo.tenant_id == tenant_id,
+                                           EnvRegionInfo.region_name == region_name)
         results = session.execute(sql)
         data = results.scalars().first()
         return data
@@ -34,13 +34,13 @@ class TeamRegionRepository(BaseRepository[TeamRegionInfo]):
         :param tenant_name:
         :return:
         """
-        tenant_results = session.execute(select(TeamInfo).where(TeamInfo.tenant_name == tenant_name))
+        tenant_results = session.execute(select(EnvInfo).where(EnvInfo.tenant_name == tenant_name))
         tenant = tenant_results.scalars().first()
         if not tenant:
             return None
         regions_result = session.execute(
-            select(TeamRegionInfo).where(TeamRegionInfo.tenant_id == tenant.tenant_id,
-                                         TeamRegionInfo.is_active == 1, TeamRegionInfo.is_init == 1))
+            select(EnvRegionInfo).where(EnvRegionInfo.tenant_id == tenant.tenant_id,
+                                         EnvRegionInfo.is_active == 1, EnvRegionInfo.is_init == 1))
         regions = regions_result.scalars().all()
         if regions:
             return regions
@@ -71,8 +71,8 @@ class TeamRegionRepository(BaseRepository[TeamRegionInfo]):
         return result
 
     def get_region_by_tenant_id(self, session: SessionClass, tenant_id):
-        return session.execute(select(TeamRegionInfo).where(
-            TeamRegionInfo.tenant_id == tenant_id)).scalars().first()
+        return session.execute(select(EnvRegionInfo).where(
+            EnvRegionInfo.tenant_id == tenant_id)).scalars().first()
 
 
-team_region_repo = TeamRegionRepository(TeamRegionInfo)
+team_region_repo = TeamRegionRepository(EnvRegionInfo)

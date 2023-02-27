@@ -363,7 +363,7 @@ class AppExportService(object):
             for export_record in app_export_records:
                 if not export_record.region_name:
                     continue
-                region = region_repo.get_enterprise_region_by_region_name(session, enterprise_id,
+                region = region_repo.get_enterprise_region_by_region_name(session,
                                                                           export_record.region_name)
                 if not region:
                     continue

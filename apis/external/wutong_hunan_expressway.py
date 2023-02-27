@@ -15,7 +15,7 @@ from repository.component.group_service_repo import service_info_repo
 from repository.region.region_info_repo import region_repo
 from schemas.response import Response
 from service.expressway.hunan_expressway_service import hunan_expressway_service
-from service.team_service import team_services
+from service.env_service import env_services
 
 router = APIRouter()
 
@@ -181,7 +181,7 @@ async def overview_tenant(
 
     for tenant_tuple in tenant_pods_info:
         pods_num = tenant_tuple[1]
-        tenant = team_services.get_team_by_team_id(session, tenant_tuple[0])
+        tenant = env_services.get_team_by_team_id(session, tenant_tuple[0])
 
         team_service_num = service_info_repo.get_hn_team_service_num_by_team_id(
             session=session, team_id=tenant.tenant_id)

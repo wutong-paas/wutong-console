@@ -12,7 +12,6 @@ from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import app_deploy_service
 from service.app_actions.exception import ErrServiceSourceNotFound
-from service.user_service import user_svc
 
 router = APIRouter()
 
@@ -41,7 +40,7 @@ async def deploy_component(request: Request,
     """
     try:
         service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-        oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
+        oauth_instance, _ = None, None
 
         data = await request.json()
         group_version = data.get("group_version", None)

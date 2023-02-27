@@ -7,6 +7,7 @@ from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
 from loguru import logger
 from core import deps
+from core.idaasapi import idaas_api
 from core.utils.constants import AppConstants
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
@@ -18,8 +19,7 @@ from repository.teams.team_component_repo import team_component_repo
 from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
-from service.team_service import team_services
-from service.user_service import user_svc
+from service.env_service import env_services
 
 router = APIRouter()
 
@@ -246,7 +246,7 @@ async def update_deploy_mode(
         if not service_obj:
             result = general_message(400, "failed", "组件不存在")
             return JSONResponse(result, status_code=400)
-        tenant_obj = team_services.get_team_by_team_id(session, service_obj.tenant_id)
+        tenant_obj = env_services.get_team_by_team_id(session, service_obj.tenant_id)
         service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
             session, service_obj.service_id, "image_webhooks")
         if not service_webhook.state:
@@ -296,7 +296,7 @@ async def update_deploy_mode(
         # 获取组件状态
         status_map = application_service.get_service_status(session, tenant_obj, service_obj)
         status = status_map.get("status", None)
-        user_obj = user_svc.init_webhook_user(session, service_obj, "ImageWebhook", pusher)
+        user_obj = idaas_api.get_user_info(service_obj.creater)
         committer_name = pusher
         if status != "closed":
             return app_manage_service.deploy_service(

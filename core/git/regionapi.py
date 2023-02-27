@@ -16,8 +16,8 @@ from common.api_base_http_client import Configuration
 from common.client_auth_service import client_auth_service
 from core.setting import settings
 from exceptions.main import ServiceHandleException, ErrClusterLackOfMemory, ErrTenantLackOfMemory
-from models.region.models import TeamRegionInfo
-from models.teams import TeamInfo, RegionConfig
+from models.region.models import EnvRegionInfo
+from models.teams import EnvInfo, RegionConfig
 from repository.region.region_info_repo import region_repo
 
 logger = logging.getLogger('default')
@@ -395,12 +395,12 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # logger.debug('Default headers: {0}'.format(self.default_headers))
 
     def __get_tenant_region_info(self, tenant_name, region):
-        if type(tenant_name) == TeamInfo:
+        if type(tenant_name) == EnvInfo:
             tenant_name = tenant_name.tenant_name
-        tenants = TeamInfo.objects.filter(tenant_name=tenant_name)
+        tenants = EnvInfo.objects.filter(tenant_name=tenant_name)
         if tenants:
             tenant = tenants[0]
-            tenant_regions = TeamRegionInfo.objects.filter(tenant_id=tenant.tenant_id, region_name=region)
+            tenant_regions = EnvRegionInfo.objects.filter(tenant_id=tenant.tenant_id, region_name=region)
             if not tenant_regions:
                 logger.error("tenant {0} is not init in region {1}".format(tenant_name, region))
                 raise http.Http404
@@ -1457,7 +1457,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         # 根据团队名获取其归属的企业在指定数据中心的访问信息
         token = None
         if tenant_name:
-            if type(tenant_name) == TeamInfo:
+            if type(tenant_name) == EnvInfo:
                 tenant_name = tenant_name.tenant_name
             url, token = client_auth_service.get_region_access_token_by_tenant(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
@@ -1810,7 +1810,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         res, body = self._get(url, self.default_headers, region=region)
         return res, body
 
-    def get_team_services_deploy_version(self, region, tenant_name, data):
+    def get_env_services_deploy_version(self, region, tenant_name, data):
         """查询指定组件的部署版本"""
         url, token = self.__get_region_access_info(tenant_name, region)
         tenant_region = self.__get_tenant_region_info(tenant_name, region)
@@ -2294,7 +2294,7 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
         self._set_headers(token)
         self._post(url, self.default_headers, body=json.dumps(body), region=region_name)
 
-    def get_region_license_feature(self, tenant: TeamInfo, region_name):
+    def get_region_license_feature(self, tenant: EnvInfo, region_name):
         url, token = self.__get_region_access_info(tenant.tenant_name, region_name)
         url = url + "/license/features"
         self._set_headers(token)

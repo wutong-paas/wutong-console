@@ -1,10 +1,10 @@
-from models.teams import TeamInfo
+from models.teams import EnvInfo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
 from repository.teams.team_enterprise_token_repo import tenant_enterprise_token_repo
-from repository.teams.team_repo import team_repo
+from repository.teams.env_repo import env_repo
 
 
-# from service.team_service import team_services
+# from service.team_service import env_services
 
 
 def get_enterprise_access_token(session, enterprise_id, access_target):
@@ -37,7 +37,7 @@ class ClientAuthService(object):
         :param region_name:
         :return:
         """
-        tenant = team_repo.get_tenant_by_tenant_name(session, tenant_name)
+        tenant = env_repo.get_tenant_by_tenant_name(session, tenant_name)
         if not tenant:
             return None, None
         # todo token cache
@@ -75,7 +75,7 @@ class ClientAuthService(object):
         return cached_enter_token.get(key)
 
     def get_region_access_enterprise_id_by_tenant(self, session, tenant_name, region_name):
-        team = team_repo.get_one_by_model(session=session, query_model=TeamInfo(tenant_name=tenant_name))
+        team = env_repo.get_one_by_model(session=session, query_model=EnvInfo(tenant_name=tenant_name))
         if not team:
             return None
 

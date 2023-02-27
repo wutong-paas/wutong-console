@@ -20,7 +20,6 @@ from exceptions.bcode import ErrK8sComponentNameExists
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
     AccountOverdueException, AbortRequest, CallRegionAPIException, ErrInsufficientResource
 from models.component.models import ComponentEnvVar
-from models.users.users import Users
 from repository.application.app_repository import service_webhooks_repo
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
@@ -40,7 +39,6 @@ from service.plugin.app_plugin_service import app_plugin_service
 from service.probe_service import probe_service
 from service.region_service import region_services
 from service.upgrade_service import upgrade_service
-from service.user_service import user_svc
 
 router = APIRouter()
 
@@ -325,7 +323,7 @@ async def restart_component(serviceAlias: Optional[str] = None,
                             user=Depends(deps.get_current_user),
                             team=Depends(deps.get_current_team)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session=session, user_id=user.user_id)
+    oauth_instance, _ = None, None
     code, msg = app_manage_service.restart(session=session, tenant=team, service=service, user=user)
     bean = {}
     if code != 200:
@@ -352,7 +350,7 @@ async def start_component(serviceAlias: Optional[str] = None,
                           user=Depends(deps.get_current_user),
                           team=Depends(deps.get_current_team)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
+    oauth_instance, _ = None, None
     try:
         code, msg = app_manage_service.start(session=session, tenant=team, service=service, user=user)
         bean = {}
@@ -376,7 +374,7 @@ async def upgrade_component(serviceAlias: Optional[str] = None,
     更新
     """
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
+    oauth_instance, _ = None, None
     try:
         code, msg, _ = app_manage_service.upgrade(session=session, tenant=team, service=service, user=user)
         bean = {}
@@ -616,7 +614,7 @@ async def docker_compose_components(
         request: Request,
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
     group_name = data.get("group_name", None)
     k8s_app = data.get("k8s_app", None)
@@ -655,11 +653,11 @@ async def compose_build(
         request: Request,
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     probe_map = dict()
     services = None
     data = await request.json()
-    oauth_instance, _ = user_svc.check_user_is_enterprise_center_user(session, user.user_id)
+    oauth_instance, _ = None, None
     try:
         compose_id = data.get("compose_id", None)
         if not compose_id:

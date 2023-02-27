@@ -10,15 +10,15 @@ from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from sqlalchemy import select, delete
-
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core.enum.app import AppType, GovernanceModeEnum
 from core.enum.component_enum import ComponentType
+from core.idaasapi import idaas_api
+from core.setting import settings
 from core.utils.constants import AppConstants, PluginImage, SourceCodeType
 from core.utils.crypt import make_uuid
-from core.utils.oauth.oauth_types import get_oauth_instance, support_oauth_type
 from core.utils.status_translate import get_status_info_map
 from core.utils.validation import validate_endpoints_info, validate_endpoint_address
 from database.session import SessionClass
@@ -29,7 +29,7 @@ from models.application.models import Application, ComponentApplicationRelation,
 from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoints, TeamComponentInfo, \
     DeployRelation, ComponentSourceInfo, ComponentEnvVar, TeamComponentMountRelation
 from models.region.models import RegionApp
-from models.teams import TeamInfo, ServiceDomainCertificate
+from models.teams import EnvInfo, ServiceDomainCertificate
 from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo, app_market_repo
@@ -48,7 +48,6 @@ from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_service_env_var_repo import env_var_repo as team_env_var_repo
-from repository.users.user_repo import user_repo
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
 from service.base_services import base_service, baseService
@@ -119,7 +118,7 @@ class ApplicationService(object):
             code_user = service_code_clone_url.split("/")[3]
             code_project_name = service_code_clone_url.split("/")[4].split(".")[0]
             # gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
-        elif service_code_from.split("oauth_")[-1] in list(support_oauth_type.keys()):
+        elif service_code_from.split("oauth_")[-1] in list(settings.source_code_types.keys()):
 
             if not service_code_clone_url:
                 return 403, "代码信息不全"
@@ -455,7 +454,7 @@ class ApplicationService(object):
             res['can_edit'] = False
 
         try:
-            principal = user_repo.get_user_by_username(session=session, user_name=app.username)
+            principal = idaas_api.get_user_info("username", app.username)
             res['principal'] = principal.get_name()
             res['email'] = principal.email
         except ErrUserNotFound:
@@ -731,7 +730,7 @@ class ApplicationService(object):
                 if not instance.is_git_oauth():
                     return 400, "该OAuth服务不是代码仓库类型", None
                 tenant = (
-                    session.execute(select(TeamInfo).where(TeamInfo.tenant_name == tenant.tenant_name))
+                    session.execute(select(EnvInfo).where(EnvInfo.tenant_name == tenant.tenant_name))
                 ).scalars().first()
 
                 try:
@@ -1622,7 +1621,7 @@ class ApplicationService(object):
         if not group:
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
         try:
-            user = user_repo.get_user_by_username(session=session, user_name=group.username)
+            user = idaas_api.get_user_info("username", group.username)
             principal_info["real_name"] = user.get_name()
             principal_info["username"] = user.nick_name
             principal_info["email"] = user.email
@@ -1795,7 +1794,7 @@ class ApplicationService(object):
             # check username
             try:
                 data["username"] = username
-                user_repo.get_user_by_username(session=session, user_name=username)
+                idaas_api.get_user_info("username", username)
             except ErrUserNotFound:
                 raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
 

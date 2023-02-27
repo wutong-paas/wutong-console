@@ -1,11 +1,9 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Params, paginate
 from loguru import logger
-
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from core import deps
@@ -18,13 +16,12 @@ from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.application_service import application_service
 from service.base_services import base_service
 from service.common_services import common_services
 from service.region_service import region_services
-from service.team_service import team_services
+from service.env_service import env_services
 
 router = APIRouter()
 
@@ -127,7 +124,7 @@ async def overview_team_info(region_name: Optional[str] = None,
         return JSONResponse(general_message(400, "tenant not exist", "{}团队不存在".format(team_name)), status_code=400)
 
     overview_detail = dict()
-    users = team_services.get_team_users(session=session, team=team)
+    users = env_services.get_team_users(session=session, team=team)
     if users:
         user_nums = len(users)
         overview_detail["user_nums"] = user_nums

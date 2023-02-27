@@ -41,7 +41,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         return body
 
     # 新建团队
-    def create_tenant(self, session, region, tenant_name, tenant_id, enterprise_id, namespace):
+    def create_env(self, session, region, tenant_name, tenant_id, enterprise_id, namespace):
         """创建租户"""
         url, token = get_region_access_info(tenant_name, region, session)
         cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(session, tenant_name,

@@ -8,10 +8,8 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.bcode import ErrLastRecordUnfinished
 from models.application.models import ApplicationUpgradeRecordType
-from models.users.users import Users
 from repository.application.app_upgrade_repo import upgrade_repo
 from repository.application.application_repo import application_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.market_app_service import market_app_service
 from service.region_service import region_services
@@ -77,7 +75,7 @@ async def get_cloud_upgrade(request: Request,
                             group_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             team=Depends(deps.get_current_team),
-                            user: Users = Depends(deps.get_current_user)) -> Any:
+                            user=Depends(deps.get_current_user)) -> Any:
     upgrade_group_id = parse_argument(
         request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
     version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
@@ -115,7 +113,7 @@ async def upgrade_component(request: Request,
                             record_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             team=Depends(deps.get_current_team),
-                            user: Users = Depends(deps.get_current_user)
+                            user=Depends(deps.get_current_user)
                             ) -> Any:
     version = await parse_item(request, "version", required=True)
     # It is not yet possible to upgrade based on services, which is user-specified attribute changes
@@ -162,7 +160,7 @@ async def retry_upgrade(
         record_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -179,7 +177,7 @@ async def rollback_upgrade(
         record_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -197,7 +195,7 @@ async def get_rollback_upgrade(
         record_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
-        user: Users = Depends(deps.get_current_user)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     app_upgrade_record = upgrade_repo.get_by_record_id(session, record_id)
     records = upgrade_service.list_rollback_record(session, app_upgrade_record)
     return JSONResponse(general_message(200, msg="success", msg_show="获取成功", list=records), status_code=200)
