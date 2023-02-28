@@ -14,12 +14,13 @@ from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException
 from models.teams.enterprise import TeamEnterprise
 from repository.region.region_info_repo import region_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import RegionApiBaseHttpClient
 from service.platform_config_service import platform_config_service
 from service.region_service import region_services, EnterpriseConfigService
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -195,17 +196,19 @@ async def get_env_memory_config(request: Request,
     return JSONResponse(result, status_code=status.HTTP_200_OK)
 
 
-@router.post("/enterprise/{enterprise_id}/regions/{region_id}/tenants/{tenant_name}/limit",
+@router.post("/enterprise/{enterprise_id}/regions/{region_id}/tenants/{tenant_name}/env/{env_id}/limit",
              response_model=Response,
              name="设置团队内存限额")
 async def set_team_memory_limit(request: Request,
                                 enterprise_id: Optional[str] = None,
                                 region_id: Optional[str] = None,
-                                tenant_name: Optional[str] = None,
-                                user=Depends(deps.get_current_user),
+                                env_id: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
-    env_services.set_tenant_memory_limit(session, enterprise_id, region_id, tenant_name, data)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+    env_services.set_tenant_env_memory_limit(session, enterprise_id, region_id, env, data)
     return JSONResponse({}, status_code=status.HTTP_200_OK)
 
 

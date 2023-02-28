@@ -280,7 +280,7 @@ class RegionService(object):
         else:
             return []
 
-    def create_env_on_region(self, session: SessionClass, team_id, team_name, enterprise_id, env, region_name,
+    def create_env_on_region(self, session: SessionClass, team_id, team_name, env, region_name,
                              namespace):
         region_config = region_repo.get_enterprise_region_by_region_name(session, region_name)
         if not region_config:
@@ -291,7 +291,8 @@ class RegionService(object):
                                "region_tenant_name": team_name}
             env_region = region_repo.create_tenant_region(session, **env_region_info)
         if not env_region.is_init:
-            res, body = remote_tenant_client.create_env(session, region_name, team_id, team_name, env.env_name, env.env_id,
+            res, body = remote_tenant_client.create_env(session, region_name, team_id, team_name, env.env_name,
+                                                        env.env_id,
                                                         env.enterprise_id, namespace)
             if res["status"] != 200 and body['msg'] != 'env name {} is exist'.format(env.env_name):
                 logger.error(res)

@@ -24,11 +24,11 @@ class ComponentServiceMonitor(object):
             delete(ComponentMonitor).where(ComponentMonitor.service_id == service_id)
         )
 
-    def create_component_service_monitor(self, session: SessionClass, tenant, service, name, path, port,
+    def create_component_service_monitor(self, session: SessionClass, tenant_env, service, name, path, port,
                                          service_show_name, interval,
                                          user=None):
         sm_count = session.execute(select(func.count(ComponentMonitor.ID)).where(
-            ComponentMonitor.tenant_id == tenant.tenant_id,
+            ComponentMonitor.tenant_id == tenant_env.tenant_id,
             ComponentMonitor.name == name
         )).first()[0]
         sm_port_count = session.execute(select(func.count(ComponentMonitor.ID)).where(
@@ -46,12 +46,12 @@ class ComponentServiceMonitor(object):
                "operator": user.get_name() if user else None}
         if service.create_status == "complete":
             remote_build_client.create_service_monitor(session,
-                                                       tenant.enterprise_id, service.service_region,
-                                                       tenant.tenant_name,
+                                                       tenant_env.enterprise_id, service.service_region,
+                                                       tenant_env,
                                                        service.service_alias, req)
         req.pop("operator")
         req["service_id"] = service.service_id
-        req["tenant_id"] = tenant.tenant_id
+        req["tenant_id"] = tenant_env.tenant_id
         try:
             sm = ComponentMonitor(**req)
             session.add(sm)
@@ -59,8 +59,8 @@ class ComponentServiceMonitor(object):
         except Exception as e:
             if service.create_status == "complete":
                 remote_build_client.delete_service_monitor(session,
-                                                           tenant.enterprise_id, service.service_region,
-                                                           tenant.tenant_name,
+                                                           tenant_env.enterprise_id, service.service_region,
+                                                           tenant_env.tenant_name,
                                                            service.service_alias, name, None)
             raise e
 

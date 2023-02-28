@@ -12,6 +12,7 @@ from repository.component.group_service_repo import service_info_repo
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from schemas.response import Response
 from service.app_config.port_service import port_service
@@ -67,16 +68,19 @@ async def get_plugin_list(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
              name="安装并开通系统插件")
 async def install_sys_plugin(request: Request,
+                             env_id: Optional[str] = None,
                              serviceAlias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
-                             user=Depends(deps.get_current_user),
-                             team=Depends(deps.get_current_team)) -> Any:
+                             user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
     plugin_type = data.get("plugin_type", None)
     build_version = data.get("build_version", None)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     if not plugin_type:
         return JSONResponse(general_message(400, "plugin type is null", "请指明插件类型"), status_code=400)
     if plugin_type not in default_plugins:
@@ -86,10 +90,10 @@ async def install_sys_plugin(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys", service.service_region)
     if not plugins:
-        plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team, region=response_region,
+        plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=env, region=response_region,
                                                       plugin_type=plugin_type, build_version=build_version)
     else:
         plugin_id = None
@@ -111,7 +115,7 @@ async def install_sys_plugin(request: Request,
                         plugin.plugin_alias = needed_plugin_config["plugin_alias"]
                         plugin.category = needed_plugin_config["category"]
                         plugin.code_repo = needed_plugin_config["code_repo"]
-                        plugin_build_version = service_plugin_config_repo.update_sys_plugin(session, plugin, team,
+                        plugin_build_version = service_plugin_config_repo.update_sys_plugin(session, plugin, env,
                                                                                             plugin_type,
                                                                                             user,
                                                                                             service.service_region,
@@ -119,12 +123,12 @@ async def install_sys_plugin(request: Request,
                                                                                             build_version)
                         plugin_repo.build_plugin(session=session, region=service.service_region, plugin=plugin,
                                                  plugin_version=plugin_build_version, user=user,
-                                                 tenant=team,
+                                                 tenant=env,
                                                  event_id=plugin_build_version.event_id)
                         plugin_build_version.build_status = "build_success"
 
         if not plugin_id:
-            plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=team,
+            plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=env,
                                                           region=response_region,
                                                           plugin_type=plugin_type, build_version=build_version)
 
@@ -132,29 +136,29 @@ async def install_sys_plugin(request: Request,
         return JSONResponse(general_message(400, "not found plugin", "未找到插件"), status_code=400)
     app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_id=None,
                                              service_id=service.service_id)
-    app_plugin_service.install_new_plugin(session=session, region=response_region, tenant=team, service=service,
+    app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
-    app_plugin_service.add_filemanage_port(session=session, tenant=team, service=service, plugin_id=plugin_id,
+    app_plugin_service.add_filemanage_port(session=session, tenant=env, service=service, plugin_id=plugin_id,
                                            container_port="6173", user=user)
-    app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service, plugin_id=plugin_id,
+    app_plugin_service.add_filemanage_mount(session=session, tenant=env, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
-    app_plugin_service.add_init_agent_mount(session=session, tenant=team, service=service, plugin_id=plugin_id,
+    app_plugin_service.add_init_agent_mount(session=session, tenant=env, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
-    app_plugin_service.modify_init_agent_env(session=session, tenant=team, service=service, plugin_id=plugin_id,
+    app_plugin_service.modify_init_agent_env(session=session, tenant=env, service=service, plugin_id=plugin_id,
                                              user=user)
 
     result = general_message(200, "success", "安装成功")
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/plugins/{plugin_id}/install", response_model=Response,
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/install", response_model=Response,
              name="组件安装插件")
 async def install_plugin(request: Request,
+                         env_id: Optional[str] = None,
                          plugin_id: Optional[str] = None,
                          serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
-                         user=Depends(deps.get_current_user),
-                         team=Depends(deps.get_current_team)) -> Any:
+                         user=Depends(deps.get_current_user)) -> Any:
     """
     组件安装插件
     ---
@@ -183,15 +187,18 @@ async def install_plugin(request: Request,
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     response_region = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = await request.json()
     build_version = data.get("build_version", None)
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin_id", "参数错误"), status_code=400)
     pbv = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
     if pbv.build_status == "building":
-        status = plugin_version_service.get_region_plugin_build_status(session, response_region, team.tenant_name,
+        status = plugin_version_service.get_region_plugin_build_status(session, response_region, env.tenant_name,
                                                                        pbv.plugin_id,
                                                                        pbv.build_version)
         pbv.build_status = status
@@ -202,9 +209,9 @@ async def install_plugin(request: Request,
         result = general_message(400, "failed", "插件构建失败,不能开通")
         return JSONResponse(result, status_code=result["code"])
 
-    app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_id=team.tenant_id,
+    app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_id=env.tenant_id,
                                              service_id=service.service_id)
-    app_plugin_service.install_new_plugin(session=session, region=response_region, tenant=team, service=service,
+    app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
 
     result = general_message(200, "success", "安装成功")

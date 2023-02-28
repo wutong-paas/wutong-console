@@ -461,12 +461,16 @@ async def component_monitor(service_alias: Optional[str] = None,
     return JSONResponse(general_data(list=[jsonable_encoder(p) for p in sms]), status_code=200)
 
 
-@router.post("/teams/{team_name}/apps/{service_alias}/service_monitor", response_model=Response, name="添加组件监控点")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor", response_model=Response,
+             name="添加组件监控点")
 async def add_component_monitor(request: Request,
+                                env_id: Optional[str] = None,
                                 service_alias: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session),
-                                user=Depends(deps.get_current_user),
-                                team=Depends(deps.get_current_team)) -> Any:
+                                user=Depends(deps.get_current_user)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     data = await request.json()
     port = data.get("port", None)
     name = data.get("name", None)
@@ -479,8 +483,8 @@ async def add_component_monitor(request: Request,
     if not path.startswith("/"):
         return JSONResponse(general_message(400, "path must start with /", "参数错误"), status_code=400)
 
-    service = service_info_repo.get_service(session, service_alias, team.tenant_id)
-    sm = service_monitor_service.create_component_service_monitor(session, team, service, name, path, port,
+    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    sm = service_monitor_service.create_component_service_monitor(session, env, service, name, path, port,
                                                                   service_show_name, interval, user)
     return JSONResponse(general_data(bean=jsonable_encoder(sm)), status_code=200)
 

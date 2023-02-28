@@ -13,20 +13,15 @@ from service.app_actions.app_deploy import RegionApiBaseHttpClient
 from service.region_service import region_services
 
 
-class EnvService(object):
+class TenantEnvService(object):
 
     @staticmethod
     def check_resource_name(session, tenant_name: str, region_name: str, rtype: str, name: str):
         return remote_build_client.check_resource_name(session, tenant_name, region_name, rtype, name)
 
-    def update_tenant_alias(self, session, tenant_name, new_team_alias):
-        tenant = env_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=True)
-        tenant.tenant_alias = new_team_alias
-        return tenant
-
-    def set_tenant_memory_limit(self, session, eid, region_id, tenant_name, limit):
+    def set_tenant_env_memory_limit(self, session, eid, region_id, tenant_env, limit):
         try:
-            remote_build_client.set_tenant_limit_memory(session, eid, tenant_name, region_id, body=limit)
+            remote_build_client.set_tenant_env_limit_memory(session, eid, tenant_env, region_id, body=limit)
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
             raise ServiceHandleException(status_code=500, msg="", msg_show="设置租户限额失败")
@@ -62,43 +57,6 @@ class EnvService(object):
         else:
             logger.error(body)
         return tenant_list, total
-
-    def get_teams_region_by_user_id(self, session: SessionClass, enterprise_id, user, name=None, get_region=True):
-        teams_list = list()
-        tenants = enterprise_repo.get_enterprise_user_teams(session, enterprise_id, user.user_id, name)
-        if tenants:
-            for tenant in tenants:
-                team = self.env_with_region_info(session=session, env=tenant, request_user=user,
-                                                  get_region=get_region)
-                teams_list.append(team)
-        return teams_list
-
-    def env_with_region_info(self, session: SessionClass, env, request_user=None, get_region=True):
-        user = idaas_api.get_user_info(env.creater)
-
-        info = {
-            "team_name": env.env_name,
-            "team_alias": env.env_alias,
-            "team_id": env.env_id,
-            "create_time": env.create_time,
-            "enterprise_id": env.enterprise_id,
-            "owner": env.creater,
-            "owner_name": user.nick_name,
-            "namespace": env.namespace
-        }
-
-        if get_region:
-            region_info_map = []
-            region_name_list = env_repo.get_team_region_names(session, env.env_id)
-            if region_name_list:
-                region_infos = region_repo.get_region_by_region_names(session, region_name_list)
-                if region_infos:
-                    for region in region_infos:
-                        region_info_map.append({"region_name": region.region_name, "region_alias": region.region_alias})
-            info["region"] = region_info_map[0]["region_name"] if len(region_info_map) > 0 else ""
-            info["region_list"] = region_info_map
-
-        return info
 
     def devops_get_tenant(self, session, tenant_name):
         tenant = session.execute(
@@ -151,4 +109,4 @@ class EnvService(object):
             return tenant
 
 
-env_services = EnvService()
+env_services = TenantEnvService()

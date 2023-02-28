@@ -1007,7 +1007,7 @@ class MarketService(object):
                                                              plugin["plugin_id"],
                                                              self.service.service_alias)
 
-    def _sync_component_monitors(self, session, component_monitors):
+    def _sync_component_monitors(self, session, component_monitors, tenant_env):
         logger.debug("start syncing component_monitors; component_monitors datas: {}".format(component_monitors))
         monitors = port_repo.list_by_service_ids(self.tenant.tenant_id, [self.service.service_id])
         for monitor in monitors:
@@ -1021,7 +1021,7 @@ class MarketService(object):
             try:
                 remote_build_client.create_service_monitor(session,
                                                            self.tenant.enterprise_id, self.service.service_region,
-                                                           self.tenant.tenant_name, self.service.service_alias, req)
+                                                           tenant_env, self.service.service_alias, req)
             except RegionApiBaseHttpClient.CallApiError as e:
                 logger.error("failed to create_component_monitor: {}".format(e))
 

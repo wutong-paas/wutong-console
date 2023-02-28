@@ -19,7 +19,7 @@ from repository.teams.team_component_repo import team_component_repo
 from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 

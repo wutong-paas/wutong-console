@@ -22,7 +22,7 @@ from service.application_service import application_service
 from service.base_services import base_service
 from service.common_services import common_services
 from service.region_service import region_services
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 

@@ -14,7 +14,7 @@ from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.region_service import region_services
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -31,11 +31,12 @@ async def add_env(request: Request,
         return JSONResponse(status_code=403, content=result)
     env_alias = from_data["env_alias"]
     useable_regions = from_data["useable_regions"]
-    namespace = from_data["namespace"]
+    env_name = from_data["env_name"]
+    namespace = team_name + "-" + env_name
     tenant_id = from_data["tenant_id"]
     desc = from_data.get("desc", "")
-    if not is_qualified_name(namespace):
-        raise ErrQualifiedName(msg="invalid namespace name", msg_show="命名空间只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
+    if not is_qualified_name(env_name):
+        raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
     enterprise_id = user.enterprise_id
 
     if not env_alias:
@@ -61,13 +62,13 @@ async def add_env(request: Request,
         result = general_message(500, "user's enterprise is not found", "无企业信息")
         return JSONResponse(status_code=500, content=result)
 
-    env = env_repo.create_env(session, user, enterprise, env_alias, tenant_id, team_name, namespace, desc)
+    env = env_repo.create_env(session, user, enterprise, env_name, env_alias, tenant_id, team_name, namespace, desc)
     exist_namespace_region_names = []
 
     for r in regions:
         try:
-            region_services.create_env_on_region(session=session, enterprise_id=enterprise.enterprise_id,
-                                                 env=env, region_name=r, namespace=env.namespace, team_id=tenant_id,
+            region_services.create_env_on_region(session=session, env=env, region_name=r, namespace=env.namespace,
+                                                 team_id=tenant_id,
                                                  team_name=team_name)
         except ErrNamespaceExists:
             exist_namespace_region_names.append(r)

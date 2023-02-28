@@ -32,7 +32,7 @@ from schemas.response import Response
 from service.app_import_and_export_service import import_service, export_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 

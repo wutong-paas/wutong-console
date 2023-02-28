@@ -17,7 +17,7 @@ from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
 from service.region_service import region_services
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -169,41 +169,3 @@ async def again_delete_app(request: Request,
     app_manage_service.delete_again(session, user, team, service, is_force=True)
     result = general_message(200, "success", "操作成功", bean={})
     return JSONResponse(result, status_code=result["code"])
-
-
-@router.post("/teams/{team_name}/modifyname", response_model=Response, name="修改团队名称")
-async def modify_team_name(
-        request: Request,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
-    """
-    修改团队名
-    ---
-    parameters:
-        - name: team_name
-          description: 旧团队名
-          required: true
-          type: string
-          paramType: path
-        - name: new_team_alias
-          description: 新团队名
-          required: true
-          type: string
-          paramType: body
-    """
-    data = await request.json()
-    new_team_alias = data.get("new_team_alias", "")
-    if new_team_alias:
-        try:
-            code = 200
-            team = env_services.update_tenant_alias(session=session, tenant_name=team.tenant_name,
-                                                     new_team_alias=new_team_alias)
-            result = general_message(code, "update success", "团队名修改成功", bean=jsonable_encoder(team))
-        except Exception as e:
-            code = 500
-            result = general_message(code, "update failed", "团队名修改失败")
-            logger.exception(e)
-    else:
-        result = general_message(400, "failed", "修改的团队名不能为空")
-        code = 400
-    return JSONResponse(result, status_code=code)

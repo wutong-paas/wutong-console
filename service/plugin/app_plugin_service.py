@@ -501,7 +501,7 @@ class AppPluginService(object):
         service_plugin_config_repo.create_bulk_service_plugin_config_var(session=session,
                                                                          service_plugin_var=service_plugin_var)
 
-    def __create_service_monitor(self, session: SessionClass, tenant, service, plugin_name, user=None):
+    def __create_service_monitor(self, session: SessionClass, tenant_env, service, plugin_name, user=None):
         user_name = user.nick_name if user else ''
         path = "/metrics"
         if plugin_name == "mysqld_exporter":
@@ -510,10 +510,10 @@ class AppPluginService(object):
         else:
             return
         # create internal port
-        port_service.create_internal_port(session=session, tenant=tenant, component=service, container_port=port,
+        port_service.create_internal_port(session=session, tenant=tenant_env, component=service, container_port=port,
                                           user_name=user_name)
         try:
-            service_monitor_service.create_component_service_monitor(session=session, tenant=tenant, service=service,
+            service_monitor_service.create_component_service_monitor(session=session, tenant_env=tenant_env, service=service,
                                                                      name="mysqldexporter-" + make_uuid()[0:4],
                                                                      path=path,
                                                                      port=port, service_show_name=show_name,
@@ -528,13 +528,13 @@ class AppPluginService(object):
         except ErrInternalGraphsNotFound as e:
             logger.warning("plugin name '{}': {}", plugin_name, e)
 
-    def create_monitor_resources(self, session: SessionClass, tenant, service, plugin_name, user=None):
+    def create_monitor_resources(self, session: SessionClass, tenant_env, service, plugin_name, user=None):
         # service monitor
         try:
-            self.__create_service_monitor(session, tenant, service, plugin_name, user)
+            self.__create_service_monitor(session, tenant_env, service, plugin_name, user)
         except ErrServiceMonitorExists:
             # try again
-            self.__create_service_monitor(session, tenant, service, plugin_name, user)
+            self.__create_service_monitor(session, tenant_env, service, plugin_name, user)
 
         # component graphs
         self.__create_component_graphs(session=session, component_id=service.service_id, plugin_name=plugin_name)
@@ -564,23 +564,23 @@ class AppPluginService(object):
         }
         return app_plugin_relation_repo.create_service_plugin_relation(session, **params)
 
-    def install_new_plugin(self, session: SessionClass, region, tenant, service, plugin_id, plugin_version=None,
+    def install_new_plugin(self, session: SessionClass, region, tenant_env, service, plugin_id, plugin_version=None,
                            user=None):
         if not plugin_version:
             plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
-                                                                                     tenant_id=tenant.tenant_id,
+                                                                                     tenant_id=tenant_env.tenant_id,
                                                                                      plugin_id=plugin_id)
             plugin_version = plugin_version.build_version
         logger.debug("start install plugin ! plugin_id {0}  plugin_version {1}".format(plugin_id, plugin_version))
         # 1.生成console数据，存储
-        self.save_default_plugin_config(session=session, tenant=tenant, service=service, plugin_id=plugin_id,
+        self.save_default_plugin_config(session=session, tenant=tenant_env, service=service, plugin_id=plugin_id,
                                         build_version=plugin_version)
         # 2.从console数据库取数据生成region数据
         region_config = self.get_region_config_from_db(session, service, plugin_id, plugin_version, user)
 
         # 3. create monitor resources, such as: service monitor, component graphs
         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
-        self.create_monitor_resources(session, tenant, service, plugin.origin_share_id, user)
+        self.create_monitor_resources(session, tenant_env, service, plugin.origin_share_id, user)
 
         data = dict()
         data["plugin_id"] = plugin_id
@@ -588,13 +588,13 @@ class AppPluginService(object):
         data["version_id"] = plugin_version
         data["operator"] = user.nick_name if user else None
         data.update(region_config)
-        plugin_rel = self.create_service_plugin_relation(session=session, tenant_id=tenant.tenant_id,
+        plugin_rel = self.create_service_plugin_relation(session=session, tenant_id=tenant_env.tenant_id,
                                                          service_id=service.service_id, plugin_id=plugin_id,
                                                          build_version=plugin_version)
         data["plugin_cpu"] = plugin_rel.min_cpu
         data["plugin_memory"] = plugin_rel.min_memory
         try:
-            remote_plugin_client.install_service_plugin(session, region, tenant.tenant_name, service.service_alias,
+            remote_plugin_client.install_service_plugin(session, region, tenant_env.tenant_name, service.service_alias,
                                                         data)
         except remote_plugin_client.CallApiError as e:
             if "body" in e.message and "msg" in e.message["body"] \

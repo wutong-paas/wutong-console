@@ -26,7 +26,7 @@ from service.app_actions.exception import ErrServiceSourceNotFound
 from service.app_config.app_relation_service import dependency_service
 from service.application_service import application_service
 from service.market_app_service import market_app_service
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 

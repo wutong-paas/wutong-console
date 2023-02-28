@@ -17,7 +17,7 @@ from service.base_services import base_service
 from service.groupapps_migrate_service import migrate_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin_service import plugin_service
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 
 class GroupAppCopyService(object):

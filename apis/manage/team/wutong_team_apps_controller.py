@@ -30,7 +30,7 @@ from service.application_service import application_service
 from service.compose_service import compose_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 

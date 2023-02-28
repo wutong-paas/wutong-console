@@ -244,7 +244,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         except ApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
 
-    def set_tenant_limit_memory(self, session, enterprise_id, tenant_env, region, body):
+    def set_tenant_env_limit_memory(self, session, enterprise_id, tenant_env, region, body):
         """
         :param session:
         :param enterprise_id:

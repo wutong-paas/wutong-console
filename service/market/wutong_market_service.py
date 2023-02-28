@@ -14,7 +14,7 @@ from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.market import MarketCreateParam, MarketAppInstallParam
 from service.market_app.app_upgrade import AppUpgrade
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 
 def get_wutong_markets(session: SessionClass, enterprise_id: str, user: str):

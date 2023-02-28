@@ -15,7 +15,7 @@ from repository.component.group_service_repo import service_info_repo
 from repository.region.region_info_repo import region_repo
 from schemas.response import Response
 from service.expressway.hunan_expressway_service import hunan_expressway_service
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 

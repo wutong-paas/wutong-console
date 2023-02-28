@@ -182,8 +182,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             TeamEnvInfo.tenant_id == tenant_id,
             TeamEnvInfo.enterprise_id == enterprise_id)).scalars().first()
 
-    def create_env(self, session, user, enterprise, env_alias, team_id, team_name, namespace="", desc=""):
-        env_name = self.random_env_name(session, enterprise=user.enterprise_id, length=8)
+    def create_env(self, session, user, enterprise, env_name, env_alias, team_id, team_name, namespace="", desc=""):
         if not env_alias:
             env_alias = "{0}的环境".format(user.nick_name)
         params = {

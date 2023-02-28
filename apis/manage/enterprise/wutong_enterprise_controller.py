@@ -24,7 +24,7 @@ from schemas.response import Response
 from service.backup_data_service import platform_data_services
 from service.enterprise_service import enterprise_services
 from service.region_service import EnterpriseConfigService, region_services
-from service.env_service import env_services
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 
