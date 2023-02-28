@@ -23,7 +23,7 @@ from models.application.models import ComponentApplicationRelation, ComposeServi
     ServiceShareRecordEvent, Application
 from models.component.models import ComponentEvent, ComponentCreateStep, ComponentAttachInfo, ComponentProbe, \
     TeamComponentInfoDelete, ComponentEnvVar, TeamComponentAuth, TeamComponentMountRelation, TeamComponentPort, \
-    TeamComponentVolume, ComponentPaymentNotify, ComponentSourceInfo, ComponentLabels, TeamServiceBackup, \
+    TeamComponentVolume, ComponentSourceInfo, ComponentLabels, TeamServiceBackup, \
     ComponentGraph, \
     ComponentMonitor, TeamComponentInfo, TeamComponentEnv, ComponentExtendMethod, TeamApplication, \
     ThirdPartyComponentEndpoints
@@ -217,7 +217,6 @@ class AppManageService(AppManageBase):
         create_step_repo.delete_create_step(session, service.service_id)
         event_service.delete_service_events(session, service)
         probe_repo.delete_service_probe(session, service.service_id)
-        service_payment_repo.delete_service_payment(session, service.service_id)
         service_source_repo.delete_service_source(session=session, team_id=tenant.tenant_id,
                                                   service_id=service.service_id)
         compose_relation_repo.delete_relation_by_service_id(session, service.service_id)
@@ -348,10 +347,6 @@ class AppManageService(AppManageBase):
 
         session.execute(
             delete(ComponentProbe).where(ComponentProbe.service_id == service_id)
-        )
-
-        session.execute(
-            delete(ComponentPaymentNotify).where(ComponentPaymentNotify.service_id == service_id)
         )
 
         session.execute(

@@ -420,20 +420,6 @@ class ComponentLabels(Base):
     create_time = Column(DateTime(), default=datetime.now, comment="创建时间", nullable=False)
 
 
-class ComponentPaymentNotify(Base):
-    __tablename__ = "service_payment_notify"
-    ID = Column(Integer, primary_key=True)
-
-    tenant_id = Column(String(32), comment="租户id")
-    service_id = Column(String(32), comment="组件id")
-    notify_type = Column(String(10), comment="通知类型")
-    notify_content = Column(String(200), comment="通知内容")
-    send_person = Column(String(20), comment="通知内容")
-    time = Column(DateTime(), default=datetime.now, comment="创建时间", nullable=False)
-    end_time = Column(DateTime(), comment="删除截止时间", nullable=True)
-    status = Column(String(10), comment="状态")
-
-
 class ComponentProbe(Base):
     __tablename__ = 'service_probe'
     ID = Column(Integer, primary_key=True)

@@ -5,7 +5,7 @@ from sqlalchemy import select, and_, or_, delete, func, not_, exists
 from models.application.models import ApplicationConfigGroup, ConfigGroupService
 from models.component.models import TeamComponentPort, ComponentExtendMethod, TeamComponentMountRelation, \
     TeamComponentVolume, TeamComponentConfigurationFile, TeamComponentAuth, TeamComponentEnv, \
-    ThirdPartyComponentEndpoints, ComponentCreateStep, ComponentPaymentNotify, ComponentAttachInfo
+    ThirdPartyComponentEndpoints, ComponentCreateStep, ComponentAttachInfo
 from models.relate.models import TeamComponentRelation
 from models.teams import GatewayCustomConfiguration
 from repository.application.config_group_repo import app_config_group_service_repo
@@ -640,14 +640,6 @@ class ServiceStepRepository(BaseRepository[ComponentCreateStep]):
         )
 
 
-class ServicePaymentRepository(BaseRepository[ComponentPaymentNotify]):
-
-    def delete_service_payment(self, session, service_id):
-        session.execute(
-            delete(ComponentPaymentNotify).where(ComponentPaymentNotify.service_id == service_id)
-        )
-
-
 app_config_group_repo = ApplicationConfigGroupRepository(ConfigGroupService)
 port_repo = TenantServicePortRepository(TeamComponentPort)
 
@@ -661,4 +653,3 @@ auth_repo = ServiceAuthRepository(TeamComponentAuth)
 compile_env_repo = CompileEnvRepository(TeamComponentEnv)
 service_attach_repo = ServiceAttachInfoRepository(ComponentAttachInfo)
 create_step_repo = ServiceStepRepository(ComponentCreateStep)
-service_payment_repo = ServicePaymentRepository(ComponentPaymentNotify)
