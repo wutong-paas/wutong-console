@@ -29,8 +29,8 @@ from models.application.models import Application, ComponentApplicationRelation,
 from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoints, TeamComponentInfo, \
     DeployRelation, ComponentSourceInfo, ComponentEnvVar, TeamComponentMountRelation
 from models.region.models import RegionApp
-from models.teams import TeamEnvInfo, ServiceDomainCertificate
-from models.users.oauth import OAuthServices, UserOAuthServices
+from models.teams import ServiceDomainCertificate
+from models.users.oauth import OAuthServices
 from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo, app_market_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
@@ -714,38 +714,7 @@ class ApplicationService(object):
             user_name = service_source.user_name
             password = service_source.password
         if service.service_source == AppConstants.SOURCE_CODE:
-            if service.oauth_service_id:
-                try:
-                    oauth_service = self.get_oauth_services_by_service_id(session, service.oauth_service_id)
-                    oauth_user = (
-                        session.execute(
-                            select(UserOAuthServices).where(UserOAuthServices.service_id == service.oauth_service_id,
-                                                            UserOAuthServices.user_id == user.user_id))
-                    ).scalars().first()
-                except Exception as e:
-                    logger.debug(e)
-                    return 400, "未找到oauth服务, 请检查该服务是否存在且属于开启状态", None
-                if oauth_user is None:
-                    return 400, "未成功获取第三方用户信息", None
-
-                try:
-                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
-                except Exception as e:
-                    logger.debug(e)
-                    return 400, "未找到OAuth服务", None
-                if not instance.is_git_oauth():
-                    return 400, "该OAuth服务不是代码仓库类型", None
-                tenant = (
-                    session.execute(select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_env.tenant_name))
-                ).scalars().first()
-
-                try:
-                    service_code_clone_url = instance.get_clone_url(service.git_url)
-                except Exception as e:
-                    logger.debug(e)
-                    return 400, "Access Token 已过期", None
-            else:
-                service_code_clone_url = service.git_url
+            service_code_clone_url = service.git_url
 
             sb = {
                 "server_type": service.server_type,

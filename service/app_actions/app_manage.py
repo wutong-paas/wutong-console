@@ -30,7 +30,6 @@ from models.component.models import ComponentEvent, ComponentCreateStep, Compone
 from models.region.models import RegionApp
 from models.relate.models import TeamComponentRelation
 from models.teams import ServiceDomain, ServiceTcpDomain, TeamEnvInfo
-from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.application.app_repository import recycle_bin_repo, relation_recycle_bin_repo, delete_service_repo
 from repository.application.application_repo import application_repo
 from repository.application.config_group_repo import app_config_group_service_repo
@@ -584,39 +583,8 @@ class AppManageService(AppManageBase):
                 source_code["server_type"] = service.server_type
                 source_code["lang"] = service.language
                 source_code["cmd"] = service.cmd
-                if service.oauth_service_id:
-                    try:
-                        oauth_service = (
-                            session.execute(
-                                select(OAuthServices).where(OAuthServices.ID == service.oauth_service_id,
-                                                            OAuthServices.enable == True,
-                                                            OAuthServices.is_deleted == False))
-                        ).scalars().first()
-
-                        oauth_user = (
-                            session.execute(select(UserOAuthServices).where(
-                                UserOAuthServices.service_id == service.oauth_service_id,
-                                UserOAuthServices.user_id == user.user_id))
-                        ).scalars().first()
-                    except Exception as e:
-                        logger.debug(e)
-                        continue
-                    try:
-                        instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
-                    except Exception as e:
-                        logger.debug(e)
-                        continue
-                    if not instance.is_git_oauth():
-                        continue
-                    try:
-                        git_url = instance.get_clone_url(service.git_url)
-                    except NoAccessKeyErr as e:
-                        logger.exception(e)
-                        git_url = service.git_url
-                    source_code["repo_url"] = git_url
-                elif service_source and (service_source.user_name or service_source.password):
-                    source_code["user"] = service_source.user_name
-                    source_code["password"] = service_source.password
+                source_code["user"] = service_source.user_name
+                source_code["password"] = service_source.password
             # 镜像
             elif kind == "build_from_image":
                 source_image = dict()
@@ -1145,50 +1113,13 @@ class AppManageService(AppManageBase):
         body["service_id"] = service.service_id
         # source type parameter
         if kind == "build_from_source_code" or kind == "source":
-            if service.oauth_service_id:
-                try:
-                    oauth_service = (
-                        session.execute(
-                            select(OAuthServices).where(OAuthServices.ID == service.oauth_service_id,
-                                                        OAuthServices.enable == True,
-                                                        OAuthServices.is_deleted == False))
-                    ).scalars().first()
-
-                    oauth_user = (
-                        session.execute(
-                            select(UserOAuthServices).where(UserOAuthServices.service_id == service.oauth_service_id,
-                                                            UserOAuthServices.user_id == user.user_id))
-                    ).scalars().first()
-
-                except Exception as e:
-                    logger.exception(e)
-                    return 400, "该组件构建源基于Oauth对接的代码仓库，Oauth服务可能已被删除，请在构建源中重新配置", ""
-                try:
-                    instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
-                except settings.source_code_type as e:
-                    logger.debug(e)
-                    return 400, "该组件构建源代码仓库类型已不支持", ""
-                if not instance.is_git_oauth():
-                    return 400, "该组件构建源代码仓库类型不正确", ""
-                try:
-                    git_url = instance.get_clone_url(service.git_url)
-                except NoAccessKeyErr:
-                    return 400, "该组件代码仓库认证信息已过期，请重新认证", ""
-                body["code_info"] = {
-                    "repo_url": git_url,
-                    "branch": service.code_version,
-                    "server_type": service.server_type,
-                    "lang": service.language,
-                    "cmd": service.cmd,
-                }
-            else:
-                body["code_info"] = {
-                    "repo_url": service.git_url,
-                    "branch": service.code_version,
-                    "server_type": service.server_type,
-                    "lang": service.language,
-                    "cmd": service.cmd,
-                }
+            body["code_info"] = {
+                "repo_url": service.git_url,
+                "branch": service.code_version,
+                "server_type": service.server_type,
+                "lang": service.language,
+                "cmd": service.cmd,
+            }
         if kind == "build_from_image" or kind == "build_from_market_image":
             body["image_info"] = {
                 "image_url": service.image,
