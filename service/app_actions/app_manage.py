@@ -40,7 +40,7 @@ from repository.component.compose_repo import compose_relation_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import dep_relation_repo, mnt_repo, auth_repo, \
-    port_repo, volume_repo, service_attach_repo, create_step_repo, service_payment_repo
+    port_repo, volume_repo, service_attach_repo, create_step_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_group_relation_repo import service_group_relation_repo
 from repository.component.service_label_repo import service_label_repo
