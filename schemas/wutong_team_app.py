@@ -16,23 +16,8 @@ class TeamAppCreateRequest(BaseModel):
     version: Optional[str] = None
     region_name: Optional[str] = None
     k8s_app: Optional[str] = None
-
-    class Config:
-        """
-        样例数据
-        """
-        schema_extra = {
-            "example": {
-                "app_name": "app_name",
-                "note": "note",
-                "logo": "logo",
-                "app_store_name": "app_store_name",
-                "app_store_url": "app_store_url",
-                "app_template_name": "app_template_name",
-                "version": "version",
-                "region_name": "region_name"
-            }
-        }
+    project_id: Optional[str] = None
+    team_id: Optional[str] = None
 
 
 class DevOpsTeamAppCreateParam(BaseModel):

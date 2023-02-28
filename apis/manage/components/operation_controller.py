@@ -20,6 +20,7 @@ from exceptions.main import AccountOverdueException, ResourceNotEnoughException,
 from models.component.models import TeamComponentInfo
 from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_component_repo import team_component_repo
 from schemas.components import DockerRunParams, DockerRunCheckParam, BuildParam
 from schemas.response import Response
@@ -121,8 +122,9 @@ async def get_check_uuid(service_alias: Optional[str] = None,
     return JSONResponse(general_message(200, "success", "获取成功", bean={"check_uuid": check_uuid}), status_code=200)
 
 
-@router.get("/teams/{team_name}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
 async def get_check_detail(check_uuid: Optional[str] = None,
+                           env_id: Optional[str] = None,
                            service_alias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
                            team=Depends(deps.get_current_team)) -> Any:
@@ -149,14 +151,15 @@ async def get_check_detail(check_uuid: Optional[str] = None,
     """
     if not check_uuid:
         return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status_code=400)
-    if not team:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                 tenant_id=team.tenant_id))
+                                                                                 tenant_id=env.tenant_id))
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
-    code, msg, data = component_check_service.get_service_check_info(session=session, tenant=team,
+    code, msg, data = component_check_service.get_service_check_info(session=session, tenant_env=env,
                                                                      region=service.service_region,
                                                                      check_uuid=check_uuid)
     logger.debug("check resp! {0}".format(data))
@@ -188,12 +191,13 @@ async def get_check_detail(check_uuid: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
-async def check(params: Optional[DockerRunCheckParam] = DockerRunCheckParam(),
-                service_alias: Optional[str] = None,
-                session: SessionClass = Depends(deps.get_session),
-                user=Depends(deps.get_current_user),
-                team=Depends(deps.get_current_team)) -> Any:
+@router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
+async def check(
+        params: Optional[DockerRunCheckParam] = DockerRunCheckParam(),
+        env_id: Optional[str] = None,
+        service_alias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     """
     组件信息检测
     ---
@@ -210,14 +214,15 @@ async def check(params: Optional[DockerRunCheckParam] = DockerRunCheckParam(),
           paramType: path
 
     """
-    if not team:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                 tenant_id=team.tenant_id))
+                                                                                 tenant_id=env.tenant_id))
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
-    code, msg, service_info = application_service.check_service(session=session, tenant=team, service=service,
+    code, msg, service_info = application_service.check_service(session=session, tenant_env=env, service=service,
                                                                 is_again=params.is_again, user=user)
     if code != 200:
         result = general_message(code, "check service error", msg)
@@ -607,20 +612,22 @@ async def modify_component_graphs(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/multi/check", response_model=Response, name="进入多组件创建流程")
+@router.get("/teams/{team_name}/env/{env_id}/multi/check", response_model=Response, name="进入多组件创建流程")
 async def get_check_detail(
         request: Request,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        env_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     check_uuid = request.query_params.get("check_uuid", None)
     if not check_uuid:
         return JSONResponse(general_message(400, "params error", "the field 'check_uuid' is required"), status_code=400)
-
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    services = multi_app_service.list_services(session, response_region, team, check_uuid)
+    services = multi_app_service.list_services(session, response_region, env, check_uuid)
     result = general_message(200, "successfully entered the multi-service creation process", "成功进入多组件创建流程",
                              list=services)
     return JSONResponse(result, status_code=200)

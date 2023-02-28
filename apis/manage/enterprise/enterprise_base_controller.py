@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-from sqlalchemy import select
 from starlette import status
 from clients.remote_build_client import remote_build_client
 from core import deps
@@ -13,16 +12,14 @@ from core.utils.reqparse import bool_argument, parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException
-from models.teams import PermRelTenant, EnvInfo
 from models.teams.enterprise import TeamEnterprise
 from repository.enterprise.enterprise_user_perm_repo import enterprise_user_perm_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
-from repository.users.perms_repo import perms_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import RegionApiBaseHttpClient
 from service.platform_config_service import platform_config_service
-from service.region_service import region_services, EnterpriseConfigService, get_region_list_by_team_name
+from service.region_service import region_services, EnterpriseConfigService
 from service.task_guidance.base_task_guidance import base_task_guidance
 from service.env_service import env_services
 
@@ -36,7 +33,6 @@ async def get_info(
     获取集群配置信息
     :return:
     """
-    initialize_info = perms_repo.initialize_permission_settings(session)
     register_config = platform_config_service.get_config_by_key(session, "IS_REGIST")
     data = platform_config_service.initialization_or_get_config(session=session)
     if data.get("enterprise_id", None) is None:
@@ -52,7 +48,7 @@ async def get_info(
                                                     "value": ""
                                                     })
     data["login_timeout"] = 15
-    result = general_message(200, "success", "查询成功", bean=data, initialize_info=initialize_info)
+    result = general_message(200, "success", "查询成功", bean=data, initialize_info=[])
     return JSONResponse(result, status_code=result["code"])
 
 
@@ -193,18 +189,18 @@ async def delete_region(request: Request,
     return JSONResponse(result, status_code=result.get("code", 200))
 
 
-@router.get("/enterprise/{enterprise_id}/regions/{region_id}/tenants", response_model=Response, name="获取团队内存配置信息")
-async def get_team_memory_config(request: Request,
-                                 enterprise_id: Optional[str] = None,
-                                 region_id: Optional[str] = None,
-                                 user=Depends(deps.get_current_user),
-                                 session: SessionClass = Depends(deps.get_session)) -> Any:
+@router.get("/enterprise/{enterprise_id}/regions/{region_id}/envs", response_model=Response, name="获取环境内存配置信息")
+async def get_env_memory_config(request: Request,
+                                enterprise_id: Optional[str] = None,
+                                region_id: Optional[str] = None,
+                                user=Depends(deps.get_current_user),
+                                session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("pageSize", 10)
-    tenants, total = env_services.get_tenant_list_by_region(session, enterprise_id, region_id, page, page_size)
+    envs, total = env_services.get_tenant_env_list_by_region(session, enterprise_id, region_id, page, page_size)
     result = general_message(
         200, "success", "获取成功", bean={
-            "tenants": tenants,
+            "envs": envs,
             "total": total,
         })
     return JSONResponse(result, status_code=status.HTTP_200_OK)
@@ -412,7 +408,7 @@ async def get_user_details(session: SessionClass = Depends(deps.get_session),
     # tenant_ids = tenant_ids_results.scalars().all()
     # if len(tenant_ids) > 0:
     #     tenants_results = session.execute(
-    #         select(EnvInfo).where(EnvInfo.ID.in_(tenant_ids)).order_by(EnvInfo.create_time.desc()))
+    #         select(TeamEnvInfo).where(TeamEnvInfo.ID.in_(tenant_ids)).order_by(TeamEnvInfo.create_time.desc()))
     #     tenants = tenants_results.scalars().all()
     #     for tenant in tenants:
     #         tenant_info = dict()

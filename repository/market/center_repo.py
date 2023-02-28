@@ -9,7 +9,7 @@ from models.application.models import ApplicationExportRecord
 from models.market import models
 from models.market.models import AppImportRecord
 from models.market.models import CenterApp, CenterAppVersion, CenterPlugin
-from models.teams import EnvInfo
+from models.teams import TeamEnvInfo
 from repository.base import BaseRepository
 from repository.teams.env_repo import env_repo
 from schemas import CenterAppCreate
@@ -249,7 +249,7 @@ class CenterRepository(BaseRepository[CenterApp]):
                           is_complete=None,
                           scope="",
                           source="",
-                          tenant: EnvInfo = None,
+                          tenant: TeamEnvInfo = None,
                           page=1,
                           limit=10,
                           order_by="",

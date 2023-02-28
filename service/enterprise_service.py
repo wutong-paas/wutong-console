@@ -30,16 +30,14 @@ class EnterpriseServices(object):
         # session.flush()
         return enterprise
 
-    def get_enterprise_runing_service(self, session: SessionClass, enterprise_id, regions):
+    def get_enterprise_runing_service(self, session: SessionClass, enterprise_id, regions, team_ids):
 
         app_total_num = 0
         app_running_num = 0
         component_total_num = 0
         component_running_num = 0
 
-        # 1. get all teams
-        teams = enterprise_repo.get_enterprise_teams(session, enterprise_id)
-        if not teams:
+        if not team_ids:
             return {
                 "service_groups": {
                     "total": 0,
@@ -52,8 +50,6 @@ class EnterpriseServices(object):
                     "closed": 0
                 }
             }
-        # 2. get all apps in all teams
-        team_ids = [team.tenant_id for team in teams]
         region_names = [region.region_name for region in regions]
         apps = application_repo.get_apps_in_multi_team(session, team_ids, region_names)
 

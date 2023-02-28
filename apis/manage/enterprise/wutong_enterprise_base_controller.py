@@ -10,11 +10,10 @@ from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from models.region.models import EnvRegionInfo
-from models.teams import PermRelTenant, EnvInfo, UserMessage
+from models.teams import PermRelTenant, TeamEnvInfo
 from models.teams.enterprise import TeamEnterprise
 from repository.application.application_repo import application_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
-from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.env_service import env_services
 
@@ -29,7 +28,7 @@ async def get_enterprise_list(session: SessionClass = Depends(deps.get_session),
     )
     tenants_ids = result_tenants_ids.scalars().all()
     result_team = session.execute(
-        select(EnvInfo.env_id).where(EnvInfo.ID.in_(tenants_ids)).order_by(EnvInfo.create_time.desc())
+        select(TeamEnvInfo.env_id).where(TeamEnvInfo.ID.in_(tenants_ids)).order_by(TeamEnvInfo.create_time.desc())
     )
     tenant_ids = result_team.scalars().all()
 
@@ -68,8 +67,8 @@ async def get_app_views(request: Request,
     data = []
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(session, enterprise_id,
-                                                                          user, page, page_size)
+    tenant_ids = request.query_params.get("tenant_ids")
+    enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(session, tenant_ids, page, page_size)
     if enterprise_apps:
         for app in enterprise_apps:
             tenant = env_services.get_team_by_team_id(session, app.tenant_id)

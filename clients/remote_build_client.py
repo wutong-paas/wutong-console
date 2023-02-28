@@ -1,12 +1,9 @@
 import json
 import os
-
 from loguru import logger
-
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info, get_tenant_region_info, get_enterprise_region_info, \
+from common.base_client_service import get_region_access_info, get_env_region_info, get_enterprise_region_info, \
     get_region_access_info_by_enterprise_id
-from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from models.teams import RegionConfig
 from repository.region.region_config_repo import region_config_repo
@@ -32,102 +29,72 @@ class RemoteBuildClient(ApiBaseHttpClient):
             self.default_headers.update({"Authorization": token})
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
-    def service_source_check(self, session, region, tenant_name, body):
+    def service_source_check(self, session, region, tenant_env, body):
         """组件源检测"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/servicecheck"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/servicecheck"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
-    def get_service_check_info(self, session, region, tenant_name, uuid):
+    def get_service_check_info(self, session, region, tenant_env, uuid):
         """组件源检测信息获取"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/servicecheck/" + str(uuid)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/servicecheck/" + str(uuid)
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def service_chargesverify(self, session, region, tenant_name, data):
-        """组件扩大资源申请接口"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + \
-              "/chargesverify?quantity={0}&reason={1}&eid={2}".format(data["quantity"], data["reason"], data["eid"])
-        self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region, body=json.dumps(data))
-        return res, body
-
-    def get_services_pods(self, session, region, tenant_name, service_id_list, enterprise_id):
-        """获取多个组件的pod信息"""
-        service_ids = ",".join(service_id_list)
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods?enterprise_id=" \
-              + enterprise_id + "&service_ids=" + service_ids
-
-        self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, None, region=region, timeout=10)
-        return body
-
-    def get_service_build_versions(self, session, region, tenant_name, service_alias):
+    def get_service_build_versions(self, session, region, tenant_env, service_alias):
         """获取组件的构建版本"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" \
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias + "/build-list"
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
-    def delete_service_build_version(self, session, region, tenant_name, service_alias, version_id):
+    def delete_service_build_version(self, session, region, tenant_env, service_alias, version_id):
         """删除组件的某次构建版本"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" \
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias + "/build-version/" + version_id
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region)
         return body
 
-    def get_service_build_version_by_id(self, session, region, tenant_name, service_alias, version_id):
+    def get_service_build_version_by_id(self, session, region, tenant_env, service_alias, version_id):
         """查询组件的某次构建版本"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" \
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias + "/build-version/" + version_id
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_env_services_deploy_version(self, session, region, tenant_name, data):
+    def get_env_services_deploy_version(self, session, region, tenant_env, data):
         """查询指定组件的部署版本"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/deployversions"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/deployversions"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
-        return res, body
-
-    def get_service_deploy_version(self, session, region, tenant_name, service_alias):
-        """查询指定组件的部署版本"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/deployversions"
-
-        self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     def delete_maven_setting(self, session, enterprise_id, region, name):
@@ -159,7 +126,8 @@ class RemoteBuildClient(ApiBaseHttpClient):
             raise ServiceHandleException("region not found")
         url = region_info.url
         url += "/v2/cluster/builder/mavensetting"
-        res, body = self._post(session, url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        res, body = self._post(session, url, self.default_headers, region=region_info.region_name,
+                               body=json.dumps(body))
         return res, body
 
     def get_maven_setting(self, session, enterprise_id, region, name):
@@ -262,24 +230,25 @@ class RemoteBuildClient(ApiBaseHttpClient):
             logger.exception(e)
             return None
 
-    def list_tenants(self, session, enterprise_id, region, page=1, page_size=10):
-        """list tenants"""
+    def list_tenant_envs(self, session, enterprise_id, region, page=1, page_size=10):
+        """list tenants envs"""
         region_info = get_enterprise_region_info(region, session)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants?page={0}&pageSize={1}&eid={2}".format(page, page_size, enterprise_id)
+        url += "/v2/tenants/envs?page={0}&pageSize={1}&eid={2}".format(page, page_size,
+                                                                       enterprise_id)
         try:
             res, body = self._get(session, url, self.default_headers, region=region_info.region_name)
             return res, body
         except ApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
 
-    def set_tenant_limit_memory(self, session, enterprise_id, tenant_name, region, body):
+    def set_tenant_limit_memory(self, session, enterprise_id, tenant_env, region, body):
         """
-
+        :param session:
         :param enterprise_id:
-        :param tenant_name:
+        :param tenant_env:
         :param region:
         :param body:
         :return:
@@ -288,16 +257,17 @@ class RemoteBuildClient(ApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants/{0}/limit_memory".format(tenant_name)
-        res, body = self._post(session, url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        url += "/v2/tenants/{0}/envs/{1}/limit_memory".format(tenant_env.tenant_name, tenant_env.env_name)
+        res, body = self._post(session, url, self.default_headers, region=region_info.region_name,
+                               body=json.dumps(body))
         return res, body
 
-    def create_service_monitor(self, session, enterprise_id, region, tenant_name, service_alias, body):
+    def create_service_monitor(self, session, enterprise_id, region, tenant_env, service_alias, body):
         """
-
+        :param session:
         :param enterprise_id:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param body:
         :return:
@@ -306,16 +276,18 @@ class RemoteBuildClient(ApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants/{0}/services/{1}/service-monitors".format(tenant_name, service_alias)
-        res, body = self._post(session, url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        url += "/v2/tenants/{0}/envs/{1}/services/{2}/service-monitors".format(tenant_env.tenant_name,
+                                                                               tenant_env.env_name, service_alias)
+        res, body = self._post(session, url, self.default_headers, region=region_info.region_name,
+                               body=json.dumps(body))
         return res, body
 
-    def update_service_monitor(self, session, enterprise_id, region, tenant_name, service_alias, name, body):
+    def update_service_monitor(self, session, enterprise_id, region, tenant_env, service_alias, name, body):
         """
-
+        :param session:
         :param enterprise_id:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param name:
         :param body:
@@ -325,16 +297,18 @@ class RemoteBuildClient(ApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants/{0}/services/{1}/service-monitors/{2}".format(tenant_name, service_alias, name)
+        url += "/v2/tenants/{0}/envs/{1}/services/{2}/service-monitors/{3}".format(tenant_env.tenant_name,
+                                                                                   tenant_env.env_name, service_alias,
+                                                                                   name)
         res, body = self._put(session, url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
         return res, body
 
-    def delete_service_monitor(self, session, enterprise_id, region, tenant_name, service_alias, name, body):
+    def delete_service_monitor(self, session, enterprise_id, region, tenant_env, service_alias, name, body):
         """
-
+        :param session:
         :param enterprise_id:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param name:
         :param body:
@@ -343,20 +317,23 @@ class RemoteBuildClient(ApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants/{0}/services/{1}/service-monitors/{2}".format(tenant_name, service_alias, name)
-        res, body = self._delete(session, url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
+        url += "/v2/tenants/{0}/envs/{1}/services/{2}/service-monitors/{3}".format(tenant_env.tenant_name,
+                                                                                   tenant_env.env_name, service_alias,
+                                                                                   name)
+        res, body = self._delete(session, url, self.default_headers, region=region_info.region_name,
+                                 body=json.dumps(body))
 
-    def get_pod(self, session, region_name, tenant_name, pod_name):
+    def get_pod(self, session, region_name, tenant_env, pod_name):
         """
-
+        :param session:
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param pod_name:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/pods/" + pod_name
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/pods/" + pod_name
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_name)
@@ -364,7 +341,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
 
     def get_monitor_metrics(self, session, region_name, tenant, target, app_id, component_id):
         """
-
+        :param session:
         :param region_name:
         :param tenant:
         :param target:
@@ -379,18 +356,18 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region_name)
         return body
 
-    def check_resource_name(self, session, tenant_name, region_name, rtype, name):
+    def check_resource_name(self, session, tenant_env, region_name, rtype, name):
         """
-
-        :param tenant_name:
+        :param session:
+        :param tenant_env:
         :param region_name:
         :param rtype:
         :param name:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/checkResourceName"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/checkResourceName"
 
         self._set_headers(token)
         _, body = self._post(
@@ -400,46 +377,48 @@ class RemoteBuildClient(ApiBaseHttpClient):
             }))
         return body["bean"]
 
-    def get_region_license_feature(self, session, tenant, region_name):
+    def get_region_license_feature(self, session, tenant_env, region_name):
         """
-
-        :param tenant:
+        :param session:
+        :param tenant_env:
         :param region_name:
         :return:
         """
-        url, token = get_region_access_info(tenant.tenant_name, region_name, session)
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
         url += "/license/features"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_name)
         return body
 
-    def list_app_statuses_by_app_ids(self, session, tenant_name, region_name, body):
+    def list_app_statuses_by_app_ids(self, session, tenant_env, region_name, body):
         """
-
-        :param tenant_name:
+        :param session:
+        :param tenant_env:
         :param region_name:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        url += "/v2/tenants/{tenant_name}/appstatuses".format(tenant_name=tenant_name)
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        url += "/v2/tenants/{tenant_name}/envs/{env_name}/appstatuses".format(tenant_name=tenant_env.tenant_name,
+                                                                              env_name=tenant_env.env_name)
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, body=json.dumps(body), region=region_name)
         return body
 
-    def list_scaling_records(self, session, region, tenant_name, service_alias, page=None, page_size=None):
+    def list_scaling_records(self, session, region, tenant_env, service_alias, page=None, page_size=None):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param page:
         :param page_size:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/xparecords"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/xparecords"
 
         if page is not None and page_size is not None:
             url += "?page={}&page_size={}".format(page, page_size)
@@ -448,103 +427,107 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
-    def create_xpa_rule(self, session, region, tenant_name, service_alias, data):
+    def create_xpa_rule(self, session, region, tenant_env, service_alias, data):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param data:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/xparules"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/xparules"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, body=json.dumps(data), region=region)
         return body
 
-    def update_xpa_rule(self, session, region, tenant_name, service_alias, data):
+    def update_xpa_rule(self, session, region, tenant_env, service_alias, data):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param data:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/xparules"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/xparules"
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, body=json.dumps(data), region=region)
         return body
 
-    def update_ingresses_by_certificate(self, session, region_name, tenant_name, body):
+    def update_ingresses_by_certificate(self, session, region_name, tenant_env, body):
         """
-
+        :param session:
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + region.region_tenant_name + "/gateway/certificate"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + region.region_tenant_name + "/envs/" + tenant_env.env_name + "/gateway/certificate"
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
 
-    def get_tenant_resources(self, session, region, tenant_name, enterprise_id):
+    def get_tenant_resources(self, session, region, tenant_env, enterprise_id):
         """获取指定租户的资源使用情况"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/resources?enterprise_id=" + enterprise_id
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/resources?enterprise_id=" + enterprise_id
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=10)
         return body
 
-    def get_region_publickey(self, session, tenant_name, region, enterprise_id, tenant_id):
+    def get_region_publickey(self, session, tenant_env, region, enterprise_id, tenant_id):
         """
-
-        :param tenant_name:
+        :param session:
+        :param tenant_env:
         :param region:
         :param enterprise_id:
         :param tenant_id:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url += "/v2/builder/publickey/" + tenant_id
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_event_log(self, session, region, tenant_name, service_alias, body):
+    def get_event_log(self, session, region, tenant_env, service_alias, body):
         """获取事件日志"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/event-log"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/event-log"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body), timeout=10)
         return res, body
 
-    def get_target_events_list(self, session, region, tenant_name, target, target_id, page, page_size):
+    def get_target_events_list(self, session, region, tenant_env, target, target_id, page, page_size):
         """获取作用对象事件日志列表"""
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url = url + "/v2/events" + "?target={0}&target-id={1}&page={2}&size={3}".format(target, target_id, page,
                                                                                         page_size)
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=20)
         return res, body
 
-    def get_events_log(self, session, tenant_name, region, event_id):
+    def get_events_log(self, session, tenant_env, region, event_id):
         """获取作用对象事件日志内容"""
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url = url + "/v2/events/" + event_id + "/log"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
@@ -557,9 +540,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_api_version_v2(self, session, tenant_name, region_name):
+    def get_api_version_v2(self, session, tenant_env, region_name):
         """获取api版本-v2"""
-        url, token = get_region_access_info(tenant_name, region_name, session)
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
         url += "/v2/show"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_name)
@@ -573,120 +556,126 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._post(session, url, self.default_headers, json.dumps(data), region=region, timeout=15.0)
         return body
 
-    def get_service_resources(self, session, tenant_name, region, data):
+    def get_service_resources(self, session, tenant_env, region, data):
         """获取一批组件的资源使用情况"""
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url += "/v2/resources/services"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(data), region=region, timeout=10.0)
         return body
 
-    def share_service(self, session, region, tenant_name, service_alias, body):
+    def share_service(self, session, region, tenant_env, service_alias, body):
         """分享应用"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = "{0}/v2/tenants/{1}/services/{2}/share".format(url, tenant_region.region_tenant_name, service_alias)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = "{0}/v2/tenants/{1}/envs/{2}/services/{3}/share".format(url, tenant_region.region_tenant_name,
+                                                                      tenant_env.env_name,
+                                                                      service_alias)
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
-    def share_service_result(self, session, region, tenant_name, service_alias, region_share_id):
+    def share_service_result(self, session, region, tenant_env, service_alias, region_share_id):
         """查询分享应用状态"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = "{0}/v2/tenants/{1}/services/{2}/share/{3}".format(url, tenant_region.region_tenant_name, service_alias,
-                                                                 region_share_id)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = "{0}/v2/tenants/{1}/envs/{2}/services/{3}/share/{4}".format(url, tenant_region.region_tenant_name,
+                                                                          tenant_env.env_name,
+                                                                          service_alias,
+                                                                          region_share_id)
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_port(self, session, region, tenant_name, lock=False):
+    def get_port(self, session, region, tenant_env, lock=False):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param lock:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url += "/v2/gateway/ports?lock={}".format(lock)
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_ips(self, session, region, tenant_name):
+    def get_ips(self, session, region, tenant_env):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url += "/v2/gateway/ips"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_query_data(self, session, region, tenant_name, params):
+    def get_query_data(self, session, region, tenant_env, params):
         """获取监控数据"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url = url + "/api/v1/query" + params
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=10, retries=1)
         return res, body
 
-    def get_query_service_access(self, session, region, tenant_name, params):
+    def get_query_service_access(self, session, region, tenant_env, params):
         """获取团队下组件访问量排序"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url = url + "/api/v1/query" + params
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=10, retries=1)
         return res, body
 
-    def get_query_domain_access(self, session, region, tenant_name, params):
+    def get_query_domain_access(self, session, region, tenant_env, params):
         """获取团队下域名访问量排序"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url = url + "/api/v1/query" + params
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=10, retries=1)
         return res, body
 
-    def get_query_range_data(self, session, region, tenant_name, params):
+    def get_query_range_data(self, session, region, tenant_env, params):
         """获取监控范围数据"""
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url = url + "/api/v1/query_range" + params
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=10, retries=1)
         return res, body
 
-    def get_service_publish_status(self, session, region, tenant_name, service_key, app_version):
+    def get_service_publish_status(self, session, region, tenant_env, service_key, app_version):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_key:
         :param app_version:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
         url += "/v2/builder/publish/service/{0}/version/{1}".format(service_key, app_version)
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_tenant_events(self, session, region, tenant_name, event_ids):
+    def get_tenant_events(self, session, region, tenant_env, event_ids):
         """获取多个事件的状态"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/event"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/event"
 
         self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region, body=json.dumps({"event_ids": event_ids}),
+        res, body = self._get(session, url, self.default_headers, region=region,
+                              body=json.dumps({"event_ids": event_ids}),
                               timeout=10)
         return body
 
@@ -700,13 +689,14 @@ class RemoteBuildClient(ApiBaseHttpClient):
             session=session)
         return body
 
-    def get_protocols(self, session, region, tenant_name):
+    def get_protocols(self, session, region, tenant_env):
         """
         @ 获取当前数据中心支持的协议
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/protocols"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/protocols"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return body
@@ -715,7 +705,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
 
     def get_app_abnormal(self, session, url, token, region, start_stamp, end_stamp):
         """
-
+        :param session:
         :param url:
         :param token:
         :param region:
@@ -729,144 +719,154 @@ class RemoteBuildClient(ApiBaseHttpClient):
         return res, body
 
     # 第三方注册api注册方式添加endpoints
-    def put_third_party_service_endpoints(self, session, region, tenant_name, service_alias, data):
+    def put_third_party_service_endpoints(self, session, region, tenant_env, service_alias, data):
         """第三方组件endpoint操作"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/endpoints"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/endpoints"
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
     # 第三方注册api注册方式添加endpoints
-    def post_third_party_service_endpoints(self, session, region, tenant_name, service_alias, data):
+    def post_third_party_service_endpoints(self, session, region, tenant_env, service_alias, data):
         """第三方组件endpoint操作"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/endpoints"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/endpoints"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
     # 第三方注册api注册方式添加endpoints
-    def delete_third_party_service_endpoints(self, session, region, tenant_name, service_alias, data):
+    def delete_third_party_service_endpoints(self, session, region, tenant_env, service_alias, data):
         """第三方组件endpoint操作"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/endpoints"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/endpoints"
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
     # 第三方组件endpoint数据
-    def get_third_party_service_pods(self, session, region, tenant_name, service_alias):
+    def get_third_party_service_pods(self, session, region, tenant_env, service_alias):
         """获取第三方组件endpoint数据"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/endpoints"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/endpoints"
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     # 获取第三方组件健康检测信息
-    def get_third_party_service_health(self, session, region, tenant_name, service_alias):
+    def get_third_party_service_health(self, session, region, tenant_env, service_alias):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/3rd-party/probe"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/3rd-party/probe"
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     # 修改第三方组件健康检测信息
-    def put_third_party_service_health(self, session, region, tenant_name, service_alias, body):
+    def put_third_party_service_health(self, session, region, tenant_env, service_alias, body):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/3rd-party/probe"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/3rd-party/probe"
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
     # 5.1版本组件批量操作
-    def batch_operation_service(self, session, region, tenant_name, body):
+    def batch_operation_service(self, session, region, tenant_env, body):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/batchoperation"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/batchoperation"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
         return res, body
 
     # 修改网关自定义配置项
-    def upgrade_configuration(self, session, region, tenant_name, service_alias, body):
+    def upgrade_configuration(self, session, region, tenant_env, service_alias, body):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/rule-config"
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/rule-config"
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         logger.debug('-------1111--body----->{0}'.format(body))
         return res, body
 
     # 修改tcp网关自定义配置项
-    def upgrade_tcp_configuration(self, session, region, tenant_name, service_alias, body):
+    def upgrade_tcp_configuration(self, session, region, tenant_env, service_alias, body):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/tcprule-config"
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + "/tcprule-config"
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return res, body
 
-    def restore_properties(self, session, region, tenant_name, service_alias, uri, body):
+    def restore_properties(self, session, region, tenant_env, service_alias, uri, body):
         """When the upgrade fails, restore the properties of the service"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + uri
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/services/" + service_alias + uri
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)

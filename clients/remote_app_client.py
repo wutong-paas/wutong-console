@@ -2,14 +2,10 @@ import json
 import os
 import re
 from urllib.parse import urlparse
-
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info, get_tenant_region_info
-from exceptions.main import ServiceHandleException
-from repository.region.region_info_repo import region_repo
+from common.base_client_service import get_region_access_info, get_env_region_info
 
 
 class RemoteAppClient(ApiBaseHttpClient):
@@ -32,308 +28,274 @@ class RemoteAppClient(ApiBaseHttpClient):
             self.default_headers.update({"Authorization": token})
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
-    def install_app(self, session, region_name, tenant_name, region_app_id, data):
+    def install_app(self, session, region_name, tenant_env, region_app_id, data):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param region_app_id:
         :param data:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/install"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
+              region_app_id + "/install"
 
         self._set_headers(token)
         _, _ = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(data))
 
-    def list_app_services(self, session, region_name, tenant_name, region_app_id):
+    def list_app_services(self, session, region_name, tenant_env, region_app_id):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param region_app_id:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/services"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
+              region_app_id + "/services"
 
         self._set_headers(token)
         _, body = self._get(session, url, self.default_headers, region=region_name)
         return body["list"]
 
-    def create_application(self, session, region_name, tenant_name, body):
+    def create_application(self, session, region_name, tenant_env, body):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
-    def batch_create_application(self, session, region_name, tenant_name, body):
+    def batch_create_application(self, session, region_name, tenant_env, body):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/batch_create_apps"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/batch_create_apps"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("list", None)
 
-    def update_service_app_id(self, session, region_name, tenant_name, service_alias, body):
+    def update_service_app_id(self, session, region_name, tenant_env, service_alias, body):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+              service_alias
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
-    def batch_update_service_app_id(self, session, region_name, tenant_name, app_id, body):
+    def batch_update_service_app_id(self, session, region_name, tenant_env, app_id, body):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param app_id:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/services"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+              "/apps/" + app_id + "/services"
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
-    def update_app(self, session, region_name, tenant_name, app_id, body):
+    def update_app(self, session, region_name, tenant_env, app_id, body):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param app_id:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+              "/apps/" + app_id
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
-    def create_app_config_group(self, session, region_name, tenant_name, app_id, body):
+    def create_app_config_group(self, session, region_name, tenant_env, app_id, body):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param app_id:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/configgroups"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+              "/apps/" + app_id + "/configgroups"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
-    def update_app_config_group(self, session, region_name, tenant_name, app_id, config_group_name, body):
+    def update_app_config_group(self, session, region_name, tenant_env, app_id, config_group_name, body):
         """
-
+        :param session
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param app_id:
         :param config_group_name:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/configgroups/" + config_group_name
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
+              app_id + "/configgroups/" + config_group_name
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
         return body.get("bean", None)
 
-    def delete_app(self, session, region_name, tenant_name, app_id, data={}):
+    def delete_app(self, session, region_name, tenant_env, app_id, data=None):
         """
-
+        :param session:
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param app_id:
         :param data:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id
+        if data is None:
+            data = {}
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + app_id
 
         self._set_headers(token)
         _, _ = self._delete(session, url, self.default_headers, region=region_name, body=json.dumps(data))
 
-    def delete_app_config_group(self, session, region_name, tenant_name, app_id, config_group_name):
+    def delete_app_config_group(self, session, region_name, tenant_env, app_id, config_group_name):
         """
-
+        :param session:
         :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param app_id:
         :param config_group_name:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/configgroups/" + config_group_name
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/apps/" + app_id + "/configgroups/" + config_group_name
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region_name)
         return res, body
 
-    def check_app_governance_mode(self, session, region_name, tenant_name, region_app_id, query):
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/{}/apps/{}/governance/check?governance_mode={}".format(
+    def check_app_governance_mode(self, session, region_name, tenant_env, region_app_id, query):
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/{}/envs/{}/apps/{}/governance/check?governance_mode={}".format(
             tenant_region.region_tenant_name,
+            tenant_env.env_name,
             region_app_id, query)
 
         self._set_headers(token)
         _, _ = self._get(session, url, self.default_headers, region=region_name)
 
-    def parse_app_services(self, session, region_name, tenant_name, app_id, values):
+    def list_app_releases(self, session, region_name, tenant_env, app_id):
         """
-
+        :param session:
         :param region_name:
-        :param tenant_name:
-        :param app_id:
-        :param values:
-        :return:
-        """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/parse-services"
-
-        self._set_headers(token)
-        _, body = self._post(
-            url, self.default_headers, region=region_name, body=json.dumps({
-                "values": values,
-            }))
-        return body["list"]
-
-    def list_app_releases(self, session, region_name, tenant_name, app_id):
-        """
-
-        :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param app_id:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/releases"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/apps/" + app_id + "/releases"
 
         self._set_headers(token)
         _, body = self._get(session, url, self.default_headers, region=region_name)
         return body["list"]
 
-    def sync_components(self, session, tenant_name, region_name, app_id, components):
+    def sync_components(self, session, tenant_env, region_name, app_id, components):
         """
-
-        :param tenant_name:
+        :param session:
+        :param tenant_env:
         :param region_name:
         :param app_id:
         :param components:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        url += "/v2/tenants/{tenant_name}/apps/{app_id}/components".format(tenant_name=tenant_name, app_id=app_id)
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        url += "/v2/tenants/{tenant_name}/envs/{env_name}/apps/{app_id}/components".format(
+            tenant_name=tenant_env.tenant_name,
+            env_name=tenant_env.env_name,
+            app_id=app_id)
         self._set_headers(token)
         self._post(session, url, self.default_headers, body=json.dumps(components), region=region_name)
 
-    def sync_config_groups(self, session, tenant_name, region_name, app_id, body):
+    def sync_config_groups(self, session, tenant_env, region_name, app_id, body):
         """
-
-        :param tenant_name:
+        :param session:
+        :param tenant_env:
         :param region_name:
         :param app_id:
         :param body:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        url += "/v2/tenants/{tenant_name}/apps/{app_id}/app-config-groups".format(tenant_name=tenant_name,
-                                                                                  app_id=app_id)
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        url += "/v2/tenants/{tenant_name}/envs/{env_name}/apps/{app_id}/app-config-groups".format(
+            tenant_name=tenant_env.tenant_name,
+            env_name=tenant_env.env_name,
+            app_id=app_id)
         self._set_headers(token)
         self._post(session, url, self.default_headers, body=json.dumps(body), region=region_name)
 
-    def update_app_ports(self, session, region_name, tenant_name, app_id, data):
+    def get_app_status(self, session, region_name, tenant_env, region_app_id):
         """
-
+        :param session:
         :param region_name:
-        :param tenant_name:
-        :param app_id:
-        :param data:
-        :return:
-        """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + app_id + "/ports"
-
-        self._set_headers(token)
-        res, body = self._put(session, url, self.default_headers, body=json.dumps(data), region=region_name)
-        return body
-
-    def get_app_status(self, session, region_name, tenant_name, region_app_id):
-        """
-
-        :param region_name:
-        :param tenant_name:
+        :param tenant_env:
         :param region_app_id:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/status"
+        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
+        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/apps/" + region_app_id + "/status"
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, region=region_name)
         return body["bean"]
-
-    def get_app_detect_process(self, session, region_name, tenant_name, region_app_id):
-        """
-
-        :param region_name:
-        :param tenant_name:
-        :param region_app_id:
-        :return:
-        """
-        url, token = get_region_access_info(tenant_name, region_name, session)
-        tenant_region = get_tenant_region_info(tenant_name, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/apps/" + region_app_id + "/detect-process"
-
-        self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region_name)
-        return body["list"]
 
     def get_headers(self, environ):
         """

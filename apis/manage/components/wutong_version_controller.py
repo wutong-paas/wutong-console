@@ -10,6 +10,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.region_service import region_services
@@ -24,11 +25,11 @@ BUILD_KIND_MAP = {
 }
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/version", response_model=Response, name="获取组件的构建版本")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/version", response_model=Response, name="获取组件的构建版本")
 async def get_version(request: Request,
+                      env_id: Optional[str] = None,
                       serviceAlias: Optional[str] = None,
-                      session: SessionClass = Depends(deps.get_session),
-                      team=Depends(deps.get_current_team)) -> Any:
+                      session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件的构建版本
     ---
@@ -44,15 +45,18 @@ async def get_version(request: Request,
           type: string
           paramType: path
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     page = int(request.query_params.get("page_num", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
 
-    body = remote_build_client.get_service_build_versions(session, region_name, team.tenant_name,
+    body = remote_build_client.get_service_build_versions(session, region_name, env,
                                                           service.service_alias)
     build_version_sort = body["bean"]["list"]
     run_version = body["bean"]["deploy_version"]

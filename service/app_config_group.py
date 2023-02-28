@@ -102,7 +102,7 @@ class AppConfigGroupService(object):
     def create_config_group(self, session: SessionClass, app_id, config_group_name, config_items, deploy_type, enable,
                             service_ids,
                             region_name,
-                            team_name):
+                            tenant_env):
         # create application config group
         group_req = {
             "app_id": app_id,
@@ -120,7 +120,7 @@ class AppConfigGroupService(object):
                                       service_ids=service_ids)
             region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
             remote_app_client.create_app_config_group(
-                session, region_name, team_name, region_app_id, {
+                session, region_name, tenant_env, region_app_id, {
                     "app_id": region_app_id,
                     "config_group_name": config_group_name,
                     "deploy_type": deploy_type,
@@ -133,12 +133,12 @@ class AppConfigGroupService(object):
         return self.get_config_group(session=session, region_name=region_name, app_id=app_id,
                                      config_group_name=config_group_name)
 
-    def delete_config_group(self, session: SessionClass, region_name, team_name, app_id, config_group_name):
+    def delete_config_group(self, session: SessionClass, region_name, team_env, app_id, config_group_name):
         cgroup = app_config_group_repo.get(session, region_name, app_id, config_group_name)
         region_app_id = region_app_repo.get_region_app_id(session, cgroup[0].region_name, app_id)
         try:
             remote_app_client.delete_app_config_group(session,
-                                                      cgroup[0].region_name, team_name, region_app_id,
+                                                      cgroup[0].region_name, team_env, region_app_id,
                                                       cgroup[0].config_group_name)
         except remote_app_client.CallApiError as e:
             if e.status != 404:
@@ -151,7 +151,7 @@ class AppConfigGroupService(object):
                                                     config_group_name=config_group_name)
 
     def update_config_group(self, session: SessionClass, region_name, app_id, config_group_name, config_items, enable,
-                            service_ids, team_name):
+                            service_ids, tenant_env):
         group_req = {
             "app_id": app_id,
             "region_name": region_name,
@@ -173,7 +173,7 @@ class AppConfigGroupService(object):
                                       service_ids=service_ids)
             region_app_id = region_app_repo.get_region_app_id(session, cgroup[0].region_name, app_id)
             remote_app_client.update_app_config_group(session,
-                                                      cgroup[0].region_name, team_name, region_app_id,
+                                                      cgroup[0].region_name, tenant_env, region_app_id,
                                                       cgroup[0].config_group_name, {
                                                           "service_ids": service_ids,
                                                           "config_items": config_items,

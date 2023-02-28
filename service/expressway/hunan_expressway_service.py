@@ -8,9 +8,9 @@ class HunanExpresswayService(object):
     def get_all_app(self, session, region_name):
         return hunan_expressway_repo.get_all_app(session, region_name)
 
-    def get_app_status(self, session, tenant, region_name, app_id):
+    def get_app_status(self, session, tenant_env, region_name, app_id):
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-        status = remote_app_client.get_app_status(session, region_name, tenant.tenant_name, region_app_id)
+        status = remote_app_client.get_app_status(session, region_name, tenant_env, region_app_id)
         if status.get("status") == "NIL":
             status["status"] = None
         overrides = status.get("overrides", [])

@@ -106,7 +106,7 @@ class ApplicationRepository(BaseRepository[Application]):
             Application.tenant_id == tenant.tenant_id,
             Application.region_name == region_name)
 
-    def get_group_by_unique_key(self, session, tenant_id, region_name, group_name):
+    def get_group_by_unique_key(self, session, tenant_id, env_id, region_name, group_name):
         """
 
         :param tenant_id:
@@ -117,6 +117,7 @@ class ApplicationRepository(BaseRepository[Application]):
         group = (
             session.execute(
                 select(Application).where(Application.tenant_id == tenant_id,
+                                          Application.env_id == env_id,
                                           Application.region_name == region_name,
                                           Application.group_name == group_name))
         ).scalars().first()
@@ -130,19 +131,21 @@ class ApplicationRepository(BaseRepository[Application]):
         session.add(model)
         session.flush()
 
-    def is_k8s_app_duplicate(self, session, tenant_id, region_name, k8s_app, app_id=None):
+    def is_k8s_app_duplicate(self, session, team_id, env_id, region_name, k8s_app, app_id=None):
         if not k8s_app:
             return False
         if app_id:
             service_groups = session.execute(select(Application).where(
-                Application.tenant_id == tenant_id,
+                Application.tenant_id == team_id,
+                Application.env_id == env_id,
                 Application.region_name == region_name,
                 Application.k8s_app == k8s_app,
                 not_(Application.ID == app_id)
             )).scalars().all()
             return len(service_groups) > 0
         service_groups = session.execute(select(Application).where(
-            Application.tenant_id == tenant_id,
+            Application.tenant_id == team_id,
+            Application.env_id == env_id,
             Application.region_name == region_name,
             Application.k8s_app == k8s_app
         )).scalars().all()

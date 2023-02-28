@@ -109,9 +109,9 @@ class RegionRepo(BaseRepository[RegionConfig]):
         return session.execute(select(RegionConfig).where(
             RegionConfig.region_name == region_name)).scalars().first()
 
-    def get_team_region_by_tenant_and_region(self, session: SessionClass, tenant_id, region):
+    def get_env_region_by_env_and_region(self, session: SessionClass, env_id, region):
         return session.execute(select(EnvRegionInfo).where(
-            EnvRegionInfo.tenant_id == tenant_id,
+            EnvRegionInfo.env_id == env_id,
             EnvRegionInfo.region_name == region)).scalars().first()
 
     def delete_team_region_by_tenant_and_region(self, session: SessionClass, tenant_id, region):

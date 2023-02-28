@@ -19,6 +19,7 @@ from repository.component.service_share_repo import component_share_repo, compon
 from repository.market.center_app_version_repo import center_app_version_repo
 from repository.market.center_repo import center_app_repo
 from repository.plugin.plugin_share_repo import plugin_share_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.market import MarketShareUpdateParam, MarketAppShareInfoCreateParam
 from schemas.response import Response
@@ -112,11 +113,15 @@ async def delete_record(session: SessionClass = Depends(deps.get_session),
     return JSONResponse(general_message(200, "success", None), status_code=200)
 
 
-@router.get("/teams/{team_name}/share/{share_id}/info", response_model=Response, name="查询分享的所有应用信息和插件信息")
-async def get_share_info(scope: Optional[str] = None,
-                         share_id: Optional[str] = None,
-                         session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/share/{share_id}/info", response_model=Response, name="查询分享的所有应用信息和插件信息")
+async def get_share_info(
+        env_id: Optional[str] = None,
+        scope: Optional[str] = None,
+        share_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     data = dict()
     share_record = component_share_repo.get_by_primary_key(session=session, primary_key=share_id)
 
@@ -126,7 +131,7 @@ async def get_share_info(scope: Optional[str] = None,
         return JSONResponse(general_message(400, "share record is complete", "分享流程已经完成，请重新进行分享"), status_code=400)
     if not scope:
         scope = share_record.scope
-    service_info_list = share_service.query_share_service_info(session=session, team=team,
+    service_info_list = share_service.query_share_service_info(session=session, tenant_env=env,
                                                                group_id=share_record.group_id,
                                                                scope=scope)
     data["share_service_list"] = service_info_list
@@ -135,17 +140,19 @@ async def get_share_info(scope: Optional[str] = None,
     return JSONResponse(general_message(200, "query success", "获取成功", bean=jsonable_encoder(data)), status_code=200)
 
 
-@router.post("/teams/{team_name}/share/{share_id}/info", response_model=Response, name="生成分享应用实体，向数据中心发送分享任务")
+@router.post("/teams/{team_name}/env/{env_id}/share/{share_id}/info", response_model=Response,
+             name="生成分享应用实体，向数据中心发送分享任务")
 async def create_share_info(
         request: Request,
         params: Optional[MarketAppShareInfoCreateParam] = None,
+        env_id: Optional[str] = None,
         use_force: Optional[bool] = False,
         share_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        user=Depends(deps.get_current_user),
-        team=Depends(deps.get_current_team)) -> Any:
-    if not team:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
+        user=Depends(deps.get_current_user)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -177,10 +184,10 @@ async def create_share_info(
 
     # 继续给app_template_incomplete赋值
     code, msg, bean = share_service.create_share_info(session=session,
-                                                      tenant=team,
+                                                      tenant_env=env,
                                                       region_name=region_name,
                                                       share_record=share_record,
-                                                      share_team=team,
+                                                      share_team=env,
                                                       share_user=user,
                                                       share_info=params,
                                                       use_force=use_force)

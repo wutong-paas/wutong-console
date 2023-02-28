@@ -23,6 +23,7 @@ from models.component.models import ComponentEnvVar
 from repository.application.app_repository import service_webhooks_repo
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
@@ -780,13 +781,13 @@ async def get_code_branch(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/rollback", response_model=Response,
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/rollback", response_model=Response,
              name="组件版本回滚")
 async def components_rollback(
         request: Request,
+        env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
         user=Depends(deps.get_current_user)) -> Any:
     """
     回滚组件
@@ -815,10 +816,12 @@ async def components_rollback(
         upgrade_or_rollback = data.get("upgrade_or_rollback", None)
         if not deploy_version or not upgrade_or_rollback:
             return JSONResponse(general_message(400, "deploy version is not found", "请指明版本及操作类型"), status_code=400)
-
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
         code, msg = app_manage_service.roll_back(session,
-                                                 team, service, user, deploy_version,
+                                                 env, service, user, deploy_version,
                                                  upgrade_or_rollback)
         bean = {}
         if code != 200:
@@ -832,14 +835,14 @@ async def components_rollback(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/version/{version_id}", response_model=Response,
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/version/{version_id}", response_model=Response,
                name="删除组件的某次构建版本")
 async def delete_components_version(
         request: Request,
+        env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
         version_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
         user=Depends(deps.get_current_user)) -> Any:
     """
     删除组件的某次构建版本
@@ -864,14 +867,16 @@ async def delete_components_version(
     """
     if not version_id:
         return JSONResponse(general_message(400, "attr_name not specify", "请指定需要删除的具体版本"), status_code=400)
-
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    remote_build_client.delete_service_build_version(session, response_region, team.tenant_name,
+    remote_build_client.delete_service_build_version(session, response_region, env,
                                                      service.service_alias,
                                                      version_id)
     # event_repo.delete_event_by_build_version(self.service.service_id, version_id)

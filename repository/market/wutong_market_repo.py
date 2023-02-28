@@ -7,9 +7,9 @@ from repository.base import BaseRepository
 
 class WutongMarketRepository(BaseRepository[AppMarket]):
 
-    def get_market_list(self, session: SessionClass, enterprise_id, scopes):
+    def get_market_list(self, session: SessionClass, enterprise_id):
         markets = session.execute(
-            select(AppMarket).where(AppMarket.enterprise_id == enterprise_id, AppMarket.scope.in_(scopes))
+            select(AppMarket).where(AppMarket.enterprise_id == enterprise_id)
         ).scalars().all()
         if markets:
             return markets

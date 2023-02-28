@@ -29,7 +29,7 @@ from models.application.models import Application, ComponentApplicationRelation,
 from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoints, TeamComponentInfo, \
     DeployRelation, ComponentSourceInfo, ComponentEnvVar, TeamComponentMountRelation
 from models.region.models import RegionApp
-from models.teams import EnvInfo, ServiceDomainCertificate
+from models.teams import TeamEnvInfo, ServiceDomainCertificate
 from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo, app_market_repo
@@ -185,12 +185,12 @@ class ApplicationService(object):
     def get_pod(session, tenant, region_name, pod_name):
         return remote_build_client.get_pod(session, region_name, tenant.tenant_name, pod_name)
 
-    def install_app(self, session, tenant, region_name, app_id, overrides):
+    def install_app(self, session, tenant_env, region_name, app_id, overrides):
         if overrides:
             overrides = self._parse_overrides(overrides)
 
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-        remote_app_client.install_app(session, region_name, tenant.tenant_name, region_app_id, {
+        remote_app_client.install_app(session, region_name, tenant_env, region_app_id, {
             "overrides": overrides,
         })
 
@@ -300,7 +300,8 @@ class ApplicationService(object):
         return components
 
     @staticmethod
-    def check_app_name(session: SessionClass, tenant, region_name, group_name, app: Application = None, k8s_app=""):
+    def check_app_name(session: SessionClass, team_id, env_id, region_name, group_name, app: Application = None,
+                       k8s_app=""):
         """
         检查应用名称
         :param tenant:
@@ -316,10 +317,11 @@ class ApplicationService(object):
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
         if not r.match(group_name):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
-        exist_app = application_repo.get_group_by_unique_key(session=session, tenant_id=tenant.tenant_id,
+        exist_app = application_repo.get_group_by_unique_key(session=session, tenant_id=team_id,
+                                                             env_id=env_id,
                                                              region_name=region_name, group_name=group_name)
         app_id = app.app_id if app else 0
-        if application_repo.is_k8s_app_duplicate(session, tenant.tenant_id, region_name, k8s_app, app_id):
+        if application_repo.is_k8s_app_duplicate(session, team_id, env_id, region_name, k8s_app, app_id):
             raise ErrK8sAppExists
         if not exist_app:
             return
@@ -327,7 +329,9 @@ class ApplicationService(object):
             raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
 
     def create_app(self, session: SessionClass,
-                   tenant,
+                   team_id,
+                   env,
+                   project_id,
                    region_name,
                    app_name,
                    note="",
@@ -354,7 +358,7 @@ class ApplicationService(object):
         :param logo:
         :return:
         """
-        self.check_app_name(session, tenant, region_name, app_name, k8s_app=k8s_app)
+        self.check_app_name(session, team_id, env.env_id, region_name, app_name, k8s_app=k8s_app)
         # check parameter for helm app
         app_type = AppType.wutong.name
         if app_store_name or app_template_name or version:
@@ -369,7 +373,9 @@ class ApplicationService(object):
                 raise AbortRequest("the field 'version' is required")
 
         app = Application(
-            tenant_id=tenant.tenant_id,
+            tenant_id=team_id,
+            env_id=env.env_id,
+            project_id=project_id,
             region_name=region_name,
             group_name=app_name,
             note=note,
@@ -386,7 +392,7 @@ class ApplicationService(object):
             k8s_app=k8s_app
         )
         application_repo.create(session=session, model=app)
-        self.create_region_app(session=session, tenant=tenant, region_name=region_name, app=app, eid=eid)
+        self.create_region_app(session=session, env=env, region_name=region_name, app=app, eid=eid)
 
         res = jsonable_encoder(app)
         # compatible with the old version
@@ -396,7 +402,7 @@ class ApplicationService(object):
         return res
 
     @staticmethod
-    def create_region_app(session: SessionClass, tenant, region_name, app, eid=""):
+    def create_region_app(session: SessionClass, env, region_name, app, eid=""):
         """
         创建集群资源
         :param tenant:
@@ -406,7 +412,7 @@ class ApplicationService(object):
         """
         region_app = remote_app_client.create_application(
             session,
-            region_name, tenant.tenant_name, {
+            region_name, env, {
                 "eid": eid,
                 "app_name": app.group_name,
                 "app_type": app.app_type,
@@ -484,14 +490,14 @@ class ApplicationService(object):
         return count_http_domain + count_tcp_domain
 
     @staticmethod
-    def sync_app_services(tenant, session: SessionClass, region_name, app_id):
+    def sync_app_services(tenant_env, session: SessionClass, region_name, app_id):
         """
         同步应用组件
         :param tenant:
         :param region_name:
         :param app_id:
         """
-        group_services = base_service.get_group_services_list(session=session, team_id=tenant.tenant_id,
+        group_services = base_service.get_group_services_list(session=session, team_id=tenant_env.tenant_id,
                                                               region_name=region_name, group_id=app_id)
         service_ids = []
         if group_services:
@@ -501,29 +507,29 @@ class ApplicationService(object):
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
         if region_app_id:
             body = {"service_ids": service_ids}
-            remote_app_client.batch_update_service_app_id(session, region_name, tenant.tenant_name, region_app_id, body)
+            remote_app_client.batch_update_service_app_id(session, region_name, tenant_env, region_app_id, body)
         else:
             create_body = {"app_name": app.group_name, "service_ids": service_ids}
             if app.k8s_app:
                 create_body["k8s_app"] = app.k8s_app
-            bean = remote_app_client.create_application(session, region_name, tenant, create_body)
+            bean = remote_app_client.create_application(session, region_name, tenant_env, create_body)
             model = RegionApp(region_name=region_name, region_app_id=bean["app_id"], app_id=app_id)
             region_app_repo.insert(session=session, model=model)
             app.k8s_app = bean["k8s_app"]
         if not app.k8s_app:
-            status = remote_app_client.get_app_status(session, region_name, tenant.tenant_name, region_app_id)
+            status = remote_app_client.get_app_status(session, region_name, tenant_env, region_app_id)
             app.k8s_app = status["k8s_app"] if status.get("k8s_app") else ""
 
-    def get_service_status(self, session: SessionClass, tenant, service):
+    def get_service_status(self, session: SessionClass, tenant_env, service):
         """获取组件状态"""
         start_time = ""
         try:
             body = remote_component_client.check_service_status(
                 session,
                 service.service_region,
-                tenant.tenant_name,
+                tenant_env,
                 service.service_alias,
-                tenant.enterprise_id)
+                tenant_env.enterprise_id)
             bean = body["bean"]
             status = bean["cur_status"]
             start_time = bean["start_time"]
@@ -691,13 +697,13 @@ class ApplicationService(object):
                                             OAuthServices.is_deleted == False))
         ).scalars().first()
 
-    def check_service(self, session: SessionClass, tenant, service, is_again, user=None):
+    def check_service(self, session: SessionClass, tenant_env, service, is_again, user=None):
         body = dict()
-        body["tenant_id"] = tenant.tenant_id
+        body["tenant_id"] = tenant_env.tenant_id
         body["source_type"] = self.__get_service_region_type(service_source=service.service_source)
         source_body = ""
         service_source = (
-            session.execute(select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == tenant.tenant_id,
+            session.execute(select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == tenant_env.tenant_id,
                                                               ComponentSourceInfo.service_id == service.service_id))
         ).scalars().first()
 
@@ -730,7 +736,7 @@ class ApplicationService(object):
                 if not instance.is_git_oauth():
                     return 400, "该OAuth服务不是代码仓库类型", None
                 tenant = (
-                    session.execute(select(EnvInfo).where(EnvInfo.tenant_name == tenant.tenant_name))
+                    session.execute(select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_env.tenant_name))
                 ).scalars().first()
 
                 try:
@@ -747,7 +753,7 @@ class ApplicationService(object):
                 "branch": service.code_version,
                 "user": user_name,
                 "password": password,
-                "tenant_id": tenant.tenant_id
+                "tenant_id": tenant_env.tenant_id
             }
             source_body = json.dumps(sb)
         elif service.service_source == AppConstants.DOCKER_RUN or service.service_source == AppConstants.DOCKER_IMAGE:
@@ -765,7 +771,7 @@ class ApplicationService(object):
         body["username"] = user_name
         body["password"] = password
         body["source_body"] = source_body
-        res, body = remote_build_client.service_source_check(session, service.service_region, tenant.tenant_name, body)
+        res, body = remote_build_client.service_source_check(session, service.service_region, tenant_env, body)
         bean = body["bean"]
         service.check_uuid = bean["check_uuid"]
         service.check_event_id = bean["event_id"]
@@ -1334,9 +1340,9 @@ class ApplicationService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def list_releases(self, session, region_name: str, tenant_name: str, app_id: int):
+    def list_releases(self, session, region_name: str, tenant_env, app_id: int):
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-        return remote_app_client.list_app_releases(session, region_name, tenant_name, region_app_id)
+        return remote_app_client.list_app_releases(session, region_name, tenant_env, region_app_id)
 
     def get_region_app_statuses(self, session: SessionClass, tenant_name, region_name, app_ids):
         # Obtain the application ID of the cluster and
@@ -1474,13 +1480,13 @@ class ApplicationService(object):
 
     def create_default_app(self, session: SessionClass, tenant, region_name):
         app = application_repo.get_or_create_default_group(session, tenant.tenant_id, region_name)
-        self.create_region_app(session=session, tenant=tenant, region_name=region_name, app=app)
+        self.create_region_app(session=session, env=tenant, region_name=region_name, app=app)
         return jsonable_encoder(app)
 
     @staticmethod
-    def get_app_status(session: SessionClass, tenant, region_name, app_id):
+    def get_app_status(session: SessionClass, tenant_env, region_name, app_id):
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-        status = remote_app_client.get_app_status(session, region_name, tenant.tenant_name, region_app_id)
+        status = remote_app_client.get_app_status(session, region_name, tenant_env, region_app_id)
         if status.get("status") == "NIL":
             status["status"] = None
         overrides = status.get("overrides", [])
@@ -1506,10 +1512,10 @@ class ApplicationService(object):
         result = service_info_repo.list_by_ids(session=session, service_ids=[sg.service_id for sg in service_groups])
         return result
 
-    def check_governance_mode(self, session, tenant, region_name, app_id, governance_mode):
+    def check_governance_mode(self, session, tenant_env, region_name, app_id, governance_mode):
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
         return remote_app_client.check_app_governance_mode(session,
-                                                           region_name, tenant.tenant_name, region_app_id,
+                                                           region_name, tenant_env, region_app_id,
                                                            governance_mode)
 
     def get_app_by_app_id(self, session, app_id):
@@ -1517,14 +1523,14 @@ class ApplicationService(object):
             Application.ID == app_id
         )).scalars().first()
 
-    def delete_app(self, session: SessionClass, tenant, region_name, app_id, app_type):
+    def delete_app(self, session: SessionClass, tenant_env, region_name, app_id, app_type):
         if app_type == AppType.helm.name:
-            self._delete_helm_app(session, tenant, region_name, app_id)
+            self._delete_helm_app(session, tenant_env, region_name, app_id)
 
             return
-        self._delete_wutong_app(session, tenant, region_name, app_id)
+        self._delete_wutong_app(session, tenant_env, region_name, app_id)
 
-    def _delete_helm_app(self, session: SessionClass, tenant, region_name, app_id, user=None):
+    def _delete_helm_app(self, session: SessionClass, tenant_env, region_name, app_id, user=None):
         """
         For helm application,  can be delete directly, regardless of whether there are components
         """
@@ -1535,10 +1541,10 @@ class ApplicationService(object):
         )
         # avoid circular import
         from service.app_actions.app_manage import app_manage_service
-        app_manage_service.delete_components(session=session, tenant=tenant, components=components, user=user)
-        self._delete_app(session, tenant.tenant_name, region_name, app_id)
+        app_manage_service.delete_components(session=session, tenant=tenant_env, components=components, user=user)
+        self._delete_app(session, tenant_env, region_name, app_id)
 
-    def _delete_wutong_app(self, session: SessionClass, tenant, region_name, app_id):
+    def _delete_wutong_app(self, session: SessionClass, tenant_env, region_name, app_id):
         """
         For wutong application, with components, cannot be deleted directly
         """
@@ -1550,9 +1556,9 @@ class ApplicationService(object):
         if service:
             raise AbortRequest(msg="the app still has components", msg_show="当前应用内存在组件，无法删除")
 
-        self._delete_app(session, tenant.tenant_name, region_name, app_id)
+        self._delete_app(session, tenant_env, region_name, app_id)
 
-    def _delete_app(self, session: SessionClass, tenant_name, region_name, app_id):
+    def _delete_app(self, session: SessionClass, tenant_env, region_name, app_id):
 
         # 删除group
         session.execute(
@@ -1575,7 +1581,7 @@ class ApplicationService(object):
         if migrate_record:
             for record in migrate_record:
                 keys.append(record.restore_id)
-        remote_app_client.delete_app(session, region_name, tenant_name, region_app_id, {"etcd_keys": keys})
+        remote_app_client.delete_app(session, region_name, tenant_env, region_app_id, {"etcd_keys": keys})
 
     def add_component_to_app(self, session: SessionClass, tenant, region_name, app_id, component_id):
         if not app_id:
@@ -1679,19 +1685,19 @@ class ApplicationService(object):
         }
         remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
 
-    def update_governance_mode(self, session, tenant, region_name, app_id, governance_mode):
+    def update_governance_mode(self, session, tenant_env, region_name, app_id, governance_mode):
         # update the value of host env. eg. MYSQL_HOST
         component_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session=session,
-                                                                               tenant_id=tenant.tenant_id,
+                                                                               tenant_id=tenant_env.tenant_id,
                                                                                region_name=region_name, app_id=app_id)
 
         components = service_info_repo.list_by_ids(session=session, service_ids=component_ids)
         components = {cpt.component_id: cpt for cpt in components}
 
-        ports = port_repo.list_inner_ports_by_service_ids(session, tenant.tenant_id, component_ids)
+        ports = port_repo.list_inner_ports_by_service_ids(session, tenant_env.tenant_id, component_ids)
         ports = {port.service_id + str(port.container_port): port for port in ports}
 
-        envs = env_var_repo.list_envs_by_component_ids(session, tenant.tenant_id, component_ids)
+        envs = env_var_repo.list_envs_by_component_ids(session, tenant_env.tenant_id, component_ids)
         for env in envs:
             if not env.is_host_env():
                 continue
@@ -1707,11 +1713,11 @@ class ApplicationService(object):
             else:
                 env.attr_value = "127.0.0.1"
         session.add_all(envs)
-        application_repo.update_governance_mode(session, tenant.tenant_id, region_name, app_id, governance_mode)
+        application_repo.update_governance_mode(session, tenant_env.tenant_id, region_name, app_id, governance_mode)
 
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-        self.sync_envs(session, tenant.tenant_name, region_name, region_app_id, components.values(), envs)
-        remote_app_client.update_app(session, region_name, tenant.tenant_name, region_app_id,
+        self.sync_envs(session, tenant_env.tenant_name, region_name, region_app_id, components.values(), envs)
+        remote_app_client.update_app(session, region_name, tenant_env, region_app_id,
                                      {"governance_mode": governance_mode})
 
     def list_kubernetes_services(self, session, tenant_id, region_name, app_id):
@@ -1772,7 +1778,7 @@ class ApplicationService(object):
 
     def update_group(self,
                      session,
-                     tenant,
+                     tenant_env,
                      region_name,
                      app_id,
                      app_name,
@@ -1802,7 +1808,8 @@ class ApplicationService(object):
 
         # check app name
         if app_name:
-            self.check_app_name(session, tenant, region_name, app_name, app, k8s_app=k8s_app)
+            self.check_app_name(session, tenant_env.tenant_id, tenant_env.env_id, region_name, app_name, app,
+                                k8s_app=k8s_app)
         if overrides:
             overrides = self._parse_overrides(overrides)
 
@@ -1812,7 +1819,7 @@ class ApplicationService(object):
             data["version"] = version
 
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-        bean = remote_app_client.update_app(session, region_name, tenant.tenant_name, region_app_id, {
+        bean = remote_app_client.update_app(session, region_name, tenant_env, region_app_id, {
             "overrides": overrides,
             "version": version,
             "revision": revision,

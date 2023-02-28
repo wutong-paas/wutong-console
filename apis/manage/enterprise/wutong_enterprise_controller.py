@@ -14,7 +14,7 @@ from database.session import SessionClass
 from exceptions.exceptions import UserNotExistError, TenantNotExistError
 from exceptions.main import ServiceHandleException
 from models.market.models import CenterApp
-from models.teams import RegionConfig, EnvInfo
+from models.teams import RegionConfig, TeamEnvInfo
 from models.teams.enterprise import TeamEnterprise
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_config_repo import region_config_repo
@@ -110,14 +110,18 @@ async def delete_enterprise_info(request: Request,
 
 
 @router.get("/enterprise/{enterprise_id}/overview/app", response_model=Response, name="总览-应用信息")
-async def overview_app(enterprise_id: Optional[str] = None, session: SessionClass = Depends(deps.get_session)) -> Any:
+async def overview_app(
+        request: Request,
+        enterprise_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    team_ids = request.query_params.get("team_ids", None)
     usable_regions = region_config_repo.list_by_model(session=session,
                                                       query_model=RegionConfig(enterprise_id=enterprise_id, status="1"))
     if not usable_regions:
         result = general_message(404, "no found regions", "查询成功")
         return JSONResponse(result, status_code=200)
     data = enterprise_services.get_enterprise_runing_service(session=session, enterprise_id=enterprise_id,
-                                                             regions=usable_regions)
+                                                             regions=usable_regions, team_ids=team_ids)
     result = general_message(200, "success", "查询成功", bean=data)
     return JSONResponse(result, status_code=result["code"])
 

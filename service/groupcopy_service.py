@@ -198,7 +198,7 @@ class GroupAppCopyService(object):
                     env["attr_name"] = envs[env["attr_name"]]
         return metadata
 
-    def copy_group_services(self, session, user, old_team, old_region_name, tar_team, tar_region_name, tar_group,
+    def copy_group_services(self, session, user, old_team, old_region_name, env, tar_region_name, tar_group,
                             group_id,
                             choose_services):
         changes = {}
@@ -208,18 +208,18 @@ class GroupAppCopyService(object):
                 service_ids.append(choose_service["service_id"])
                 changes.update({choose_service["service_id"]: choose_service.get("change")})
         services_metadata, change_services_map = self.get_modify_group_metadata(session, old_team, old_region_name,
-                                                                                tar_team,
+                                                                                env,
                                                                                 tar_region_name, group_id, service_ids,
                                                                                 changes)
-        self.save_new_group_app(session, user, tar_team, tar_region_name, tar_group.ID,
-                                services_metadata, change_services_map, old_team == tar_team,
+        self.save_new_group_app(session, user, env, tar_region_name, tar_group.ID,
+                                services_metadata, change_services_map, old_team == env,
                                 old_region_name == tar_region_name)
-        return groupapp_copy_service.build_services(session, user, tar_team, tar_region_name, tar_group.ID,
+        return groupapp_copy_service.build_services(session, user, env, tar_region_name, tar_group.ID,
                                                     change_services_map)
 
-    def save_new_group_app(self, session, user, tar_team, region_name, group_id, metadata, changed_service_map,
+    def save_new_group_app(self, session, user, env, region_name, group_id, metadata, changed_service_map,
                            same_team, same_region):
-        migrate_service.save_data(session, tar_team, region_name, user, changed_service_map, metadata, group_id,
+        migrate_service.save_data(session, env, region_name, user, changed_service_map, metadata, group_id,
                                   same_team, same_region)
 
     def build_services(self, session, user, tenant, region_name, group_id, change_services_map):

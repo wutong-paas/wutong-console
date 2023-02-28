@@ -244,10 +244,10 @@ class BaseService:
         min_cpu = int(min_memory) / 128 * 20
         return int(min_cpu)
 
-    def get_apps_deploy_versions(self, session, region, tenant_name, service_ids):
+    def get_apps_deploy_versions(self, session, region, tenant_env, service_ids):
         data = {"service_ids": service_ids}
         try:
-            res, body = remote_build_client.get_env_services_deploy_version(session, region, tenant_name, data)
+            res, body = remote_build_client.get_env_services_deploy_version(session, region, tenant_env, data)
             return body["list"]
         except Exception as e:
             logger.exception(e)

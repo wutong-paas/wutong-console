@@ -223,7 +223,7 @@ class ShareService(object):
             rt_list.append(p)
         return rt_list
 
-    def create_share_info(self, session, tenant, region_name, share_record,
+    def create_share_info(self, session, tenant_env, region_name, share_record,
                           share_team, share_user, share_info, use_force):
         try:
             share_version_info = share_info.app_version_info
@@ -283,7 +283,7 @@ class ShareService(object):
             app_templete["app_config_groups"] = self.config_groups(session, region_name, service_ids_keys_map)
 
             # ingress
-            ingress_http_routes = self._list_http_ingresses(session, tenant, service_ids_keys_map)
+            ingress_http_routes = self._list_http_ingresses(session, tenant_env, service_ids_keys_map)
             app_templete["ingress_http_routes"] = ingress_http_routes
 
             # plugins
@@ -323,7 +323,7 @@ class ShareService(object):
                     service_ids = [s["service_id"] for s in services]
                     version_list = base_service.get_apps_deploy_versions(session,
                                                                          services[0]["service_region"],
-                                                                         share_team.tenant_name,
+                                                                         tenant_env,
                                                                          service_ids)
                     delivered_type_map = {v["service_id"]: v["delivered_type"] for v in version_list}
 
@@ -670,11 +670,11 @@ class ShareService(object):
     def create_service_share_record(self, session: SessionClass, **kwargs):
         return component_share_repo.create_service_share_record(session, **kwargs)
 
-    def query_share_service_info(self, team, group_id, session: SessionClass, scope=None):
-        service_list = component_share_repo.get_service_list_by_group_id(session=session, team=team, group_id=group_id)
+    def query_share_service_info(self, tenant_env, group_id, session: SessionClass, scope=None):
+        service_list = component_share_repo.get_service_list_by_group_id(session=session, team=tenant_env, group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
-            deploy_versions = self.get_team_service_deploy_version(session, service_list[0].service_region, team,
+            deploy_versions = self.get_team_service_deploy_version(session, service_list[0].service_region, tenant_env,
                                                                    array_ids)
             array_keys = []
             for x in service_list:
@@ -688,12 +688,12 @@ class ShareService(object):
             # 查询组件持久化信息
             service_volume_map = self.get_service_volume_by_ids(array_ids, session)
             # dependent volume
-            dep_mnt_map = self.get_dep_mnts_by_ids(team.tenant_id, array_ids, session)
+            dep_mnt_map = self.get_dep_mnts_by_ids(tenant_env.tenant_id, array_ids, session)
             # 获取组件的健康检测设置
             probe_map = self.get_service_probes(array_ids, session)
 
             # service monitor
-            sid_2_monitors = self.list_service_monitors(team.tenant_id, array_ids, session)
+            sid_2_monitors = self.list_service_monitors(tenant_env.tenant_id, array_ids, session)
             # component graphs
             sid_2_graphs = self.list_component_graphs(array_ids, session)
             all_data_map = dict()
@@ -855,10 +855,10 @@ class ShareService(object):
         else:
             return []
 
-    def get_team_service_deploy_version(self, session, region, team, service_ids):
+    def get_team_service_deploy_version(self, session, region, tenant_env, service_ids):
         try:
             res, body = remote_build_client.get_env_services_deploy_version(session,
-                                                                             region, team.tenant_name,
+                                                                             region, tenant_env,
                                                                              {"service_ids": service_ids})
             if res.status == 200:
                 service_versions = {}

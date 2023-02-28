@@ -6,7 +6,7 @@ from database.session import SessionClass
 from exceptions.main import AbortRequest
 from models.component.models import TeamApplication
 from models.market.models import AppMarket, CenterAppVersion
-from models.teams import EnvInfo, RegionConfig
+from models.teams import TeamEnvInfo, RegionConfig
 from repository.application.application_repo import application_repo
 from repository.market.center_app_version_repo import center_app_version_repo
 from repository.market.wutong_market_repo import wutong_market_repo
@@ -18,17 +18,10 @@ from service.env_service import env_services
 
 
 def get_wutong_markets(session: SessionClass, enterprise_id: str, user: str):
-    # 查询用户团队权限信息
-    teams = env_services.get_teams_region_by_user_id(session=session, enterprise_id=enterprise_id, user=user)
-    if not teams:
-        return []
-    team_names = [team['team_name'] for team in teams]
-
-    team_names.append('enterprise')
 
     # 查询用户团队权限下应用店铺
     # markets = wutong_market_repo.list_by_model(session=session, query_model=AppMarket(enterprise_id=enterprise_id))
-    markets = wutong_market_repo.get_market_list(session=session, enterprise_id=enterprise_id, scopes=team_names)
+    markets = wutong_market_repo.get_market_list(session=session, enterprise_id=enterprise_id)
     if not markets:
         return []
     result = []
@@ -97,7 +90,7 @@ def install_cloud_market_app(session: SessionClass, user, enterprise_id: str, ma
     # app_template["update_time"] = app_version.update_time
 
     # 查询团队
-    team_info = env_repo.get_one_by_model(session=session, query_model=EnvInfo(tenant_id=application.tenant_id))
+    team_info = env_repo.get_one_by_model(session=session, query_model=TeamEnvInfo(tenant_id=application.tenant_id))
     # 查询region
     region = region_repo.get_one_by_model(session=session,
                                           query_model=RegionConfig(region_name=application.region_name))

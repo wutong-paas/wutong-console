@@ -59,12 +59,4 @@ async def get_current_user(request: Request, authorization: Optional[str] = Head
 
 
 async def get_current_team(request: Request, team_name: str, session: SessionClass = Depends(get_session)):
-    # team_repo
-    logger.info("查询团队信息,团队名称:{}", team_name)
-    if not team_name:
-        raise ServiceHandleException(msg="team_name not found", msg_show="团队名称不存在")
-    team_db = None
-    if not team_db:
-        logger.error("未找到团队信息,团队名称:{}", team_name)
-        raise ServiceHandleException(msg="team not found", msg_show="团队不存在")
-    return team_db
+    pass

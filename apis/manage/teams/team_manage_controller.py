@@ -8,12 +8,9 @@ from loguru import logger
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.team_applicants_repo import apply_repo
-from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from schemas.team import CloseTeamAppParam
 from service.app_actions.app_log import event_service
@@ -155,31 +152,6 @@ async def env_services_event(
     event_page_list = pg.items
     event_list = [event for event in event_page_list]
     result = general_message(200, 'success', "查询成功", list=event_list, total=total)
-    return JSONResponse(result, status_code=200)
-
-
-@router.get("/teams/{team_name}/applicants", response_model=Response, name="获取当前团队所有的申请者")
-async def get_applicants_info(request: Request,
-                              team_name: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session)) -> Any:
-    """
-    初始化团队和数据中心信息
-    """
-    page_num = int(request.query_params.get("page_num", 1))
-    page_size = int(request.query_params.get("page_size", 5))
-    rt_list = []
-    applicants = apply_repo.get_applicants(session=session, team_name=team_name)
-    for applicant in applicants:
-        is_pass = applicant.is_pass
-        if is_pass == 0:
-            rt_list.append(jsonable_encoder(applicant))
-    params = Params(page=page_num, size=page_size)
-    pg = paginate(rt_list, params)
-    total = pg.total
-    page_aplic = pg.items
-    rt_list = [apc for apc in page_aplic]
-    # 返回
-    result = general_message(200, "success", "查询成功", list=jsonable_encoder(rt_list), total=total)
     return JSONResponse(result, status_code=200)
 
 

@@ -12,7 +12,6 @@ from core import deps
 from database.session import SessionClass
 from exceptions.exceptions import LogoFormatError, LogoSizeError
 from models.base.err_log import Errorlog
-from repository.users.perms_repo import perms_repo
 from schemas.response import Response
 from schemas.wutong_errlog import ErrLogCreate
 from service.upload_service import upload_service
@@ -65,10 +64,3 @@ async def file_upload(file: UploadFile = File(...)) -> Any:
     else:
         result = general_message(200, "file upload success", "上传成功", bean={"file_url": file_url})
     return JSONResponse(result, status_code=result["code"])
-
-
-@router.get("/perms", response_model=Response, name="获取权限列表")
-async def get_perms_info() -> Any:
-    perms = perms_repo.get_perms_info()
-    result = general_message(200, None, None, bean=jsonable_encoder(perms))
-    return JSONResponse(result, status_code=200)

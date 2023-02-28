@@ -209,17 +209,17 @@ class ComposeService(object):
             return 500, "{0}".format("failed"), service_list
         return 200, "success", service_list
 
-    def check_compose(self, session, region, tenant, compose_id):
+    def check_compose(self, session, region, tenant_env, compose_id):
         group_compose = compose_repo.get_group_compose_by_compose_id(session, compose_id)
         if not group_compose:
             return 404, "未找到对应的compose内容", None
         body = dict()
-        body["tenant_id"] = tenant.tenant_id
+        body["tenant_id"] = tenant_env.tenant_id
         body["source_type"] = "docker-compose"
         body["source_body"] = group_compose.compose_content
         body["username"] = group_compose.hub_user
         body["password"] = group_compose.hub_pass
-        res, body = remote_build_client.service_source_check(session, region, tenant.tenant_name, body)
+        res, body = remote_build_client.service_source_check(session, region, tenant_env, body)
         bean = body["bean"]
         group_compose.check_uuid = bean["check_uuid"]
         group_compose.check_event_id = bean["event_id"]

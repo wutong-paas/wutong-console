@@ -8,7 +8,6 @@ from urllib3.exceptions import MaxRetryError
 from clients.remote_component_client import remote_component_client
 from core import deps
 from core.enum.app import GovernanceModeEnum
-
 from core.utils.crypt import make_uuid
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message, general_data
@@ -16,13 +15,14 @@ from core.utils.validation import is_qualified_name
 from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrApplicationNotFound
 from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException
-from models.application.models import Application, ComponentApplicationRelation
+from models.application.models import ComponentApplicationRelation
 from repository.application.application_repo import application_repo
 from repository.component.compose_repo import compose_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo
 from repository.region.region_app_repo import region_app_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from schemas.wutong_application import CommonOperation
@@ -54,11 +54,11 @@ def check_services(session: SessionClass, app_id, req_service_ids):
                     status_code=404)
 
 
-@router.post("/teams/{team_name}/groups", response_model=Response, name="新建团队应用")
+@router.post("/teams/{team_name}/env/{env_id}/groups", response_model=Response, name="新建环境应用")
 async def create_app(params: TeamAppCreateRequest,
+                     env_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team)) -> Any:
+                     user=Depends(deps.get_current_user)) -> Any:
     """
     新建团队应用
     :param session:
@@ -74,10 +74,17 @@ async def create_app(params: TeamAppCreateRequest,
         k8s_app = params.app_name
     if k8s_app and not is_qualified_name(k8s_app):
         raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
+
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        result = general_message(400, "env not exist", "该环境不存在")
+        return JSONResponse(result, status_code=result["code"])
     try:
         data = application_service.create_app(
             session=session,
-            tenant=team,
+            team_id=params.team_id,
+            env=env,
+            project_id=params.project_id,
             region_name=params.region_name,
             app_name=params.app_name,
             note=params.note,
@@ -121,18 +128,20 @@ async def get_app_detail(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/groups/{app_id}", response_model=Response, name="更新团队应用")
+@router.put("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="更新团队应用")
 async def update_app(request: Request,
+                     env_id: Optional[str] = None,
                      app_id: Optional[str] = None,
-                     session: SessionClass = Depends(deps.get_session),
-                     team=Depends(deps.get_current_team),
-                     user=Depends(deps.get_current_user)) -> Any:
+                     session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     app_name = data.get("app_name", None)
     note = data.get("note", "")
     logo = data.get("logo", "")
     if note and len(note) > 2048:
         return JSONResponse(general_message(400, "node too long", "应用备注长度限制2048"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     username = data.get("username", None)
     overrides = data.get("overrides", [])
     version = data.get("version", "")
@@ -144,7 +153,7 @@ async def update_app(request: Request,
     response_region = region.region_name
     application_service.update_group(
         session,
-        team,
+        env,
         response_region,
         app_id,
         app_name,
@@ -158,13 +167,12 @@ async def update_app(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/groups/{app_id}", response_model=Response, name="删除团队应用")
+@router.delete("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="删除团队应用")
 async def delete_app(
         request: Request,
+        env_id: Optional[str] = None,
         app_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
-        user=Depends(deps.get_current_user)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     删除应用
     ---
@@ -180,8 +188,9 @@ async def delete_app(
           type: string
           paramType: path
     """
-    if not team:
-        raise ServiceHandleException(msg="not found team", msg_show="团队不存在", status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
 
     region = await region_services.get_region_by_request(session, request)
     if not region:
@@ -194,7 +203,7 @@ async def delete_app(
 
     app_type = group.app_type
     try:
-        application_service.delete_app(session=session, tenant=team, region_name=region_name, app_id=app_id,
+        application_service.delete_app(session=session, tenant_env=env, region_name=region_name, app_id=app_id,
                                        app_type=app_type)
         result = general_message(200, "success", "删除成功")
     except AbortRequest as e:
@@ -202,19 +211,20 @@ async def delete_app(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/groups/{app_id}/status", response_model=Response, name="查询应用状态")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}/status", response_model=Response, name="查询应用状态")
 async def get_app_status(
         request: Request,
+        env_id: Optional[str] = None,
         app_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
-    if not team:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
-    status = application_service.get_app_status(session=session, tenant=team, region_name=region_name, app_id=app_id)
+    status = application_service.get_app_status(session=session, tenant_env=env, region_name=region_name, app_id=app_id)
     result = general_message(200, "success", "查询成功", list=status)
 
     return JSONResponse(result, status_code=result["code"])
@@ -285,7 +295,6 @@ async def common_operation(
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         team=Depends(deps.get_current_team)) -> Any:
-
     action = params.action
     perm_action = action
 
@@ -332,7 +341,6 @@ async def app_share_record(request: Request,
                            session: SessionClass = Depends(deps.get_session),
                            team=Depends(deps.get_current_team),
                            user=Depends(deps.get_current_user)) -> Any:
-
     data = []
     market = dict()
     cloud_app = dict()
@@ -526,25 +534,26 @@ async def get_config_groups(request: Request,
         status_code=200)
 
 
-@router.post("/teams/{team_name}/groups/{group_id}/configgroups", response_model=Response, name="创建应用配置组")
+@router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/configgroups", response_model=Response, name="创建应用配置组")
 async def add_config_group(request: Request,
-                           team_name: Optional[str] = None,
+                           env_id: Optional[str] = None,
                            group_id: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team),
-                           user=Depends(deps.get_current_user)) -> Any:
+                           session: SessionClass = Depends(deps.get_session)) -> Any:
     params = await request.json()
     try:
         service_ids = params["service_ids"]
     except:
         service_ids = []
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     check_services(session, group_id, service_ids)
     acg = app_config_group_service.create_config_group(session=session, app_id=group_id,
                                                        config_group_name=params["config_group_name"],
                                                        config_items=params["config_items"],
                                                        deploy_type=params["deploy_type"], enable=params["enable"],
                                                        service_ids=service_ids,
-                                                       region_name=params["region_name"], team_name=team_name)
+                                                       region_name=params["region_name"], tenant_env=env)
     return JSONResponse(general_data(bean=jsonable_encoder(acg)), status_code=200)
 
 
@@ -565,50 +574,58 @@ async def get_config_group(
     return JSONResponse(general_data(bean=jsonable_encoder(acg)), status_code=200)
 
 
-@router.put("/teams/{team_name}/groups/{group_id}/configgroups/{name}", response_model=Response, name="修改应用配置组信息")
+@router.put("/teams/{team_name}/env/{env_id}/groups/{group_id}/configgroups/{name}", response_model=Response,
+            name="修改应用配置组信息")
 async def modify_config_group(request: Request,
-                              team_name: Optional[str] = None,
+                              env_id: Optional[str] = None,
                               group_id: Optional[str] = None,
                               name: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team),
-                              user=Depends(deps.get_current_user)) -> Any:
+                              session: SessionClass = Depends(deps.get_session)) -> Any:
     params = await request.json()
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
     check_services(session, group_id, params["service_ids"])
     acg = app_config_group_service.update_config_group(session=session, region_name=region_name, app_id=group_id,
                                                        config_group_name=name, config_items=params["config_items"],
                                                        enable=params["enable"], service_ids=params["service_ids"],
-                                                       team_name=team_name)
+                                                       tenant_env=env)
     return JSONResponse(general_data(bean=jsonable_encoder(acg)), status_code=200)
 
 
-@router.delete("/teams/{team_name}/groups/{group_id}/configgroups/{name}", response_model=Response, name="删除应用配置组")
+@router.delete("/teams/{team_name}/env/{env_id}/groups/{group_id}/configgroups/{name}", response_model=Response,
+               name="删除应用配置组")
 async def delete_config_group(
         request: Request,
-        team_name: Optional[str] = None,
+        env_id: Optional[str] = None,
         group_id: Optional[str] = None,
         name: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
-        user=Depends(deps.get_current_user)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
-    acg = app_config_group_service.delete_config_group(session=session, region_name=region_name, team_name=team_name,
+    acg = app_config_group_service.delete_config_group(session=session, region_name=region_name, team_env=env,
                                                        app_id=group_id, config_group_name=name)
     return JSONResponse(general_data(bean=acg), status_code=200)
 
 
-@router.put("/teams/{team_name}/groups/{app_id}/governancemode", response_model=Response, name="切换治理模式")
+@router.put("/teams/{team_name}/env/{env_id}/groups/{app_id}/governancemode", response_model=Response, name="切换治理模式")
 async def app_governance_mode(request: Request,
+                              env_id: Optional[str] = None,
                               app_id: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
+                              session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+
     governance_mode = await parse_item(request, "governance_mode", required=True)
     if governance_mode not in GovernanceModeEnum.names():
         raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
@@ -617,16 +634,17 @@ async def app_governance_mode(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    application_service.update_governance_mode(session, team, region_name, app_id, governance_mode)
+    application_service.update_governance_mode(session, env, region_name, app_id, governance_mode)
     result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/groups/{app_id}/governancemode/check", response_model=Response, name="切换治理模式")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}/governancemode/check", response_model=Response,
+            name="切换治理模式")
 async def app_governance_mode(request: Request,
+                              env_id: Optional[str] = None,
                               app_id: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
+                              session: SessionClass = Depends(deps.get_session)) -> Any:
     governance_mode = request.query_params.get("governance_mode", "")
     if governance_mode not in GovernanceModeEnum.names():
         raise AbortRequest("governance_mode not in ({})".format(GovernanceModeEnum.names()))
@@ -634,9 +652,13 @@ async def app_governance_mode(request: Request,
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
     try:
-        application_service.check_governance_mode(session, team, region_name, app_id, governance_mode)
+        application_service.check_governance_mode(session, env, region_name, app_id, governance_mode)
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
     result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
@@ -702,18 +724,20 @@ async def get_helm_app_components(
                         status_code=200)
 
 
-@router.get("/teams/{team_name}/groups/{app_id}/releases", response_model=Response, name="获取应用升级记录")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}/releases", response_model=Response, name="获取应用升级记录")
 async def get_app_releases(
         request: Request,
-        team_name: Optional[str] = None,
+        env_id: Optional[str] = None,
         app_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
-    releases = application_service.list_releases(session, region_name, team_name, app_id)
+    releases = application_service.list_releases(session, region_name, env, app_id)
     return JSONResponse(general_message(200, "success", "查询成功", list=releases), status_code=200)
 
 
@@ -733,11 +757,15 @@ async def get_check_uuid(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/groups/{group_id}/check", response_model=Response, name="检测任务发送")
+@router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/check", response_model=Response, name="检测任务发送")
 async def send_check_task(
         request: Request,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        env_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+
     data = await request.json()
     compose_id = data.get("compose_id", None)
     if not compose_id:
@@ -748,20 +776,22 @@ async def send_check_task(
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     response_region = region.region_name
-    code, msg, compose_bean = compose_service.check_compose(session, response_region, team, compose_id)
+    code, msg, compose_bean = compose_service.check_compose(session, response_region, env, compose_id)
     if code != 200:
         return JSONResponse(general_message(code, "check compose error", msg))
     result = general_message(code, "compose check task send success", "检测任务发送成功", bean=compose_bean)
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/groups/{group_id}/check", response_model=Response, name="获取compose文件检测信息")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/check", response_model=Response, name="获取compose文件检测信息")
 async def get_compose_check_info(
         request: Request,
+        env_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
         user=Depends(deps.get_current_user)) -> Any:
-    sid = None
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     try:
         check_uuid = request.query_params.get("check_uuid", None)
         compose_id = request.query_params.get("compose_id", None)
@@ -776,10 +806,10 @@ async def get_compose_check_info(
         response_region = region.region_name
 
         group_compose = compose_service.get_group_compose_by_compose_id(session, compose_id)
-        code, msg, data = component_check_service.get_service_check_info(session, team, response_region, check_uuid)
+        code, msg, data = component_check_service.get_service_check_info(session, env, response_region, check_uuid)
         logger.debug("start save compose info ! {0}".format(group_compose.create_status))
         save_code, save_msg, service_list = compose_service.save_compose_services(session,
-                                                                                  team, user,
+                                                                                  env, user,
                                                                                   response_region, group_compose,
                                                                                   data)
         if save_code != 200:
@@ -847,20 +877,23 @@ async def get_compose_services(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/groups/{group_id}/install", response_model=Response, name="安装应用市场app")
+@router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/install", response_model=Response, name="安装应用市场app")
 async def install_market_app(
         request: Request,
+        env_id: Optional[str] = None,
         group_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        user=Depends(deps.get_current_user),
-        team=Depends(deps.get_current_team)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
     overrides = data.get("overrides")
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
-    application_service.install_app(session, team, region_name, group_id, overrides)
+    application_service.install_app(session, env, region_name, group_id, overrides)
     result = general_message(200, "success", "安装成功")
     return JSONResponse(result, status_code=200)
 

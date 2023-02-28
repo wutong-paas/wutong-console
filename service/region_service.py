@@ -285,16 +285,18 @@ class RegionService(object):
         else:
             return []
 
-    def create_env_on_region(self, session: SessionClass, enterprise_id, env, region_name, namespace):
+    def create_env_on_region(self, session: SessionClass, team_id, team_name, enterprise_id, env, region_name,
+                             namespace):
         region_config = region_repo.get_enterprise_region_by_region_name(session, region_name)
         if not region_config:
             raise ServiceHandleException(msg="cluster not found", msg_show="需要开通的集群不存在")
-        env_region = region_repo.get_team_region_by_tenant_and_region(session, env.env_id, region_name)
+        env_region = region_repo.get_env_region_by_env_and_region(session, env.env_id, region_name)
         if not env_region:
-            env_region_info = {"env_id": env.env_id, "region_name": region_name, "is_active": False}
+            env_region_info = {"env_id": env.env_id, "region_name": region_name, "is_active": False,
+                               "region_tenant_name": team_name}
             env_region = region_repo.create_tenant_region(session, **env_region_info)
         if not env_region.is_init:
-            res, body = remote_tenant_client.create_env(session, region_name, env.team_name, env.tenant_id,
+            res, body = remote_tenant_client.create_env(session, region_name, team_id, team_name, env.env_name, env.env_id,
                                                         env.enterprise_id, namespace)
             if res["status"] != 200 and body['msg'] != 'env name {} is exist'.format(env.env_name):
                 logger.error(res)
@@ -305,6 +307,7 @@ class RegionService(object):
             env_region.region_env_name = env.env_name
             env_region.region_scope = region_config.scope
             env_region.enterprise_id = env.enterprise_id
+            env_region.region_tenant_name = team_name
         else:
             if (not env_region.region_env_id) or \
                     (not env_region.region_env_name) or \
@@ -313,10 +316,11 @@ class RegionService(object):
                 env_region.region_env_name = env.env_name
                 env_region.region_scope = region_config.scope
                 env_region.enterprise_id = env.enterprise_id
+                env_region.region_tenant_name = team_name
         return env_region
 
     def delete_env_on_region(self, session: SessionClass, enterprise_id, env, region_name, user):
-        env_region = region_repo.get_team_region_by_tenant_and_region(session, env.env_id, region_name)
+        env_region = region_repo.get_env_region_by_env_and_region(session, env.env_id, region_name)
         if not env_region:
             raise ServiceHandleException(msg="team not open cluster, not need close", msg_show="该团队未开通此集群，无需关闭")
         # start delete
@@ -342,7 +346,7 @@ class RegionService(object):
             if len(status_list) > 0:
                 raise ServiceHandleException(
                     msg="There are running components under the current application",
-                    msg_show="团队在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(region_config.region_alias))
+                    msg_show="环境在集群{0}下有运行态的组件,请关闭组件后再卸载当前集群".format(region_config.region_alias))
         # Components are the key to resource utilization,
         # and removing the cluster only ensures that the component's resources are freed up.
         not_delete_from_cluster = False

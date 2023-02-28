@@ -30,36 +30,33 @@ def get_region_access_info_by_enterprise_id(enterprise_id, region, session):
     return url, token
 
 
-def get_tenant_region_info(tenant_name, region_name, session):
+def get_env_region_info(env, region_name, session):
     """
 
     :param tenant_name:
     :param region_name:
     :return:
     """
-    # todo
-    logger.info("查询团队信息,param-name:{},param-region:{}", tenant_name, region_name)
-    tenant = env_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name)
-    if tenant:
-        tenant_region = team_region_repo.get_tenant_region_info_by_tenant_id_and_region_name(session,
-                                                                                             tenant.tenant_id,
-                                                                                             region_name)
+    if env:
+        env_region = team_region_repo.get_env_region_info_by_env_id_and_region_name(session,
+                                                                                    env.env_id,
+                                                                                    region_name)
         logger.info("")
-        if not tenant_region:
-            logger.error("tenant {0} is not in region {1}".format(tenant_name, region_name))
+        if not env_region:
+            logger.error("env {0} is not in region {1}".format(env.env_name, region_name))
             raise http.HTTPStatus.NOT_FOUND
     else:
-        logger.error("tenant {0} is not found!".format(tenant_name))
+        logger.error("env {0} is not found!".format(env.env_name))
         raise http.HTTPStatus.NOT_FOUND
-    return tenant_region
+    return env_region
 
 
-def get_region_access_info(tenant_name, region_name, session):
+def get_region_access_info(env_name, region_name, session):
     """获取一个团队在指定数据中心的身份认证信息"""
     # 根据团队名获取其归属的企业在指定数据中心的访问信息
     token = None
-    if tenant_name:
-        url, token = client_auth_service.get_region_access_token_by_tenant(session, tenant_name, region_name)
+    if env_name:
+        url, token = client_auth_service.get_region_access_token_by_env(session, env_name, region_name)
     # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
     # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
     region_config_info = region_config_repo.get_region_config_by_region_name(session, region_name)

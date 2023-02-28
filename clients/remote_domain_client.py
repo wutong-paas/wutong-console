@@ -4,7 +4,7 @@ import os
 from loguru import logger
 
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info, get_tenant_region_info
+from common.base_client_service import get_region_access_info, get_env_region_info
 
 
 class RemoteDomainClient(ApiBaseHttpClient):
@@ -27,7 +27,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
             self.default_headers.update({"Authorization": token})
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
-    def bind_domain(self, session, region, tenant_name, service_alias, body):
+    def bind_domain(self, session, region, tenant_env, service_alias, body):
         """
         bind_domain
         :param region:
@@ -36,16 +36,17 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains"
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
+              "/services/" + service_alias + "/domains"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def unbind_domain(self, session, region, tenant_name, service_alias, body):
+    def unbind_domain(self, session, region, tenant_env, service_alias, body):
         """
 
         :param region:
@@ -54,15 +55,16 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/services/" + service_alias + "/domains/" + \
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
+              "/services/" + service_alias + "/domains/" + \
               body["domain"]
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def bind_http_domain(self, session, region, tenant_name, body):
+    def bind_http_domain(self, session, region, tenant_name, tenant_env, body):
         """
 
         :param region:
@@ -70,15 +72,15 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/http-rule"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def update_http_domain(self, session, region, tenant_name, body):
+    def update_http_domain(self, session, region, tenant_name, tenant_env, body):
         """
 
         :param region:
@@ -86,16 +88,16 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/http-rule"
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def delete_http_domain(self, session, region, tenant_name, body):
+    def delete_http_domain(self, session, region, tenant_name, tenant_env, body):
         """
 
         :param region:
@@ -103,14 +105,14 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_name + "/http-rule"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/http-rule"
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def bind_tcp_domain(self, session, region, tenant_name, body):
+    def bind_tcp_domain(self, session, region, tenant_name, tenant_env, body):
         """
 
         :param region:
@@ -118,15 +120,15 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/tcp-rule"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def update_tcp_domain(self, session, region, tenant_name, body):
+    def update_tcp_domain(self, session, region, tenant_name, tenant_env, body):
         """
 
         :param region:
@@ -134,16 +136,16 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
+        url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/tcp-rule"
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def unbind_tcp_domain(self, session, region, tenant_name, body):
+    def unbind_tcp_domain(self, session, region, tenant_name, tenant_env, body):
         """
 
         :param region:
@@ -151,8 +153,8 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_name + "/tcp-rule"
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/tcp-rule"
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)

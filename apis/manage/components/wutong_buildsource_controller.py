@@ -13,7 +13,6 @@ from exceptions.main import ResourceNotEnoughException, AccountOverdueException
 from repository.application.app_repository import service_webhooks_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.group_service_repo import service_info_repo
-from repository.users.user_oauth_repo import oauth_repo
 from schemas.response import Response
 from service.application_service import application_service
 from service.base_services import base_service
@@ -93,24 +92,6 @@ async def modify_build_source(request: Request,
                 service.code_version = "master"
             if git_url:
                 if is_oauth:
-                    try:
-                        oauth_service = application_service.get_oauth_services_by_service_id(session=session,
-                                                                                             service_id=oauth_service_id)
-                        oauth_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=oauth_service_id,
-                                                                          user_id=user_id)
-                    except Exception as e:
-                        logger.debug(e)
-                        rst = {"data": {"bean": None}, "status": 400, "msg_show": "Oauth服务可能已被删除，请重新配置"}
-                        return JSONResponse(rst, status_code=200)
-                    try:
-                        instance = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
-                    except Exception as e:
-                        logger.debug(e)
-                        rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
-                        return JSONResponse(rst, status_code=200)
-                    if not instance.is_git_oauth():
-                        rst = {"data": {"bean": None}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
-                        return JSONResponse(rst, status_code=200)
                     service_code_from = "oauth_" + oauth_service.oauth_type
                     service.code_from = service_code_from
                     service.git_url = git_url
@@ -182,28 +163,6 @@ async def code_create_component(
                                                                                   k8s_component_name):
         raise ErrK8sComponentNameExists
     result = {}
-    if is_oauth:
-        open_webhook = data.get("open_webhook", False)
-        try:
-            oauth_service = application_service.get_oauth_services_by_service_id(session=session,
-                                                                                 service_id=oauth_service_id)
-            oauth_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=oauth_service_id,
-                                                              user_id=user_id)
-        except Exception as e:
-            logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务, 请检查该服务是否存在且属于开启状态"}
-            return JSONResponse(rst, status_code=200)
-        try:
-            git_service = get_oauth_instance(oauth_service.oauth_type, oauth_service, oauth_user)
-        except Exception as e:
-            logger.debug(e)
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": "未找到OAuth服务"}
-            return JSONResponse(rst, status_code=200)
-        if not git_service.is_git_oauth():
-            rst = {"data": {"bean": None}, "status": 400, "msg_show": "该OAuth服务不是代码仓库类型"}
-            return JSONResponse(rst, status_code=200)
-
-        service_code_from = "oauth_" + oauth_service.oauth_type
     try:
         if not service_code_clone_url:
             return JSONResponse(general_message(400, "code url is null", "仓库地址未指明"), status_code=400)

@@ -12,6 +12,7 @@ from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.application.app_migration_repo import migrate_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.backup_service import groupapp_backup_service
@@ -318,8 +319,9 @@ async def get_app_copy(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/groupapp/{group_id}/copy", response_model=Response, name="应用复制")
+@router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/copy", response_model=Response, name="应用复制")
 async def app_copy(request: Request,
+                   env_id: Optional[str] = None,
                    group_id: Optional[str] = None,
                    user=Depends(deps.get_current_user),
                    team=Depends(deps.get_current_team),
@@ -329,6 +331,10 @@ async def app_copy(request: Request,
     tar_team_name = data.get("tar_team_name")
     tar_region_name = data.get("tar_region_name")
     tar_group_id = data.get("tar_group_id")
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+
     if not tar_team_name or not tar_region_name or not tar_group_id:
         raise ServiceHandleException(msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
     tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(session, user, tar_team_name, tar_region_name,
@@ -338,7 +344,7 @@ async def app_copy(request: Request,
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
-        groupapp_copy_service.copy_group_services(session, user, team, region_name, tar_team,
+        groupapp_copy_service.copy_group_services(session, user, team, region_name, env,
                                                   tar_region_name,
                                                   tar_group, group_id, services)
         result = general_message(

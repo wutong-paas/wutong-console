@@ -77,10 +77,10 @@ class MultiAppService(object):
 
         return group_id, service_ids
 
-    def list_services(self, session, region_name, tenant, check_uuid):
+    def list_services(self, session, region_name, tenant_env, check_uuid):
         # get detection information from data center(region)
         # first result(code) is always 200
-        code, msg, data = component_check_service.get_service_check_info(session, tenant, region_name, check_uuid)
+        code, msg, data = component_check_service.get_service_check_info(session, tenant_env, region_name, check_uuid)
         if code != 200:
             raise AbortRequest("error listing service check info", msg, status_code=400, error_code=11006)
         if not data["check_status"] or data["check_status"].lower() != "success":

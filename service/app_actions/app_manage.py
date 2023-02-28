@@ -29,7 +29,7 @@ from models.component.models import ComponentEvent, ComponentCreateStep, Compone
     ThirdPartyComponentEndpoints
 from models.region.models import RegionApp
 from models.relate.models import TeamComponentRelation
-from models.teams import ServiceDomain, ServiceTcpDomain, EnvInfo
+from models.teams import ServiceDomain, ServiceTcpDomain, TeamEnvInfo
 from models.users.oauth import OAuthServices, UserOAuthServices
 from repository.application.app_repository import recycle_bin_repo, relation_recycle_bin_repo, delete_service_repo
 from repository.application.application_repo import application_repo
@@ -125,10 +125,10 @@ class AppManageService(AppManageBase):
         result = general_message(code, "success", "重新构建成功", bean=bean)
         return JSONResponse(result, status_code=200)
 
-    def roll_back(self, session, tenant, service, user, deploy_version, upgrade_or_rollback):
+    def roll_back(self, session, tenant_env, service, user, deploy_version, upgrade_or_rollback):
         if service.create_status == "complete":
             res, data = remote_build_client.get_service_build_version_by_id(session, service.service_region,
-                                                                            tenant.tenant_name,
+                                                                            tenant_env,
                                                                             service.service_alias, deploy_version)
             is_version_exist = data['bean']['status']
             if not is_version_exist:
@@ -137,9 +137,9 @@ class AppManageService(AppManageBase):
             body["operator"] = str(user.nick_name)
             body["upgrade_version"] = deploy_version
             body["service_id"] = service.service_id
-            body["enterprise_id"] = tenant.enterprise_id
+            body["enterprise_id"] = tenant_env.enterprise_id
             try:
-                remote_component_client.rollback(session, service.service_region, tenant.tenant_name, service.service_alias, body)
+                remote_component_client.rollback(session, service.service_region, tenant_env.tenant_name, service.service_alias, body)
             except remote_component_client.CallApiError as e:
                 logger.exception(e)
                 return 507, "组件异常"
@@ -883,19 +883,19 @@ class AppManageService(AppManageBase):
                     file_content=file_content,
                     settings=settings)
 
-    def restart(self, session: SessionClass, tenant, service, user):
+    def restart(self, session: SessionClass, tenant_env, service, user):
         if service.create_status == "complete":
-            status_info_map = application_service.get_service_status(session=session, tenant=tenant, service=service)
+            status_info_map = application_service.get_service_status(session=session, tenant_env=tenant_env, service=service)
             if status_info_map.get("status", "Unknown") in [
                 "undeploy", "closed "
             ] and not True:
                 raise ServiceHandleException(error_code=20002, msg="not enough quota")
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["enterprise_id"] = tenant.enterprise_id
+            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.restart_service(session,
-                                                        service.service_region, tenant.tenant_name,
+                                                        service.service_region, tenant_env,
                                                         service.service_alias, body)
                 logger.debug("user {0} retart app !".format(user.nick_name))
             except remote_component_client.CallApiError as e:
@@ -906,14 +906,14 @@ class AppManageService(AppManageBase):
                 return 409, "操作过于频繁，请稍后再试"
         return 200, "操作成功"
 
-    def stop(self, session: SessionClass, tenant, service, user):
+    def stop(self, session: SessionClass, tenant_env, service, user):
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["enterprise_id"] = tenant.enterprise_id
+            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.stop_service(session,
-                                                     service.service_region, tenant.tenant_name,
+                                                     service.service_region, tenant_env,
                                                      service.service_alias, body)
                 logger.debug("user {0} stop app !".format(user.nick_name))
             except remote_component_client.CallApiError as e:
@@ -922,16 +922,16 @@ class AppManageService(AppManageBase):
             except remote_component_client.CallApiFrequentError:
                 raise ServiceHandleException(msg_show="操作过于频繁，请稍后重试", msg="wait a moment please", status_code=409)
 
-    def start(self, session: SessionClass, tenant, service, user):
+    def start(self, session: SessionClass, tenant_env, service, user):
         if service.service_source != "third_party" and not True:
             raise ServiceHandleException(error_code=20002, msg="not enough quota")
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["enterprise_id"] = tenant.enterprise_id
+            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.start_service(session,
-                                                      service.service_region, tenant.tenant_name,
+                                                      service.service_region, tenant_env,
                                                       service.service_alias, body)
                 logger.debug("user {0} start app !".format(user.nick_name))
             except remote_component_client.CallApiError as e:
@@ -942,8 +942,8 @@ class AppManageService(AppManageBase):
                 return 409, "操作过于频繁，请稍后再试"
         return 200, "操作成功"
 
-    def upgrade(self, session: SessionClass, tenant, service, user):
-        status_info_map = application_service.get_service_status(session=session, tenant=tenant, service=service)
+    def upgrade(self, session: SessionClass, tenant_env, service, user):
+        status_info_map = application_service.get_service_status(session=session, tenant_env=tenant_env, service=service)
         if status_info_map.get("status", "Unknown") in [
             "undeploy", "closed "
         ] and not True:
@@ -953,7 +953,7 @@ class AppManageService(AppManageBase):
         body["operator"] = str(user.nick_name)
         try:
             body = remote_component_client.upgrade_service(session,
-                                                           service.service_region, tenant.tenant_name,
+                                                           service.service_region, tenant_env,
                                                            service.service_alias, body)
             event_id = body["bean"].get("event_id", "")
             return 200, "操作成功", event_id
@@ -1133,8 +1133,8 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             raise ErrChangeServiceType
 
-    def deploy(self, session: SessionClass, tenant, service, user):
-        status_info_map = application_service.get_service_status(session=session, tenant=tenant, service=service)
+    def deploy(self, session: SessionClass, tenant_env, service, user):
+        status_info_map = application_service.get_service_status(session=session, tenant_env=tenant_env, service=service)
         # if status_info_map.get("status", "Unknown") in ["undeploy", "closed "] and not True:
         #     raise ServiceHandleException(msg="not enough quota", error_code=20002)
         body = dict()
@@ -1142,7 +1142,7 @@ class AppManageService(AppManageBase):
         body["action"] = "deploy"
         if service.build_upgrade:
             body["action"] = "upgrade"
-        body["envs"] = self.get_build_envs(session=session, tenant_id=tenant.tenant_id, service_id=service.service_id)
+        body["envs"] = self.get_build_envs(session=session, tenant_id=tenant_env.tenant_id, service_id=service.service_id)
         kind = self.__get_service_kind(session=session, service=service)
         body["kind"] = kind
         body["operator"] = str(user.nick_name)
@@ -1227,7 +1227,7 @@ class AppManageService(AppManageBase):
             logger.warning("service_source is not exist for service {0}".format(service.service_id))
         try:
             re = remote_component_client.build_service(session,
-                                                       service.service_region, tenant.tenant_name,
+                                                       service.service_region, tenant_env.tenant_name,
                                                        service.service_alias, body)
             if re and re.get("bean") and re.get("bean").get("status") != "success":
                 logger.error("deploy component failure {}".format(re))
@@ -1261,7 +1261,7 @@ class AppManageService(AppManageBase):
 
     # 变更应用分组
     # todo 事务
-    def move(self, session: SessionClass, service, move_group_id):
+    def move(self, session: SessionClass, service, move_group_id, tenant_env):
         # 先删除分组应用关系表中该组件数据
         session.execute(
             delete(ComponentApplicationRelation).where(ComponentApplicationRelation.service_id == service.service_id)
@@ -1274,7 +1274,7 @@ class AppManageService(AppManageBase):
         session.add(add_model)
 
         team = (
-            session.execute(select(EnvInfo).where(EnvInfo.tenant_id == service.tenant_id))
+            session.execute(select(TeamEnvInfo).where(TeamEnvInfo.tenant_id == service.tenant_id))
         ).scalars().first()
         if not team:
             raise TenantNotExistError
@@ -1288,7 +1288,7 @@ class AppManageService(AppManageBase):
 
         update_body = {"service_name": service.service_name, "app_id": region_app_id}
         remote_app_client.update_service_app_id(session,
-                                                service.service_region, tenant_name, service.service_alias,
+                                                service.service_region, tenant_env, service.service_alias,
                                                 update_body)
 
     def __is_service_bind_domain(self, session: SessionClass, service):
@@ -1361,7 +1361,7 @@ class AppManageService(AppManageBase):
                 msg = "删除异常"
                 return code, msg
 
-    def batch_action(self, session: SessionClass, region_name, tenant, user, action, service_ids, move_group_id):
+    def batch_action(self, session: SessionClass, region_name, tenant_env, user, action, service_ids, move_group_id):
         services = service_info_repo.get_services_by_service_ids(session, service_ids)
         code = 500
         msg = "系统异常"
@@ -1370,19 +1370,19 @@ class AppManageService(AppManageBase):
             try:
                 # 第三方组件不具备启动，停止，重启操作
                 if action == "start" and service.service_source != "third_party":
-                    self.start(session=session, tenant=tenant, service=service, user=user)
+                    self.start(session=session, tenant_env=tenant_env, service=service, user=user)
                 elif action == "stop" and service.service_source != "third_party":
-                    self.stop(session=session, tenant=tenant, service=service, user=user)
+                    self.stop(session=session, tenant_env=tenant_env, service=service, user=user)
                 elif action == "restart" and service.service_source != "third_party":
-                    self.restart(session=session, tenant=tenant, service=service, user=user)
+                    self.restart(session=session, tenant_env=tenant_env, service=service, user=user)
                 elif action == "move":
-                    application_service.sync_app_services(session=session, tenant=tenant, region_name=region_name,
+                    application_service.sync_app_services(session=session, tenant_env=tenant_env, region_name=region_name,
                                                           app_id=move_group_id)
-                    self.move(session=session, service=service, move_group_id=move_group_id)
+                    self.move(session=session, service=service, move_group_id=move_group_id, tenant_env=tenant_env)
                 elif action == "deploy" and service.service_source != "third_party":
-                    self.deploy(session=session, tenant=tenant, service=service, user=user)
+                    self.deploy(session=session, tenant_env=tenant_env, service=service, user=user)
                 elif action == "upgrade" and service.service_source != "third_party":
-                    self.upgrade(session=session, tenant=tenant, service=service, user=user)
+                    self.upgrade(session=session, tenant_env=tenant_env, service=service, user=user)
                 code = 200
                 msg = "success"
             except ServiceHandleException as e:
@@ -1450,16 +1450,16 @@ class AppManageService(AppManageBase):
         service_alias = self.create_service_alias(session, make_uuid(service_id))
         return service_alias
 
-    def _create_third_component(self, session, tenant, region_name, user, service_cname,
+    def _create_third_component(self, session, tenant_env, region_name, user, service_cname,
                                 k8s_component_name=""):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(service_cname=service_cname)
         if not is_pass:
             raise ServiceHandleException(msg=msg, msg_show="组件名称不合法", status_code=400, error_code=400)
         component = self.__init_third_party_app(region_name)
-        component.tenant_id = tenant.tenant_id
+        component.tenant_id = tenant_env.tenant_id
         component.service_cname = service_cname
-        service_id = make_uuid(tenant.tenant_id)
+        service_id = make_uuid(tenant_env.tenant_id)
         service_alias = self.create_service_alias(session, service_id)
         component.service_id = service_id
         component.service_alias = service_alias
@@ -1541,7 +1541,7 @@ class AppManageService(AppManageBase):
         session.add_all(ports)
         session.add_all(envs)
 
-    def create_third_components_kubernetes(self, session, tenant, region_name, user, app: Application, services):
+    def create_third_components_kubernetes(self, session, tenant_env, region_name, user, app: Application, services):
         components = []
         relations = []
         endpoints = []
@@ -1551,7 +1551,7 @@ class AppManageService(AppManageBase):
         for service in services:
             # components
             component_cname = service["service_name"]
-            component = self._create_third_component(session, tenant, region_name, user, component_cname)
+            component = self._create_third_component(session, tenant_env, region_name, user, component_cname)
             component.create_status = "complete"
             components.append(component)
 
@@ -1609,25 +1609,25 @@ class AppManageService(AppManageBase):
 
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app.app_id)
 
-        self._sync_third_components(session, tenant.tenant_name, region_name, region_app_id, component_bodies)
+        self._sync_third_components(session, tenant_env.tenant_name, region_name, region_app_id, component_bodies)
 
         try:
             self._save_third_components(session, components, relations, endpoints, new_ports, envs)
         except Exception as e:
-            self._rollback_third_components(session, tenant.tenant_name, region_name, region_app_id, components)
+            self._rollback_third_components(session, tenant_env.tenant_name, region_name, region_app_id, components)
             raise e
 
         return components
 
-    def create_third_components(self, session, tenant, region_name, user, app: Application, component_type, services):
+    def create_third_components(self, session, tenant_env, region_name, user, app: Application, component_type, services):
         if component_type != "kubernetes":
             raise AbortRequest("unsupported third component type: {}".format(component_type))
-        components = self.create_third_components_kubernetes(session, tenant, region_name, user, app, services)
+        components = self.create_third_components_kubernetes(session, tenant_env, region_name, user, app, services)
 
         # start the third components
         component_ids = [cpt.component_id for cpt in components]
         try:
-            app_manage_service.batch_operations(session, tenant, region_name, user, "start", component_ids)
+            app_manage_service.batch_operations(session, tenant_env, region_name, user, "start", component_ids)
         except Exception as e:
             logger.exception(e)
             raise ErrThirdComponentStartFailed()

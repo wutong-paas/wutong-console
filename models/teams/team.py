@@ -11,26 +11,27 @@ from core.setting import settings
 tenant_identity = (("拥有者", "owner"), ("管理员", "admin"), ("开发者", "developer"), ("观察者", "viewer"), ("访问", "access"))
 
 
-class EnvInfo(Base):
+class TeamEnvInfo(Base):
     """
     环境表
     """
 
-    __tablename__ = 'env_info'
+    __tablename__ = 'tenant_env_info'
 
     ID = Column(Integer, primary_key=True)
     env_id = Column(String(33), comment="环境id", nullable=False, unique=True, default=make_env_id)
-    env_name = Column(String(64), comment="环境名称", nullable=False, unique=True)
-    team_name = Column(String(33), comment="团队名称", nullable=False, unique=True)
+    env_name = Column(String(64), comment="环境名称", nullable=False)
+    tenant_id = Column(String(33), comment="团队id", nullable=False)
+    tenant_name = Column(String(64), comment="环境名称", nullable=False)
     # This property is deprecated
     # region = Column(String(64, default='', comment="区域中心,弃用")
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    creater = Column(Integer, nullable=False, default=0, comment="租户创建者")
+    creater = Column(String(32), nullable=False, default=0, comment="租户创建者")
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
     update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     env_alias = Column(String(64), comment="环境别名", nullable=True, default='')
     enterprise_id = Column(String(32), comment="企业id", nullable=True, default='')
-    namespace = Column(String(33), comment="环境的命名空间", unique=True, nullable=False)
+    namespace = Column(String(33), comment="环境的命名空间", nullable=False)
     desc = Column(String(255), comment="描述", nullable=True)
 
     def __unicode__(self):
@@ -143,21 +144,6 @@ class ServiceDomainCertificate(Base):
         return "private_key:{} certificate:{}".format(self.private_key, self.certificate)
 
 
-class Applicants(Base):
-    """待审批人员信息"""
-
-    __tablename__ = 'applicants'
-
-    ID = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False, comment="用户ID")
-    user_name = Column(String(64), comment="申请用户名", nullable=False)
-    team_id = Column(String(33), comment="所属团队id", nullable=False)
-    team_name = Column(String(64), comment="申请组名", nullable=False)
-    apply_time = Column(DateTime(), nullable=False, default=datetime.now, comment="申请时间")
-    is_pass = Column(Integer, nullable=False, comment="审核状态", default=0)
-    team_alias = Column(String(64), comment="团队名", nullable=False)
-
-
 class PermRelTenant(Base):
     """
     用户和团队的关系表
@@ -206,30 +192,6 @@ def logo_path(instance, filename):
     return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
 
 
-class RoleInfo(Base):
-    """权限角色信息（管理员，开发者，观察者）"""
-
-    __tablename__ = 'role_info'
-
-    ID = Column(Integer, primary_key=True)
-    name = Column(String(32), comment="角色名称", nullable=False)
-    kind_id = Column(String(64), comment="角色所属范围id", nullable=False)
-    kind = Column(String(32), comment="角色所属", nullable=False)
-
-
-class PermsInfo(Base):
-    """权限分配信息"""
-
-    __tablename__ = 'perms_info'
-
-    ID = Column(Integer, primary_key=True)
-    name = Column(String(32), comment="权限名称", nullable=False, unique=True)
-    desc = Column(String(32), comment="权限描述", nullable=False)
-    code = Column(Integer, comment="权限编码", nullable=False, unique=True)
-    group = Column(String(32), comment="权限类型", nullable=False)
-    kind = Column(String(32), comment="权限所属", nullable=False)
-
-
 class ConsoleConfig(Base):
     """
     控制台配置
@@ -255,44 +217,6 @@ class ConsoleSysConfig(Base):
     enable = Column(Boolean, comment="是否生效", nullable=False, default=True)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     enterprise_id = Column(String(32), comment="eid", nullable=False, default="")
-
-
-class RolePerms(Base):
-    """角色权限管理"""
-
-    __tablename__ = 'role_perms'
-
-    ID = Column(Integer, primary_key=True)
-    role_id = Column(Integer, comment="角色id", nullable=False)
-    perm_code = Column(Integer, comment="权限编码", nullable=False)
-
-
-class UserRole(Base):
-    """用户角色"""
-
-    __tablename__ = 'user_role'
-
-    ID = Column(Integer, primary_key=True)
-    user_id = Column(String(32), comment="用户id", nullable=False)
-    role_id = Column(String(32), comment="角色id", nullable=False)
-
-
-class UserMessage(Base):
-    """用户站内信"""
-
-    __tablename__ = 'user_message'
-
-    ID = Column(Integer, primary_key=True)
-    message_id = Column(String(32), comment="消息ID", nullable=False)
-    receiver_id = Column(Integer, comment="接受消息用户ID", nullable=False)
-    content = Column(String(1000), comment="消息内容", nullable=False)
-    is_read = Column(Boolean, comment="是否已读", nullable=False, default=False)
-    create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
-    update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
-    msg_type = Column(String(32), comment="消息类型", nullable=False)
-    announcement_id = Column(String(32), comment="公告ID", nullable=True)
-    title = Column(String(64), comment="消息标题", nullable=False, default="title")
-    level = Column(String(32), comment="通知的等级", nullable=False, default="low")
 
 
 class TeamGitlabInfo(Base):

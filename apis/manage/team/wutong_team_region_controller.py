@@ -1,19 +1,19 @@
 import io
 from typing import Optional, Any
 from fastapi import APIRouter, Request, Depends
-from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from starlette.responses import JSONResponse, StreamingResponse
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_tenant_client import remote_tenant_client
 from core import deps
-from core.utils.return_message import general_message, error_message
+from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.component.group_service_repo import service_info_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.region_service import region_services
 
@@ -289,15 +289,18 @@ async def manager(
     return response
 
 
-@router.get("/teams/{team_name}/kubeconfig", response_model=Response, name="获取kubeconfig")
+@router.get("/teams/{team_name}/env/{env_id}/kubeconfig", response_model=Response, name="获取kubeconfig")
 async def get_kubeconfig(request: Request,
                          team_name: Optional[str] = None,
+                         env_id: Optional[str] = None,
                          team=Depends(deps.get_current_team),
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    res = remote_tenant_client.get_kubeconfig(session, region.region_name, team_name)
+
+    env = env_repo.get_env_by_env_id(session=session, env_id=env_id)
+    res = remote_tenant_client.get_kubeconfig(session, region.region_name, env, team_name)
     if res:
         file = io.StringIO(res['bean'])
         response = StreamingResponse(file)

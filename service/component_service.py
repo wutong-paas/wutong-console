@@ -24,10 +24,10 @@ from service.region_service import region_services
 
 class ComponentCheckService(object):
 
-    def get_service_check_info(self, session: SessionClass, tenant, region, check_uuid):
+    def get_service_check_info(self, session: SessionClass, tenant_env, region, check_uuid):
         rt_msg = dict()
         try:
-            res, body = remote_build_client.get_service_check_info(session, region, tenant.tenant_name, check_uuid)
+            res, body = remote_build_client.get_service_check_info(session, region, tenant_env, check_uuid)
             bean = body["bean"]
             if not bean["check_status"]:
                 bean["check_status"] = "checking"

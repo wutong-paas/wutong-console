@@ -8,7 +8,7 @@ from database.session import Base
 class EnvRegionInfo(Base):
     """租户集群"""
 
-    __tablename__ = 'env_region'
+    __tablename__ = 'tenant_env_region'
     unique_together = (('env_id', 'region_name'),)
 
     ID = Column(Integer, primary_key=True)
@@ -23,6 +23,7 @@ class EnvRegionInfo(Base):
     region_env_id = Column(String(32), comment="数据中心租户id", nullable=True, default='')
     region_scope = Column(String(32), comment="数据中心类型", nullable=True, default='')
     enterprise_id = Column(String(32), comment="企业id", nullable=True, default='')
+    region_tenant_name = Column(String(64), comment="数据中心租户名", nullable=True, default='')
 
 
 class RegionApp(Base):

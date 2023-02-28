@@ -3,8 +3,7 @@ from core.idaasapi import idaas_api
 from exceptions.exceptions import UserRoleNotFoundException
 from models.application.models import Application
 from models.teams.enterprise import TeamEnterprise
-from models.region.models import EnvRegionInfo
-from models.teams import PermRelTenant, EnvInfo, Applicants
+from models.teams import PermRelTenant, TeamEnvInfo
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.group_service_repo import  service_info_repo
@@ -39,39 +38,7 @@ class EnterpriseRepository:
         else:
             return True
 
-    def get_enterprise_tenant_ids(self, session, enterprise_id, user=None):
-        if user is None or self.is_user_admin_in_enterprise(session, user, enterprise_id):
-            teams = session.execute(select(EnvInfo).where(
-                EnvInfo.enterprise_id == enterprise_id)).scalars().all()
-            if not teams:
-                return None
-            team_ids = [team.tenant_id for team in teams]
-        else:
-            enterprise = enterprise_repo.get_enterprise_by_enterprise_id(session, enterprise_id)
-            if not enterprise:
-                return None
-            user_teams_perm = session.execute(select(PermRelTenant).where(
-                PermRelTenant.enterprise_id == enterprise.ID,
-                PermRelTenant.user_id == user.user_id)).scalars().all()
-            if not user_teams_perm:
-                return None
-            tenant_auto_ids = [user_team.tenant_id for user_team in user_teams_perm]
-            teams = session.execute(select(EnvInfo).where(
-                EnvInfo.ID.in_(tenant_auto_ids))).scalars().all()
-            if not teams:
-                return None
-            team_ids = [team.tenant_id for team in teams]
-        tenants = session.execute(select(EnvRegionInfo).where(
-            EnvRegionInfo.tenant_id.in_(team_ids))).scalars().all()
-        if not tenants:
-            return None
-        else:
-            return [tenant.region_tenant_id for tenant in tenants]
-
-    def get_enterprise_app_list(self, session, enterprise_id, user, page=1, page_size=10):
-        tenant_ids = self.get_enterprise_tenant_ids(session, enterprise_id, user)
-        if not tenant_ids:
-            return [], 0
+    def get_enterprise_app_list(self, session, tenant_ids, page=1, page_size=10):
         enterprise_apps = application_repo.get_groups_by_tenant_ids(session, tenant_ids)
         if not enterprise_apps:
             return [], 0
@@ -106,7 +73,7 @@ class EnterpriseRepository:
         if name:
             for tenant_id in tenant_ids:
                 result_tenant = session.execute(
-                    select(EnvInfo).where(EnvInfo.ID == tenant_id, EnvInfo.tenant_alias.contains(name))
+                    select(TeamEnvInfo).where(TeamEnvInfo.ID == tenant_id, TeamEnvInfo.tenant_alias.contains(name))
                 )
                 tn = result_tenant.scalars().first()
                 if tn:
@@ -114,83 +81,12 @@ class EnterpriseRepository:
         else:
             for tenant_id in tenant_ids:
                 result_tenant = session.execute(
-                    select(EnvInfo).where(EnvInfo.ID == tenant_id)
+                    select(TeamEnvInfo).where(TeamEnvInfo.ID == tenant_id)
                 )
                 tn = result_tenant.scalars().first()
                 if tn:
                     tenants.append(tn)
         return tenants
-
-    def get_enterprise_user_join_teams(self, session, enterprise_id, user_id):
-        teams = self.get_enterprise_user_teams(session, enterprise_id, user_id)
-        if not teams:
-            return teams
-        team_ids = [team.tenant_id for team in teams]
-        result_applicants = session.execute(
-            select(Applicants).where(Applicants.user_id == user_id,
-                                     Applicants.is_pass == 1,
-                                     Applicants.team_id.in_(team_ids)
-                                     ).order_by(Applicants.apply_time.desc()))
-        applicants = result_applicants.scalars().all()
-        return applicants
-
-    def get_enterprise_user_active_teams(self, session, enterprise_id, user_id):
-        tenants = self.get_enterprise_user_teams(session, enterprise_id, user_id)
-        if not tenants:
-            return None
-        active_tenants_list = []
-        for tenant in tenants:
-            owner = None
-            try:
-                owner = idaas_api.get_user_info(tenant.creater)
-            except UserRoleNotFoundException:
-                if tenant.creater == user_id:
-                    role = "owner"
-            region_name_list = env_repo.get_team_region_names(session, tenant.tenant_id)
-            if len(region_name_list) > 0:
-                total = (session.execute(
-                    select(func.count(Application.ID)).where(Application.tenant_id == tenant.tenant_id))).first()[0]
-                team_item = {
-                    "tenant_id": tenant.tenant_id,
-                    "team_alias": tenant.tenant_alias,
-                    "owner": tenant.creater,
-                    "owner_name": owner.get_name() if owner else "",
-                    "enterprise_id": tenant.enterprise_id,
-                    "create_time": tenant.create_time,
-                    "team_name": tenant.tenant_name,
-                    "region": region_name_list if region_name_list else "",
-                    "region_list": region_name_list,
-                    "num": total
-                }
-                if not team_item["region"] and len(region_name_list) > 0:
-                    team_item["region"] = region_name_list
-                active_tenants_list.append(team_item)
-        active_tenants_list.sort(key=lambda x: x["num"], reverse=True)
-        active_tenants_list = active_tenants_list[:3]
-        return active_tenants_list
-
-    def get_enterprise_user_request_join(self, session, enterprise_id, user_id):
-        team_ids = session.execute(
-            select(EnvInfo.env_id).where(EnvInfo.enterprise_id == enterprise_id).order_by(
-                EnvInfo.create_time.desc())).scalars().all()
-        data = session.execute(
-                select(Applicants).where(Applicants.user_id == user_id, Applicants.team_id.in_(team_ids)).order_by(
-                    Applicants.is_pass.asc(), Applicants.apply_time.desc())).scalars().all()
-        return data
-
-    def get_enterprise_teams(self, session, enterprise_id, name=None):
-        if name:
-            return (
-                session.execute(
-                    select(EnvInfo).where(EnvInfo.enterprise_id == enterprise_id, EnvInfo.is_active == True,
-                                           EnvInfo.tenant_alias.contains(name)).order_by(EnvInfo.create_time.desc()))
-            ).scalars().all()
-        else:
-            return (
-                session.execute(
-                    select(EnvInfo).where(EnvInfo.enterprise_id == enterprise_id, EnvInfo.is_active == True).order_by(
-                        EnvInfo.create_time.desc()))
-            ).scalars().all()
 
 
 enterprise_repo = EnterpriseRepository()

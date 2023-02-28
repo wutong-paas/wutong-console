@@ -8,7 +8,7 @@ from loguru import logger
 from sqlalchemy import select, delete
 from appstore.app_store_client import app_store_client, get_market_client
 from clients.remote_component_client import remote_component_client
-from common.base_client_service import get_tenant_region_info
+from common.base_client_service import get_env_region_info
 from core.enum.component_enum import Kind
 from core.idaasapi import idaas_api
 from core.utils.crypt import make_uuid
@@ -18,7 +18,7 @@ from models.application.models import Application, ApplicationUpgradeRecord
 from models.component.models import TeamApplication
 from models.market.models import CenterApp, CenterAppTagsRelation, CenterAppVersion, \
     AppImportRecord, CenterAppTag, AppMarket
-from models.teams import EnvInfo
+from models.teams import TeamEnvInfo
 from repository.application.app_repository import app_tag_repo, app_repo
 from repository.application.app_upgrade_repo import upgrade_repo
 from repository.application.application_repo import app_market_repo
@@ -447,7 +447,7 @@ class MarketAppService(object):
             create_team = app_info.get("create_team")
             if create_team:
                 team = (
-                    session.execute(select(EnvInfo).where(EnvInfo.tenant_name == create_team))
+                    session.execute(select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == create_team))
                 ).scalars().first()
 
                 if team:
@@ -626,7 +626,7 @@ class MarketAppService(object):
         app_template["app_config_groups"] = []
         app_template["template_version"] = "v1"
         app_template.update({"apps": helm_apps})
-        region = get_tenant_region_info(tenant.tenant_name, region_name, session)
+        region = get_env_region_info(tenant.tenant_name, region_name, session)
 
         component_group = self._create_tenant_service_group(session, region_name, tenant.tenant_id,
                                                             app.app_id,

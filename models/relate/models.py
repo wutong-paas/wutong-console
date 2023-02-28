@@ -15,21 +15,6 @@ class EnterpriseUserPerm(Base):
     token = Column(String(64), comment="API通信密钥", unique=True, nullable=False)
 
 
-class TeamUserRole(Base):
-    """用户在一个团队中的角色"""
-
-    __tablename__ = 'tenant_user_role'
-
-    ID = Column(Integer, autoincrement=0, primary_key=True, comment="id")
-    role_name = Column(String(32), comment='角色名称')
-    tenant_id = Column(Integer, nullable=False, comment='团队id')
-    is_default = Column(Boolean(), default=False)
-
-    __table_args__ = (
-        UniqueConstraint('role_name', 'tenant_id'),
-    )
-
-
 class TeamComponentRelation(Base):
     __tablename__ = 'tenant_service_relation'
     # todo

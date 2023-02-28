@@ -4,7 +4,7 @@ import os
 from loguru import logger
 
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info, get_tenant_region_info
+from common.base_client_service import get_region_access_info, get_env_region_info
 from common.client_auth_service import client_auth_service
 from exceptions.bcode import ErrNamespaceExists
 
@@ -29,30 +29,33 @@ class RemoteTenantClient(ApiBaseHttpClient):
             self.default_headers.update({"Authorization": token})
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
-    def get_tenant_resources(self, session, region, tenant_name, enterprise_id):
+    def get_tenant_resources(self, session, region, tenant_env, enterprise_id):
         """获取指定租户的资源使用情况"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/resources?enterprise_id=" + enterprise_id
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+              "/resources?enterprise_id=" + enterprise_id
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=10)
         return body
 
-    # 新建团队
-    def create_env(self, session, region, tenant_name, tenant_id, enterprise_id, namespace):
-        """创建租户"""
-        url, token = get_region_access_info(tenant_name, region, session)
-        cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(session, tenant_name,
+    # 新建环境
+    def create_env(self, session, region, team_id, team_name, env_name, env_id, enterprise_id, namespace):
+        """创建环境"""
+        url, token = get_region_access_info(env_name, region, session)
+        cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(session, env_name,
                                                                                             region)
         if cloud_enterprise_id:
             enterprise_id = cloud_enterprise_id
-        data = {"tenant_id": tenant_id, "tenant_name": tenant_name, "eid": enterprise_id, "namespace": namespace}
-        url += "/v2/tenants"
+        data = {"tenant_id": team_id, "tenant_name": team_name, "tenant_env_id": env_id, "tenant_env_name": env_name,
+                "eid": enterprise_id,
+                "namespace": namespace}
+        url += "/v2/tenants/{0}/envs".format(team_name)
 
         self._set_headers(token)
-        logger.debug("create tenant url :{0}".format(url))
+        logger.debug("create env url :{0}".format(url))
         try:
             res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
             return res, body
@@ -62,39 +65,41 @@ class RemoteTenantClient(ApiBaseHttpClient):
             return {'status': e.message['http_code']}, e.message['body']
 
     # 删除团队
-    def delete_tenant(self, session, region, tenant_name):
+    def delete_tenant(self, session, region, tenant_env):
         """删除组件"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        tenant_region = get_tenant_region_info(tenant_name, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        tenant_region = get_env_region_info(tenant_env, region, session)
+        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region)
         return body
 
     # 获取kubeconfig
-    def get_kubeconfig(self, session, region, tenant_name):
+    def get_kubeconfig(self, session, region, tenant_env, tenant_name):
         """获取kubeconfig"""
 
-        url, token = get_region_access_info(tenant_name, region, session)
-        url = url + "/v2/tenants/{0}/kubeconfig".format(tenant_name)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url = url + "/v2/tenants/{0}/envs/{1}/kubeconfig".format(tenant_name, tenant_env.env_name)
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
     # 获取kuberesources
-    def get_kuberesources(self, session, region, tenant_name, app_id, service_alias_list, custom_namespace):
+    def get_kuberesources(self, session, region, tenant_name, tenant_env, app_id, service_alias_list, custom_namespace):
         """获取kubeconfig"""
 
         params = ""
-        url, token = get_region_access_info(tenant_name, region, session)
+        url, token = get_region_access_info(tenant_env.env_name, region, session)
 
         for service_alias in service_alias_list:
             params += "&service_aliases={0}".format(service_alias)
-        url = url + "/v2/tenants/{0}/apps/{1}/kube-resources?namespace={2}{3}".format(tenant_name, app_id,
-                                                                                      custom_namespace, params)
+        url = url + "/v2/tenants/{0}/envs/{1}/apps/{2}/kube-resources?namespace={3}{4}".format(tenant_name,
+                                                                                               tenant_env.env_name,
+                                                                                               app_id,
+                                                                                               custom_namespace, params)
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
