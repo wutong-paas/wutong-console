@@ -11,7 +11,7 @@ from exceptions.main import ServiceHandleException
 from models.application.plugin import PluginConfigGroup, PluginConfigItems
 from repository.plugin.plugin_config_repo import config_item_repo, config_group_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
-from repository.plugin.service_plugin_repo import app_plugin_relation_repo, app_plugin_attr_repo
+from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from service.plugin.plugin_version_service import plugin_version_service
 
@@ -107,7 +107,6 @@ class PluginService(object):
                 if e.status != 404:
                     raise ServiceHandleException(msg="delete plugin form cluster failure", msg_show="从集群删除插件失败")
         app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(session=session, plugin_id=plugin_id)
-        app_plugin_attr_repo.delete_attr_by_plugin_id(session=session, plugin_id=plugin_id)
         plugin_version_repo.delete_build_version_by_plugin_id(session=session, tenant_id=team.tenant_id,
                                                               plugin_id=plugin_id)
         plugin_repo.delete_by_plugin_id(session=session, tenant_id=team.tenant_id, plugin_id=plugin_id)

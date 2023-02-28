@@ -4,7 +4,7 @@ from sqlalchemy import select, delete, text
 
 from core.setting import settings
 from core.utils.crypt import make_uuid
-from models.application.plugin import TeamComponentPluginRelation, TeamServicePluginAttr, ComponentPluginConfigVar, \
+from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar, \
     PluginConfigGroup, PluginConfigItems
 from repository.base import BaseRepository
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
@@ -111,13 +111,6 @@ class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
             tspr.min_cpu = cpu
         if memory is not None and type(memory) == int and memory >= 0:
             tspr.min_memory = memory
-
-
-class ServicePluginAttrRepository(BaseRepository[TeamServicePluginAttr]):
-
-    def delete_attr_by_plugin_id(self, session, plugin_id):
-        session.execute(delete(TeamServicePluginAttr).where(
-            TeamServicePluginAttr.plugin_id == plugin_id))
 
 
 class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar]):
@@ -397,5 +390,4 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
 
 
 app_plugin_relation_repo = AppPluginRelationRepository(TeamComponentPluginRelation)
-app_plugin_attr_repo = ServicePluginAttrRepository(TeamServicePluginAttr)
 service_plugin_config_repo = ServicePluginConfigVarRepository(ComponentPluginConfigVar)

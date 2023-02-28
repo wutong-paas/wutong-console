@@ -111,30 +111,6 @@ class TeamComponentPluginRelation(Base):
     min_cpu = Column(Integer, nullable=True, comment="构建cpu大小")
 
 
-class TeamServicePluginAttr(Base):
-    """旧版组件插件属性"""
-
-    __tablename__ = "tenant_service_plugin_attr"
-
-    ID = Column(Integer, primary_key=True)
-    service_id = Column(String(32), comment="组件ID", nullable=False)
-    service_alias = Column(String(32), comment="主组件别名", nullable=False)
-    dest_service_id = Column(String(32), comment="组件ID", nullable=False)
-    dest_service_alias = Column(String(32), comment="组件别名", nullable=False)
-    plugin_id = Column(String(32), comment="插件ID", nullable=False)
-    service_meta_type = Column(String(32), ChoiceType(data_type), comment="依赖数据类型", nullable=False)
-    injection = Column(String(32), comment="注入方式", nullable=False)
-    container_port = Column(Integer, comment="依赖端口", nullable=False)
-    protocol = Column(String(16), comment="端口协议", nullable=False, default="uneed")
-    attr_name = Column(String(64), comment="变量名", nullable=False)
-    attr_value = Column(String(128), comment="变量值", nullable=False)
-    attr_alt_value = Column(String(128), comment="可选值", nullable=False)
-    attr_type = Column(String(16), comment="属性类型", nullable=False)
-    attr_default_value = Column(String(128), comment="默认值", nullable=True)
-    is_change = Column(Boolean, comment="是否可改变", nullable=False, default=False)
-    attr_info = Column(String(32), comment="配置项说明", nullable=True)
-
-
 class ComponentPluginConfigVar(Base):
     """新版组件插件属性"""
 
