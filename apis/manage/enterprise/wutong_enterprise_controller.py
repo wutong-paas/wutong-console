@@ -52,63 +52,6 @@ async def get_enterprise_info(enterprise_id: Optional[str] = None,
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(enterprise_dict))
     return JSONResponse(result, status_code=result["code"])
 
-
-@router.put("/enterprise/{enterprise_id}/info", response_model=Response, name="修改企业信息")
-async def update_enterprise_info(request: Request,
-                                 key: Optional[str] = None,
-                                 enterprise_id: Optional[str] = None,
-                                 session: SessionClass = Depends(deps.get_session)) -> Any:
-    if not key:
-        result = general_message(404, "no found config key {0}".format(key), "更新失败")
-        return JSONResponse(result, status_code=result["code"])
-    form_data = await request.json()
-    value = form_data[key]
-    if not value:
-        result = general_message(404, "no found config value", "更新失败")
-        return JSONResponse(result, status_code=result["code"])
-    enterprise_config_service = EnterpriseConfigService(enterprise_id)
-    key = key.upper()
-    if key in enterprise_config_service.base_cfg_keys + enterprise_config_service.cfg_keys:
-        try:
-            data = enterprise_config_service.update_config(session, key, value)
-            result = general_message(200, "success", "更新成功", bean=data)
-            return JSONResponse(result, status_code=result["code"])
-        except Exception as e:
-            logger.error(e)
-            raise ServiceHandleException(msg="update enterprise config failed", msg_show="更新失败")
-    else:
-        result = general_message(404, "no found config key", "更新失败")
-        return JSONResponse(result, status_code=result["code"])
-
-
-@router.delete("/enterprise/{enterprise_id}/info", response_model=Response, name="删除企业信息")
-async def delete_enterprise_info(request: Request,
-                                 key: Optional[str] = None,
-                                 enterprise_id: Optional[str] = None,
-                                 session: SessionClass = Depends(deps.get_session)) -> Any:
-    if not key:
-        result = general_message(404, "no found config key {0}".format(key), "重置失败")
-        return JSONResponse(result, status_code=result["code"])
-    form_data = await request.form()
-    value = form_data[key]
-    if not value:
-        result = general_message(404, "no found config value", "重置失败")
-        return JSONResponse(result, status_code=result["code"])
-    enterprise_config_service = EnterpriseConfigService(enterprise_id)
-    key = key.upper()
-    if key in enterprise_config_service.cfg_keys:
-        data = enterprise_config_service.delete_config(session, key)
-        try:
-            result = general_message(200, "success", "重置成功", bean=data)
-            return JSONResponse(result, status_code=result["code"])
-        except Exception as e:
-            logger.debug(e)
-            raise ServiceHandleException(msg="update enterprise config failed", msg_show="重置失败")
-    else:
-        result = general_message(404, "can not delete key value", "该配置不可重置")
-        return JSONResponse(result, status_code=result["code"])
-
-
 @router.get("/enterprise/{enterprise_id}/overview/app", response_model=Response, name="总览-应用信息")
 async def overview_app(
         request: Request,

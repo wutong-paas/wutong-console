@@ -222,9 +222,6 @@ class GroupAppBackupService(object):
         return total_memory, all_data
 
     def backup_group_apps(self, session: SessionClass, tenant, user, region_name, group_id, mode, note, force=False):
-        s3_config = EnterpriseConfigService(tenant.enterprise_id).get_cloud_obj_storage_info(session=session)
-        if mode == "full-online" and not s3_config:
-            raise ErrObjectStorageInfoNotFound
         services = application_service.get_group_services(session=session, group_id=group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(session=session, group_id=group_id)
@@ -239,7 +236,6 @@ class GroupAppBackupService(object):
             "service_ids": [s.service_id for s in services if s.create_status == "complete"],
             "mode": mode,
             "version": version,
-            "s3_config": s3_config,
             "force": force,
         }
         # 向数据中心发起备份任务

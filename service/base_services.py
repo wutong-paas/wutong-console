@@ -1,26 +1,17 @@
 import json
 from re import split as re_split
-
 from loguru import logger
-
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
-from core.git.github_http import GitHubApi
-from core.git.gitlab_http import GitlabApi
 from core.git.regionapi import RegionInvokeApi
 from core.setting import settings
-from core.utils.custom_config import custom_config
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
-from models.component.models import TeamComponentInfo
 from repository.application.app_repository import app_repo
 from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import service_source_repo
 from repository.teams.env_repo import env_repo
 
-
-gitClient = GitlabApi()
-gitHubClient = GitHubApi()
 region_api = RegionInvokeApi()
 
 
@@ -265,44 +256,6 @@ class CodeRepositoriesService(object):
     def __init__(self):
         self.MODULES = settings.MODULES
 
-    def initRepositories(self, tenant, user, service, service_code_from, code_url, code_id, code_version):
-        if service_code_from == "gitlab_new":
-            if custom_config.GITLAB:
-                project_id = 0
-                if user.git_user_id > 0:
-                    project_id = gitClient.createProject(tenant.tenant_name + "_" + service.service_alias)
-                    logger.debug(project_id)
-                    ts = TeamComponentInfo.objects.get(service_id=service.service_id)
-                    if project_id > 0:
-                        gitClient.addProjectMember(project_id, user.git_user_id, 'master')
-                        gitClient.addProjectMember(project_id, 2, 'reporter')
-                        ts.git_project_id = project_id
-                        ts.git_url = "git@code.goodrain.com:app/" + tenant.tenant_name + "_" + service.service_alias + ".git"
-                        gitClient.createWebHook(project_id)
-                    ts.code_from = service_code_from
-                    ts.code_version = "master"
-                    ts.save()
-                    self.codeCheck(ts)
-        elif service_code_from == "gitlab_exit" or service_code_from == "gitlab_manual":
-            ts = TeamComponentInfo.objects.get(service_id=service.service_id)
-            ts.git_project_id = code_id
-            ts.git_url = code_url
-            ts.code_from = service_code_from
-            ts.code_version = code_version
-            ts.save()
-            self.codeCheck(ts)
-        elif service_code_from == "github":
-            ts = TeamComponentInfo.objects.get(service_id=service.service_id)
-            ts.git_project_id = code_id
-            ts.git_url = code_url
-            ts.code_from = service_code_from
-            ts.code_version = code_version
-            ts.save()
-            code_user = code_url.split("/")[3]
-            code_project_name = code_url.split("/")[4].split(".")[0]
-            gitHubClient.createReposHook(code_user, code_project_name, user.github_token)
-            self.codeCheck(ts)
-
     def codeCheck(self, service, check_type="first_check", event_id=None):
         data = {}
         data["tenant_id"] = service.tenant_id
@@ -347,75 +300,6 @@ class CodeRepositoriesService(object):
         elif service.code_from == "gitlab_manual":
             httpGitUrl = service.git_url
         return httpGitUrl
-
-    def deleteProject(self, service):
-        if custom_config.GITLAB:
-            if service.code_from == "gitlab_new" and service.git_project_id > 0:
-                gitClient.deleteProject(service.git_project_id)
-
-    def getProjectBranches(self, project_id):
-        if custom_config.GITLAB:
-            return gitClient.getProjectBranches(project_id)
-        return ""
-
-    def createUser(self, user, email, password, username, name):
-        if custom_config.GITLAB:
-            if user.git_user_id == 0:
-                logger.info("account.login", "user {0} didn't owned a gitlab user_id, will create it".format(user.nick_name))
-                git_user_id = gitClient.createUser(email, password, username, name)
-                if git_user_id == 0:
-                    logger.info("account.gituser",
-                                "create gitlab user for {0} failed, reason: got uid 0".format(user.nick_name))
-                else:
-                    user.git_user_id = git_user_id
-                    user.save()
-                    logger.info("account.gituser", "user {0} set git_user_id = {1}".format(user.nick_name, git_user_id))
-
-    def modifyUser(self, user, password):
-        if custom_config.GITLAB:
-            gitClient.modifyUser(user.git_user_id, password=password)
-
-    # def addProjectMember(self, git_project_id, git_user_id, level):
-    #     if custom_config.GITLAB:
-    #         gitClient.addProjectMember(git_project_id, git_user_id, level)
-
-    def listProjectMembers(self, git_project_id):
-        if custom_config.GITLAB:
-            return gitClient.listProjectMembers(git_project_id)
-        return ""
-
-    def deleteProjectMember(self, project_id, git_user_id):
-        if custom_config.GITLAB:
-            gitClient.deleteProjectMember(project_id, git_user_id)
-
-    def addProjectMember(self, project_id, git_user_id, gitlab_identity):
-        if custom_config.GITLAB:
-            gitClient.addProjectMember(project_id, git_user_id, gitlab_identity)
-
-    def editMemberIdentity(self, project_id, git_user_id, gitlab_identity):
-        if custom_config.GITLAB:
-            gitClient.editMemberIdentity(project_id, git_user_id, gitlab_identity)
-
-    def get_gitHub_access_token(self, code):
-        if custom_config.GITHUB:
-            return gitHubClient.get_access_token(code)
-        return ""
-
-    def getgGitHubAllRepos(self, token):
-        if custom_config.GITHUB:
-            return gitHubClient.getAllRepos(token)
-        return ""
-
-    def gitHub_authorize_url(self, user):
-        if custom_config.GITHUB:
-            return gitHubClient.authorize_url(user.pk)
-        return ""
-
-    def gitHub_ReposRefs(self, session, user, repos, token):
-        custom_config.init_session(session)
-        if custom_config.GITHUB:
-            return gitHubClient.getReposRefs(user, repos, token)
-        return ""
 
 
 base_service = BaseService()

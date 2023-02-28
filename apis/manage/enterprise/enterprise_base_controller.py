@@ -13,14 +13,12 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException
 from models.teams.enterprise import TeamEnterprise
-from repository.enterprise.enterprise_user_perm_repo import enterprise_user_perm_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import RegionApiBaseHttpClient
 from service.platform_config_service import platform_config_service
 from service.region_service import region_services, EnterpriseConfigService
-from service.task_guidance.base_task_guidance import base_task_guidance
 from service.env_service import env_services
 
 router = APIRouter()
@@ -33,20 +31,11 @@ async def get_info(
     获取集群配置信息
     :return:
     """
-    register_config = platform_config_service.get_config_by_key(session, "IS_REGIST")
-    data = platform_config_service.initialization_or_get_config(session=session)
+    data = {}
     if data.get("enterprise_id", None) is None:
         data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
     data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
     data["is_offline"] = os.getenv('IS_OFFLINE', False)
-    if register_config:
-        data["is_regist"] = os.getenv('IS_REGIST', {"enable": register_config.enable,
-                                                    "value": register_config.value
-                                                    })
-    else:
-        data["is_regist"] = os.getenv('IS_REGIST', {"enable": 1,
-                                                    "value": ""
-                                                    })
     data["login_timeout"] = 15
     result = general_message(200, "success", "查询成功", bean=data, initialize_info=[])
     return JSONResponse(result, status_code=result["code"])
@@ -220,98 +209,6 @@ async def set_team_memory_limit(request: Request,
     return JSONResponse({}, status_code=status.HTTP_200_OK)
 
 
-@router.get("/enterprise/{enterprise_id}/base-guidance", response_model=Response, name="获取团队基础任务")
-async def get_basic_task(enterprise_id: Optional[str] = None,
-                         user=Depends(deps.get_current_user),
-                         session: SessionClass = Depends(deps.get_session)) -> Any:
-    data = base_task_guidance.list_base_tasks(session, enterprise_id)
-    result = general_message(200, "success", "请求成功", list=data)
-    return JSONResponse(result, status_code=result["code"])
-
-
-@router.put("/enterprise/{enterprise_id}/appstoreimagehub", response_model=Response, name="设置内部组件库镜像仓库")
-async def set_internal_components_image(request: Request,
-                                        enterprise_id: Optional[str] = None,
-                                        user=Depends(deps.get_current_user),
-                                        session: SessionClass = Depends(deps.get_session)) -> Any:
-    enable = bool_argument(await parse_item(request, "enable", required=True))
-    hub_url = await parse_item(request, "hub_url", required=True)
-    namespace = await parse_item(request, "namespace")
-    hub_user = await parse_item(request, "hub_user")
-    hub_password = await parse_item(request, "hub_password")
-
-    ent_cfg_svc = EnterpriseConfigService(enterprise_id)
-    ent_cfg_svc.update_config_enable_status(session, key="APPSTORE_IMAGE_HUB", enable=enable)
-    ent_cfg_svc.update_config_value(
-        session=session,
-        key="APPSTORE_IMAGE_HUB",
-        value={
-            "hub_url": hub_url,
-            "namespace": namespace,
-            "hub_user": hub_user,
-            "hub_password": hub_password,
-        })
-    return JSONResponse(status_code=status.HTTP_200_OK)
-
-
-@router.put("/enterprise/{enterprise_id}/objectstorage", response_model=Response, name="配置云端备份对象存储")
-async def set_object_storage(request: Request,
-                             enterprise_id: Optional[str] = None,
-                             user=Depends(deps.get_current_user),
-                             session: SessionClass = Depends(deps.get_session)) -> Any:
-    enable = bool_argument(await parse_item(request, "enable", required=True))
-    provider = await parse_item(request, "provider", required=True)
-    endpoint = await parse_item(request, "endpoint", required=True)
-    bucket_name = await parse_item(request, "bucket_name", required=True)
-    access_key = await parse_item(request, "access_key", required=True)
-    secret_key = await parse_item(request, "secret_key", required=True)
-
-    if provider not in ("alioss", "s3") and enable == "false":
-        raise AbortRequest("provider {} not in (\"alioss\", \"s3\")".format(provider))
-
-    ent_cfg_svc = EnterpriseConfigService(enterprise_id)
-    ent_cfg_svc.update_config_enable_status(session=session, key="OBJECT_STORAGE", enable=enable)
-    ent_cfg_svc.update_config_value(
-        session=session,
-        key="OBJECT_STORAGE",
-        value={
-            "provider": provider,
-            "endpoint": endpoint,
-            "bucket_name": bucket_name,
-            "access_key": access_key,
-            "secret_key": secret_key,
-        })
-    return JSONResponse(status_code=status.HTTP_200_OK)
-
-
-@router.put("/enterprise/{enterprise_id}/visualmonitor", response_model=Response, name="监控配置")
-async def set_visual_monitor(request: Request,
-                             enterprise_id: Optional[str] = None,
-                             user=Depends(deps.get_current_user),
-                             session: SessionClass = Depends(deps.get_session)) -> Any:
-    data = await request.json()
-    enable = bool_argument(await parse_item(request, "enable", required=True))
-    home_url = await parse_item(request, "home_url", required=True)
-    cluster_monitor_suffix = data.get("cluster_monitor_suffix", "/d/cluster/ji-qun-jian-kong-ke-shi-hua")
-    node_monitor_suffix = data.get("node_monitor_suffix", "/d/node/jie-dian-jian-kong-ke-shi-hua")
-    component_monitor_suffix = data.get("component_monitor_suffix", "/d/component/zu-jian-jian-kong-ke-shi-hua")
-    slo_monitor_suffix = data.get("slo_monitor_suffix", "/d/service/fu-wu-jian-kong-ke-shi-hua")
-
-    ent_cfg_svc = EnterpriseConfigService(enterprise_id)
-    ent_cfg_svc.update_config_enable_status(session=session, key="VISUAL_MONITOR", enable=enable)
-    ent_cfg_svc.update_config_value(
-        session=session,
-        key="VISUAL_MONITOR",
-        value={
-            "home_url": home_url.strip('/'),
-            "cluster_monitor_suffix": cluster_monitor_suffix,
-            "node_monitor_suffix": node_monitor_suffix,
-            "component_monitor_suffix": component_monitor_suffix,
-            "slo_monitor_suffix": slo_monitor_suffix,
-        })
-    return JSONResponse(status_code=status.HTTP_200_OK)
-
-
 @router.post("/enterprise/{enterprise_id}/regions", response_model=Response, name="集群配置")
 async def set_region_config(request: Request,
                             enterprise_id: Optional[str] = None,
@@ -337,44 +234,6 @@ async def set_region_config(request: Request,
     else:
         result = general_message(500, "failed", "创建失败")
         return JSONResponse(result, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@router.put("/enterprise/{enterprise_id}/log_query", response_model=Response, name="配置日志查询开关")
-async def set_log_query(request: Request,
-                        enterprise_id: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session),
-                        user=Depends(deps.get_current_user)) -> Any:
-    enable = bool_argument(await parse_item(request, "enable", required=True))
-    admin = enterprise_user_perm_repo.is_admin(session, user_id=user.user_id, eid=enterprise_id)
-    if admin:
-        if enable is False:
-            # 修改全局配置
-            platform_config_service.update_config(session, "LOG_QUERY", {"enable": False, "value": None})
-            return JSONResponse(general_message(200, "close log_query", "关闭日志查询"), status_code=200)
-        else:
-            platform_config_service.update_config(session, "LOG_QUERY", {"enable": True, "value": None})
-            return JSONResponse(general_message(200, "open log_query", "开启日志查询"), status_code=200)
-    else:
-        return JSONResponse(general_message(400, "no jurisdiction", "没有权限"), status_code=400)
-
-
-@router.put("/enterprise/{enterprise_id}/call_link", response_model=Response, name="配置调用链路查询开关")
-async def set_call_link(request: Request,
-                        enterprise_id: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session),
-                        user=Depends(deps.get_current_user)) -> Any:
-    enable = bool_argument(await parse_item(request, "enable", required=True))
-    admin = enterprise_user_perm_repo.is_admin(session, user_id=user.user_id, eid=enterprise_id)
-    if admin:
-        if enable is False:
-            # 修改全局配置
-            platform_config_service.update_config(session, "CALL_LINK_QUERY", {"enable": False, "value": None})
-            return JSONResponse(general_message(200, "close call_link_query", "关闭调用链路查询"), status_code=200)
-        else:
-            platform_config_service.update_config(session, "CALL_LINK_QUERY", {"enable": True, "value": None})
-            return JSONResponse(general_message(200, "open call_link_query", "开启调用链路查询"), status_code=200)
-    else:
-        return JSONResponse(general_message(400, "no jurisdiction", "没有权限"), status_code=400)
 
 
 @router.get("/users/details", response_model=Response, name="获取用户详情")

@@ -1,5 +1,4 @@
 import json
-import os
 import yaml
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
@@ -8,19 +7,15 @@ from clients.remote_tenant_client import remote_tenant_client
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, AbortRequest
-from models.market.models import CenterAppVersion
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
-from repository.config.config_repo import sys_config_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from repository.teams.env_repo import env_repo
 from service.app_actions.app_manage import app_manage_service
-from service.application_service import application_service
 from service.base_services import base_service
-from service.market_app_service import market_app_service
 from service.platform_config_service import ConfigService
 from service.plugin_service import plugin_service
 
@@ -472,25 +467,6 @@ class EnterpriseConfigService(ConfigService):
                 "enable": False
             },
         }
-
-    def init_base_config_value(self, session):
-        pass
-
-    def get_config_by_key(self, session: SessionClass, key):
-        return sys_config_repo.get_config_by_key_and_enterprise_id(session=session, key=key,
-                                                                   enterprise_id=self.enterprise_id)
-
-    def get_cloud_obj_storage_info(self, session: SessionClass):
-        cloud_obj_storage_info = self.get_config_by_key(session=session, key="OBJECT_STORAGE")
-        if not cloud_obj_storage_info or not cloud_obj_storage_info.enable:
-            return None
-        return eval(cloud_obj_storage_info.value)
-
-    def get_auto_ssl_info(self, session: SessionClass):
-        auto_ssl_config = self.get_config_by_key(session=session, key="AUTO_SSL")
-        if not auto_ssl_config or not auto_ssl_config.enable:
-            return None
-        return eval(auto_ssl_config.value)
 
 
 region_services = RegionService()

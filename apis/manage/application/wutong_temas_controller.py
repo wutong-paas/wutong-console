@@ -150,16 +150,6 @@ async def add_http_domain(request: Request,
 
     if auto_ssl:
         auto_ssl = True
-    if auto_ssl:
-        auto_ssl_configs = EnterpriseConfigService(team.enterprise_id).get_auto_ssl_info(session=session)
-        if not auto_ssl_configs:
-            result = general_message(400, "failed", "未找到自动分发证书相关配置")
-            return JSONResponse(result, status_code=400)
-
-        else:
-            if auto_ssl_config not in list(auto_ssl_configs.keys()):
-                result = general_message(400, "failed", "未找到该自动分发方式")
-                return JSONResponse(result, status_code=400)
 
     # 域名，path相同的组件，如果已存在http协议的，不允许有httptohttps扩展功能，如果以存在https，且有改扩展功能的，则不允许添加http协议的域名
     domains = domain_repo.get_domain_by_name_and_path(session, domain_name, domain_path)

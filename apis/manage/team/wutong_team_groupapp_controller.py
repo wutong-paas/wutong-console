@@ -48,8 +48,7 @@ async def get_backup_info(request: Request,
     event_paginator = paginate(backups, params)
     total = event_paginator.total
     backup_records = event_paginator.items
-    obj_storage = EnterpriseConfigService(user.enterprise_id).get_cloud_obj_storage_info(session=session)
-    bean = {"is_configed": obj_storage is not None}
+    bean = {"is_configed": False}
     result = general_message(
         200, "success", "查询成功", bean=jsonable_encoder(bean),
         list=[jsonable_encoder(backup) for backup in backup_records], total=total)

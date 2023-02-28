@@ -150,10 +150,6 @@ class GroupappsMigrateService(object):
         if not backup_record:
             raise ErrBackupRecordNotFound
 
-        s3_info = EnterpriseConfigService(user.enterprise_id).get_cloud_obj_storage_info(session=session)
-        if backup_record.mode == "full-online" and not s3_info:
-            raise ErrObjectStorageInfoNotFound
-
         if migrate_type == "recover":
             is_all_services_closed = self.__check_group_service_status(session=session, region=current_region,
                                                                        tenant=current_team,
@@ -178,8 +174,7 @@ class GroupappsMigrateService(object):
             "event_id": make_uuid(),
             "backup_id": new_backup_record.backup_id,
             "restore_mode": restore_mode,
-            "tenant_id": migrate_team.tenant_id,
-            "s3_config": s3_info,
+            "tenant_id": migrate_team.tenant_id
         }
         body = remote_migrate_client_api.star_apps_migrate_task(session, migrate_region, migrate_team.tenant_name,
                                                                 new_backup_record.backup_id,

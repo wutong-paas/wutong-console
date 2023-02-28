@@ -74,8 +74,6 @@ class AppImportService(object):
             app_version_info=app_template.get("annotations", {}).get("version_info", ""),
             version_alias=app_template.get("annotations", {}).get("version_alias", ""),
         )
-        if app_store.is_no_multiple_region_hub(session, import_record.enterprise_id):
-            version.region_name = import_record.region
         return version
 
     def decode_image(self, image_base64_string, suffix):

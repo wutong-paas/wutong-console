@@ -34,7 +34,6 @@ from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_log_service
 from service.compose_service import compose_service
-from service.git_service import git_service
 from service.market_app_service import market_app_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.probe_service import probe_service
@@ -764,20 +763,6 @@ async def update_build_envs(
             continue
 
     result = general_message(200, "success", "环境变量添加成功")
-    return JSONResponse(result, status_code=result["code"])
-
-
-@router.get("/teams/{team_name}/apps/{serviceAlias}/code/branch", response_model=Response, name="获取组件代码仓库分支")
-async def get_code_branch(
-        request: Request,
-        serviceAlias: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        user=Depends(deps.get_current_user),
-        team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    branches = git_service.get_service_code_branch(session, user, service)
-    bean = {"current_version": service.code_version}
-    result = general_message(200, "success", "查询成功", bean=bean, list=branches)
     return JSONResponse(result, status_code=result["code"])
 
 

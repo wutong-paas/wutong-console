@@ -202,18 +202,3 @@ class ConsoleConfig(Base):
     value = Column(String(1000), comment="配置值")
     description = Column(Text(), nullable=True, default="", comment="说明")
     update_time = Column(DateTime(), onupdate=datetime.now, comment="更新时间", nullable=True)
-
-
-class ConsoleSysConfig(Base):
-    """企业基础设置"""
-
-    __tablename__ = 'console_sys_config'
-
-    ID = Column(Integer, primary_key=True)
-    key = Column(String(32), comment="key", nullable=False)
-    type = Column(String(32), comment="类型", nullable=False)
-    value = Column(String(4096), comment="value", nullable=True)
-    desc = Column(String(100), comment="描述", nullable=True, default="")
-    enable = Column(Boolean, comment="是否生效", nullable=False, default=True)
-    create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    enterprise_id = Column(String(32), comment="eid", nullable=False, default="")

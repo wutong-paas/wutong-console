@@ -394,8 +394,6 @@ class ShareService(object):
                 enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
             )
-            if app_store.is_no_multiple_region_hub(session=session, enterprise_id=share_team.enterprise_id):
-                app_version.region_name = region_name
             session.add(app_version)
             session.flush()
             share_record.step = 2
