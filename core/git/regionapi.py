@@ -4,16 +4,13 @@ import logging
 import os
 import socket
 import ssl
-
 import certifi
 import httplib2
 import urllib3
 from addict import Dict
 from urllib3.exceptions import MaxRetryError
 from websockets import http
-
 from common.api_base_http_client import Configuration
-from common.client_auth_service import client_auth_service
 from core.setting import settings
 from exceptions.main import ServiceHandleException, ErrClusterLackOfMemory, ErrTenantLackOfMemory
 from models.region.models import EnvRegionInfo
@@ -430,9 +427,6 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
     def create_tenant(self, region, tenant_name, tenant_id, enterprise_id):
         """创建租户"""
         url, token = self.__get_region_access_info(tenant_name, region)
-        cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(tenant_name, region)
-        if cloud_enterprise_id:
-            enterprise_id = cloud_enterprise_id
         data = {"tenant_id": tenant_id, "tenant_name": tenant_name, "eid": enterprise_id}
         url += "/v2/tenants"
 
@@ -1454,35 +1448,22 @@ class RegionInvokeApi(RegionApiBaseHttpClient):
 
     def __get_region_access_info(self, tenant_name, region):
         """获取一个团队在指定数据中心的身份认证信息"""
-        # 根据团队名获取其归属的企业在指定数据中心的访问信息
-        token = None
-        if tenant_name:
-            if type(tenant_name) == TeamEnvInfo:
-                tenant_name = tenant_name.tenant_name
-            url, token = client_auth_service.get_region_access_token_by_env(tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
         region_info = self.get_region_info(region_name=region)
         if region_info is None:
-            raise err_region_not_found
+            raise ServiceHandleException("region not found")
         url = region_info.url
-        if not token:
-            token = region_info.token
-        else:
-            token = "Token {}".format(token)
+        token = region_info.token
         return url, token
 
     def __get_region_access_info_by_enterprise_id(self, enterprise_id, region):
-        url, token = client_auth_service.get_region_access_token_by_enterprise_id(enterprise_id, region)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
         region_info = self.get_region_info(region_name=region)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        if not token:
-            token = region_info.token
-        else:
-            token = "Token {}".format(token)
+        token = region_info.token
         return url, token
 
     def get_protocols(self, region, tenant_name):

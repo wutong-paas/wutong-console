@@ -364,10 +364,10 @@ class RegionService(object):
                                              is_force=True)
 
         application_repo.list_tenant_group_on_region(session, env, region_name).delete()
-        # delete tenant
+        # delete env
         if not ignore_cluster_resource:
             try:
-                remote_tenant_client.delete_tenant(session, region_name, env.env_name)
+                remote_tenant_client.delete_env(session, region_name, env.env_name)
             except remote_tenant_client.CallApiError as e:
                 if e.status != 404:
                     logger.error("delete tenant failure {}".format(e.body))

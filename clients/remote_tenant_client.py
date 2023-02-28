@@ -2,10 +2,8 @@ import json
 import os
 
 from loguru import logger
-
 from common.api_base_http_client import ApiBaseHttpClient
 from common.base_client_service import get_region_access_info, get_env_region_info
-from common.client_auth_service import client_auth_service
 from exceptions.bcode import ErrNamespaceExists
 
 
@@ -45,10 +43,6 @@ class RemoteTenantClient(ApiBaseHttpClient):
     def create_env(self, session, region, team_id, team_name, env_name, env_id, enterprise_id, namespace):
         """创建环境"""
         url, token = get_region_access_info(env_name, region, session)
-        cloud_enterprise_id = client_auth_service.get_region_access_enterprise_id_by_tenant(session, env_name,
-                                                                                            region)
-        if cloud_enterprise_id:
-            enterprise_id = cloud_enterprise_id
         data = {"tenant_id": team_id, "tenant_name": team_name, "tenant_env_id": env_id, "tenant_env_name": env_name,
                 "eid": enterprise_id,
                 "namespace": namespace}
@@ -64,9 +58,9 @@ class RemoteTenantClient(ApiBaseHttpClient):
                 raise ErrNamespaceExists
             return {'status': e.message['http_code']}, e.message['body']
 
-    # 删除团队
-    def delete_tenant(self, session, region, tenant_env):
-        """删除组件"""
+    # 删除环境
+    def delete_env(self, session, region, tenant_env):
+        """删除环境"""
 
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)

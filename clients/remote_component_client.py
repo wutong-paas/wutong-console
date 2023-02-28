@@ -7,9 +7,8 @@ from sqlalchemy import select
 from common.api_base_http_client import ApiBaseHttpClient
 from common.base_client_service import get_env_region_info, get_region_access_info, \
     get_region_access_info_by_enterprise_id
-from common.client_auth_service import client_auth_service
 from exceptions.main import ServiceHandleException
-from models.teams import TeamEnvInfo, RegionConfig
+from models.teams import RegionConfig
 
 
 class RemoteComponentClient(ApiBaseHttpClient):
@@ -744,22 +743,13 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
     def __get_region_access_info(self, session, tenant_name, region):
         """获取一个团队在指定数据中心的身份认证信息"""
-        # 根据团队名获取其归属的企业在指定数据中心的访问信息
-        token = None
-        if tenant_name:
-            if type(tenant_name) == TeamEnvInfo:
-                tenant_name = tenant_name.tenant_name
-            url, token = client_auth_service.get_region_access_token_by_env(session, tenant_name, region)
         # 如果团队所在企业所属数据中心信息不存在则使用通用的配置(兼容未申请数据中心token的企业)
         # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
         region_info = self.get_region_info(session=session, region_name=region)
         if region_info is None:
             raise ServiceHandleException("region not found", "数据中心不存在", 404, 404)
         url = region_info.url
-        if not token:
-            token = region_info.token
-        else:
-            token = "Token {}".format(token)
+        token = region_info.token
         return url, token
 
     def change_application_volumes(self, session, tenant_name, tenant_env, region_name, region_app_id):
