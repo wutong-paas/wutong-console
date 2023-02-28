@@ -30,7 +30,6 @@ from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoi
     DeployRelation, ComponentSourceInfo, ComponentEnvVar, TeamComponentMountRelation
 from models.region.models import RegionApp
 from models.teams import ServiceDomainCertificate
-from models.users.oauth import OAuthServices
 from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo, app_market_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
@@ -676,26 +675,6 @@ class ApplicationService(object):
             if service.language == "docker-image":
                 return AppConstants.DOCKER_IMAGE
             return AppConstants.DOCKER_RUN
-
-    def get_oauth_services_by_service_id(self, session: SessionClass, service_id=None):
-        if not service_id:
-            pre_enterprise_center = os.getenv("PRE_ENTERPRISE_CENTER", None)
-            if pre_enterprise_center:
-                return (
-                    session.execute(
-                        select(OAuthServices).where(OAuthServices.name == pre_enterprise_center,
-                                                    OAuthServices.oauth_type == "enterprisecenter"))
-                ).scalars().first()
-            return (
-                session.execute(
-                    select(OAuthServices).where(OAuthServices.enable == True, OAuthServices.is_deleted == False,
-                                                OAuthServices.oauth_type == "enterprisecenter"))
-            ).scalars().first()
-        return (
-            session.execute(
-                select(OAuthServices).where(OAuthServices.ID == service_id, OAuthServices.enable == True,
-                                            OAuthServices.is_deleted == False))
-        ).scalars().first()
 
     def check_service(self, session: SessionClass, tenant_env, service, is_again, user=None):
         body = dict()

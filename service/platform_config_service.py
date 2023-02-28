@@ -7,9 +7,8 @@ from sqlalchemy import select
 
 from core.enum.system_config import ConfigKeyEnum
 from database.session import SessionClass
-from exceptions.exceptions import ConfigExistError, NoSupportOAuthType
+from exceptions.exceptions import ConfigExistError
 from models.teams import ConsoleSysConfig
-from models.users.oauth import OAuthServices
 from repository.config.config_repo import sys_config_repo
 
 
