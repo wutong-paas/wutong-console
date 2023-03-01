@@ -32,21 +32,12 @@ async def get_current_user(request: Request, authorization: Optional[str] = Head
         from urllib import parse
         data = dict(request.headers.raw)
         enterprise = enterprise_repo.get_enterprise_first(session)
-        # user = {
-        #     "user_id": data.get(b"userid"),
-        #     "real_name": parse.unquote(str(data.get(b"userrealname"), "utf-8")),
-        #     "nick_name": parse.unquote(str(data.get(b"usernickname"), "utf-8")),
-        #     "email": data.get(b"useremail"),
-        #     "phone": data.get(b"usermobile"),
-        #     "enterprise_id": enterprise.enterprise_id
-        # }
         user = {
-            "user_id": "f75939fe51fa01980d7afd1e9cfb1d66",
-            "real_name": "王少鹏",
-            "nick_name": "王少鹏",
-            "email": "wangshaopeng@talkweb.com.cn",
-            "phone": "13787256706",
-            "token": authorization,
+            "user_id": data.get(b"userid"),
+            "real_name": parse.unquote(str(data.get(b"userrealname"), "utf-8")),
+            "nick_name": parse.unquote(str(data.get(b"usernickname"), "utf-8")),
+            "email": data.get(b"useremail"),
+            "phone": data.get(b"usermobile"),
             "enterprise_id": enterprise.enterprise_id
         }
         user = UserInfo(**user)

@@ -1,12 +1,8 @@
 from typing import Any
-
-# from PIL import Image, ImageDraw, ImageFont
 from fastapi import APIRouter, Depends
 from fastapi import UploadFile, File
-from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from starlette.responses import JSONResponse
-
 from core.utils.return_message import general_message
 from core import deps
 from database.session import SessionClass

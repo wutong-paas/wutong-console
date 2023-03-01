@@ -18,7 +18,6 @@ from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
 from service.region_service import region_services
-from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -122,7 +121,7 @@ async def env_services_event(
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     total = 0
-    region_list = region_repo.get_team_opened_region(session, team.tenant_name)
+    region_list = region_repo.get_team_opened_region(session, env.tenant_name)
     event_service_dynamic_list = []
     if region_list:
         for region in region_list:

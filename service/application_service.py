@@ -1,12 +1,10 @@
 import base64
 import json
-import os
 import pickle
 import random
 import re
 import string
 from datetime import datetime
-
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from sqlalchemy import select, delete
@@ -1775,6 +1773,44 @@ class ApplicationService(object):
         })
         data["k8s_app"] = bean["k8s_app"]
         application_repo.update(session, app_id, **data)
+
+    def get_apps_by_plat(self, session, team_id, env_id, project_id):
+        if team_id and env_id and project_id:
+            apps = session.execute(select(Application).where(
+                Application.tenant_id == team_id,
+                Application.env_id == env_id,
+                Application.project_id == project_id
+            )).scalars().all()
+        elif team_id and env_id:
+            apps = session.execute(select(Application).where(
+                Application.tenant_id == team_id,
+                Application.env_id == env_id
+            )).scalars().all()
+        elif team_id and project_id:
+            apps = session.execute(select(Application).where(
+                Application.tenant_id == team_id,
+                Application.project_id == project_id
+            )).scalars().all()
+        elif env_id and project_id:
+            apps = session.execute(select(Application).where(
+                Application.env_id == env_id,
+                Application.project_id == project_id
+            )).scalars().all()
+        elif env_id:
+            apps = session.execute(select(Application).where(
+                Application.env_id == env_id
+            )).scalars().all()
+        elif team_id:
+            apps = session.execute(select(Application).where(
+                Application.tenant_id == team_id
+            )).scalars().all()
+        elif project_id:
+            apps = session.execute(select(Application).where(
+                Application.project_id == project_id
+            )).scalars().all()
+        else:
+            apps = session.execute(select(Application)).scalars().all()
+        return apps
 
 
 application_service = ApplicationService()

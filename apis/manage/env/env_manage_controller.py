@@ -93,6 +93,9 @@ async def delete_env(request: Request,
     """
     删除环境
     """
+    data = await request.json()
+    env_name = data.get("env_name", "")
+    password = data.get("password", "")
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
@@ -107,9 +110,7 @@ async def delete_env(request: Request,
 @router.put("/teams/{team_name}/env/{env_id}/modify-env", response_model=Response, name="修改环境配置")
 async def modify_env(request: Request,
                      env_id: Optional[str] = None,
-                     session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team)) -> Any:
+                     session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     修改环境配置
     """
@@ -144,12 +145,9 @@ async def get_team_envs(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/pallet/all/envs", response_model=Response, name="查询全部环境")
+@router.get("/plat/all/envs", response_model=Response, name="查询全部环境")
 async def get_all_envs(
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    """
-    查询团队下环境
-    """
     try:
         envs = env_services.get_all_envs(session)
         result = general_message(200, "success", "查询成功", list=envs)

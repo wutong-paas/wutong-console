@@ -73,6 +73,11 @@ class TenantEnvService(object):
             select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_name)).scalars().all()
         return envs
 
+    def get_envs_by_tenant_id(self, session, tenant_id):
+        envs = session.execute(
+            select(TeamEnvInfo).where(TeamEnvInfo.tenant_id == tenant_id)).scalars().all()
+        return envs
+
     def get_all_envs(self, session: SessionClass):
         envs = session.execute(
             select(TeamEnvInfo)).scalars().all()

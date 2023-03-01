@@ -2,24 +2,19 @@ import json
 import os
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, Request
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from starlette import status
 from clients.remote_build_client import remote_build_client
 from core import deps
-from core.utils.reqparse import bool_argument, parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.main import AbortRequest, ServiceHandleException
-from models.teams.enterprise import TeamEnterprise
+from exceptions.main import ServiceHandleException
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
-from repository.teams.team_enterprise_repo import tenant_enterprise_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import RegionApiBaseHttpClient
-from service.platform_config_service import platform_config_service
-from service.region_service import region_services, EnterpriseConfigService
+from service.region_service import region_services
 from service.tenant_env_service import env_services
 
 router = APIRouter()
@@ -86,7 +81,6 @@ async def delete_maven_settings(
         enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
         name: Optional[str] = None,
-        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         res, body = remote_build_client.delete_maven_setting(session, enterprise_id, region_name, name)
@@ -112,7 +106,6 @@ async def add_maven_settings(
         request: Request,
         enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
-        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         data = await request.json()
@@ -237,60 +230,3 @@ async def set_region_config(request: Request,
     else:
         result = general_message(500, "failed", "创建失败")
         return JSONResponse(result, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@router.get("/users/details", response_model=Response, name="获取用户详情")
-async def get_user_details(session: SessionClass = Depends(deps.get_session),
-                           user=Depends(deps.get_current_user)) -> Any:
-    # 查询企业信息
-    enterprise = tenant_enterprise_repo.get_one_by_model(session=session,
-                                                         query_model=TeamEnterprise(enterprise_id=user.enterprise_id))
-
-    user_detail = dict()
-    user_detail["user_id"] = user.user_id
-    user_detail["user_name"] = user.nick_name
-    user_detail["real_name"] = user.real_name
-    user_detail["email"] = user.email
-    user_detail["enterprise_id"] = user.enterprise_id
-    user_detail["phone"] = user.phone
-
-    user_detail["roles"] = ["admin"]
-    user_detail["is_sys_admin"] = False
-    user_detail["git_user_id"] = 0
-
-    if enterprise:
-        user_detail["is_enterprise_active"] = enterprise.is_active
-    # todo is_enterprise_admin
-    # user_detail["is_enterprise_admin"] = self.is_enterprise_admin
-    user_detail["is_enterprise_admin"] = True
-    tenant_list = []
-    # 查询团队信息
-    # tenant_ids_results = session.execute(
-    #     select(PermRelTenant.tenant_id).where(PermRelTenant.user_id == user.user_id))
-    # tenant_ids = tenant_ids_results.scalars().all()
-    # if len(tenant_ids) > 0:
-    #     tenants_results = session.execute(
-    #         select(TeamEnvInfo).where(TeamEnvInfo.ID.in_(tenant_ids)).order_by(TeamEnvInfo.create_time.desc()))
-    #     tenants = tenants_results.scalars().all()
-    #     for tenant in tenants:
-    #         tenant_info = dict()
-    #         is_team_owner = False
-    #         team_region_list = get_region_list_by_team_name(session=session, team_name=tenant.tenant_name)
-    #         tenant_info["team_id"] = tenant.ID
-    #         tenant_info["team_name"] = tenant.tenant_name
-    #         tenant_info["team_alias"] = tenant.tenant_alias
-    #         tenant_info["limit_memory"] = tenant.limit_memory
-    #         tenant_info["pay_level"] = tenant.pay_level
-    #         tenant_info["region"] = team_region_list
-    #         tenant_info["creater"] = tenant.creater
-    #         tenant_info["create_time"] = tenant.create_time
-    #         tenant_info["namespace"] = tenant.namespace
-    #
-    #         if tenant.creater == user.user_id:
-    #             is_team_owner = True
-    #         tenant_info["is_team_owner"] = is_team_owner
-    #         tenant_list.append(tenant_info)
-    user_detail["teams"] = tenant_list
-    result = general_message(200, "Obtain my details to be successful.", "获取我的详情成功", bean=jsonable_encoder(user_detail))
-
-    return JSONResponse(result, status_code=result["code"])
