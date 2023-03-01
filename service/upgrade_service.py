@@ -72,7 +72,7 @@ class UpgradeService(object):
             component_record.event_id = event_id
         component_upgrade_record_repo.bulk_update(session, component_records)
 
-    def deploy(self, session, tenant, region_name, user, record: ApplicationUpgradeRecord):
+    def deploy(self, session, tenant_env, region_name, user, record: ApplicationUpgradeRecord):
         if not record.can_deploy():
             raise ErrAppUpgradeRecordCanNotDeploy
 
@@ -90,7 +90,7 @@ class UpgradeService(object):
         component_ids = [record.service_id for record in failed_component_records.values()]
 
         try:
-            events = app_manage_service.batch_operations(session, tenant, region_name, user, "deploy", component_ids)
+            events = app_manage_service.batch_operations(session, tenant_env, region_name, user, "deploy", component_ids)
             status = ApplicationUpgradeStatus.UPGRADING.value \
                 if record.record_type == ApplicationUpgradeRecordType.UPGRADE.value else ApplicationUpgradeStatus.ROLLING.value
             upgrade_repo.change_app_record_status(session, record, status)
@@ -303,12 +303,12 @@ class UpgradeService(object):
             return ApplicationUpgradeRecord()
         return result
 
-    def sync_unfinished_records(self, session: SessionClass, tenant_name, region_name, records):
+    def sync_unfinished_records(self, session: SessionClass, tenant_env, region_name, records):
         for record in records:
             if record.is_finished:
                 continue
             # synchronize the last unfinished record
-            self.sync_record(session=session, tenant_name=tenant_name, region_name=region_name, record=record)
+            self.sync_record(session=session, tenant_env=tenant_env, region_name=region_name, record=record)
             break
 
     def _update_component_record_status(self, session: SessionClass, record: ServiceUpgradeRecord, event_status):
@@ -328,14 +328,14 @@ class UpgradeService(object):
         component_upgrade_record_repo.save(session, app_upgrade_record)
         component_upgrade_record_repo.bulk_update(session, component_upgrade_records)
 
-    def sync_record(self, session: SessionClass, tenant_name, region_name, record: ApplicationUpgradeRecord):
+    def sync_record(self, session: SessionClass, tenant_env, region_name, record: ApplicationUpgradeRecord):
         # list component records
         component_records = component_upgrade_record_repo.list_by_app_record_id(session, record.ID)
         # filter out the finished records
         unfinished = {record.event_id: record for record in component_records if not record.is_finished()}
         # list events
         event_ids = [event_id for event_id in unfinished.keys()]
-        body = remote_build_client.get_tenant_events(session, region_name, tenant_name, event_ids)
+        body = remote_build_client.get_tenant_events(session, region_name, tenant_env, event_ids)
         events = body.get("list", [])
 
         for event in events:
@@ -392,14 +392,14 @@ class UpgradeService(object):
         if app_record.record_type == ApplicationUpgradeRecordType.ROLLBACK.value:
             app_record.status = ApplicationUpgradeStatus.PARTIAL_ROLLBACK.value
 
-    def list_records(self, session: SessionClass, tenant_name, region_name, app_id, record_type=None, page=1,
+    def list_records(self, session: SessionClass, tenant_env, region_name, app_id, record_type=None, page=1,
                      page_size=10):
         # list records and pagination
         records = upgrade_repo.list_records_by_app_id(session, app_id, record_type)
         params = Params(page=page, size=page_size)
         event_paginator = paginate(records, params)
         records = event_paginator.items
-        self.sync_unfinished_records(session=session, tenant_name=tenant_name, region_name=region_name, records=records)
+        self.sync_unfinished_records(session=session, tenant_env=tenant_env, region_name=region_name, records=records)
         return [record.to_dict() for record in records], event_paginator.total
 
     def get_latest_upgrade_record(self, session: SessionClass, tenant: TeamEnvInfo, app: Application,

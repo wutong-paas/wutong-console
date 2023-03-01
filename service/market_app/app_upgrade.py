@@ -39,7 +39,7 @@ class AppUpgrade(MarketApp):
     def __init__(self,
                  session,
                  enterprise_id,
-                 tenant,
+                 tenant_env,
                  region: RegionConfig,
                  user,
                  app: Application,
@@ -56,8 +56,8 @@ class AppUpgrade(MarketApp):
         components_keys: component keys that the user select.
         """
         self.enterprise_id = enterprise_id
-        self.tenant = tenant
-        self.tenant_id = tenant.tenant_id
+        self.tenant_env = tenant_env
+        self.tenant_id = tenant_env.tenant_id
         self.region = region
         self.region_name = region.region_name
         self.user = user
@@ -79,10 +79,10 @@ class AppUpgrade(MarketApp):
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
 
-        self.support_labels = label_service.list_available_labels(session, tenant, region.region_name)
+        self.support_labels = label_service.list_available_labels(session, tenant_env, region.region_name)
 
         # original app
-        self.original_app = OriginalApp(session, self.tenant, self.region, self.app, self.upgrade_group_id,
+        self.original_app = OriginalApp(session, self.tenant_env, self.region, self.app, self.upgrade_group_id,
                                         self.support_labels)
 
         # plugins

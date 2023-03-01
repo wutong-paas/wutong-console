@@ -9,6 +9,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_config.app_relation_service import dependency_service
 from service.app_config.port_service import port_service
@@ -133,13 +134,16 @@ async def add_dependency_component(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/dependency/{dep_service_id}", response_model=Response,
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/dependency/{dep_service_id}",
+               response_model=Response,
                name="删除组件的某个依赖")
-async def delete_dependency_component(serviceAlias: Optional[str] = None,
-                                      dep_service_id: Optional[str] = None,
-                                      session: SessionClass = Depends(deps.get_session),
-                                      user=Depends(deps.get_current_user),
-                                      team=Depends(deps.get_current_team)) -> Any:
+async def delete_dependency_component(
+        env_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        dep_service_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        team=Depends(deps.get_current_team)) -> Any:
     """
     删除组件的某个依赖
     ---
@@ -161,10 +165,13 @@ async def delete_dependency_component(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
     if not dep_service_id:
         return JSONResponse(general_message(400, "attr_name not specify", "未指定需要删除的依赖组件"), status_code=400)
-    code, msg, dependency = dependency_service.delete_service_dependency(session=session, tenant=team,
+    code, msg, dependency = dependency_service.delete_service_dependency(session=session, tenant_env=env,
                                                                          service=service, dep_service_id=dep_service_id,
                                                                          user_name=user.nick_name)
     if code != 200:
@@ -174,12 +181,13 @@ async def delete_dependency_component(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/dependency", response_model=Response, name="为组件添加依赖组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/dependency", response_model=Response,
+             name="为组件添加依赖组件")
 async def add_dependency_component_post(request: Request,
+                                        env_id: Optional[str] = None,
                                         serviceAlias: Optional[str] = None,
                                         session: SessionClass = Depends(deps.get_session),
-                                        user=Depends(deps.get_current_user),
-                                        team=Depends(deps.get_current_team)) -> Any:
+                                        user=Depends(deps.get_current_user)) -> Any:
     """
     为组件添加依赖组件
     ---
@@ -202,11 +210,14 @@ async def add_dependency_component_post(request: Request,
 
 
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     dep_service_id = data.get("dep_service_id", None)
     open_inner = data.get("open_inner", False)
     container_port = data.get("container_port", None)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     if not dep_service_id:
         return JSONResponse(general_message(400, "dependency service not specify", "请指明需要依赖的组件"), status_code=400)
     if service.is_third_party():
@@ -214,7 +225,7 @@ async def add_dependency_component_post(request: Request,
     if dep_service_id == service.service_id:
         raise AbortRequest(msg="components cannot rely on themselves", msg_show="组件不能依赖自己")
     code, msg, data = dependency_service.add_service_dependency(session,
-                                                                team, service, dep_service_id, open_inner,
+                                                                env, service, dep_service_id, open_inner,
                                                                 container_port, user.nick_name)
     if code == 201:
         result = general_message(code, "add dependency success", msg, list=data, bean={"is_inner": False})

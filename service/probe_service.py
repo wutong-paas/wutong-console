@@ -15,16 +15,16 @@ from repository.component.service_probe_repo import probe_repo
 class ProbeService(object):
     PROBE_MODE = ("readiness", "liveness", "ignore")
 
-    def add_service_probe(self, session: SessionClass, tenant, service, data):
-        probe = self.create_probe(session, tenant, service, data)
+    def add_service_probe(self, session: SessionClass, tenant_env, service, data):
+        probe = self.create_probe(session, tenant_env, service, data)
         new_probe = probe.__dict__
         # deep copy
         logger.debug("create status: {}".format(service.create_status))
         if service.create_status == "complete":
             new_probe = copy.deepcopy(new_probe)
-            new_probe["enterprise_id"] = tenant.enterprise_id
+            new_probe["enterprise_id"] = tenant_env.enterprise_id
             res, body = remote_component_client.add_service_probe(session,
-                                                                  service.service_region, tenant.tenant_name,
+                                                                  service.service_region, tenant_env,
                                                                   service.service_alias, jsonable_encoder(new_probe))
             logger.debug("add probe action status {0}".format(res.status))
         session.add(probe)
@@ -100,25 +100,25 @@ class ProbeService(object):
 
         return 200, "success"
 
-    def delete_service_probe(self, session: SessionClass, tenant, service, probe_id):
+    def delete_service_probe(self, session: SessionClass, tenant_env, service, probe_id):
         probe = probe_repo.get_probe_by_probe_id(service.service_id, probe_id)
         if not probe:
             return 404, "未找到探针"
         body = {"probe_id": probe_id}
         remote_component_client.delete_service_probe(session,
-                                                     service.service_region, tenant.tenant_name,
+                                                     service.service_region, tenant_env,
                                                      service.service_alias, body)
         probe_repo.delete(session, service.service_id, probe_id)
         return 200, "success"
 
-    def update_service_probea(self, session: SessionClass, tenant, service, data, user_name=''):
+    def update_service_probea(self, session: SessionClass, tenant_env, service, data, user_name=''):
         code, msg = self.__check_probe_data(data)
         if code != 200:
             raise ServiceHandleException(status_code=code, msg_show=msg, msg="error")
         probes = probe_repo.get_service_probes(session, service.service_id)
         if not probes:
             if service.service_source == "third_party":
-                code, msg, new_probe = self.add_service_probe(session, tenant, service, data)
+                code, msg, new_probe = self.add_service_probe(session, tenant_env, service, data)
                 return new_probe
             raise ServiceHandleException(status_code=404, msg="no found", msg_show="组件未设置探针，无法进行修改操作")
         probe = probes[0]
@@ -126,7 +126,7 @@ class ProbeService(object):
         if len(probes) > 1:
             for index in range(len(probes)):
                 if index > 0:
-                    self.delete_service_probe(session=session, tenant=tenant, service=service,
+                    self.delete_service_probe(session=session, tenant_env=tenant_env, service=service,
                                               probe_id=probes[index].probe_id)
         if not probe:
             raise ServiceHandleException(status_code=404, msg="no found", msg_show="组件未设置探针，无法进行修改操作")
@@ -152,13 +152,13 @@ class ProbeService(object):
             "mode": data["mode"]
         }
         console_probe = copy.deepcopy(prob_data)
-        prob_data["enterprise_id"] = tenant.enterprise_id
+        prob_data["enterprise_id"] = tenant_env.enterprise_id
         prob_data["operator"] = user_name
         if service.create_status == "complete":
             try:
                 res, body = remote_component_client.update_service_probec(session,
                                                                           service.service_region,
-                                                                          tenant.tenant_name,
+                                                                          tenant_env,
                                                                           service.service_alias,
                                                                           prob_data)
                 logger.debug("update probe action status {0}".format(res.status))

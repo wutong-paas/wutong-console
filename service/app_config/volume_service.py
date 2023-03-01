@@ -39,7 +39,7 @@ class AppVolumeService(object):
         "/usr/bin",
     ]
 
-    def get_service_volumes(self, session: SessionClass, tenant, service, is_config_file=False):
+    def get_service_volumes(self, session: SessionClass, tenant_env, service, is_config_file=False):
         volumes = []
         if is_config_file:
             volumes = volume_repo.get_service_volumes_about_config_file(session, service.service_id)
@@ -55,9 +55,9 @@ class AppVolumeService(object):
                 vos.append(vo)
             return vos
         res, body = remote_component_client.get_service_volumes(session,
-                                                                service.service_region, tenant.tenant_name,
+                                                                service.service_region, tenant_env,
                                                                 service.service_alias,
-                                                                tenant.enterprise_id)
+                                                                tenant_env.enterprise_id)
         if body and body.list:
             status = {}
             for volume in body.list:
@@ -79,7 +79,7 @@ class AppVolumeService(object):
 
     def add_service_volume(self,
                            session: SessionClass,
-                           tenant,
+                           tenant_env,
                            service,
                            volume_path,
                            volume_type,
@@ -91,7 +91,7 @@ class AppVolumeService(object):
 
         volume = self.create_service_volume(
             session,
-            tenant,
+            tenant_env,
             service,
             volume_path,
             volume_type,
@@ -107,7 +107,7 @@ class AppVolumeService(object):
                 "volume_name": volume.volume_name,
                 "volume_path": volume.volume_path,
                 "volume_type": volume.volume_type,
-                "enterprise_id": tenant.enterprise_id,
+                "enterprise_id": tenant_env.enterprise_id,
                 "volume_capacity": volume.volume_capacity,
                 "volume_provider_name": volume.volume_provider_name,
                 "access_mode": volume.access_mode,
@@ -122,7 +122,7 @@ class AppVolumeService(object):
                 data["file_content"] = file_content
 
             res, body = remote_component_client.add_service_volumes(session,
-                                                                    service.service_region, tenant.tenant_name,
+                                                                    service.service_region, tenant_env,
                                                                     service.service_alias, data)
             logger.debug(body)
 
@@ -214,10 +214,10 @@ class AppVolumeService(object):
                 raise ErrVolumePath(msg="path error", msg_show="已存在以{0}开头的路径".format(path["volume_path"]),
                                     status_code=412)
 
-    def check_volume_options(self, session: SessionClass, tenant, service, volume_type, settings):
+    def check_volume_options(self, session: SessionClass, tenant_env, service, volume_type, settings):
         if volume_type in self.simple_volume_type:
             return
-        options = self.get_service_support_volume_options(session, tenant, service)
+        options = self.get_service_support_volume_options(session, tenant_env, service)
         exists = False
         for opt in options:
             if opt["volume_type"] == volume_type:
@@ -287,18 +287,18 @@ class AppVolumeService(object):
         else:
             return 0
 
-    def __setting_volume_provider_name(self, session: SessionClass, tenant, service, volume_type, settings):
+    def __setting_volume_provider_name(self, session: SessionClass, tenant_env, service, volume_type, settings):
         if volume_type in self.simple_volume_type:
             return ""
         if settings.get("volume_provider_name") is not None:
             return settings.get("volume_provider_name")
-        opts = self.get_service_support_volume_options(session, tenant, service)
+        opts = self.get_service_support_volume_options(session, tenant_env, service)
         for opt in opts:
             if opt["volume_type"] == volume_type:
                 return opt["provisioner"]
         return ""
 
-    def get_service_support_volume_options(self, session: SessionClass, tenant, service):
+    def get_service_support_volume_options(self, session: SessionClass, tenant_env, service):
         base_opts = [{"volume_type": "share-file", "name_show": "共享存储（文件）"},
                      {"volume_type": "memoryfs", "name_show": "临时存储"}]
         state = False
@@ -306,7 +306,7 @@ class AppVolumeService(object):
         if is_state(service.extend_method):
             state = True
             base_opts.append({"volume_type": "local", "name_show": "本地存储"})
-        body = remote_component_client.get_volume_options(session, service.service_region, tenant.tenant_name)
+        body = remote_component_client.get_volume_options(session, service.service_region, tenant_env)
         if body and hasattr(body, 'list') and body.list:
             for opt in body.list:
                 if len(opt["access_mode"]) > 0 and opt["access_mode"][0] == "RWO":
@@ -316,7 +316,7 @@ class AppVolumeService(object):
                     base_opts.append(opt)
         return base_opts
 
-    def delete_service_volume_by_id(self, session: SessionClass, tenant, service, volume_id, user_name=''):
+    def delete_service_volume_by_id(self, session: SessionClass, tenant_env, service, volume_id, user_name=''):
         volume = volume_repo.get_service_volume_by_pk(session, volume_id)
         if not volume:
             return 404, "需要删除的路径不存在", None
@@ -331,10 +331,10 @@ class AppVolumeService(object):
             try:
                 res, body = remote_component_client.delete_service_volumes(session,
                                                                            service.service_region,
-                                                                           tenant.tenant_name,
+                                                                           tenant_env,
                                                                            service.service_alias,
                                                                            volume.volume_name,
-                                                                           tenant.enterprise_id, data)
+                                                                           tenant_env.enterprise_id, data)
                 logger.debug(
                     "service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name,
                                                                        body))
@@ -347,22 +347,22 @@ class AppVolumeService(object):
 
         return 200, "success", volume
 
-    def delete_region_volumes(self, session: SessionClass, tenant, service):
+    def delete_region_volumes(self, session: SessionClass, tenant_env, service):
         volumes = volume_repo.get_service_volumes(session, service.service_id)
         for volume in volumes:
             try:
                 res, body = remote_component_client.delete_service_volumes(session,
                                                                            service.service_region,
-                                                                           tenant.tenant_name,
+                                                                           tenant_env,
                                                                            service.service_alias,
                                                                            volume.volume_name,
-                                                                           tenant.enterprise_id)
+                                                                           tenant_env.enterprise_id)
             except Exception as e:
                 logger.exception(e)
 
     def get_best_suitable_volume_settings(self,
                                           session: SessionClass,
-                                          tenant,
+                                          tenant_env,
                                           service,
                                           volume_type,
                                           access_mode=None,
@@ -380,7 +380,7 @@ class AppVolumeService(object):
         if volume_type in self.simple_volume_type:
             settings["changed"] = False
             return settings
-        opts = self.get_service_support_volume_options(session, tenant, service)
+        opts = self.get_service_support_volume_options(session, tenant_env, service)
         """
         1、先确定是否有相同的存储类型
         2、再确定是否有相同的存储提供方

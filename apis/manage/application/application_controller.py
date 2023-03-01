@@ -104,26 +104,21 @@ async def create_app(params: TeamAppCreateRequest,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/groups/{app_id}", response_model=Response, name="团队应用详情")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="团队应用详情")
 async def get_app_detail(
         request: Request,
+        env_id: Optional[int] = None,
         app_id: Optional[int] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
-        user=Depends(deps.get_current_user)) -> Any:
-    """
-    查询应用详情
-    :param app_id:
-    :return:
-    """
-    if not team:
-        raise ServiceHandleException(msg="not found team", msg_show="团队不存在", status_code=400)
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     region = await region_services.get_region_by_request(session, request)
     if not region:
         raise ServiceHandleException(msg="not found region", msg_show="数据中心不存在", status_code=400)
     region_name = region.region_name
-    app = application_service.get_app_detail(session=session, tenant=team, region_name=region_name, app_id=app_id)
+    app = application_service.get_app_detail(session=session, tenant_env=env, region_name=region_name, app_id=app_id)
     result = general_message(200, "success", "success", bean=jsonable_encoder(app))
     return JSONResponse(result, status_code=result["code"])
 
@@ -270,12 +265,16 @@ async def get_visit(app_id: Optional[str] = None,
     return JSONResponse(general_message(200, "success", "查询成功", list=result), status_code=200)
 
 
-@router.put("/teams/{team_name}/groups/{app_id}/volumes", response_model=Response, name="批量修改该应用下有状态组件的存储路径")
+@router.put("/teams/{team_name}/env/{env_id}/groups/{app_id}/volumes", response_model=Response,
+            name="批量修改该应用下有状态组件的存储路径")
 async def modify_storage_dir(
         request: Request,
+        env_id: Optional[str] = None,
         app_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -283,25 +282,22 @@ async def modify_storage_dir(
     region_name = region.region_name
 
     region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-    remote_component_client.change_application_volumes(session, team.tenant_name, region_name, region_app_id)
+    remote_component_client.change_application_volumes(session, env, region_name, region_app_id)
     result = general_message(200, "success", "存储路径修改成功")
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/groups/{group_id}/common_operation", response_model=Response, name="应用操作")
+@router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/common_operation", response_model=Response, name="应用操作")
 async def common_operation(
         request: Request,
         params: CommonOperation,
+        env_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        user=Depends(deps.get_current_user),
-        team=Depends(deps.get_current_team)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     action = params.action
-    perm_action = action
-
-    if action == "upgrade":
-        perm_action = "update"
-    if action == "deploy":
-        perm_action = "construct"
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     group_id = int(params.group_id)
     services = session.query(ComponentApplicationRelation).filter(
@@ -318,15 +314,12 @@ async def common_operation(
         service_obj = service_info_repo.get_service_by_service_id(session, service_id)
         if service_obj and service_obj.service_source == "third_party":
             service_ids.remove(service_id)
-
-    if not team:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     # 批量操作
-    app_manage_service.batch_operations(tenant=team, region_name=region_name, user=user, action=action,
+    app_manage_service.batch_operations(tenant_env=env, region_name=region_name, user=user, action=action,
                                         service_ids=service_ids, session=session)
     result = general_message(200, "success", "操作成功")
     return JSONResponse(result, status_code=result["code"])
@@ -414,13 +407,12 @@ async def app_share_record(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/groups/{group_id}/share/record", response_model=Response, name="应用发布到组件库")
+@router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record", response_model=Response, name="应用发布到组件库")
 async def app_share(request: Request,
                     team_name: Optional[str] = None,
+                    env_id: Optional[str] = None,
                     group_id: Optional[str] = None,
-                    session: SessionClass = Depends(deps.get_session),
-                    team=Depends(deps.get_current_team),
-                    user=Depends(deps.get_current_user)) -> Any:
+                    session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     生成分享订单，会验证是否能够分享
     ---
@@ -439,6 +431,9 @@ async def app_share(request: Request,
     data = await request.json()
     scope = data.get("scope")
     market_name = None
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if scope == "wutong":
         target = data.get("target")
         market_name = target.get("store_id")
@@ -450,7 +445,7 @@ async def app_share(request: Request,
             code = 400
             result = general_message(400, "group id error", "未分组应用不可分享")
             return JSONResponse(result, status_code=code)
-        team_id = team.tenant_id
+        team_id = env.tenant_id
         region = team_region_repo.get_region_by_tenant_id(session, team_id)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -464,7 +459,7 @@ async def app_share(request: Request,
             return JSONResponse(result, status_code=200)
         # 判断是否满足分享条件
         data = share_service.check_service_source(session=session,
-                                                  team=team, team_name=team_name, group_id=group_id,
+                                                  team=env, tenant_env=env, group_id=group_id,
                                                   region_name=response_region)
         if data and data["code"] == 400:
             return JSONResponse(data, status_code=data["code"])
@@ -834,12 +829,16 @@ async def get_compose_check_info(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/groups/{group_id}/delete", response_model=Response, name="放弃compose创建应用")
+@router.delete("/teams/{team_name}/env/{env_id}/groups/{group_id}/delete", response_model=Response,
+               name="放弃compose创建应用")
 async def delete_compose_create(
         request: Request,
+        env_id: Optional[str] = None,
         group_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     compose_id = data.get("compose_id", None)
     try:
@@ -853,7 +852,7 @@ async def delete_compose_create(
         return JSONResponse(general_message(400, "params error", "请指明需要删除的组标识 "), status_code=400)
     if not compose_id:
         return JSONResponse(general_message(400, "params error", "请指明需要删除的compose ID "), status_code=400)
-    compose_service.give_up_compose_create(session, team, group_id, compose_id)
+    compose_service.give_up_compose_create(session, env, group_id, compose_id)
     result = general_message(200, "compose delete success", "删除成功")
     return JSONResponse(result, status_code=result["code"])
 
@@ -898,17 +897,19 @@ async def install_market_app(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/groups/{group_id}/pods/{pod_name}", response_model=Response, name="查询实例信息")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/pods/{pod_name}", response_model=Response, name="查询实例信息")
 async def get_pod_view(
         request: Request,
+        env_id: Optional[str] = None,
         pod_name: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        user=Depends(deps.get_current_user),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
-    pod = application_service.get_pod(session, team, region_name, pod_name)
+    pod = application_service.get_pod(session, env, region_name, pod_name)
     result = general_message(200, "success", "查询成功", bean=pod)
     return JSONResponse(result, status_code=200)

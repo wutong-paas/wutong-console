@@ -1,9 +1,7 @@
 import json
 import os
-
 from loguru import logger
 from sqlalchemy import select
-
 from common.api_base_http_client import ApiBaseHttpClient
 from common.base_client_service import get_env_region_info, get_region_access_info, \
     get_region_access_info_by_enterprise_id
@@ -44,18 +42,6 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def get_service_info(self, session, region, tenant_env, service_alias):
-        """获取组件信息"""
-
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
-              "/services/" + service_alias
-
-        self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region)
-        return body
-
     def update_service(self, session, region, tenant_env, service_alias, body):
         """更新组件"""
 
@@ -93,30 +79,6 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
-        return body
-
-    def code_check(self, session, region, tenant_env, body):
-        """发送代码检测消息"""
-
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        # 更新tenant_id 为数据中心tenant_id
-        body["tenant_id"] = tenant_region.region_tenant_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
-              "/code-check"
-
-        self._set_headers(token)
-        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
-        return body
-
-    def get_service_language(self, session, region, service_id, tenant_env):
-        """获取组件语言"""
-
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
-        url += "/v2/builder/codecheck/service/{0}".format(service_id)
-
-        self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
     def add_service_dependency(self, session, region, tenant_env, service_alias, body):
@@ -243,18 +205,6 @@ class RemoteComponentClient(ApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return body
-
-    def update_service_state_label(self, session, region, tenant_env, service_alias, body):
-        """修改组件有无状态标签"""
-
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
-              "/services/" + service_alias + "/label"
-
-        self._set_headers(token)
-        res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
-        return res, body
 
     def get_service_pods(self, session, region, tenant_env, service_alias, enterprise_id):
         """获取组件pod信息"""
@@ -601,30 +551,6 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return res, body
 
-    def add_service_volume_dependency(self, session, region, tenant_env, service_alias, body):
-        """添加组件持久化挂载依赖"""
-
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
-              "/services/" + service_alias + "/volume-dependency"
-
-        self._set_headers(token)
-        res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
-        return body
-
-    def delete_service_volume_dependency(self, session, region, tenant_env, service_alias, body):
-        """删除组件持久化挂载依赖"""
-
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
-              "/services/" + service_alias + "/volume-dependency"
-
-        self._set_headers(token)
-        res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
-        return body
-
     def service_status(self, session, region, tenant_env, body):
         """获取多个组件的状态"""
 
@@ -682,18 +608,6 @@ class RemoteComponentClient(ApiBaseHttpClient):
             return body
         return None
 
-    def get_docker_log_instance(self, session, region, tenant_env, service_alias, enterprise_id):
-        """获取日志实体"""
-
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
-              "/services/" + service_alias + "/log-instance?enterprise_id=" + enterprise_id
-
-        self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region)
-        return body
-
     def get_service_logs(self, session, region, tenant_env, service_alias, rows):
         """获取组件日志"""
         url, token = get_region_access_info(tenant_env.env_name, region, session)
@@ -717,11 +631,11 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
-    def get_component_log(self, session, tenant_name, tenant_env, region_name, service_alias, pod_name, container_name,
+    def get_component_log(self, session, tenant_env, region_name, service_alias, pod_name, container_name,
                           follow=False):
         """
-
-        :param tenant_name:
+        :param session:
+        :param tenant_env:
         :param region_name:
         :param service_alias:
         :param pod_name:
@@ -732,7 +646,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_env.env_name, region_name, session)
         follow = "true" if follow else "false"
         url += "/v2/tenants/{}/envs/{}/services/{}/log?podName={}&containerName={}&follow={}".format(
-            tenant_name, tenant_env.env_name, service_alias, pod_name, container_name, follow)
+            tenant_env.tenant_name, tenant_env.env_name, service_alias, pod_name, container_name, follow)
         self._set_headers(token)
         resp, _ = self._get(session, url, self._set_headers(token), region=region_name, preload_content=False)
         return resp
@@ -752,21 +666,12 @@ class RemoteComponentClient(ApiBaseHttpClient):
         token = region_info.token
         return url, token
 
-    def change_application_volumes(self, session, tenant_name, tenant_env, region_name, region_app_id):
-        url, token = self.__get_region_access_info(session, tenant_name, region_name)
-        url = url + "/v2/tenants/{}/envs/{}/apps/{}/volumes".format(tenant_name, tenant_env.env_name, region_app_id)
+    def change_application_volumes(self, session, tenant_env, region_name, region_app_id):
+        url, token = self.__get_region_access_info(session, tenant_env.tenant_name, region_name)
+        url = url + "/v2/tenants/{}/envs/{}/apps/{}/volumes".format(tenant_env.tenant_name, tenant_env.env_name, region_app_id)
         self._set_headers(token)
         resp, _ = self._put(session, url, self._set_headers(token), region=region_name)
         return resp
-
-    def get_helm_chart_resources(self, session, region_name, tenant_env, body):
-        url, token = get_region_access_info(tenant_env.env_name, region_name, session)
-        url = url + "/v2/helm/{}/apps/{}/resources".format(body["helm_namespace"],
-                                                           body["helm_name"])
-
-        self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region_name)
-        return body["list"]
 
     def get_helm_chart_apps(self, session, region_name, tenant_env, body):
         url, token = get_region_access_info(tenant_env.env_name, region_name, session)

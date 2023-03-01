@@ -6,17 +6,18 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 
 router = APIRouter()
 
 
-@router.get("/obs/teams/{team_name}/apps/{serviceAlias}/pods", response_model=Response, name="obs获取组件实例信息")
+@router.get("/obs/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/pods", response_model=Response, name="obs获取组件实例信息")
 async def get_pods_info(
+        env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
         pod_name: Optional[str] = "all",
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
      obs获取组件实例
      ---
@@ -33,14 +34,17 @@ async def get_pods_info(
            paramType: path
      """
     pods_info = {}
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     service_pods_info = remote_component_client.get_service_pods(session,
                                                                  service.service_region,
-                                                                 team.tenant_name,
+                                                                 env,
                                                                  service.service_alias,
-                                                                 team.enterprise_id)
+                                                                 env.enterprise_id)
     if service_pods_info["bean"]:
 
         def foobar(data):

@@ -13,7 +13,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
 
     """
 
-    def build_plugin(self, session: SessionClass, region, plugin, plugin_version, user, tenant, event_id,
+    def build_plugin(self, session: SessionClass, region, plugin, plugin_version, user, tenant_env, event_id,
                      image_info=None):
 
         build_data = dict()
@@ -29,7 +29,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         build_data["repo_url"] = plugin_version.code_version
         build_data["username"] = plugin.username  # git username
         build_data["password"] = plugin.password  # git password
-        build_data["tenant_id"] = tenant.tenant_id
+        build_data["tenant_id"] = tenant_env.tenant_id
         build_data["ImageInfo"] = image_info
         if len(plugin.image.split(':')) > 1:
             build_data["build_image"] = plugin.image
@@ -44,7 +44,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
             plugin_from = None
         build_data["plugin_from"] = plugin_from
 
-        body = remote_plugin_client.build_plugin(session, region, tenant.tenant_name, plugin.plugin_id, build_data)
+        body = remote_plugin_client.build_plugin(session, region, tenant_env, plugin.plugin_id, build_data)
         return body
 
     def get_plugin_buildversion(self, session, plugin_id, version):

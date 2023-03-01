@@ -9,6 +9,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_label_repo import node_label_repo, label_repo, service_label_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.label_service import label_service
@@ -43,24 +44,22 @@ async def get_env(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/labels/available", response_model=Response, name="添加特性获取可用标签")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/labels/available", response_model=Response,
+            name="添加特性获取可用标签")
 async def get_available_labels(
         request: Request,
+        env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
-    """
-    添加特性获取可用标签
-    :param request:
-    :param args:
-    :param kwargs:
-    :return:
-    """
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     # 节点添加的标签和数据中心查询回来的标签才可被组件使用
     node_labels = node_label_repo.get_all_labels(session)
     labels_list = list()
@@ -71,7 +70,7 @@ async def get_available_labels(
         for label_obj in label_obj_list:
             labels_name_list.append(label_obj.label_name)
     # 查询数据中心可使用的标签
-    labels = label_service.list_available_labels(session=session, tenant=team, region_name=region_name)
+    labels = label_service.list_available_labels(session=session, tenant_env=env, region_name=region_name)
     for label in labels:
         labels_name_list.append(label.label_name)
 
@@ -95,12 +94,12 @@ async def get_available_labels(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/labels", response_model=Response, name="添加组件标签")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/labels", response_model=Response, name="添加组件标签")
 async def set_available_labels(request: Request,
+                               env_id: Optional[str] = None,
                                serviceAlias: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
-                               user=Depends(deps.get_current_user),
-                               team=Depends(deps.get_current_team)) -> Any:
+                               user=Depends(deps.get_current_user)) -> Any:
     """
     添加组件标签
     ---
@@ -121,12 +120,15 @@ async def set_available_labels(request: Request,
           type: string
           paramType: body
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = await request.json()
     label_ids = data.get("label_ids", None)
     if not label_ids:
         return JSONResponse(general_message(400, "param error", "标签ID未指定"), status_code=400)
-    code, msg, event = label_service.add_service_labels(session=session, tenant=team, service=service,
+    code, msg, event = label_service.add_service_labels(session=session, tenant_env=env, service=service,
                                                         label_ids=label_ids, user_name=user.nick_name)
     if code != 200:
         return JSONResponse(general_message(code, "add labels error", msg), status_code=code)
@@ -134,12 +136,12 @@ async def set_available_labels(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/labels", response_model=Response, name="删除组件标签")
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/labels", response_model=Response, name="删除组件标签")
 async def delete_available_labels(request: Request,
+                                  env_id: Optional[str] = None,
                                   serviceAlias: Optional[str] = None,
                                   session: SessionClass = Depends(deps.get_session),
-                                  user=Depends(deps.get_current_user),
-                                  team=Depends(deps.get_current_team)) -> Any:
+                                  user=Depends(deps.get_current_user)) -> Any:
     """
     删除组件标签
     ---
@@ -160,7 +162,10 @@ async def delete_available_labels(request: Request,
           type: string
           paramType: form
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = await request.json()
     label_id = data.get("label_id", None)
     if not label_id:
@@ -168,7 +173,7 @@ async def delete_available_labels(request: Request,
     service_label = service_label_repo.get_service_label(session, service.service_id, label_id)
     if not service_label:
         return JSONResponse(general_message(400, "tag does not exist", "标签不存在"), status_code=400)
-    code, msg, event = label_service.delete_service_label(session=session, tenant=team, service=service,
+    code, msg, event = label_service.delete_service_label(session=session, tenant_env=env, service=service,
                                                           label_id=label_id, user_name=user.nick_name)
     if code != 200:
         return JSONResponse(general_message(code, "add labels error", msg), status_code=code)

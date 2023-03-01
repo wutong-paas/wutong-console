@@ -11,6 +11,7 @@ from database.session import SessionClass
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.region.region_info_repo import region_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from schemas.team import CloseTeamAppParam
 from service.app_actions.app_log import event_service
@@ -22,16 +23,20 @@ from service.tenant_env_service import env_services
 router = APIRouter()
 
 
-@router.post("/teams/{team_name}/apps/close", response_model=Response, name="关闭团队应用")
+@router.post("/teams/{team_name}/env/{env_id}/apps/close", response_model=Response, name="关闭团队应用")
 async def close_teams_app(params: Optional[CloseTeamAppParam] = CloseTeamAppParam(),
+                          env_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          user=Depends(deps.get_current_user),
-                          team=Depends(deps.get_current_team)) -> Any:
+                          user=Depends(deps.get_current_user)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if params.region_name:
-        app_manage_service.close_all_component_in_tenant(session=session, tenant=team, region_name=params.region_name,
+        app_manage_service.close_all_component_in_tenant(session=session, tenant_env=env,
+                                                         region_name=params.region_name,
                                                          user=user)
     else:
-        app_manage_service.close_all_component_in_team(session=session, tenant=team, user=user)
+        app_manage_service.close_all_component_in_team(session=session, tenant_env=env, user=user)
     return JSONResponse(general_message(200, "success", "操作成功"), status_code=200)
 
 
@@ -52,13 +57,13 @@ def __sort_events(event1, event2):
         return 0
 
 
-@router.get("/teams/{team_name}/apps", response_model=Response, name="总览团队应用信息")
+@router.get("/teams/{team_name}/env/{env_id}/apps", response_model=Response, name="总览团队应用信息")
 async def overview_team_app_info(request: Request,
                                  page: int = Query(default=1, ge=1, le=9999),
                                  page_size: int = Query(default=10, ge=1, le=500),
                                  team_name: Optional[str] = None,
-                                 session: SessionClass = Depends(deps.get_session),
-                                 team=Depends(deps.get_current_team)) -> Any:
+                                 env_id: Optional[str] = None,
+                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     总览 团队应用信息
     """
@@ -78,9 +83,11 @@ async def overview_team_app_info(request: Request,
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
-
-    groups = application_repo.get_tenant_region_groups(session, team.tenant_id, region_name, query)
+    groups = application_repo.get_tenant_region_groups(session, env.tenant_id, region_name, query)
     total = len(groups)
     app_num_dict = {"total": total}
     start = (page - 1) * page_size
@@ -90,7 +97,7 @@ async def overview_team_app_info(request: Request,
         group_ids = [group.ID for group in groups]
         apps, count = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids,
                                                                   region=region_name,
-                                                                  tenant_name=team_name, tenant=team, status=status)
+                                                                  tenant_name=team_name, tenant_env=env, status=status)
 
     apps = apps[start:end]
     app_num_dict.update(count)
@@ -98,18 +105,21 @@ async def overview_team_app_info(request: Request,
                         status_code=200)
 
 
-@router.get("/teams/{team_name}/services/event", response_model=Response, name="应用事件动态")
+@router.get("/teams/{team_name}/env/{env_id}/services/event", response_model=Response, name="应用事件动态")
 async def env_services_event(
         # request: Request,
+        env_id: Optional[str] = None,
         page: int = Query(default=1, ge=1, le=9999),
         page_size: int = Query(default=3, ge=1, le=500),
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     组件事件动态
     """
     # page = request.query_params.get("page", 1)
     # page_size = request.query_params.get("page_size", 3)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     total = 0
     region_list = region_repo.get_team_opened_region(session, team.tenant_name)
@@ -118,8 +128,8 @@ async def env_services_event(
         for region in region_list:
             try:
                 events, event_count, has_next = event_service.get_target_events(session=session, target="tenant",
-                                                                                target_id=team.tenant_id,
-                                                                                tenant=team,
+                                                                                target_id=env.tenant_id,
+                                                                                tenant_env=env,
                                                                                 region=region.region_name,
                                                                                 page=int(page),
                                                                                 page_size=int(page_size))
@@ -155,17 +165,20 @@ async def env_services_event(
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/again_delete", response_model=Response, name="二次确认删除应用")
+@router.delete("/teams/{team_name}/env/{env_id}/again_delete", response_model=Response, name="二次确认删除应用")
 async def again_delete_app(request: Request,
+                           env_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
-                           user=Depends(deps.get_current_user),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           user=Depends(deps.get_current_user)) -> Any:
     """
     二次确认删除组件
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     service_id = data.get("service_id", None)
     service = service_info_repo.get_service_by_service_id(session, service_id)
-    app_manage_service.delete_again(session, user, team, service, is_force=True)
+    app_manage_service.delete_again(session, user, env, service, is_force=True)
     result = general_message(200, "success", "操作成功", bean={})
     return JSONResponse(result, status_code=result["code"])

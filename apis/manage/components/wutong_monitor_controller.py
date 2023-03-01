@@ -10,6 +10,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_config.promql_service import promql_service
 
@@ -36,11 +37,12 @@ def get_sufix_path(request, query=""):
     return sufix
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/monitor/query", response_model=Response, name="查询组件监控信息")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/monitor/query", response_model=Response,
+            name="查询组件监控信息")
 async def get_monitor_info(request: Request,
+                           env_id: Optional[str] = None,
                            serviceAlias: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           session: SessionClass = Depends(deps.get_session)) -> Any:
     """
      监控信息查询
      ---
@@ -58,12 +60,15 @@ async def get_monitor_info(request: Request,
 
      """
     try:
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         query = request.query_params.get("query", "")
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
         if "service_id" not in query:
             query = promql_service.add_or_update_label(service.service_id, query)
         sufix = "?" + get_sufix_path(request, query)
-        res, body = remote_build_client.get_query_data(session, service.service_region, team.tenant_name, sufix)
+        res, body = remote_build_client.get_query_data(session, service.service_region, env, sufix)
         result = general_message(200, "success", "查询成功", bean=body["data"])
     except Exception as e:
         logger.debug(e)
@@ -71,12 +76,12 @@ async def get_monitor_info(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/monitor/query_range", response_model=Response, name="查询组件监控信息范围")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/monitor/query_range", response_model=Response,
+            name="查询组件监控信息范围")
 async def get_monitor_info(request: Request,
+                           env_id: Optional[str] = None,
                            serviceAlias: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session),
-                           user=Depends(deps.get_current_user),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           session: SessionClass = Depends(deps.get_session)) -> Any:
     """
      监控信息范围查询
      ---
@@ -94,13 +99,16 @@ async def get_monitor_info(request: Request,
 
      """
     try:
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         query = request.query_params.get("query", "")
         disable_auto_label = request.query_params.get("disable_auto_label", "false")
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
         if "service_id" not in query and disable_auto_label == "false":
             query = promql_service.add_or_update_label(service.service_id, query)
         sufix = "?" + get_sufix_path(request, query)
-        res, body = remote_build_client.get_query_range_data(session, service.service_region, team.tenant_name, sufix)
+        res, body = remote_build_client.get_query_range_data(session, service.service_region, env, sufix)
         result = general_message(200, "success", "查询成功", bean=body["data"])
     except Exception as e:
         logger.exception(e)

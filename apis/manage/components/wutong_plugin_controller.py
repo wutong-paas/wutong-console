@@ -93,7 +93,7 @@ async def install_sys_plugin(request: Request,
     service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys", service.service_region)
     if not plugins:
-        plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=env, region=response_region,
+        plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant_env=env, region=response_region,
                                                       plugin_type=plugin_type, build_version=build_version)
     else:
         plugin_id = None
@@ -123,12 +123,12 @@ async def install_sys_plugin(request: Request,
                                                                                             build_version)
                         plugin_repo.build_plugin(session=session, region=service.service_region, plugin=plugin,
                                                  plugin_version=plugin_build_version, user=user,
-                                                 tenant=env,
+                                                 tenant_env=env,
                                                  event_id=plugin_build_version.event_id)
                         plugin_build_version.build_status = "build_success"
 
         if not plugin_id:
-            plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant=env,
+            plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant_env=env,
                                                           region=response_region,
                                                           plugin_type=plugin_type, build_version=build_version)
 
@@ -138,13 +138,13 @@ async def install_sys_plugin(request: Request,
                                              service_id=service.service_id)
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
-    app_plugin_service.add_filemanage_port(session=session, tenant=env, service=service, plugin_id=plugin_id,
+    app_plugin_service.add_filemanage_port(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                            container_port="6173", user=user)
-    app_plugin_service.add_filemanage_mount(session=session, tenant=env, service=service, plugin_id=plugin_id,
+    app_plugin_service.add_filemanage_mount(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
-    app_plugin_service.add_init_agent_mount(session=session, tenant=env, service=service, plugin_id=plugin_id,
+    app_plugin_service.add_init_agent_mount(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
-    app_plugin_service.modify_init_agent_env(session=session, tenant=env, service=service, plugin_id=plugin_id,
+    app_plugin_service.modify_init_agent_env(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                              user=user)
 
     result = general_message(200, "success", "安装成功")
@@ -198,7 +198,7 @@ async def install_plugin(request: Request,
         return JSONResponse(general_message(400, "not found plugin_id", "参数错误"), status_code=400)
     pbv = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
     if pbv.build_status == "building":
-        status = plugin_version_service.get_region_plugin_build_status(session, response_region, env.tenant_name,
+        status = plugin_version_service.get_region_plugin_build_status(session, response_region, env,
                                                                        pbv.plugin_id,
                                                                        pbv.build_version)
         pbv.build_status = status
@@ -218,15 +218,16 @@ async def install_plugin(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/plugins/{plugin_id}/install", response_model=Response,
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/install",
+               response_model=Response,
                name="组件卸载插件")
 async def delete_plugin(
         request: Request,
+        env_id: Optional[str] = None,
         plugin_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        user=Depends(deps.get_current_user),
-        team=Depends(deps.get_current_team)) -> Any:
+        user=Depends(deps.get_current_user)) -> Any:
     """
     组件卸载插件
     ---
@@ -247,11 +248,14 @@ async def delete_plugin(
           type: string
           paramType: path
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     body = dict()
     body["operator"] = user.nick_name
     plugin = plugin_repo.get_plugin_detail_by_plugin_id(session, plugin_id)
@@ -260,7 +264,7 @@ async def delete_plugin(
     else:
         result_bean = service_plugin_config_repo.get_service_plugin_config(session, service.service_id, plugin_id)
     remote_plugin_client.uninstall_service_plugin(session,
-                                                  response_region, team.tenant_name, plugin_id,
+                                                  response_region, env, plugin_id,
                                                   service.service_alias, body)
     app_plugin_service.delete_service_plugin_relation(session=session, service=service, plugin_id=plugin_id)
     app_plugin_service.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
@@ -273,22 +277,22 @@ async def delete_plugin(
         if not config_attr_port:
             config_attr_port = attrs.get("PORT")
 
-        app_plugin_service.delete_filemanage_service_plugin_port(session=session, team=team, service=service,
+        app_plugin_service.delete_filemanage_service_plugin_port(session=session, tenant_env=env, service=service,
                                                                  response_region=response_region, plugin_id=plugin_id,
                                                                  container_port=config_attr_port, user=user)
-    app_plugin_service.update_java_agent_plugin_env(session=session, team=team, service=service,
+    app_plugin_service.update_java_agent_plugin_env(session=session, tenant_env=env, service=service,
                                                     plugin_id=plugin_id, user=user)
 
     return JSONResponse(general_message(200, "success", "卸载成功"), status_code=200)
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/plugins/{plugin_id}/open", response_model=Response, name="启停组件插件")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/open", response_model=Response,
+            name="启停组件插件")
 async def open_or_stop_plugin(request: Request,
+                              env_id: Optional[str] = None,
                               plugin_id: Optional[str] = None,
                               serviceAlias: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team),
-                              user=Depends(deps.get_current_user)) -> Any:
+                              session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     启停用组件插件
     ---
@@ -319,9 +323,12 @@ async def open_or_stop_plugin(request: Request,
           type: boolean
           paramType: form
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin_id", "参数异常"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -349,7 +356,7 @@ async def open_or_stop_plugin(request: Request,
         data["plugin_cpu"] = int(cpu)
     # 更新数据中心数据参数
     remote_plugin_client.update_plugin_service_relation(session,
-                                                        response_region, team.tenant_name,
+                                                        response_region, env,
                                                         service.service_alias,
                                                         data)
     # 更新本地数据
@@ -409,13 +416,13 @@ async def get_plugin_config(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/plugins/{plugin_id}/configs", response_model=Response,
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/configs", response_model=Response,
             name="更新组件插件配置")
 async def update_plugin_config(request: Request,
+                               env_id: Optional[str] = None,
                                plugin_id: Optional[str] = None,
                                serviceAlias: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
-                               team=Depends(deps.get_current_team),
                                user=Depends(deps.get_current_user)) -> Any:
     """
     组件插件配置更新
@@ -443,6 +450,9 @@ async def update_plugin_config(request: Request,
           paramType: body
 
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     config = await request.json()
     if not config:
         return JSONResponse(general_message(400, "params error", "参数配置不可为空"), status_code=400)
@@ -450,21 +460,21 @@ async def update_plugin_config(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    pbv = plugin_version_service.get_newest_usable_plugin_version(session=session, tenant_id=team.tenant_id,
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    pbv = plugin_version_service.get_newest_usable_plugin_version(session=session, tenant_id=env.tenant_id,
                                                                   plugin_id=plugin_id)
     if not pbv:
         return JSONResponse(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status_code=400)
 
-    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=team, service=service,
+    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=env, service=service,
                                                                plugin_id=plugin_id, build_version=pbv.build_version)
 
     # update service plugin config
-    app_plugin_service.update_service_plugin_config(session=session, tenant=team, service=service,
+    app_plugin_service.update_service_plugin_config(session=session, tenant_env=env, service=service,
                                                     plugin_id=plugin_id, build_version=pbv.build_version, config=config,
                                                     response_region=response_region)
 
-    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
+    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.tenant_id, plugin_id)
     if plugin_info:
         if plugin_info.origin_share_id == "filebrowser_plugin":
             old_config_attr_info = result_bean["undefine_env"]["config"]
@@ -474,7 +484,7 @@ async def update_plugin_config(request: Request,
             config_attr_dir = config_attr_info[1]["attr_value"]
 
             if old_config_attr_dir != config_attr_dir:
-                app_plugin_service.add_filemanage_mount(session=session, tenant=team, service=service,
+                app_plugin_service.add_filemanage_mount(session=session, tenant_env=env, service=service,
                                                         plugin_id=plugin_id,
                                                         plugin_version=pbv.build_version, user=user)
         if plugin_info.origin_share_id == "redis_dbgate_plugin" or plugin_info.origin_share_id == "mysql_dbgate_plugin":
@@ -493,7 +503,7 @@ async def update_plugin_config(request: Request,
                     port = config["attr_value"]
                     break
             if old_port != port:
-                code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
+                code, msg, data = port_service.manage_port(session=session, tenant_env=env, service=service,
                                                            region_name=response_region, container_port=old_port,
                                                            action="close_inner",
                                                            protocol="http", port_alias=None,
@@ -501,12 +511,12 @@ async def update_plugin_config(request: Request,
 
                 if code != 200:
                     logger.debug("close file manager inner error", msg)
-                port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
+                port_service.delete_port_by_container_port(session=session, tenant_env=env, service=service,
                                                            container_port=int(old_port),
                                                            user_name=user.nick_name)
                 port_alias = service.service_alias.upper().replace("-", "_") + str(port)
                 try:
-                    port_service.add_service_port(session=session, tenant=team, service=service,
+                    port_service.add_service_port(session=session, tenant_env=env, service=service,
                                                   container_port=port, protocol="http",
                                                   port_alias=port_alias,
                                                   is_inner_service=True,

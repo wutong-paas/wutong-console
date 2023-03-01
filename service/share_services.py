@@ -37,8 +37,8 @@ from service.plugin.plugin_config_service import plugin_config_service
 
 class ShareService(object):
 
-    def get_sync_plugin_events(self, session, region_name, tenant_name, record_event):
-        res, body = remote_plugin_client.share_plugin_result(session, region_name, tenant_name, record_event.plugin_id,
+    def get_sync_plugin_events(self, session, region_name, tenant_env, record_event):
+        res, body = remote_plugin_client.share_plugin_result(session, region_name, tenant_env, record_event.plugin_id,
                                                              record_event.region_share_id)
         ret = body.get('bean')
         if ret and ret.get('status'):
@@ -46,7 +46,7 @@ class ShareService(object):
             # record_event.save()
         return record_event
 
-    def sync_service_plugin_event(self, session, user, region_name, tenant_name, record_id, record_event):
+    def sync_service_plugin_event(self, session, user, region_name, tenant_env, record_id, record_event):
         apps_version = center_app_repo.get_wutong_app_version_by_record_id(session, record_event.record_id)
         if not apps_version:
             raise RbdAppNotFound("分享的应用不存在")
@@ -68,7 +68,7 @@ class ShareService(object):
                     "image_info": plugin.get("plugin_image") if plugin.get("plugin_image") else {},
                 }
                 try:
-                    res, body = remote_plugin_client.share_plugin(session, region_name, tenant_name,
+                    res, body = remote_plugin_client.share_plugin(session, region_name, tenant_env,
                                                                   plugin["plugin_id"], body)
                     data = body.get("bean")
                     if not data:
@@ -647,13 +647,13 @@ class ShareService(object):
             temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
-    def check_service_source(self, session: SessionClass, team, team_name, group_id, region_name):
+    def check_service_source(self, session: SessionClass, team, tenant_env, group_id, region_name):
         service_list = component_share_repo.get_service_list_by_group_id(session=session, team=team, group_id=group_id)
         if service_list:
             # 批量查询组件状态
             service_ids = [service.service_id for service in service_list]
             status_list = base_service.status_multi_service(session=session,
-                                                            region=region_name, tenant_name=team_name,
+                                                            region=region_name, tenant_env=tenant_env,
                                                             service_ids=service_ids, enterprise_id=team.enterprise_id)
             for status in status_list:
                 if status["status"] == "running":
@@ -1090,7 +1090,7 @@ class ShareService(object):
         session.flush()
         return event
 
-    def sync_event(self, session, user, region_name, tenant_name, record_event):
+    def sync_event(self, session, user, region_name, tenant_env, record_event):
         app_version = center_app_repo.get_wutong_app_version_by_record_id(session=session,
                                                                           record_id=record_event.record_id)
         if not app_version:
@@ -1121,7 +1121,7 @@ class ShareService(object):
                     re_body = None
                     try:
                         res, re_body = remote_build_client.share_service(session,
-                                                                         region_name, tenant_name,
+                                                                         region_name, tenant_env,
                                                                          record_event.service_alias, body)
                         bean = re_body.get("bean")
                         if bean:
@@ -1162,9 +1162,9 @@ class ShareService(object):
             logger.exception(e)
             raise ServiceHandleException(msg="share failed", msg_show="应用分享介质同步发生错误", status_code=500)
 
-    def get_sync_event_result(self, session, region_name, tenant_name, record_event):
+    def get_sync_event_result(self, session, region_name, tenant_env, record_event):
         res, re_body = remote_build_client.share_service_result(session,
-                                                                region_name, tenant_name, record_event.service_alias,
+                                                                region_name, tenant_env, record_event.service_alias,
                                                                 record_event.region_share_id)
         bean = re_body.get("bean")
         if bean and bean.get("status", None):

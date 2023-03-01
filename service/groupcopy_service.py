@@ -222,8 +222,8 @@ class GroupAppCopyService(object):
         migrate_service.save_data(session, env, region_name, user, changed_service_map, metadata, group_id,
                                   same_team, same_region)
 
-    def build_services(self, session, user, tenant, region_name, group_id, change_services_map):
-        group_services = base_service.get_group_services_list(session, tenant.tenant_id, region_name, group_id)
+    def build_services(self, session, user, tenant_env, region_name, group_id, change_services_map):
+        group_services = base_service.get_group_services_list(session, tenant_env.tenant_id, region_name, group_id)
         change_service_ids = [change_service["ServiceID"] for change_service in list(change_services_map.values())]
         if not group_services:
             return []
@@ -234,14 +234,14 @@ class GroupAppCopyService(object):
             if service.service_id in change_service_ids:
                 if service.service_source == "third_party":
                     # 数据中心连接创建第三方组件
-                    new_service = application_service.create_third_party_service(session, tenant, service,
+                    new_service = application_service.create_third_party_service(session, tenant_env, service,
                                                                                  user.nick_name)
                 else:
                     # 数据中心创建组件
-                    new_service = application_service.create_region_service(session, tenant, service, user.nick_name)
+                    new_service = application_service.create_region_service(session, tenant_env, service, user.nick_name)
                 service = new_service
                 # 部署组件
-                app_manage_service.deploy(session, tenant, service, user)
+                app_manage_service.deploy(session, tenant_env, service, user)
 
                 # 添加组件部署关系
                 application_service.create_deploy_relation_by_service_id(session=session, service_id=service.service_id)
@@ -260,8 +260,8 @@ class GroupAppCopyService(object):
                         event_id = make_uuid()
                         plugin_version.event_id = event_id
                         image_tag = (plugin_version.image_tag if plugin_version.image_tag else "latest")
-                        plugin_service.create_region_plugin(session, region_name, tenant, plugin, image_tag=image_tag)
-                        ret = plugin_service.build_plugin(session, region_name, plugin, plugin_version, user, tenant, event_id)
+                        plugin_service.create_region_plugin(session, region_name, tenant_env, plugin, image_tag=image_tag)
+                        ret = plugin_service.build_plugin(session, region_name, plugin, plugin_version, user, tenant_env, event_id)
                         plugin_version.build_status = ret.get('bean').get('status')
                         # plugin_version.save()
                     except Exception as e:
@@ -279,7 +279,7 @@ class GroupAppCopyService(object):
                         data["plugin_memory"] = service_plugin.min_memory
                         data.update(region_config)
                         remote_plugin_client.install_service_plugin(session,
-                                                                    region_name, tenant.tenant_name,
+                                                                    region_name, tenant_env,
                                                                     service.service_alias, data)
                     except remote_plugin_client.CallApiError as e:
                         logger.debug(e)

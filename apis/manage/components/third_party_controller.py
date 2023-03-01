@@ -2,14 +2,11 @@ import base64
 import os
 import pickle
 from typing import Any, Optional
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from loguru import logger
-
 from clients.remote_build_client import remote_build_client
 from core import deps
-
 from core.utils.return_message import general_message
 from core.utils.validation import validate_endpoints_info
 from database.session import SessionClass
@@ -20,7 +17,7 @@ from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import service_endpoints_repo
 from repository.component.third_party_repo import third_party_repo
-from repository.teams.team_region_repo import team_region_repo
+from repository.teams.env_repo import env_repo
 from schemas.components import ThirdPartyCreateParam
 from schemas.response import Response
 from service.app_config.port_service import endpoint_service
@@ -108,14 +105,18 @@ async def third_party(request: Request,
     return result
 
 
-@router.get("/teams/{team_name}/apps/{service_alias}/third_party/pods",
+@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/third_party/pods",
             response_model=Response, name="获取第三方组件实例信息")
-async def get_third_party_pods(service_alias: Optional[str] = None,
-                               session: SessionClass = Depends(deps.get_session),
-                               team=Depends(deps.get_current_team)) -> Any:
+async def get_third_party_pods(
+        env_id: Optional[str] = None,
+        service_alias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
     res, body = remote_build_client.get_third_party_service_pods(session,
-                                                                 service.service_region, team.tenant_name,
+                                                                 service.service_region, env,
                                                                  service.service_alias)
     if res.status != 200:
         return JSONResponse(general_message(412, "region error", "数据中心查询失败"), status_code=412)
@@ -128,21 +129,24 @@ async def get_third_party_pods(service_alias: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/apps/{service_alias}/third_party/pods",
+@router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/third_party/pods",
              response_model=Response, name="添加第三方组件实例信息")
 async def add_third_party_pods(
         request: Request,
+        env_id: Optional[str] = None,
         service_alias: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     address = data.get("ip", None)
     if not address:
         return JSONResponse(general_message(400, "end_point is null", "end_point未指明"), status_code=400)
     service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
     validate_endpoints_info([address])
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     try:
-        endpoint_service.add_endpoint(session, team, service, address)
+        endpoint_service.add_endpoint(session, env, service, address)
     except CheckThirdpartEndpointFailed as e:
         session.rollback()
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
@@ -151,12 +155,15 @@ async def add_third_party_pods(
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/apps/{service_alias}/third_party/pods",
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{service_alias}/third_party/pods",
                response_model=Response, name="删除第三方组件实例信息")
 async def delete_third_party_pods(request: Request,
+                                  env_id: Optional[str] = None,
                                   service_alias: Optional[str] = None,
-                                  session: SessionClass = Depends(deps.get_session),
-                                  team=Depends(deps.get_current_team)) -> Any:
+                                  session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     ep_id = data.get("ep_id", None)
     if not ep_id:
@@ -169,14 +176,14 @@ async def delete_third_party_pods(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     res, body = remote_build_client.delete_third_party_service_endpoints(session,
-                                                                         response_region, team.tenant_name,
+                                                                         response_region, env,
                                                                          service.service_alias, endpoint_dict)
     res, new_body = remote_build_client.get_third_party_service_pods(session,
-                                                                     service.service_region, team.tenant_name,
+                                                                     service.service_region, env,
                                                                      service.service_alias)
     new_endpoint_list = new_body.get("list", [])
     new_endpoints = [endpoint.address for endpoint in new_endpoint_list]
-    service_endpoints_repo.update_or_create_endpoints(session, team, service, new_endpoints)
+    service_endpoints_repo.update_or_create_endpoints(session, env, service, new_endpoints)
     logger.debug('-------res------->{0}'.format(res))
     logger.debug('=======body=======>{0}'.format(body))
 

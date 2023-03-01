@@ -15,6 +15,7 @@ from models.component.models import TeamComponentInfo, DeployRelation
 from repository.application.app_repository import service_webhooks_repo
 from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_component_repo import team_component_repo
 from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
@@ -235,12 +236,16 @@ async def update_deploy_mode(
         status_code=200)
 
 
-@router.post("/image/webhooks/{service_id}", response_model=Response, name="镜像仓库webhooks回调")
+@router.post("/env/{env_id}/image/webhooks/{service_id}", response_model=Response, name="镜像仓库webhooks回调")
 async def update_deploy_mode(
         request: Request,
+        env_id: Optional[str] = None,
         service_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         service_obj = service_info_repo.get_service_by_service_id(session, service_id)
         if not service_obj:
@@ -294,13 +299,14 @@ async def update_deploy_mode(
 
         service_info_repo.change_service_image_tag(session, service_obj, tag)
         # 获取组件状态
-        status_map = application_service.get_service_status(session, tenant_obj, service_obj)
+        status_map = application_service.get_service_status(session, env, service_obj)
         status = status_map.get("status", None)
         user_obj = idaas_api.get_user_info(service_obj.creater)
         committer_name = pusher
         if status != "closed":
             return app_manage_service.deploy_service(
-                session=session, tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj, committer_name=committer_name)
+                session=session, tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj,
+                committer_name=committer_name)
         else:
             result = general_message(400, "failed", "组件状态处于关闭中，不支持自动构建")
             return JSONResponse(result, status_code=400)

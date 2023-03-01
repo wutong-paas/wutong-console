@@ -13,6 +13,7 @@ from database.session import SessionClass
 from exceptions.main import AbortRequest, ErrVolumePath, ServiceHandleException
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import volume_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_config.volume_service import volume_service
 from service.mnt_service import mnt_service
@@ -29,11 +30,11 @@ def ensure_volume_mode(mode):
     return mode
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/volumes", response_model=Response, name="获取组件的持久化路径")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes", response_model=Response, name="获取组件的持久化路径")
 async def get_volume_dir(request: Request,
+                         env_id: Optional[str] = None,
                          serviceAlias: Optional[str] = None,
-                         session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+                         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件的持久化路径
     ---
@@ -49,9 +50,12 @@ async def get_volume_dir(request: Request,
           type: string
           paramType: path
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
-    volumes = volume_service.get_service_volumes(session=session, tenant=team, service=service,
+    volumes = volume_service.get_service_volumes(session=session, tenant_env=env, service=service,
                                                  is_config_file=is_config)
     volumes_list = []
     if is_config:
@@ -62,7 +66,7 @@ async def get_volume_dir(request: Request,
                 tenant_service_volume["file_content"] = cf_file.file_content
             volumes_list.append(tenant_service_volume)
     else:
-        dependents = mnt_service.get_volume_dependent(session=session, tenant=team, service=service)
+        dependents = mnt_service.get_volume_dependent(session=session, tenant=env, service=service)
         name2deps = {}
         if dependents:
             for dep in dependents:
@@ -76,12 +80,13 @@ async def get_volume_dir(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/volumes", response_model=Response, name="为组件添加存储")
-async def add_volume(request: Request,
-                     serviceAlias: Optional[str] = None,
-                     session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team)) -> Any:
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes", response_model=Response, name="为组件添加存储")
+async def add_volume(
+        request: Request,
+        env_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     """
     为组件添加持久化目录
     ---
@@ -113,7 +118,10 @@ async def add_volume(request: Request,
           paramType: form
 
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = await request.json()
     volume_name = data.get("volume_name", None)
     r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
@@ -143,7 +151,7 @@ async def add_volume(request: Request,
     try:
         data = volume_service.add_service_volume(
             session=session,
-            tenant=team,
+            tenant_env=env,
             service=service,
             volume_path=volume_path,
             volume_type=volume_type,
@@ -160,13 +168,14 @@ async def add_volume(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/volumes/{volume_id}", response_model=Response, name="修改存储设置")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes/{volume_id}", response_model=Response,
+            name="修改存储设置")
 async def modify_volume(request: Request,
+                        env_id: Optional[str] = None,
                         serviceAlias: Optional[str] = None,
                         volume_id: Optional[str] = None,
                         session: SessionClass = Depends(deps.get_session),
-                        user=Depends(deps.get_current_user),
-                        team=Depends(deps.get_current_team)) -> Any:
+                        user=Depends(deps.get_current_user)) -> Any:
     """
     修改存储设置
     :param request:
@@ -174,7 +183,9 @@ async def modify_volume(request: Request,
     :param kwargs:
     :return:
     """
-    # try:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     new_volume_path = data.get("new_volume_path", None)
     new_file_content = data.get("new_file_content", None)
@@ -196,7 +207,7 @@ async def modify_volume(request: Request,
         if new_volume_path == volume.volume_path:
             return JSONResponse(general_message(400, "no change", "没有变化，不需要修改"), status_code=400)
 
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = {
         "volume_name": volume.volume_name,
         "volume_path": new_volume_path,
@@ -206,7 +217,7 @@ async def modify_volume(request: Request,
         "mode": mode,
     }
     res, body = remote_component_client.upgrade_service_volumes(session,
-                                                                service.service_region, team.tenant_name,
+                                                                service.service_region, env,
                                                                 service.service_alias, data)
     if res.status == 200:
         volume.volume_path = new_volume_path
@@ -220,12 +231,14 @@ async def modify_volume(request: Request,
     return JSONResponse(general_message(405, "success", "修改失败"), status_code=405)
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/volumes/{volume_id}", response_model=Response, name="删除组件的某个存储")
-async def delete_volume(serviceAlias: Optional[str] = None,
-                        volume_id: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session),
-                        user=Depends(deps.get_current_user),
-                        team=Depends(deps.get_current_team)) -> Any:
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes/{volume_id}", response_model=Response,
+               name="删除组件的某个存储")
+async def delete_volume(
+        env_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        volume_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     """
     删除组件的某个持久化路径
     ---
@@ -247,10 +260,13 @@ async def delete_volume(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if not volume_id:
         return JSONResponse(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant=team, service=service,
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env, service=service,
                                                                    volume_id=int(volume_id),
                                                                    user_name=user.nick_name)
     result = general_message(200, "success", "删除成功")

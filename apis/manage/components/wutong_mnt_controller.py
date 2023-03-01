@@ -10,6 +10,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.application.app_repository import app_repo
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.mnt_service import mnt_service
 
@@ -83,12 +84,12 @@ async def get_mnt(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/mnt", response_model=Response, name="获取组件挂载的组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/mnt", response_model=Response, name="获取组件挂载的组件")
 async def set_mnt(request: Request,
+                  env_id: Optional[str] = None,
                   serviceAlias: Optional[str] = None,
                   session: SessionClass = Depends(deps.get_session),
-                  user=Depends(deps.get_current_user),
-                  team=Depends(deps.get_current_team)) -> Any:
+                  user=Depends(deps.get_current_user)) -> Any:
     """
     为组件添加挂载依赖
     ---
@@ -110,25 +111,32 @@ async def set_mnt(request: Request,
           paramType: body
 
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = await request.json()
     dep_vol_data = data["body"]
     dep_vol_data = json.loads(dep_vol_data)
-    mnt_service.batch_mnt_serivce_volume(session=session, tenant=team, service=service, dep_vol_data=dep_vol_data,
+    mnt_service.batch_mnt_serivce_volume(session=session, tenant_env=env, service=service, dep_vol_data=dep_vol_data,
                                          user_name=user.nick_name)
     result = general_message(200, "success", "操作成功")
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/mnt/{dep_vol_id}", response_model=Response, name="取消挂载共享配置文件")
-async def delete_mnt(dep_vol_id: Optional[str] = None,
-                     serviceAlias: Optional[str] = None,
-                     session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-
-    code, msg = mnt_service.delete_service_mnt_relation(session, team, service, dep_vol_id, user.nick_name)
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/mnt/{dep_vol_id}", response_model=Response,
+               name="取消挂载共享配置文件")
+async def delete_mnt(
+        env_id: Optional[str] = None,
+        dep_vol_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    code, msg = mnt_service.delete_service_mnt_relation(session, env, service, dep_vol_id, user.nick_name)
 
     if code != 200:
         return JSONResponse(general_message(code, "add error", msg), status_code=code)

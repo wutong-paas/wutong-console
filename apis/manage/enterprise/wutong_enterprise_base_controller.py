@@ -2,11 +2,9 @@ from typing import Optional, Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from loguru import logger
 from sqlalchemy import select
 from starlette import status
 from core import deps
-from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from models.region.models import EnvRegionInfo

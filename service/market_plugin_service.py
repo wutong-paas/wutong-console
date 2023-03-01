@@ -3,7 +3,7 @@ from database.session import SessionClass
 from repository.market.center_repo import center_app_repo
 
 
-def get_sync_event_result(session: SessionClass, region_name, tenant_name, record_event):
+def get_sync_event_result(session: SessionClass, region_name, tenant_env, record_event):
     """
     获取插件同步结果
 
@@ -13,7 +13,7 @@ def get_sync_event_result(session: SessionClass, region_name, tenant_name, recor
     :return:
     """
     res, body = remote_plugin_client.share_plugin_result(session,
-                                                         region_name, tenant_name, record_event.plugin_id,
+                                                         region_name, tenant_env, record_event.plugin_id,
                                                          record_event.region_share_id)
     ret = body.get('bean')
     if ret and ret.get('status'):

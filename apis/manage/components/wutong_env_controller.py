@@ -10,6 +10,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_env_service import env_var_service
 
@@ -157,12 +158,12 @@ async def get_env(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/envs", response_model=Response, name="为组件添加环境变量")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/envs", response_model=Response, name="为组件添加环境变量")
 async def add_env(request: Request,
+                  env_id: Optional[str] = None,
                   serviceAlias: Optional[str] = None,
                   session: SessionClass = Depends(deps.get_session),
-                  user=Depends(deps.get_current_user),
-                  team=Depends(deps.get_current_team)) -> Any:
+                  user=Depends(deps.get_current_user)) -> Any:
     """
     为组件添加环境变量
     ---
@@ -204,19 +205,22 @@ async def add_env(request: Request,
           paramType: form
 
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     name = data.get("name", "")
     attr_name = data.get("attr_name", "")
     attr_value = data.get("attr_value", "")
     scope = data.get('scope', "")
     is_change = data.get('is_change', True)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     # try:
     if not scope or not attr_name:
         return JSONResponse(general_message(400, "params error", "参数异常"), status_code=400)
     if scope not in ("inner", "outer"):
         return JSONResponse(general_message(400, "params error", "scope范围只能是inner或outer"), status_code=400)
-    code, msg, data = env_var_service.add_service_env_var(session=session, tenant=team, service=service,
+    code, msg, data = env_var_service.add_service_env_var(session=session, tenant_env=env, service=service,
                                                           container_port=0, name=name, attr_name=attr_name,
                                                           attr_value=attr_value,
                                                           is_change=is_change, scope=scope, user_name=user.nick_name)
@@ -227,12 +231,13 @@ async def add_env(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/envs/{env_id}", response_model=Response, name="删除组件环境变量")
+@router.delete("/teams/{team_name}/env/{tenant_env_id}/apps/{serviceAlias}/envs/{env_id}", response_model=Response,
+               name="删除组件环境变量")
 async def delete_env(serviceAlias: Optional[str] = None,
+                     tenant_env_id: Optional[str] = None,
                      env_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team)) -> Any:
+                     user=Depends(deps.get_current_user)) -> Any:
     """
     删除组件的某个环境变量
     ---
@@ -254,27 +259,33 @@ async def delete_env(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    if not env_id:
-        return JSONResponse(general_message(400, "env_id not specify", "环境变量ID未指定"))
-    env_var_service.delete_env_by_env_id(session=session, tenant=team, service=service, env_id=env_id,
+    tenant_env = env_repo.get_env_by_env_id(session, tenant_env_id)
+    if not tenant_env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, tenant_env.tenant_id)
+    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service, env_id=env_id,
                                          user_name=user.nick_name)
     result = general_message(200, "success", "删除成功")
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.patch("/teams/{team_name}/apps/{serviceAlias}/envs/{env_id}", response_model=Response, name="变更环境变量范围")
+@router.patch("/teams/{team_name}/env/{tenant_env_id}/apps/{serviceAlias}/envs/{env_id}", response_model=Response,
+              name="变更环境变量范围")
 async def move_env(request: Request,
                    serviceAlias: Optional[str] = None,
+                   tenant_env_id: Optional[str] = None,
                    env_id: Optional[str] = None,
                    session: SessionClass = Depends(deps.get_session),
-                   user=Depends(deps.get_current_user),
-                   team=Depends(deps.get_current_team)) -> Any:
+                   user=Depends(deps.get_current_user)) -> Any:
     """变更环境变量范围"""
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    tenant_env = env_repo.get_env_by_env_id(session, tenant_env_id)
+    if not tenant_env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, tenant_env.tenant_id)
     # todo await
     scope = await parse_item(request, 'scope', required=True, error="scope is is a required parameter")
-    env = env_var_service.patch_env_scope(session=session, tenant=team, service=service, env_id=env_id, scope=scope,
+    env = env_var_service.patch_env_scope(session=session, tenant_env=tenant_env, service=service, env_id=env_id,
+                                          scope=scope,
                                           user_name=user.nick_name)
     if env:
         return JSONResponse(general_message(code=200, msg="success", msg_show="更新成功", bean=jsonable_encoder(env)),
@@ -283,13 +294,14 @@ async def move_env(request: Request,
         return JSONResponse(general_message(code=200, msg="success", msg_show="更新成功", bean={}), status_code=200)
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/envs/{env_id}", response_model=Response, name="修改组件环境变量")
+@router.put("/teams/{team_name}/env/{tenant_env_id}/apps/{serviceAlias}/envs/{env_id}", response_model=Response,
+            name="修改组件环境变量")
 async def modify_env(request: Request,
+                     tenant_env_id: Optional[str] = None,
                      serviceAlias: Optional[str] = None,
                      env_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team)) -> Any:
+                     user=Depends(deps.get_current_user)) -> Any:
     """
     修改组件环境变量
     ---
@@ -321,15 +333,18 @@ async def modify_env(request: Request,
           paramType: form
 
     """
+    tenant_env = env_repo.get_env_by_env_id(session, tenant_env_id)
+    if not tenant_env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if not env_id:
         return JSONResponse(general_message(400, "env_id not specify", "环境变量ID未指定"))
     data = await request.json()
     name = data.get("name", "")
     attr_value = data.get("attr_value", "")
 
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, tenant_env.tenant_id)
 
-    code, msg, env = env_var_service.update_env_by_env_id(session=session, tenant=team, service=service,
+    code, msg, env = env_var_service.update_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
                                                           env_id=env_id, name=name, attr_value=attr_value,
                                                           user_name=user.nick_name)
     if code != 200:

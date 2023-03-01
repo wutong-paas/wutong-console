@@ -10,7 +10,7 @@ from repository.component.autoscaler_repo import autoscaler_rules_repo, autoscal
 
 
 class AutoscalerService(object):
-    def update_autoscaler_rule(self, session, region_name, tenant_name, service_alias, rule_id, data, user_name=''):
+    def update_autoscaler_rule(self, session, region_name, tenant_env, service_alias, rule_id, data, user_name=''):
         # create autoscaler rule
         autoscaler_rule = {
             "xpa_type": data["xpa_type"],
@@ -44,7 +44,7 @@ class AutoscalerService(object):
         autoscaler_rule["metrics"] = metrics
         autoscaler_rule["operator"] = user_name
 
-        remote_build_client.update_xpa_rule(session, region_name, tenant_name, service_alias, data=autoscaler_rule)
+        remote_build_client.update_xpa_rule(session, region_name, tenant_env, service_alias, data=autoscaler_rule)
 
         return autoscaler_rule
 
@@ -57,7 +57,7 @@ class AutoscalerService(object):
         res["metrics"] = [jsonable_encoder(m) for m in metrics]
         return res
 
-    def create_autoscaler_rule(self, session, region_name, tenant_name, service_alias, data):
+    def create_autoscaler_rule(self, session, region_name, tenant_env, service_alias, data):
         # create autoscaler rule
         autoscaler_rule = {
             "rule_id": make_uuid(),
@@ -92,7 +92,7 @@ class AutoscalerService(object):
 
         autoscaler_rule["metrics"] = metrics
 
-        remote_build_client.create_xpa_rule(session, region_name, tenant_name, service_alias, data=autoscaler_rule)
+        remote_build_client.create_xpa_rule(session, region_name, tenant_env, service_alias, data=autoscaler_rule)
         return autoscaler_rule
 
     def list_autoscaler_rules(self, session: SessionClass, service_id):
@@ -122,9 +122,9 @@ class AutoscalerService(object):
 
 
 class ScalingRecordsService(object):
-    def list_scaling_records(self, session: SessionClass, region_name, tenant_name, service_alias, page=None,
+    def list_scaling_records(self, session: SessionClass, region_name, tenant_env, service_alias, page=None,
                              page_size=None):
-        body = remote_build_client.list_scaling_records(session, region_name, tenant_name, service_alias, page,
+        body = remote_build_client.list_scaling_records(session, region_name, tenant_env, service_alias, page,
                                                         page_size)
         return body["bean"]
 

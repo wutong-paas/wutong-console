@@ -30,7 +30,7 @@ async def add_env(request: Request,
         result = general_message(400, "failed", "参数错误")
         return JSONResponse(status_code=403, content=result)
     env_alias = from_data["env_alias"]
-    useable_regions = from_data["useable_regions"]
+    region_name = from_data["region_name"]
     env_name = from_data["env_name"]
     namespace = team_name + "-" + env_name
     tenant_id = from_data["tenant_id"]
@@ -42,10 +42,6 @@ async def add_env(request: Request,
     if not env_alias:
         result = general_message(400, "env name not null", "环境名不能为空")
         return JSONResponse(status_code=400, content=result)
-
-    regions = []
-    if useable_regions:
-        regions = useable_regions.split(",")
 
     env = env_repo.env_is_exists_by_env_name(session, tenant_id, env_alias, enterprise_id)
     if env:
@@ -65,17 +61,16 @@ async def add_env(request: Request,
     env = env_repo.create_env(session, user, enterprise, env_name, env_alias, tenant_id, team_name, namespace, desc)
     exist_namespace_region_names = []
 
-    for r in regions:
-        try:
-            region_services.create_env_on_region(session=session, env=env, region_name=r, namespace=env.namespace,
-                                                 team_id=tenant_id,
-                                                 team_name=team_name)
-        except ErrNamespaceExists:
-            exist_namespace_region_names.append(r)
-        except ServiceHandleException as e:
-            logger.error(e)
-        except Exception as e:
-            logger.error(e)
+    try:
+        region_services.create_env_on_region(session=session, env=env, region_name=region_name, namespace=env.namespace,
+                                             team_id=tenant_id,
+                                             team_name=team_name)
+    except ErrNamespaceExists:
+        exist_namespace_region_names.append(region_name)
+    except ServiceHandleException as e:
+        logger.error(e)
+    except Exception as e:
+        logger.error(e)
     if len(exist_namespace_region_names) > 0:
         exist_namespace_region = ""
         for region_name in exist_namespace_region_names:
@@ -100,7 +95,7 @@ async def delete_env(request: Request,
     """
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:
-        return JSONResponse(general_message(403, "env not exist", "环境不存在"), status_code=400)
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     try:
         env_services.delete_by_env_id(session=session, user=user, env=env)
         result = general_message(200, "delete a team successfully", "删除环境成功")
@@ -124,7 +119,7 @@ async def modify_env(request: Request,
     desc = data.get("desc", None)
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:
-        return JSONResponse(general_message(403, "env not exist", "环境不存在"), status_code=400)
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     env.env_alias = env_name
     env.desc = desc
@@ -134,7 +129,7 @@ async def modify_env(request: Request,
 
 
 @router.get("/teams/{team_name}/query/envs", response_model=Response, name="查询团队下环境")
-async def get_query(
+async def get_team_envs(
         team_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -150,7 +145,7 @@ async def get_query(
 
 
 @router.get("/pallet/all/envs", response_model=Response, name="查询全部环境")
-async def get_all_env(
+async def get_all_envs(
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询团队下环境
@@ -165,7 +160,7 @@ async def get_all_env(
 
 
 @router.get("/teams/{team_name}/env/{env_id}", response_model=Response, name="查询单个环境")
-async def get_env_by_envid(
+async def get_env_by_env_id(
         request: Request,
         env_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:

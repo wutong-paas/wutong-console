@@ -61,7 +61,7 @@ class AppEnvVarService(object):
             return envs
 
     def add_service_env_var(self, session: SessionClass,
-                            tenant,
+                            tenant_env,
                             service,
                             container_port,
                             name,
@@ -101,11 +101,11 @@ class AppEnvVarService(object):
                 "scope": scope,
                 "env_name": attr_name,
                 "env_value": str(attr_value),
-                "enterprise_id": tenant.enterprise_id,
+                "enterprise_id": tenant_env.enterprise_id,
                 "operator": user_name
             }
             remote_component_client.add_service_env(session,
-                                                    service.service_region, tenant.tenant_name,
+                                                    service.service_region, tenant_env,
                                                     service.service_alias, attr)
         add_model: ComponentEnvVar = ComponentEnvVar(**tenant_service_env_var)
         session.add(add_model)
@@ -120,15 +120,15 @@ class AppEnvVarService(object):
             return False, "变量名称{0}不符合规范".format(attr_name)
         return True, "success"
 
-    def delete_env_by_container_port(self, session: SessionClass, tenant, service, container_port, user_name=''):
-        envs = env_var_repo.get_service_env_by_port(session, tenant.tenant_id, service.service_id, container_port)
+    def delete_env_by_container_port(self, session: SessionClass, tenant_env, service, container_port, user_name=''):
+        envs = env_var_repo.get_service_env_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
         if service.create_status == "complete":
             for env in envs:
-                data = {"env_name": env.attr_name, "enterprise_id": tenant.enterprise_id, "operator": user_name}
+                data = {"env_name": env.attr_name, "enterprise_id": tenant_env.enterprise_id, "operator": user_name}
                 remote_component_client.delete_service_env(session,
-                                                           service.service_region, tenant.tenant_name,
+                                                           service.service_region, tenant_env,
                                                            service.service_alias, data)
-        env_var_repo.delete_service_env_by_port(session, tenant.tenant_id, service.service_id, container_port)
+        env_var_repo.delete_service_env_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
 
     def get_service_build_envs(self, session: SessionClass, service):
         if service:
@@ -160,39 +160,39 @@ class AppEnvVarService(object):
         session.flush()
         return 200, 'success', new_env
 
-    def delete_region_env(self, session: SessionClass, tenant, service):
+    def delete_region_env(self, session: SessionClass, tenant_env, service):
         if service:
             envs = env_var_repo.get_service_env(session, service.tenant_id, service.service_id)
             for env in envs:
-                data = {"env_name": env.attr_name, "enterprise_id": tenant.enterprise_id}
+                data = {"env_name": env.attr_name, "enterprise_id": tenant_env.enterprise_id}
                 try:
                     remote_component_client.delete_service_env(session,
-                                                               service.service_region, tenant.tenant_name,
+                                                               service.service_region, tenant_env,
                                                                service.service_alias, data)
                 except Exception as e:
                     logger.exception(e)
 
-    def delete_env_by_env_id(self, session: SessionClass, tenant, service, env_id, user_name=''):
+    def delete_env_by_env_id(self, session: SessionClass, tenant_env, service, env_id, user_name=''):
         env = env_var_repo.get_by_primary_key(session=session, primary_key=env_id)
         if env:
-            env_var_repo.delete_service_env_by_attr_name(session, tenant.tenant_id, service.service_id, env.attr_name)
+            env_var_repo.delete_service_env_by_attr_name(session, tenant_env.tenant_id, service.service_id, env.attr_name)
             if service.create_status == "complete":
                 remote_component_client.delete_service_env(session,
                                                            service.service_region,
-                                                           tenant.tenant_name, service.service_alias,
+                                                           tenant_env, service.service_alias,
                                                            {
                                                                "env_name": env.attr_name,
-                                                               "enterprise_id": tenant.enterprise_id,
+                                                               "enterprise_id": tenant_env.enterprise_id,
                                                                "operator": user_name
                                                            })
 
-    def patch_env_scope(self, session: SessionClass, tenant, service, env_id, scope, user_name=''):
+    def patch_env_scope(self, session: SessionClass, tenant_env, service, env_id, scope, user_name=''):
         env = env_var_repo.get_by_primary_key(session=session, primary_key=env_id)
         if env:
             if service.create_status == "complete":
                 body = {"env_name": env.attr_name, "env_value": env.attr_value, "scope": scope, "operator": user_name}
                 remote_component_client.update_service_env(session,
-                                                           service.service_region, tenant.tenant_name,
+                                                           service.service_region, tenant_env,
                                                            service.service_alias, body)
             env_var_repo.change_service_env_scope(env, scope)
             return env
@@ -202,19 +202,19 @@ class AppEnvVarService(object):
                                status_code=404,
                                error_code=400)
 
-    def update_env_by_env_id(self, session: SessionClass, tenant, service, env_id, name, attr_value, user_name=''):
+    def update_env_by_env_id(self, session: SessionClass, tenant_env, service, env_id, name, attr_value, user_name=''):
         env_id = env_id.strip()
         attr_value = attr_value.strip()
         env = env_var_repo.get_by_primary_key(session=session, primary_key=env_id)
         if not env:
             return 404, "环境变量不存在", None
         update_params = {"ID": env.ID, "name": name, "attr_value": attr_value,
-                         "tenant_id": tenant.tenant_id, "service_id": service.service_id,
+                         "tenant_id": tenant_env.tenant_id, "service_id": service.service_id,
                          "attr_name": env.attr_name}
         if service.create_status == "complete":
             body = {"env_name": env.attr_name, "env_value": attr_value, "scope": env.scope, "operator": user_name}
             remote_component_client.update_service_env(session,
-                                                       service.service_region, tenant.tenant_name,
+                                                       service.service_region, tenant_env,
                                                        service.service_alias, body)
         env_var_repo.update_by_primary_key(session=session, update_model=ComponentEnvVar(**update_params))
         env.name = name

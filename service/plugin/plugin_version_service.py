@@ -75,9 +75,9 @@ class PluginBuildVersionService(object):
         plugin_version_repo.delete_build_version(session, tenant_id, plugin_id, build_version)
         return 200, "删除成功"
 
-    def get_region_plugin_build_status(self, session, region, tenant_name, plugin_id, build_version):
+    def get_region_plugin_build_status(self, session, region, tenant_env, plugin_id, build_version):
         try:
-            body = remote_plugin_client.get_build_status(session, region, tenant_name, plugin_id, build_version)
+            body = remote_plugin_client.get_build_status(session, region, tenant_env, plugin_id, build_version)
             status = body["bean"]["status"]
             rt_status = REGION_BUILD_STATUS_MAP[status]
         except remote_plugin_client.CallApiError as e:
@@ -87,20 +87,22 @@ class PluginBuildVersionService(object):
                 rt_status = "unknown"
         return rt_status
 
-    def update_plugin_build_status(self, session, region, tenant):
+    def update_plugin_build_status(self, session, region, tenant_env):
         logger.debug("start thread to update build status")
         pbvs = plugin_version_repo.get_plugin_build_version_by_tenant_and_region(
-            session, tenant.tenant_id, region)
+            session, tenant_env.tenant_id, region)
         if pbvs:
             for pbv in pbvs:
-                status = self.get_region_plugin_build_status(session, region, tenant.tenant_name, pbv.plugin_id, pbv.build_version)
+                status = self.get_region_plugin_build_status(session, region, tenant_env, pbv.plugin_id,
+                                                             pbv.build_version)
                 pbv.build_status = status
 
-    def get_plugin_build_status(self, session, region, tenant, plugin_id, build_version):
+    def get_plugin_build_status(self, session, region, tenant_env, plugin_id, build_version):
         pbv = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
 
         if pbv.build_status == "building":
-            status = self.get_region_plugin_build_status(session, region, tenant.tenant_name, pbv.plugin_id, pbv.build_version)
+            status = self.get_region_plugin_build_status(session, region, tenant_env, pbv.plugin_id,
+                                                         pbv.build_version)
             pbv.build_status = status
             # pbv.save()
         return pbv

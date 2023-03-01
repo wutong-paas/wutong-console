@@ -1,15 +1,13 @@
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
-
 from core import deps
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import AbortRequest
 from repository.component.group_service_repo import service_info_repo
-from repository.teams.team_region_repo import team_region_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_config.extend_service import extend_service
 from service.autoscaler_service import autoscaler_service, scaling_records_service
@@ -71,41 +69,46 @@ async def get_xparuler(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/xparules", response_model=Response, name="添加组件伸缩规则")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules", response_model=Response, name="添加组件伸缩规则")
 async def set_xparuler(request: Request,
+                       env_id: Optional[str] = None,
                        serviceAlias: Optional[str] = None,
-                       session: SessionClass = Depends(deps.get_session),
-                       team=Depends(deps.get_current_team)) -> Any:
+                       session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     await validate_parameter(data)
-
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     data["service_id"] = service.service_id
-    res = autoscaler_service.create_autoscaler_rule(session, region_name, team.tenant_name,
+    res = autoscaler_service.create_autoscaler_rule(session, region_name, env,
                                                     service.service_alias,
                                                     data)
     result = general_message(200, "success", "创建成功", bean=res)
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/xparecords", response_model=Response, name="查询组件伸缩规则")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparecords", response_model=Response, name="查询组件伸缩规则")
 async def get_xparecords(request: Request,
+                         env_id: Optional[str] = None,
                          serviceAlias: Optional[str] = None,
-                         session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+                         session: SessionClass = Depends(deps.get_session)) -> Any:
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = scaling_records_service.list_scaling_records(session=session, region_name=region_name,
-                                                        tenant_name=team.tenant_name,
+                                                        tenant_env=env,
                                                         service_alias=service.service_alias, page=page,
                                                         page_size=page_size)
     result = general_message(200, "success", "查询成功", bean=data)
@@ -159,21 +162,25 @@ async def get_xparules_index(rule_id: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/xparules/{rule_id}", response_model=Response, name="创建组件伸缩指标")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules/{rule_id}", response_model=Response,
+            name="创建组件伸缩指标")
 async def set_xparules_index(request: Request,
+                             env_id: Optional[str] = None,
                              serviceAlias: Optional[str] = None,
                              rule_id: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
-                             user=Depends(deps.get_current_user),
-                             team=Depends(deps.get_current_team)) -> Any:
+                             user=Depends(deps.get_current_user)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     await validate_parameter(data)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    res = autoscaler_service.update_autoscaler_rule(session, region_name, team.tenant_name,
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    res = autoscaler_service.update_autoscaler_rule(session, region_name, env,
                                                     service.service_alias,
                                                     rule_id, data, user.nick_name)
 

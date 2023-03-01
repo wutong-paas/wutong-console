@@ -66,14 +66,14 @@ class AppPortService:
             logger.exception(e)
             raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
 
-    def change_port_alias(self, session: SessionClass, tenant, service, deal_port, new_port_alias, k8s_service_name,
+    def change_port_alias(self, session: SessionClass, tenant_env, service, deal_port, new_port_alias, k8s_service_name,
                           user_name=''):
-        app = application_repo.get_by_service_id(session=session, tenant_id=tenant.tenant_id,
+        app = application_repo.get_by_service_id(session=session, tenant_id=tenant_env.tenant_id,
                                                  service_id=service.service_id)
 
         old_port_alias = deal_port.port_alias
         deal_port.port_alias = new_port_alias
-        envs = env_var_service.get_env_by_container_port(session=session, tenant=tenant, service=service,
+        envs = env_var_service.get_env_by_container_port(session=session, tenant=tenant_env, service=service,
                                                          container_port=deal_port.container_port)
         for env in envs:
             old_env_attr_name = env.attr_name
@@ -86,10 +86,10 @@ class AppPortService:
                     env.attr_value = "127.0.0.1"
             if service.create_status == "complete":
                 remote_component_client.delete_service_env(session,
-                                                           service.service_region, tenant.tenant_name,
+                                                           service.service_region, tenant_env,
                                                            service.service_alias, {
                                                                "env_name": old_env_attr_name,
-                                                               "enterprise_id": tenant.enterprise_id,
+                                                               "enterprise_id": tenant_env.enterprise_id,
                                                                "operator": user_name
                                                            })
                 # step 2 添加新的
@@ -100,15 +100,15 @@ class AppPortService:
                     "is_change": env.is_change,
                     "name": env.name,
                     "scope": env.scope,
-                    "enterprise_id": tenant.enterprise_id,
+                    "enterprise_id": tenant_env.enterprise_id,
                     "operator": user_name
                 }
                 remote_component_client.add_service_env(session,
-                                                        service.service_region, tenant.tenant_name,
+                                                        service.service_region, tenant_env,
                                                         service.service_alias, add_env)
 
         if k8s_service_name:
-            self.check_k8s_service_name(session, tenant.tenant_id, k8s_service_name, deal_port.service_id,
+            self.check_k8s_service_name(session, tenant_env.tenant_id, k8s_service_name, deal_port.service_id,
                                         deal_port.container_port)
             deal_port.k8s_service_name = k8s_service_name
 
@@ -116,19 +116,19 @@ class AppPortService:
             body = jsonable_encoder(deal_port)
             body["port_alias"] = new_port_alias
             body["k8s_service_name"] = k8s_service_name
-            self.update_service_port(session, tenant, service.service_region,
+            self.update_service_port(session, tenant_env, service.service_region,
                                      service.service_alias, body, user_name)
 
         # deal_port.save()
 
-    def update_service_port(self, session: SessionClass, tenant, region_name, service_alias, body, user_name=''):
-        remote_component_client.update_service_port(session, region_name, tenant.tenant_name, service_alias, {
+    def update_service_port(self, session: SessionClass, tenant_env, region_name, service_alias, body, user_name=''):
+        remote_component_client.update_service_port(session, region_name, tenant_env, service_alias, {
             "port": [body],
-            "enterprise_id": tenant.enterprise_id,
+            "enterprise_id": tenant_env.enterprise_id,
             "operator": user_name
         })
 
-    def __change_protocol(self, session: SessionClass, tenant, service, deal_port, protocol, user_name=''):
+    def __change_protocol(self, session: SessionClass, tenant_env, service, deal_port, protocol, user_name=''):
         if deal_port.protocol == protocol:
             return 200, "协议未发生变化"
         deal_port.protocol = protocol
@@ -141,40 +141,40 @@ class AppPortService:
             body = jsonable_encoder(deal_port)
             body["protocol"] = protocol
             body["operator"] = user_name
-            self.update_service_port(session=session, tenant=tenant, region_name=service.service_region,
+            self.update_service_port(session=session, tenant_env=tenant_env, region_name=service.service_region,
                                      service_alias=service.service_alias, body=body)
         return 200, "success"
 
-    def __close_inner(self, session: SessionClass, tenant, service, deal_port, user_name=''):
+    def __close_inner(self, session: SessionClass, tenant_env, service, deal_port, user_name=''):
         deal_port.is_inner_service = False
         if service.create_status == "complete":
             remote_component_client.manage_inner_port(session,
-                                                      service.service_region, tenant.tenant_name,
+                                                      service.service_region, tenant_env,
                                                       service.service_alias,
                                                       deal_port.container_port, {
                                                           "operation": "close",
-                                                          "enterprise_id": tenant.enterprise_id,
+                                                          "enterprise_id": tenant_env.enterprise_id,
                                                           "operator": user_name
                                                       })
         # component port change, will change entrance network governance plugin configuration
         if service.create_status == "complete":
-            plugin_service.update_config_if_have_entrance_plugin(session=session, tenant=tenant, service=service)
+            plugin_service.update_config_if_have_entrance_plugin(session=session, tenant_env=tenant_env, service=service)
         return 200, "success"
 
-    def __open_inner(self, session: SessionClass, tenant, service, deal_port, user_name=''):
+    def __open_inner(self, session: SessionClass, tenant_env, service, deal_port, user_name=''):
         if not deal_port.port_alias:
             return 409, "请先为端口设置别名"
         deal_port.is_inner_service = True
         mapping_port = deal_port.container_port
         deal_port.mapping_port = mapping_port
         # 删除原有环境变量
-        env_var_service.delete_env_by_container_port(session=session, tenant=tenant, service=service,
+        env_var_service.delete_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
                                                      container_port=deal_port.container_port)
 
         env_prefix = deal_port.port_alias.upper() if bool(deal_port.port_alias) else service.service_key.upper()
 
         # 添加环境变量
-        app = application_repo.get_by_service_id(session=session, tenant_id=tenant.tenant_id,
+        app = application_repo.get_by_service_id(session=session, tenant_id=tenant_env.tenant_id,
                                                  service_id=service.service_id)
         if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
             host_value = deal_port.k8s_service_name if deal_port.k8s_service_name else service.service_alias + "-" + str(
@@ -182,14 +182,14 @@ class AppPortService:
         else:
             host_value = "127.0.0.1"
         code, msg, data = env_var_service.add_service_env_var(session=session,
-                                                              tenant=tenant, service=service,
+                                                              tenant_env=tenant_env, service=service,
                                                               container_port=deal_port.container_port, name="连接地址",
                                                               attr_name=env_prefix + "_HOST", attr_value=host_value,
                                                               is_change=False, scope="outer")
         if code != 200 and code != 412:
             return code, msg
         code, msg, data = env_var_service.add_service_env_var(session=session,
-                                                              tenant=tenant, service=service,
+                                                              tenant_env=tenant_env, service=service,
                                                               container_port=deal_port.container_port, name="端口",
                                                               attr_name=env_prefix + "_PORT", attr_value=mapping_port,
                                                               is_change=False, scope="outer")
@@ -198,29 +198,29 @@ class AppPortService:
 
         if service.create_status == "complete":
             body = remote_component_client.manage_inner_port(session,
-                                                             service.service_region, tenant.tenant_name,
+                                                             service.service_region, tenant_env,
                                                              service.service_alias,
                                                              deal_port.container_port, {
                                                                  "operation": "open",
-                                                                 "enterprise_id": tenant.enterprise_id,
+                                                                 "enterprise_id": tenant_env.enterprise_id,
                                                                  "operator": user_name
                                                              })
             logger.debug("open inner port {0}".format(body))
 
         # component port change, will change entrance network governance plugin configuration
         if service.create_status == "complete":
-            plugin_service.update_config_if_have_entrance_plugin(session=session, tenant=tenant, service=service)
+            plugin_service.update_config_if_have_entrance_plugin(session=session, tenant_env=tenant_env, service=service)
         return 200, "success"
 
-    def __close_outer(self, session: SessionClass, tenant, service, deal_port, user_name=''):
+    def __close_outer(self, session: SessionClass, tenant_env, service, deal_port, user_name=''):
         deal_port.is_outer_service = False
         if service.create_status == "complete":
             remote_component_client.manage_outer_port(session,
-                                                      service.service_region, tenant.tenant_name,
+                                                      service.service_region, tenant_env,
                                                       service.service_alias,
                                                       deal_port.container_port, {
                                                           "operation": "close",
-                                                          "enterprise_id": tenant.enterprise_id,
+                                                          "enterprise_id": tenant_env.enterprise_id,
                                                           "operator": user_name
                                                       })
         # 改变httpdomain表中端口状态
@@ -242,18 +242,18 @@ class AppPortService:
                     # service_tcp_domain.save()
         # component port change, will change entrance network governance plugin configuration
         if service.create_status == "complete":
-            plugin_service.update_config_if_have_entrance_plugin(session=session, tenant=tenant, service=service)
+            plugin_service.update_config_if_have_entrance_plugin(session=session, tenant_env=tenant_env, service=service)
         return 200, "success"
 
-    def __only_open_outer(self, session: SessionClass, tenant, service, region, deal_port, user_name=''):
+    def __only_open_outer(self, session: SessionClass, tenant_env, service, region, deal_port, user_name=''):
         deal_port.is_outer_service = True
         if service.create_status == "complete":
             body = remote_component_client.manage_outer_port(session,
-                                                             service.service_region, tenant.tenant_name,
+                                                             service.service_region, tenant_env,
                                                              service.service_alias,
                                                              deal_port.container_port, {
                                                                  "operation": "open",
-                                                                 "enterprise_id": tenant.enterprise_id,
+                                                                 "enterprise_id": tenant_env.enterprise_id,
                                                                  "operator": user_name
                                                              })
             logger.debug("open outer port body {}".format(body))
@@ -279,7 +279,7 @@ class AppPortService:
 
         return 200, "success"
 
-    def __open_outer(self, session: SessionClass, tenant, service, region, deal_port, user_name=''):
+    def __open_outer(self, session: SessionClass, tenant_env, service, region, deal_port, user_name=''):
         if deal_port.protocol == "http":
             service_domains = domain_repo.get_service_domain_by_container_port(session,
                                                                                service.service_id,
@@ -294,12 +294,13 @@ class AppPortService:
                 service_id = service.service_id
                 service_name = service.service_alias
                 container_port = deal_port.container_port
-                domain_name = str(container_port) + "." + str(service_name) + "." + str(tenant.tenant_name) + "." + str(
+                domain_name = str(container_port) + "." + str(service_name) + "." + str(
+                    tenant_env.tenant_name) + "." + str(
                     region.httpdomain)
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 protocol = "http"
                 http_rule_id = make_uuid(domain_name)
-                tenant_id = tenant.tenant_id
+                tenant_id = tenant_env.tenant_id
                 service_alias = service.service_cname
                 region_id = region.region_id
                 domain_repo.create_service_domains(session, service_id, service_name, domain_name, create_time,
@@ -310,13 +311,14 @@ class AppPortService:
                     data = dict()
                     data["domain"] = domain_name
                     data["service_id"] = service.service_id
-                    data["tenant_id"] = tenant.tenant_id
-                    data["tenant_name"] = tenant.tenant_name
+                    data["tenant_id"] = tenant_env.tenant_id
+                    data["tenant_name"] = tenant_env.tenant_name
                     data["protocol"] = protocol
                     data["container_port"] = int(container_port)
                     data["http_rule_id"] = http_rule_id
                     try:
-                        remote_domain_client_api.bind_http_domain(session, service.service_region, tenant.tenant_name,
+                        remote_domain_client_api.bind_http_domain(session, service.service_region,
+                                                                  tenant_env,
                                                                   data)
                     except Exception as e:
                         logger.exception(e)
@@ -332,7 +334,7 @@ class AppPortService:
                     # service_tcp_domain.save()
             else:
                 # 在service_tcp_domain表中保存数据
-                res, data = remote_build_client.get_port(session, region.region_name, tenant.tenant_name, True)
+                res, data = remote_build_client.get_port(session, region.region_name, tenant_env, True)
                 if int(res.status) != 200:
                     return 400, "请求数据中心异常"
                 end_point = "0.0.0.0:{0}".format(data["bean"])
@@ -343,7 +345,7 @@ class AppPortService:
                 protocol = deal_port.protocol
                 service_alias = service.service_cname
                 tcp_rule_id = make_uuid(end_point)
-                tenant_id = tenant.tenant_id
+                tenant_id = tenant_env.tenant_id
                 region_id = region.region_id
                 tcp_domain_repo.create_service_tcp_domains(session,
                                                            service_id, service_name, end_point, create_time,
@@ -359,7 +361,8 @@ class AppPortService:
                     data["tcp_rule_id"] = tcp_rule_id
                     try:
                         # 给数据中心传送数据添加策略
-                        remote_domain_client_api.bind_tcp_domain(session, service.service_region, tenant.tenant_name,
+                        remote_domain_client_api.bind_tcp_domain(session, service.service_region,
+                                                                 tenant_env,
                                                                  data)
                     except Exception as e:
                         logger.exception(e)
@@ -369,11 +372,11 @@ class AppPortService:
         deal_port.is_outer_service = True
         if service.create_status == "complete":
             body = remote_component_client.manage_outer_port(session,
-                                                             service.service_region, tenant.tenant_name,
+                                                             service.service_region, tenant_env,
                                                              service.service_alias,
                                                              deal_port.container_port, {
                                                                  "operation": "open",
-                                                                 "enterprise_id": tenant.enterprise_id,
+                                                                 "enterprise_id": tenant_env.enterprise_id,
                                                                  "operator": user_name
                                                              })
             logger.debug("open outer port body {}".format(body))
@@ -382,7 +385,7 @@ class AppPortService:
             deal_port.lb_mapping_port = lb_mapping_port
         # component port change, will change entrance network governance plugin configuration
         if service.create_status == "complete":
-            plugin_service.update_config_if_have_entrance_plugin(session=session, tenant=tenant, service=service)
+            plugin_service.update_config_if_have_entrance_plugin(session=session, tenant_env=tenant_env, service=service)
         return 200, "success"
 
     def __check_params(self, session: SessionClass, action, container_port, protocol, port_alias, service_id):
@@ -685,7 +688,7 @@ class AppPortService:
         return 200, "success"
 
     def add_service_port(self, session: SessionClass,
-                         tenant,
+                         tenant_env,
                          service,
                          container_port=0,
                          protocol='',
@@ -696,7 +699,8 @@ class AppPortService:
                          user_name=''):
         k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias + "-" + str(container_port)
         try:
-            self.check_k8s_service_name(session=session, tenant_id=tenant.tenant_id, k8s_service_name=k8s_service_name)
+            self.check_k8s_service_name(session=session, tenant_id=tenant_env.tenant_id,
+                                        k8s_service_name=k8s_service_name)
         except ErrK8sServiceNameExists:
             k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
         except AbortRequest:
@@ -712,7 +716,7 @@ class AppPortService:
             return code, msg, None
         env_prefix = port_alias.upper() if bool(port_alias) else service.service_key.upper()
 
-        app = application_repo.get_by_service_id(session=session, tenant_id=tenant.tenant_id,
+        app = application_repo.get_by_service_id(session=session, tenant_id=tenant_env.tenant_id,
                                                  service_id=service.service_id)
 
         mapping_port = container_port
@@ -724,7 +728,7 @@ class AppPortService:
             else:
                 host_value = "127.0.0.1"
             code, msg, env = env_var_service.add_service_env_var(session=session,
-                                                                 tenant=tenant, service=service,
+                                                                 tenant_env=tenant_env, service=service,
                                                                  container_port=container_port, name="连接地址",
                                                                  attr_name=env_prefix + "_HOST", attr_value=host_value,
                                                                  is_change=False, scope="outer")
@@ -734,7 +738,7 @@ class AppPortService:
                 else:
                     return code, msg, None
             code, msg, env = env_var_service.add_service_env_var(session=session,
-                                                                 tenant=tenant, service=service,
+                                                                 tenant_env=tenant_env, service=service,
                                                                  container_port=container_port, name="端口",
                                                                  attr_name=env_prefix + "_PORT",
                                                                  attr_value=mapping_port, is_change=False,
@@ -746,7 +750,7 @@ class AppPortService:
                     return code, msg, None
 
         service_port = {
-            "tenant_id": tenant.tenant_id,
+            "tenant_id": tenant_env.tenant_id,
             "service_id": service.service_id,
             "container_port": container_port,
             "mapping_port": container_port,
@@ -758,10 +762,10 @@ class AppPortService:
         }
 
         if service.create_status == "complete":
-            remote_component_client.add_service_port(session, service.service_region, tenant.tenant_name,
+            remote_component_client.add_service_port(session, service.service_region, tenant_env,
                                                      service.service_alias, {
                                                          "port": [service_port],
-                                                         "enterprise_id": tenant.enterprise_id,
+                                                         "enterprise_id": tenant_env.enterprise_id,
                                                          "operator": user_name
                                                      })
 
@@ -787,7 +791,8 @@ class AppPortService:
                         "success_threshold": 1,
                         "timeout_second": 5
                     }
-                    code, msg, probe = probe_service.add_service_probe(session=session, tenant=tenant, service=service,
+                    code, msg, probe = probe_service.add_service_probe(session=session, tenant_env=tenant_env,
+                                                                       service=service,
                                                                        data=params)
                     if code != 200:
                         logger.debug('------111----->{0}'.format(msg))
@@ -834,9 +839,9 @@ class AppPortService:
                 }
         return data
 
-    def check_domain_thirdpart(self, session: SessionClass, tenant, service):
+    def check_domain_thirdpart(self, session: SessionClass, tenant_env, service):
         res, body = remote_build_client.get_third_party_service_pods(session,
-                                                                     service.service_region, tenant.tenant_name,
+                                                                     service.service_region, tenant_env,
                                                                      service.service_alias)
         if res.status != 200:
             return "region error", "数据中心查询失败", 412
@@ -846,7 +851,7 @@ class AppPortService:
         return "", "", 200
 
     def manage_port(self, session: SessionClass,
-                    tenant,
+                    tenant_env,
                     service,
                     region_name,
                     container_port,
@@ -865,51 +870,53 @@ class AppPortService:
 
         # Compatible with methods that do not return code, such as __change_port_alias
         code = 200
-        deal_port = port_repo.get_service_port_by_port(session, tenant.tenant_id, service.service_id, container_port)
+        deal_port = port_repo.get_service_port_by_port(session, tenant_env.tenant_id, service.service_id,
+                                                       container_port)
         if not deal_port:
             raise ServiceHandleException(msg="component port does not exist", msg_show="组件端口不存在", status_code=404)
         if action == "open_outer":
-            code, msg = self.__open_outer(session=session, tenant=tenant, service=service, region=region,
+            code, msg = self.__open_outer(session=session, tenant_env=tenant_env, service=service, region=region,
                                           deal_port=deal_port, user_name=user_name)
         elif action == "only_open_outer":
-            code, msg = self.__only_open_outer(session=session, tenant=tenant, service=service, region=region,
+            code, msg = self.__only_open_outer(session=session, tenant_env=tenant_env, service=service, region=region,
                                                deal_port=deal_port, user_name=user_name)
         elif action == "close_outer":
-            code, msg = self.__close_outer(session=session, tenant=tenant, service=service, deal_port=deal_port,
+            code, msg = self.__close_outer(session=session, tenant_env=tenant_env, service=service, deal_port=deal_port,
                                            user_name=user_name)
         elif action == "open_inner":
-            code, msg = self.__open_inner(session=session, tenant=tenant, service=service, deal_port=deal_port,
+            code, msg = self.__open_inner(session=session, tenant_env=tenant_env, service=service, deal_port=deal_port,
                                           user_name=user_name)
         elif action == "close_inner":
-            code, msg = self.__close_inner(session=session, tenant=tenant, service=service, deal_port=deal_port,
+            code, msg = self.__close_inner(session=session, tenant_env=tenant_env, service=service, deal_port=deal_port,
                                            user_name=user_name)
         elif action == "change_protocol":
-            code, msg = self.__change_protocol(session=session, tenant=tenant, service=service, deal_port=deal_port,
+            code, msg = self.__change_protocol(session=session, tenant_env=tenant_env, service=service,
+                                               deal_port=deal_port,
                                                protocol=protocol, user_name=user_name)
         elif action == "change_port_alias":
-            self.change_port_alias(session=session, tenant=tenant, service=service, deal_port=deal_port,
+            self.change_port_alias(session=session, tenant_env=tenant_env, service=service, deal_port=deal_port,
                                    new_port_alias=port_alias, k8s_service_name=k8s_service_name, user_name=user_name)
 
         session.flush()
-        new_port = port_repo.get_service_port_by_port(session, tenant.tenant_id, service.service_id, container_port)
+        new_port = port_repo.get_service_port_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
         if code != 200:
             return code, msg, None
         return 200, "操作成功", new_port
 
-    def __disable_probe_by_port(self, session: SessionClass, tenant, service, container_port):
+    def __disable_probe_by_port(self, session: SessionClass, tenant_env, service, container_port):
         # 禁用健康检测
         probe = probe_repo.get_service_probe(session, service.service_id)
         if probe and container_port == probe.port:
             probe.is_used = False
-            probe_service.update_service_probea(session=session, tenant=tenant, service=service,
+            probe_service.update_service_probea(session=session, tenant_env=tenant_env, service=service,
                                                 data=jsonable_encoder(probe))
 
-    def delete_port_by_container_port(self, session: SessionClass, tenant, service, container_port, user_name=''):
+    def delete_port_by_container_port(self, session: SessionClass, tenant_env, service, container_port, user_name=''):
         service_domain = domain_repo.get_service_domain_by_container_port(session, service.service_id, container_port)
         if len(service_domain) > 1 or len(service_domain) == 1 and service_domain[0].type != 0:
             raise AbortRequest("contains custom domains", "该端口有自定义域名，请先解绑域名", 412)
 
-        port = port_repo.get_service_port_by_port(session, tenant.tenant_id, service.service_id, container_port)
+        port = port_repo.get_service_port_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
         if not port:
             raise AbortRequest("port not found", "端口{0}不存在".format(container_port), 404)
         if port.is_inner_service:
@@ -920,42 +927,45 @@ class AppPortService:
             body = dict()
             body["operator"] = user_name
             # 删除数据中心端口
-            remote_component_client.delete_service_port(session, service.service_region, tenant.tenant_name,
+            remote_component_client.delete_service_port(session, service.service_region, tenant_env,
                                                         service.service_alias, container_port,
-                                                        tenant.enterprise_id, body)
+                                                        tenant_env.enterprise_id, body)
 
-        self.__disable_probe_by_port(session=session, tenant=tenant, service=service, container_port=container_port)
+        self.__disable_probe_by_port(session=session, tenant_env=tenant_env, service=service,
+                                     container_port=container_port)
         # 删除env
-        env_var_service.delete_env_by_container_port(session=session, tenant=tenant, service=service,
+        env_var_service.delete_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
                                                      container_port=container_port, user_name=user_name)
         # 删除端口
-        port_repo.delete_serivce_port_by_port(session, tenant.tenant_id, service.service_id, container_port)
+        port_repo.delete_serivce_port_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
         # 删除端口绑定的域名
         domain_service.delete_by_port(session=session, component_id=service.service_id, port=container_port)
         return port
 
-    def create_internal_port(self, session: SessionClass, tenant, component, container_port, user_name=''):
+    def create_internal_port(self, session: SessionClass, tenant_env, component, container_port, user_name=''):
         try:
             self.add_service_port(
-                session, tenant, component, container_port, protocol="http", is_inner_service=True, user_name=user_name)
+                session, tenant_env, component, container_port, protocol="http", is_inner_service=True,
+                user_name=user_name)
         except ErrComponentPortExists:
             # make sure port is internal
-            port = port_repo.get_service_port_by_port(session, tenant.tenant_id, component.service_id, container_port)
-            code, msg = self.__open_inner(session=session, tenant=tenant, service=component, deal_port=port,
+            port = port_repo.get_service_port_by_port(session, tenant_env.tenant_id, component.service_id,
+                                                      container_port)
+            code, msg = self.__open_inner(session=session, tenant_env=tenant_env, service=component, deal_port=port,
                                           user_name=user_name)
             if code == 200:
                 return
             raise AbortRequest(msg, error_code=code)
 
-    def delete_region_port(self, session: SessionClass, tenant, service):
+    def delete_region_port(self, session: SessionClass, tenant_env, service):
         if service.create_status == "complete":
             # 删除数据中心端口
             ports = self.get_service_ports(session=session, service=service)
             for port in ports:
                 try:
-                    remote_component_client.delete_service_port(session, service.service_region, tenant.tenant_name,
+                    remote_component_client.delete_service_port(session, service.service_region, tenant_env,
                                                                 service.service_alias,
-                                                                port.container_port, tenant.enterprise_id)
+                                                                port.container_port, tenant_env.enterprise_id)
                 except Exception as e:
                     logger.exception(e)
 
@@ -1078,10 +1088,10 @@ class EndpointService(object):
                 raise CheckThirdpartEndpointFailed(msg="do not support multi domain endpoint", msg_show="不允许添加多个域名实例地址")
         return is_domain
 
-    def add_endpoint(self, session, tenant, service, address):
+    def add_endpoint(self, session, tenant_env, service, address):
         try:
             _, body = remote_build_client.get_third_party_service_pods(session, service.service_region,
-                                                                       tenant.tenant_name, service.service_alias)
+                                                                       tenant_env, service.service_alias)
         except remote_build_client.CallApiError as e:
             logger.exception(e)
             raise CheckThirdpartEndpointFailed()
@@ -1098,16 +1108,16 @@ class EndpointService(object):
             ports = port_service.get_service_ports(session, service)
             if ports:
                 logger.debug("close third part port: {0}".format(ports[0].container_port))
-                port_service.close_thirdpart_outer(session, tenant, service, ports[0])
+                port_service.close_thirdpart_outer(session, tenant_env, service, ports[0])
 
         data = {"address": address}
 
         try:
             res, _ = remote_build_client.post_third_party_service_endpoints(session, service.service_region,
-                                                                            tenant.tenant_name,
+                                                                            tenant_env,
                                                                             service.service_alias, data)
             # 保存endpoints数据
-            service_endpoints_repo.update_or_create_endpoints(session, tenant, service, endpoints)
+            service_endpoints_repo.update_or_create_endpoints(session, tenant_env, service, endpoints)
         except remote_build_client.CallApiError as e:
             logger.exception(e)
             raise CheckThirdpartEndpointFailed(msg="add endpoint failed", msg_show="数据中心添加实例地址失败")

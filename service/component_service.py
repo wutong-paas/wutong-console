@@ -195,7 +195,7 @@ class ComponentCheckService(object):
             service_attr_list.append(service_code_from)
         return service_attr_list
 
-    def save_service_check_info(self, session: SessionClass, tenant, service, data):
+    def save_service_check_info(self, session: SessionClass, tenant_env, service, data):
         # save the detection properties but does not throw any exception.
         if data["check_status"] == "success" and service.create_status == "checking":
             logger.debug("checking service info install,save info into database")
@@ -203,7 +203,7 @@ class ComponentCheckService(object):
             sid = None
             try:
                 # sid = transaction.savepoint() todo
-                self.save_service_info(session, tenant, service, service_info_list[0])
+                self.save_service_info(session, tenant_env, service, service_info_list[0])
                 # save service info, checked 表示检测完成
                 service.create_status = "checked"
                 # transaction.savepoint_commit(sid)
@@ -213,7 +213,7 @@ class ComponentCheckService(object):
                     logger.info("")
                 logger.exception(e)
 
-    def save_service_info(self, session: SessionClass, tenant, service, check_service_info):
+    def save_service_info(self, session: SessionClass, tenant_env, service, check_service_info):
         service_info = check_service_info
         service.language = service_info.get("language", "")
         memory = service_info.get("memory", 128)
@@ -238,12 +238,13 @@ class ComponentCheckService(object):
         volumes = service_info.get("volumes", None)
         service_runtime_os = service_info.get("os", "linux")
         if service_runtime_os == "windows":
-            label_service.set_service_os_label(session=session, tenant=tenant, service=service, os=service_runtime_os)
-        self.__save_compile_env(session, tenant, service, service.language)
+            label_service.set_service_os_label(session=session, tenant_env=tenant_env, service=service,
+                                               os=service_runtime_os)
+        self.__save_compile_env(session, tenant_env, service, service.language)
         # save env
-        self.__save_env(session, tenant, service, envs)
-        self.__save_port(session, tenant, service, ports)
-        self.__save_volume(session, tenant, service, volumes)
+        self.__save_env(session, tenant_env, service, envs)
+        self.__save_port(session, tenant_env, service, ports)
+        self.__save_volume(session, tenant_env, service, volumes)
 
     def __save_compile_env(self, session: SessionClass, tenant, service, language):
         # 删除原有 compile env
@@ -265,16 +266,16 @@ class ComponentCheckService(object):
                                              check_dependency=check_dependency_json,
                                              user_dependency=user_dependency_json)
 
-    def __save_env(self, session: SessionClass, tenant, service, envs):
+    def __save_env(self, session: SessionClass, tenant_env, service, envs):
         if envs:
             # 删除原有env
             session.execute(
-                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant.tenant_id,
+                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_env.tenant_id,
                                               ComponentEnvVar.service_id == service.service_id))
 
             # 删除原有的build类型环境变量
             session.execute(
-                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant.tenant_id,
+                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_env.tenant_id,
                                               ComponentEnvVar.service_id == service.service_id,
                                               ComponentEnvVar.scope == "build"))
 
@@ -295,7 +296,7 @@ class ComponentCheckService(object):
                     if code != 200:
                         logger.error("save service check info env error {0}".format(msg))
                 else:
-                    code, msg, env_data = env_var_service.add_service_env_var(session=session, tenant=tenant,
+                    code, msg, env_data = env_var_service.add_service_env_var(session=session, tenant_env=tenant_env,
                                                                               service=service,
                                                                               container_port=0, name=env["name"],
                                                                               attr_name=env["name"],
@@ -304,18 +305,18 @@ class ComponentCheckService(object):
                     if code != 200:
                         logger.error("save service check info env error {0}".format(msg))
 
-    def __save_port(self, session: SessionClass, tenant, service, ports):
-        if not tenant or not service:
+    def __save_port(self, session: SessionClass, tenant_env, service, ports):
+        if not tenant_env or not service:
             return
         if ports:
             # delete ports before add
             session.execute(
-                delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant.tenant_id,
+                delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_env.tenant_id,
                                                 TeamComponentPort.service_id == service.service_id))
 
             for port in ports:
                 code, msg, port_data = port_service.add_service_port(
-                    session=session, tenant=tenant, service=service, container_port=int(port["container_port"]),
+                    session=session, tenant=tenant_env, service=service, container_port=int(port["container_port"]),
                     protocol=port["protocol"],
                     port_alias=service.service_alias.upper() + str(port["container_port"]))
                 if code != 200:
@@ -323,10 +324,10 @@ class ComponentCheckService(object):
         else:
             if service.service_source == AppConstants.SOURCE_CODE:
                 session.execute(
-                    delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant.tenant_id,
+                    delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_env.tenant_id,
                                                     TeamComponentPort.service_id == service.service_id))
 
-                _, _, t_port = port_service.add_service_port(session=session, tenant=tenant, service=service,
+                _, _, t_port = port_service.add_service_port(session=session, tenant=tenant_env, service=service,
                                                              container_port=5000, protocol="http",
                                                              port_alias=service.service_alias.upper() + str(5000),
                                                              is_inner_service=False,
@@ -334,15 +335,16 @@ class ComponentCheckService(object):
                 region_info = region_repo.get_enterprise_region_by_region_name(session=session,
                                                                                region_name=service.service_region)
                 if region_info:
-                    domain_service.create_default_gateway_rule(session=session, tenant=tenant, region_info=region_info,
+                    domain_service.create_default_gateway_rule(session=session, tenant_env=tenant_env,
+                                                               region_info=region_info,
                                                                service=service, port=t_port)
                 else:
-                    logger.error("get region {0} from enterprise {1} failure".format(tenant.enterprise_id,
+                    logger.error("get region {0} from enterprise {1} failure".format(tenant_env.enterprise_id,
                                                                                      service.service_region))
 
         return 200, "success"
 
-    def __save_volume(self, session: SessionClass, tenant, service, volumes):
+    def __save_volume(self, session: SessionClass, tenant_env, service, volumes):
         if volumes:
             session.execute(
                 delete(TeamComponentVolume).where(TeamComponentVolume.service_id == service.service_id)
@@ -353,7 +355,7 @@ class ComponentCheckService(object):
                 index += 1
                 volume_name = service.service_alias.upper() + "_" + str(index)
                 if "file_content" in list(volume.keys()):
-                    volume_service.add_service_volume(session=session, tenant=tenant, service=service,
+                    volume_service.add_service_volume(session=session, tenant_env=tenant_env, service=service,
                                                       volume_path=volume["volume_path"],
                                                       volume_type=volume["volume_type"],
                                                       volume_name=volume_name, file_content=volume["file_content"])
@@ -361,7 +363,7 @@ class ComponentCheckService(object):
                     settings = {}
                     settings["volume_capacity"] = volume["volume_capacity"]
                     try:
-                        volume_service.add_service_volume(session=session, tenant=tenant, service=service,
+                        volume_service.add_service_volume(session=session, tenant_env=tenant_env, service=service,
                                                           volume_path=volume["volume_path"],
                                                           volume_type=volume["volume_type"],
                                                           volume_name=volume_name, file_content=None, settings=settings)
@@ -371,8 +373,8 @@ class ComponentCheckService(object):
 
 class ComponentLogService(object):
     @staticmethod
-    def get_component_log_stream(session, tenant_name, region_name, service_alias, pod_name, container_name, follow):
-        r = remote_component_client.get_component_log(session, tenant_name, region_name, service_alias, pod_name,
+    def get_component_log_stream(session, tenant_env, region_name, service_alias, pod_name, container_name, follow):
+        r = remote_component_client.get_component_log(session, tenant_env, region_name, service_alias, pod_name,
                                                       container_name, follow)
         for chunk in r.stream(1024):
             yield chunk

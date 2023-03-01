@@ -20,17 +20,17 @@ class AppServiceRelationService(object):
         services = service_info_repo.get_services_by_service_ids(session, dep_ids)
         return services
 
-    def delete_region_dependency(self, session: SessionClass, tenant, service):
-        deps = self.__get_dep_service_ids(session=session, tenant=tenant, service=service)
+    def delete_region_dependency(self, session: SessionClass, tenant_env, service):
+        deps = self.__get_dep_service_ids(session=session, tenant=tenant_env, service=service)
         for dep_id in deps:
             task = {}
             task["dep_service_id"] = dep_id
-            task["tenant_id"] = tenant.tenant_id
+            task["tenant_id"] = tenant_env.tenant_id
             task["dep_service_type"] = "v"
-            task["enterprise_id"] = tenant.enterprise_id
+            task["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.delete_service_dependency(session,
-                                                                  service.service_region, tenant.tenant_name,
+                                                                  service.service_region, tenant_env,
                                                                   service.service_alias, task)
             except Exception as e:
                 logger.exception(e)
@@ -67,7 +67,7 @@ class AppServiceRelationService(object):
                 dependencies.append(s)
         return dependencies
 
-    def __open_port(self, session: SessionClass, tenant, dep_service, container_port, user_name=''):
+    def __open_port(self, session: SessionClass, tenant_env, dep_service, container_port, user_name=''):
         open_service_ports = []
         if container_port:
             tenant_service_port = port_service.get_service_port_by_port(session=session, service=dep_service,
@@ -87,7 +87,7 @@ class AppServiceRelationService(object):
 
         for tenant_service_port in open_service_ports:
             try:
-                code, msg, data = port_service.manage_port(session=session, tenant=tenant, service=dep_service,
+                code, msg, data = port_service.manage_port(session=session, tenant_env=tenant_env, service=dep_service,
                                                            region_name=dep_service.service_region,
                                                            container_port=int(tenant_service_port.container_port),
                                                            action="open_inner",
@@ -112,11 +112,11 @@ class AppServiceRelationService(object):
             return True
         return False
 
-    def add_service_dependency(self, session: SessionClass, tenant, service, dep_service_id, open_inner=None,
+    def add_service_dependency(self, session: SessionClass, tenant_env, service, dep_service_id, open_inner=None,
                                container_port=None,
                                user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
-            session, tenant.tenant_id, service.service_id, dep_service_id)
+            session, tenant_env.tenant_id, service.service_id, dep_service_id)
         if dep_service_relation:
             return 212, "当前组件已被关联", None
 
@@ -124,32 +124,32 @@ class AppServiceRelationService(object):
                                                                      service_id=dep_service_id)
         # 开启对内端口
         if open_inner:
-            self.__open_port(session, tenant, dep_service, container_port, user_name)
+            self.__open_port(session, tenant_env, dep_service, container_port, user_name)
         else:
             # 校验要依赖的组件是否开启了对内端口
             open_inner_services = port_repo.get_service_ports_by_is_inner_service(session,
-                                                                                  tenant.tenant_id,
+                                                                                  tenant_env.tenant_id,
                                                                                   dep_service.service_id)
             if not open_inner_services:
-                service_ports = port_repo.get_service_ports(session, tenant.tenant_id, dep_service.service_id)
+                service_ports = port_repo.get_service_ports(session, tenant_env.tenant_id, dep_service.service_id)
                 port_list = [service_port.container_port for service_port in service_ports]
                 return 201, "要关联的组件暂未开启对内端口，是否打开", port_list
 
-        is_duplicate = self.__is_env_duplicate(session=session, tenant=tenant, service=service, dep_service=dep_service)
+        is_duplicate = self.__is_env_duplicate(session=session, tenant=tenant_env, service=service, dep_service=dep_service)
         if is_duplicate:
             return 412, "要关联的组件的变量与已关联的组件变量重复，请修改后再试", None
         if service.create_status == "complete":
             task = dict()
             task["dep_service_id"] = dep_service_id
-            task["tenant_id"] = tenant.tenant_id
+            task["tenant_id"] = tenant_env.tenant_id
             task["dep_service_type"] = dep_service.service_type
-            task["enterprise_id"] = tenant.enterprise_id
+            task["enterprise_id"] = tenant_env.enterprise_id
             task["operator"] = user_name
             remote_component_client.add_service_dependency(session,
-                                                           service.service_region, tenant.tenant_name,
+                                                           service.service_region, tenant_env,
                                                            service.service_alias, task)
         tenant_service_relation = {
-            "tenant_id": tenant.tenant_id,
+            "tenant_id": tenant_env.tenant_id,
             "service_id": service.service_id,
             "dep_service_id": dep_service_id,
             "dep_service_type": dep_service.service_type,
@@ -158,7 +158,7 @@ class AppServiceRelationService(object):
         dep_relation = dep_relation_repo.add_service_dependency(session, **tenant_service_relation)
         # component dependency change, will change export network governance plugin configuration
         if service.create_status == "complete":
-            app_plugin_service.update_config_if_have_export_plugin(session=session, tenant=tenant, service=service)
+            app_plugin_service.update_config_if_have_export_plugin(session=session, tenant_env=tenant_env, service=service)
         return 200, "success", dep_relation
 
     def patch_add_dependency(self, session: SessionClass, tenant, service, dep_service_ids, user_name=''):
@@ -172,15 +172,15 @@ class AppServiceRelationService(object):
             service_cnames = [s.service_cname for s in services]
             return 200, "组件{0}已被关联".format(service_cnames)
         for dep_id in dep_service_ids:
-            code, msg, relation = self.add_service_dependency(session=session, tenant=tenant, service=service,
+            code, msg, relation = self.add_service_dependency(session=session, tenant_env=tenant_env, service=service,
                                                               dep_service_id=dep_id, user_name=user_name)
             if code != 200:
                 return code, msg
         return 200, "success"
 
-    def delete_service_dependency(self, session: SessionClass, tenant, service, dep_service_id, user_name=''):
+    def delete_service_dependency(self, session: SessionClass, tenant_env, service, dep_service_id, user_name=''):
         dependency = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(session,
-                                                                                    tenant.tenant_id,
+                                                                                    tenant_env.tenant_id,
                                                                                     service.service_id,
                                                                                     dep_service_id)
         if not dependency:
@@ -188,20 +188,20 @@ class AppServiceRelationService(object):
         if service.create_status == "complete":
             task = dict()
             task["dep_service_id"] = dep_service_id
-            task["tenant_id"] = tenant.tenant_id
+            task["tenant_id"] = tenant_env.tenant_id
             task["dep_service_type"] = "v"
-            task["enterprise_id"] = tenant.enterprise_id
+            task["enterprise_id"] = tenant_env.enterprise_id
             task["operator"] = user_name
 
             remote_component_client.delete_service_dependency(session,
-                                                              service.service_region, tenant.tenant_name,
+                                                              service.service_region, tenant_env,
                                                               service.service_alias,
                                                               task)
 
         dep_relation_repo.delete(session, dependency)
         # component dependency change, will change export network governance plugin configuration
         if service.create_status == "complete":
-            app_plugin_service.update_config_if_have_export_plugin(session=session, tenant=tenant, service=service)
+            app_plugin_service.update_config_if_have_export_plugin(session=session, tenant_env=tenant_env, service=service)
         return 200, "success", dependency
 
 

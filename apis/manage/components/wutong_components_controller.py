@@ -71,10 +71,11 @@ async def get_app_visit_info(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/pods", response_model=Response, name="获取组件实例")
-async def get_pods_info(serviceAlias: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session),
-                        team=Depends(deps.get_current_team)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/pods", response_model=Response, name="获取组件实例")
+async def get_pods_info(
+        env_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
      获取组件实例
      ---
@@ -90,15 +91,17 @@ async def get_pods_info(serviceAlias: Optional[str] = None,
            type: string
            paramType: path
      """
-
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     data = remote_component_client.get_service_pods(session,
                                                     service.service_region,
-                                                    team.tenant_name,
+                                                    env,
                                                     service.service_alias,
-                                                    team.enterprise_id)
+                                                    env.enterprise_id)
     result = {}
     if data["bean"]:
 
@@ -144,10 +147,11 @@ async def get_pods_info(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/resource", response_model=Response, name="查询组件资源")
-async def get_resource(serviceAlias: Optional[str] = None,
-                       session: SessionClass = Depends(deps.get_session),
-                       team=Depends(deps.get_current_team)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/resource", response_model=Response, name="查询组件资源")
+async def get_resource(
+        env_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     组件资源查询
     ---
@@ -164,9 +168,12 @@ async def get_resource(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = {"service_ids": [service.service_id]}
-    body = remote_build_client.get_service_resources(session, team.tenant_name, service.service_region, data)
+    body = remote_build_client.get_service_resources(session, env, service.service_region, data)
     bean = body["bean"]
     result = bean.get(service.service_id)
     resource = dict()
@@ -211,14 +218,17 @@ async def get_brief(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/brief", response_model=Response, name="修改组件名称")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/brief", response_model=Response, name="修改组件名称")
 async def modify_components_name(
         request: Request,
+        env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     service_cname = data.get("service_cname", None)
     k8s_component_name = data.get("k8s_component_name", "")
     app = application_service.get_service_group_info(session, service.service_id)
@@ -230,7 +240,7 @@ async def modify_components_name(
         return JSONResponse(general_message(400, "param error", msg), status_code=400)
     service.k8s_component_name = k8s_component_name
     service.service_cname = service_cname
-    remote_component_client.update_service(session, service.service_region, team.tenant_name, service.service_alias,
+    remote_component_client.update_service(session, service.service_region, env, service.service_alias,
                                            {"k8s_component_name": k8s_component_name})
     result = general_message(200, "success", "修改成功", bean=jsonable_encoder(service))
     return JSONResponse(result, status_code=result["code"])
@@ -266,17 +276,22 @@ async def get_analyze_plugins(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/volume-opts", response_model=Response, name="获取组件可用的存储列表")
-async def get_volume_opts_list(serviceAlias: Optional[str] = None,
-                               session: SessionClass = Depends(deps.get_session),
-                               team=Depends(deps.get_current_team)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volume-opts", response_model=Response,
+            name="获取组件可用的存储列表")
+async def get_volume_opts_list(
+        env_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件可用的存储列表
     ---
     parameters:
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    volume_types = volume_service.get_service_support_volume_options(session=session, tenant=team, service=service)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    volume_types = volume_service.get_service_support_volume_options(session=session, tenant_env=env, service=service)
     result = general_message(200, "success", "查询成功", list=volume_types)
     return JSONResponse(result, status_code=result["code"])
 
@@ -478,21 +493,18 @@ async def get_un_dependency(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/deploytype", response_model=Response, name="修改组件的组件类型标签")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/deploytype", response_model=Response,
+            name="修改组件的组件类型标签")
 async def modify_deploy_type(request: Request,
+                             env_id: Optional[str] = None,
                              serviceAlias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
-                             user=Depends(deps.get_current_user),
-                             team=Depends(deps.get_current_team)) -> Any:
-    """
-    修改组件的组件类型标签
-    :param request:
-    :param args:
-    :param kwargs:
-    :return:
-    """
+                             user=Depends(deps.get_current_user)) -> Any:
     try:
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
         data = await request.json()
         extend_method = data.get("extend_method", None)
         if not extend_method:
@@ -500,8 +512,8 @@ async def modify_deploy_type(request: Request,
 
         if not is_support(extend_method):
             raise AbortRequest(msg="do not support service type", msg_show="组件类型非法")
-        logger.debug("team: {0}, service:{1}, extend_method:{2}".format(team, service, extend_method))
-        app_manage_service.change_service_type(session=session, tenant=team, service=service,
+        logger.debug("env: {0}, service:{1}, extend_method:{2}".format(env, service, extend_method))
+        app_manage_service.change_service_type(session=session, tenant_env=env, service=service,
                                                extend_method=extend_method, user_name=user.nick_name)
         result = general_message(200, "success", "操作成功")
     except CallRegionAPIException as e:
@@ -563,12 +575,14 @@ async def get_pods_info(request: Request,
     return JSONResponse(general_message(200, "success", "查询成功", list=components), status_code=200)
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/logs", response_model=Response, name="查看容器日志")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/logs", response_model=Response, name="查看容器日志")
 async def get_container_log(request: Request,
-                            team_name: Optional[str] = None,
+                            env_id: Optional[str] = None,
                             serviceAlias: Optional[str] = None,
-                            session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
+                            session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -580,7 +594,7 @@ async def get_container_log(request: Request,
     if not container_name:
         raise AbortRequest("the field 'container_name' is required")
     follow = True if request.query_params.get("follow") == "true" else False
-    stream = component_log_service.get_component_log_stream(session, team_name, region_name,
+    stream = component_log_service.get_component_log_stream(session, env, region_name,
                                                             serviceAlias,
                                                             pod_name, container_name, follow)
     response = StreamingResponse(stream)
@@ -648,16 +662,20 @@ async def docker_compose_components(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/groups/{group_id}/compose_build", response_model=Response, name="compose应用构建")
+@router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/compose_build", response_model=Response,
+             name="compose应用构建")
 async def compose_build(
         request: Request,
+        env_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
         user=Depends(deps.get_current_user)) -> Any:
     probe_map = dict()
     services = None
     data = await request.json()
     oauth_instance, _ = None, None
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     try:
         compose_id = data.get("compose_id", None)
         if not compose_id:
@@ -667,13 +685,13 @@ async def compose_build(
         # 数据中心创建组件
         new_app_list = []
         for service in services:
-            new_service = application_service.create_region_service(session, team, service, user.nick_name)
+            new_service = application_service.create_region_service(session, env, service, user.nick_name)
             new_app_list.append(new_service)
         group_compose.create_status = "complete"
         # group_compose.save()
         for s in new_app_list:
             try:
-                app_manage_service.deploy(session, team, s, user, oauth_instance=oauth_instance)
+                app_manage_service.deploy(session, env, s, user, oauth_instance=oauth_instance)
             except ErrInsufficientResource as e:
                 result = general_message(e.error_code, e.msg, e.msg_show)
                 return JSONResponse(result, status_code=e.status_code)
@@ -689,13 +707,13 @@ async def compose_build(
             for service in services:
                 if probe_map:
                     probe_id = probe_map.get(service.service_id)
-                    probe_service.delete_service_probe(session, team, service, probe_id)
+                    probe_service.delete_service_probe(session, env, service, probe_id)
                 event_service.delete_service_events(session, service)
-                port_service.delete_region_port(session, team, service)
-                volume_service.delete_region_volumes(session, team, service)
-                env_var_service.delete_region_env(session, team, service)
-                dependency_service.delete_region_dependency(session, team, service)
-                app_manage_service.delete_region_service(session, team, service)
+                port_service.delete_region_port(session, env, service)
+                volume_service.delete_region_volumes(session, env, service)
+                env_var_service.delete_region_env(session, env, service)
+                dependency_service.delete_region_dependency(session, env, service)
+                app_manage_service.delete_region_service(session, env, service)
                 service.create_status = "checked"
         raise e
     return JSONResponse(result, status_code=result["code"])

@@ -19,6 +19,7 @@ from repository.component.service_config_repo import configuration_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.domain_service import domain_service
@@ -68,22 +69,25 @@ async def get_group_service_visit(service_alias: Optional[str] = None,
         return error_message(e.__str__())
 
 
-@router.delete("/teams/{team_name}/batch_delete", response_model=Response, name="批量删除组件")
+@router.delete("/teams/{team_name}/env/{env_id}/batch_delete", response_model=Response, name="批量删除组件")
 async def batch_delete_components(request: Request,
+                                  env_id: Optional[str] = None,
                                   session: SessionClass = Depends(deps.get_session),
-                                  user=Depends(deps.get_current_user),
-                                  team=Depends(deps.get_current_team)) -> Any:
+                                  user=Depends(deps.get_current_user)) -> Any:
     """
     批量删除组件
 
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     service_ids = data.get("service_ids", None)
     service_id_list = service_ids.split(",")
     services = service_info_repo.get_services_by_service_ids(session, service_id_list)
     msg_list = []
     for service in services:
-        code, msg = app_manage_service.batch_delete(session=session, user=user, tenant=team, service=service,
+        code, msg = app_manage_service.batch_delete(session=session, user=user, tenant_env=env, service=service,
                                                     is_force=True)
         msg_dict = dict()
         msg_dict['status'] = code
@@ -96,11 +100,11 @@ async def batch_delete_components(request: Request,
     return JSONResponse(result, status_code=result['code'])
 
 
-@router.post("/teams/{team_name}/httpdomain", response_model=Response, name="添加HTTP网关策略")
+@router.post("/teams/{team_name}/env/{env_id}/httpdomain", response_model=Response, name="添加HTTP网关策略")
 async def add_http_domain(request: Request,
+                          env_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          user=Depends(deps.get_current_user),
-                          team=Depends(deps.get_current_team)) -> Any:
+                          user=Depends(deps.get_current_user)) -> Any:
     """
     添加http策略
 
@@ -126,6 +130,10 @@ async def add_http_domain(request: Request,
     # path-rewrite
     path_rewrite = data.get("path_rewrite", False)
     rewrites = data.get("rewrites", None)
+
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     # 判断参数
     if len(do_path) > 1024:
@@ -174,7 +182,7 @@ async def add_http_domain(request: Request,
         return JSONResponse(result, status_code=400)
 
     if service.service_source == "third_party":
-        msg, msg_show, code = port_service.check_domain_thirdpart(session=session, tenant=team, service=service)
+        msg, msg_show, code = port_service.check_domain_thirdpart(session=session, tenant_env=env, service=service)
         if code != 200:
             logger.exception(msg, msg_show)
             return JSONResponse(general_message(code, msg, msg_show), status_code=code)
@@ -183,7 +191,7 @@ async def add_http_domain(request: Request,
         tenant_service_port = port_service.get_service_port_by_port(session=session, service=service,
                                                                     port=container_port)
         # 仅开启对外端口
-        code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
+        code, msg, data = port_service.manage_port(session=session, tenant_env=env, service=service,
                                                    region_name=service.service_region,
                                                    container_port=int(tenant_service_port.container_port),
                                                    action="only_open_outer",
@@ -214,7 +222,7 @@ async def add_http_domain(request: Request,
         "rewrites": rewrites
     }
     try:
-        data = domain_service.bind_httpdomain(session=session, tenant=team, user=user, service=service,
+        data = domain_service.bind_httpdomain(session=session, tenant_env=env, user=user, service=service,
                                               httpdomain=httpdomain)
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show),
@@ -236,11 +244,14 @@ async def get_domain_parameter(rule_id: Optional[str] = None, session: SessionCl
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/domain/{rule_id}/put_gateway", response_model=Response, name="修改网关的自定义参数")
+@router.put("/teams/{team_name}/env/{env_id}/domain/{rule_id}/put_gateway", response_model=Response, name="修改网关的自定义参数")
 async def set_domain_parameter(request: Request,
+                               env_id: Optional[str] = None,
                                rule_id: Optional[str] = None,
-                               session: SessionClass = Depends(deps.get_session),
-                               team=Depends(deps.get_current_team)) -> Any:
+                               session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     region = await region_services.get_region_by_request(session, request)
     if not region:
@@ -249,7 +260,7 @@ async def set_domain_parameter(request: Request,
     service_id = data.get("service_id", None)
     response_region = region.region_name
     value = await parse_item(request, 'value', required=True, error='value is a required parameter')
-    domain_service.update_rule_config(session=session, team=team, region_name=response_region, rule_id=rule_id,
+    domain_service.update_rule_config(session=session, tenant_env=env, region_name=response_region, rule_id=rule_id,
                                       configs=value, type=type_name, service_id=service_id)
     result = general_message(200, "success", "更新成功")
     return JSONResponse(result, status_code=200)
@@ -291,11 +302,13 @@ async def add_http_domain(request: Request, session: SessionClass = Depends(deps
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/httpdomain", response_model=Response, name="编辑http策略")
+@router.put("/teams/{team_name}/env/{env_id}/httpdomain", response_model=Response, name="编辑http策略")
 async def add_http_domain(request: Request,
-                          session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team),
-                          user=Depends(deps.get_current_user)) -> Any:
+                          env_id: Optional[str] = None,
+                          session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)
@@ -361,17 +374,19 @@ async def add_http_domain(request: Request,
         "path_rewrite": path_rewrite,
         "rewrites": rewrites
     }
-    domain_service.update_httpdomain(session=session, tenant=team, service=service, http_rule_id=http_rule_id,
+    domain_service.update_httpdomain(session=session, tenant_env=env, service=service, http_rule_id=http_rule_id,
                                      update_data=update_data)
     result = general_message(200, "success", "策略编辑成功")
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/httpdomain", response_model=Response, name="删除http策略")
+@router.delete("/teams/{team_name}/env/{env_id}/httpdomain", response_model=Response, name="删除http策略")
 async def delete_http_domain(request: Request,
-                             session: SessionClass = Depends(deps.get_session),
-                             team=Depends(deps.get_current_team),
-                             user=Depends(deps.get_current_user)) -> Any:
+                             env_id: Optional[str] = None,
+                             session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     service_id = data.get("service_id", None)
     http_rule_id = data.get("http_rule_id", None)
@@ -381,16 +396,16 @@ async def delete_http_domain(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    domain_service.unbind_httpdomain(session=session, tenant=team, region=response_region, http_rule_id=http_rule_id)
+    domain_service.unbind_httpdomain(session=session, tenant_env=env, region=response_region, http_rule_id=http_rule_id)
     result = general_message(200, "success", "策略删除成功")
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/tcpdomain", response_model=Response, name="添加tcp网关策略")
+@router.post("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="添加tcp网关策略")
 async def add_tcp_domain(request: Request,
+                         env_id: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
-                         user=Depends(deps.get_current_user),
-                         team=Depends(deps.get_current_team)) -> Any:
+                         user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
     container_port = data.get("container_port", None)
     service_id = data.get("service_id", None)
@@ -399,6 +414,9 @@ async def add_tcp_domain(request: Request,
     rule_extensions = data.get("rule_extensions", None)
     default_port = data.get("default_port", None)
     default_ip = data.get("default_ip", None)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     if not container_port or not service_id or not end_point:
         return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
@@ -415,7 +433,7 @@ async def add_tcp_domain(request: Request,
         return JSONResponse(result, status_code=400)
 
     if service.service_source == "third_party":
-        msg, msg_show, code = port_service.check_domain_thirdpart(session=session, tenant=team, service=service)
+        msg, msg_show, code = port_service.check_domain_thirdpart(session=session, tenant_env=env, service=service)
         if code != 200:
             logger.exception(msg, msg_show)
             return JSONResponse(general_message(code, msg, msg_show), status_code=code)
@@ -424,7 +442,7 @@ async def add_tcp_domain(request: Request,
         tenant_service_port = port_service.get_service_port_by_port(session=session, service=service,
                                                                     port=container_port)
         # 仅打开对外端口
-        code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
+        code, msg, data = port_service.manage_port(session=session, tenant_env=env, service=service,
                                                    region_name=service.service_region,
                                                    container_port=int(tenant_service_port.container_port),
                                                    action="only_open_outer",
@@ -439,7 +457,7 @@ async def add_tcp_domain(request: Request,
                             status_code=200)
 
     # 添加tcp策略
-    data = domain_service.bind_tcpdomain(session=session, tenant=team, user=user, service=service,
+    data = domain_service.bind_tcpdomain(session=session, tenant_env=env, user=user, service=service,
                                          end_point=end_point, container_port=container_port, default_port=default_port,
                                          rule_extensions=rule_extensions, default_ip=default_ip)
     result = general_message(200, "success", "tcp策略添加成功", bean=data)
@@ -476,11 +494,14 @@ async def get_tcp_domain(request: Request, session: SessionClass = Depends(deps.
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/tcpdomain", response_model=Response, name="修改单个tcp/udp策略信息")
+@router.put("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="修改单个tcp/udp策略信息")
 async def set_tcp_domain(request: Request,
+                         env_id: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
-                         user=Depends(deps.get_current_user),
-                         team=Depends(deps.get_current_team)) -> Any:
+                         user=Depends(deps.get_current_user)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     container_port = data.get("container_port", None)
     service_id = data.get("service_id", None)
@@ -513,7 +534,7 @@ async def set_tcp_domain(request: Request,
         return JSONResponse(result, status_code=400)
 
     # 修改策略
-    code, msg = domain_service.update_tcpdomain(session=session, tenant=team, user=user, service=service,
+    code, msg = domain_service.update_tcpdomain(session=session, tenant_env=env, user=user, service=service,
                                                 end_point=end_point, container_port=container_port,
                                                 tcp_rule_id=tcp_rule_id,
                                                 protocol=protocol, type=type, rule_extensions=rule_extensions,
@@ -526,11 +547,13 @@ async def set_tcp_domain(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/tcpdomain", response_model=Response, name="删除单个tcp/udp策略信息")
+@router.delete("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="删除单个tcp/udp策略信息")
 async def delete_tcp_domain(request: Request,
-                            session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team),
-                            user=Depends(deps.get_current_user)) -> Any:
+                            env_id: Optional[str] = None,
+                            session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     tcp_rule_id = data.get("tcp_rule_id", None)
     if not tcp_rule_id:
@@ -539,6 +562,6 @@ async def delete_tcp_domain(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    domain_service.unbind_tcpdomain(session=session, tenant=team, region=response_region, tcp_rule_id=tcp_rule_id)
+    domain_service.unbind_tcpdomain(session=session, tenant_env=env, region=response_region, tcp_rule_id=tcp_rule_id)
     result = general_message(200, "success", "策略删除成功")
     return JSONResponse(result, status_code=result["code"])

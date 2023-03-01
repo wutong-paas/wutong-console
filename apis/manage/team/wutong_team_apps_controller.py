@@ -4,12 +4,10 @@ import os
 import pickle
 import time
 from typing import Any, Optional
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-
 from core import deps
 from core.utils.constants import AppConstants
 from core.utils.reqparse import parse_item
@@ -21,9 +19,9 @@ from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import service_endpoints_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_plugin_repo import plugin_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_actions.app_log import ws_service, event_service
 from service.application_service import application_service
@@ -35,10 +33,11 @@ from service.tenant_env_service import env_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/status", response_model=Response, name="获取组件状态")
-async def get_assembly_state(serviceAlias: Optional[str] = None,
-                             session: SessionClass = Depends(deps.get_session),
-                             team=Depends(deps.get_current_team)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/status", response_model=Response, name="获取组件状态")
+async def get_assembly_state(
+        env_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件状态
     ---
@@ -54,12 +53,15 @@ async def get_assembly_state(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     bean = dict()
     bean["check_uuid"] = service.check_uuid
-    status_map = application_service.get_service_status(session=session, tenant=team, service=service)
+    status_map = application_service.get_service_status(session=session, tenant_env=env, service=service)
     bean.update(status_map)
     result = general_message(200, "success", "查询成功", bean=bean)
     return JSONResponse(result, status_code=result["code"])
@@ -192,10 +194,10 @@ async def get_app_detail(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/events", response_model=Response, name="获取作用对象的event事件")
+@router.get("/teams/{team_name}/env/{env_id}/events", response_model=Response, name="获取作用对象的event事件")
 async def get_events_info(request: Request,
-                          session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team)) -> Any:
+                          env_id: Optional[str] = None,
+                          session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取作用对象的event事件
 
@@ -208,43 +210,49 @@ async def get_events_info(request: Request,
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     response_region = region.region_name
     if targetAlias == "":
         target = "team"
-        targetAlias = team.tenant_name
+        targetAlias = env.tenant_name
     if target == "service":
         service = team_component_repo.get_one_by_model(session=session,
-                                                       query_model=TeamComponentInfo(tenant_id=team.tenant_id,
+                                                       query_model=TeamComponentInfo(tenant_id=env.tenant_id,
                                                                                      service_alias=targetAlias))
         if service:
             target_id = service.service_id
             events, total, has_next = event_service.get_target_events(session=session, target=target,
                                                                       target_id=target_id,
-                                                                      tenant=team, region=service.service_region,
+                                                                      tenant_env=env, region=service.service_region,
                                                                       page=int(page),
                                                                       page_size=int(page_size))
             result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
         else:
             result = general_message(200, "success", "查询成功", list=[], total=0, has_next=False)
     elif target == "team":
-        target_id = team.tenant_id
+        target_id = env.tenant_id
         region = response_region
         events, total, has_next = event_service.get_target_events(session=session, target=target,
                                                                   target_id=target_id,
-                                                                  tenant=team, region=region,
+                                                                  tenant_env=env, region=region,
                                                                   page=int(page),
                                                                   page_size=int(page_size))
         result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/check-resource-name", response_model=Response, name="检查资源名称")
+@router.post("/teams/{team_name}/env/{env_id}/check-resource-name", response_model=Response, name="检查资源名称")
 async def check_resource_name(
         request: Request,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        env_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     name = await parse_item(request, "name", required=True)
     rtype = await parse_item(request, "type", required=True)
     region_name = await parse_item(request, "region_name", required=True)
-    components = env_services.check_resource_name(session, team.tenant_name, region_name, rtype, name)
+    components = env_services.check_resource_name(session, env, region_name, rtype, name)
     return JSONResponse(general_message(200, "success", "查询成功", list=components), status_code=200)

@@ -27,17 +27,20 @@ from service.tenant_env_service import env_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/service/group", response_model=Response, name="应用列表、状态展示")
+@router.get("/teams/{team_name}/env/{env_id}/service/group", response_model=Response, name="应用列表、状态展示")
 async def get_app_state(request: Request,
                         page: int = Query(default=1, ge=1, le=9999),
                         page_size: int = Query(default=10, ge=-1, le=999),
                         team_name: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session),
-                        team=Depends(deps.get_current_team)) -> Any:
+                        env_id: Optional[str] = None,
+                        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
      应用组件列表、状态展示
      """
     try:
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         code = 200
         # page = int(request.query_params.get("page", 1))
         # page_size = int(request.query_params.get("page_size", 10))
@@ -50,10 +53,6 @@ async def get_app_state(request: Request,
         query = request.query_params.get("query", "")
         # region_name = request.headers.get("X_REGION_NAME")
 
-        if not team:
-            result = general_message(400, "tenant not exist", "{}团队不存在".format(team_name))
-            return JSONResponse(result, status_code=400)
-
         region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -63,10 +62,10 @@ async def get_app_state(request: Request,
             # query service which not belong to any app
             no_group_service_list = service_info_repo.get_no_group_service_status_by_group_id(
                 session=session,
-                team_name=team_name,
-                team_id=team.tenant_id,
+                tenant_env=env,
+                team_id=env.tenant_id,
                 region_name=region_name,
-                enterprise_id=team.enterprise_id)
+                enterprise_id=env.enterprise_id)
             if page_size == "-1" or page_size == "" or page_size == "0":
                 page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
             params = Params(page=page, size=page_size)
@@ -75,7 +74,7 @@ async def get_app_state(request: Request,
             result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=total)
             return JSONResponse(result, status_code=code)
 
-        team_id = team.tenant_id
+        team_id = env.tenant_id
         group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
                                                                                group_id=group_id)
         if group_count == 0:
@@ -86,9 +85,9 @@ async def get_app_state(request: Request,
             session=session,
             group_id=group_id,
             region_name=region_name,
-            team_id=team.tenant_id,
-            team_name=team_name,
-            enterprise_id=team.enterprise_id,
+            team_id=env.tenant_id,
+            tenant_env=env,
+            enterprise_id=env.enterprise_id,
             query=query)
         if page_size == -1 or str(page_size) == "" or page_size == 0:
             page_size = len(group_service_list) if len(group_service_list) > 0 else 10
@@ -178,7 +177,7 @@ async def overview_team_info(region_name: Optional[str] = None,
 
     running_app_num = 0
     try:
-        resp = remote_build_client.list_app_statuses_by_app_ids(session, team_name, region_name,
+        resp = remote_build_client.list_app_statuses_by_app_ids(session, env, region_name,
                                                                 {"app_ids": region_app_ids})
         app_statuses = resp.get("list", [])
         # todo
@@ -187,10 +186,10 @@ async def overview_team_info(region_name: Optional[str] = None,
                 running_app_num += 1
     except Exception as e:
         logger.exception(e)
-    team_app_num = application_repo.get_tenant_region_groups_count(session, team.tenant_id, region_name)
+    team_app_num = application_repo.get_tenant_region_groups_count(session, env.tenant_id, region_name)
     overview_detail["team_app_num"] = team_app_num
     overview_detail["team_service_num"] = team_service_num
-    overview_detail["eid"] = team.enterprise_id
+    overview_detail["eid"] = env.enterprise_id
     overview_detail["team_service_memory_count"] = 0
     overview_detail["team_service_total_disk"] = 0
     overview_detail["team_service_total_cpu"] = 0
@@ -200,7 +199,7 @@ async def overview_team_info(region_name: Optional[str] = None,
     overview_detail["memory_usage"] = 0
     overview_detail["running_app_num"] = running_app_num
     overview_detail["running_component_num"] = 0
-    overview_detail["team_alias"] = team.tenant_alias
+    overview_detail["team_alias"] = env.tenant_name
     if source:
         try:
             overview_detail["region_health"] = True
@@ -259,32 +258,33 @@ async def team_app_group(request: Request,
     return general_message(200, "success", "查询成功", list=groups_services)
 
 
-@router.get("/teams/{team_name}/overview/service/over", response_model=Response, name="团队应用信息")
+@router.get("/teams/{team_name}/env/{env_id}/overview/service/over", response_model=Response, name="团队应用信息")
 async def team_app_group(
         request: Request,
+        env_id: Optional[str] = None,
         region_name: Optional[str] = None,
         team_name: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("page_size", 10)
     order = request.query_params.get('order_type', 'desc')
     fields = request.query_params.get('fields', 'update_time')
     query_key = request.query_params.get("query_key", '')
     service_status = request.query_params.get("service_status", 'all')
-    if not team:
-        return JSONResponse(general_message(400, "tenant not exist", "{}团队不存在".format(team_name)), status_code=40)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     services_list = base_service.get_fuzzy_services_list(session=session,
-                                                         team_id=team.tenant_id, region_name=region_name,
+                                                         team_id=env.tenant_id, region_name=region_name,
                                                          query_key=query_key, fields=fields, order=order)
     if services_list:
         try:
             service_ids = [service["service_id"] for service in services_list]
             status_list = base_service.status_multi_service(session=session,
                                                             region=region_name,
-                                                            tenant_name=team_name,
+                                                            tenant_env=env,
                                                             service_ids=service_ids,
-                                                            enterprise_id=team.enterprise_id)
+                                                            enterprise_id=env.enterprise_id)
             status_cache = {}
             statuscn_cache = {}
             for status in status_list:

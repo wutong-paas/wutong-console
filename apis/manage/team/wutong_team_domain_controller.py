@@ -17,6 +17,7 @@ from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_info_repo import region_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_config.domain_service import domain_service
 from service.app_config.port_service import port_service
@@ -151,18 +152,19 @@ async def get_domain_query(request: Request,
     return general_message(200, "success", "查询成功", list=domain_list, bean=bean)
 
 
-@router.get("/teams/{team_name}/domain/get_port", response_model=Response, name="获取可用的port")
+@router.get("/teams/{team_name}/env/{env_id}/domain/get_port", response_model=Response, name="获取可用的port")
 async def get_port(
         request: Request,
-        team_name: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
-        user=Depends(deps.get_current_user)) -> Any:
+        env_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    ipres, ipdata = remote_build_client.get_ips(session, region_name, team_name)
+    ipres, ipdata = remote_build_client.get_ips(session, region_name, env)
     if int(ipres.status) != 200:
         result = general_message(400, "call region error", "请求数据中心异常")
         return JSONResponse(result, status_code=result["code"])
@@ -205,11 +207,14 @@ async def service_tcp_domain(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/tcpdomain", response_model=Response, name="修改tcp/udp策略操作")
+@router.put("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="修改tcp/udp策略操作")
 async def service_tcp_domain(request: Request,
+                             env_id: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
-                             user=Depends(deps.get_current_user),
-                             team=Depends(deps.get_current_team)) -> Any:
+                             user=Depends(deps.get_current_user)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     container_port = data.get("container_port", None)
     service_id = data.get("service_id", None)
@@ -218,9 +223,6 @@ async def service_tcp_domain(request: Request,
     rule_extensions = data.get("rule_extensions", None)
     type = data.get("type", None)
     default_ip = data.get("default_ip", None)
-
-    if not team:
-        return JSONResponse(general_message(400, "team not exist", "团队不存在"), status_code=400)
 
     # 判断参数
     if not tcp_rule_id:
@@ -244,7 +246,7 @@ async def service_tcp_domain(request: Request,
         return JSONResponse(general_message(400, "failed", "策略已存在"), status_code=400)
 
     # 修改策略
-    code, msg = domain_service.update_tcpdomain(session=session, tenant=team, user=user, service=service,
+    code, msg = domain_service.update_tcpdomain(session=session, tenant_env=env, user=user, service=service,
                                                 end_point=end_point, container_port=container_port,
                                                 tcp_rule_id=tcp_rule_id,
                                                 protocol=protocol, type=type, rule_extensions=rule_extensions,
@@ -427,12 +429,14 @@ async def get_certificates(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/certificates/{certificate_id}", response_model=Response, name="修改网关证书")
+@router.put("/teams/{team_name}/env/{env_id}/certificates/{certificate_id}", response_model=Response, name="修改网关证书")
 async def modify_certificates(request: Request,
+                              env_id: Optional[str] = None,
                               certificate_id: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team),
-                              user=Depends(deps.get_current_user)) -> Any:
+                              session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     if not certificate_id:
         return JSONResponse(general_message(400, "no param certificate_id", "缺少未指明具体证书"), status_code=400)
@@ -443,7 +447,7 @@ async def modify_certificates(request: Request,
     private_key = data.get("private_key", None)
     certificate = data.get("certificate", None)
     certificate_type = data.get("certificate_type", None)
-    domain_service.update_certificate(session, team, certificate_id, new_alias, certificate, private_key,
+    domain_service.update_certificate(session, env, certificate_id, new_alias, certificate, private_key,
                                       certificate_type)
     result = general_message(200, "success", "证书修改成功")
     return JSONResponse(result, status_code=result["code"])

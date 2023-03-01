@@ -82,7 +82,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         return body
 
     # 获取kuberesources
-    def get_kuberesources(self, session, region, tenant_name, tenant_env, app_id, service_alias_list, custom_namespace):
+    def get_kuberesources(self, session, region, tenant_env, app_id, service_alias_list, custom_namespace):
         """获取kubeconfig"""
 
         params = ""
@@ -90,7 +90,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
 
         for service_alias in service_alias_list:
             params += "&service_aliases={0}".format(service_alias)
-        url = url + "/v2/tenants/{0}/envs/{1}/apps/{2}/kube-resources?namespace={3}{4}".format(tenant_name,
+        url = url + "/v2/tenants/{0}/envs/{1}/apps/{2}/kube-resources?namespace={3}{4}".format(tenant_env.tenant_name,
                                                                                                tenant_env.env_name,
                                                                                                app_id,
                                                                                                custom_namespace, params)

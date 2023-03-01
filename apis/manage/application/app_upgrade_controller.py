@@ -10,6 +10,7 @@ from exceptions.bcode import ErrLastRecordUnfinished
 from models.application.models import ApplicationUpgradeRecordType
 from repository.application.app_upgrade_repo import upgrade_repo
 from repository.application.application_repo import application_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.market_app_service import market_app_service
 from service.region_service import region_services
@@ -18,19 +19,21 @@ from service.upgrade_service import upgrade_service
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/groups/{group_id}/upgrade-records", response_model=Response, name="查询升级记录集合")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/upgrade-records", response_model=Response, name="查询升级记录集合")
 async def get_app_model(request: Request,
-                        team_name: Optional[str] = None,
+                        env_id: Optional[str] = None,
                         group_id: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session),
-                        team=Depends(deps.get_current_team)) -> Any:
+                        session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     page = parse_argument(request, 'page', value_type=int, default=1)
     page_size = parse_argument(request, 'page_size', value_type=int, default=10)
-    records, total = upgrade_service.list_records(session=session, tenant_name=team_name, region_name=region_name,
+    records, total = upgrade_service.list_records(session=session, tenant_env=env, region_name=region_name,
                                                   app_id=group_id,
                                                   record_type=ApplicationUpgradeRecordType.UPGRADE.value, page=page,
                                                   page_size=page_size)

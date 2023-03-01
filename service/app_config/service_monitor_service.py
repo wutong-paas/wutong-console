@@ -60,7 +60,7 @@ class ComponentServiceMonitor(object):
             if service.create_status == "complete":
                 remote_build_client.delete_service_monitor(session,
                                                            tenant_env.enterprise_id, service.service_region,
-                                                           tenant_env.tenant_name,
+                                                           tenant_env,
                                                            service.service_alias, name, None)
             raise e
 
@@ -105,9 +105,9 @@ class ComponentServiceMonitor(object):
             ComponentMonitor.name == name
         )).scalars().first()
 
-    def update_component_service_monitor(self, session, tenant, service, user, name, path, port, service_show_name,
+    def update_component_service_monitor(self, session, tenant_env, service, user, name, path, port, service_show_name,
                                          interval):
-        sm = self.get_component_service_monitor(session, tenant.tenant_id, service.service_id, name)
+        sm = self.get_component_service_monitor(session, tenant_env.tenant_id, service.service_id, name)
         if not sm:
             raise ServiceHandleException(msg="service monitor is not found", msg_show="配置不存在", status_code=404)
         sm_count = session.execute(select(func.count(ComponentMonitor.ID)).where(
@@ -124,18 +124,18 @@ class ComponentServiceMonitor(object):
         req = {"path": path, "port": port, "service_show_name": service_show_name, "interval": interval,
                "operator": user.get_name()}
         remote_build_client.update_service_monitor(session,
-                                                   tenant.enterprise_id, service.service_region, tenant.tenant_name,
+                                                   tenant_env.enterprise_id, service.service_region, tenant_env,
                                                    service.service_alias, name, req)
         req.pop("operator")
         session.execute(update(ComponentMonitor).where(
-            ComponentMonitor.tenant_id == tenant.tenant_id,
+            ComponentMonitor.tenant_id == tenant_env.tenant_id,
             ComponentMonitor.service_id == service.service_id,
             ComponentMonitor.name == name
         ).values(**req))
-        return self.get_component_service_monitor(session, tenant.tenant_id, service.service_id, name)
+        return self.get_component_service_monitor(session, tenant_env.tenant_id, service.service_id, name)
 
-    def delete_component_service_monitor(self, session, tenant, service, user, name):
-        sm = self.get_component_service_monitor(session, tenant.tenant_id, service.service_id, name)
+    def delete_component_service_monitor(self, session, tenant_env, service, user, name):
+        sm = self.get_component_service_monitor(session, tenant_env.tenant_id, service.service_id, name)
         if not sm:
             raise ServiceHandleException(msg="service monitor is not found", msg_show="配置不存在", status_code=404)
         body = {
@@ -143,13 +143,13 @@ class ComponentServiceMonitor(object):
         }
         try:
             remote_build_client.delete_service_monitor(session,
-                                                       tenant.enterprise_id, service.service_region, tenant.tenant_name,
+                                                       tenant_env.enterprise_id, service.service_region, tenant_env,
                                                        service.service_alias, name, body)
         except ServiceHandleException as e:
             if e.error_code != 10101:
                 raise e
         session.execute(delete(ComponentMonitor).where(
-            ComponentMonitor.tenant_id == tenant.tenant_id,
+            ComponentMonitor.tenant_id == tenant_env.tenant_id,
             ComponentMonitor.service_id == service.service_id,
             ComponentMonitor.name == name
         ))

@@ -74,7 +74,7 @@ class GroupappsMigrateService(object):
         new_app = application_repo.get_group_by_id(session, app["ID"])
         return new_app
 
-    def __copy_backup_record(self, session: SessionClass, restore_mode, origin_backup_record, current_team,
+    def __copy_backup_record(self, session: SessionClass, restore_mode, origin_backup_record, tenant_env,
                              current_region, migrate_team,
                              migrate_region, migrate_type):
         """拷贝备份数据"""
@@ -93,7 +93,7 @@ class GroupappsMigrateService(object):
             # 获取原有数据中心数据
             original_data = remote_migrate_client_api.get_backup_status_by_backup_id(session,
                                                                                      current_region,
-                                                                                     current_team.tenant_name,
+                                                                                     tenant_env,
                                                                                      origin_backup_record.backup_id)
 
             new_event_id = make_uuid()
@@ -103,7 +103,7 @@ class GroupappsMigrateService(object):
             new_data["group_id"] = new_group_uuid
             # 存入其他数据中心
             body = remote_migrate_client_api.copy_backup_data(session,
-                                                              migrate_region, migrate_team.tenant_name, new_data)
+                                                              migrate_region, tenant_env, new_data)
             bean = body["bean"]
             params = jsonable_encoder(origin_backup_record)
             params.pop("ID")
@@ -126,14 +126,14 @@ class GroupappsMigrateService(object):
             return AppMigrateType.CURRENT_REGION_OTHER_TENANT
         return AppMigrateType.CURRENT_REGION_CURRENT_TENANT
 
-    def __check_group_service_status(self, session: SessionClass, region, tenant, group_id):
+    def __check_group_service_status(self, session: SessionClass, region, tenant_env, group_id):
         services = application_service.get_group_services(session=session, group_id=group_id)
         service_ids = [s.service_id for s in services]
         if not service_ids:
             return True
-        body = remote_component_client.service_status(session, region, tenant.tenant_name, {
+        body = remote_component_client.service_status(session, region, tenant_env, {
             "service_ids": service_ids,
-            "enterprise_id": tenant.enterprise_id
+            "enterprise_id": tenant_env.enterprise_id
         })
         status_list = body["list"]
         for status in status_list:
@@ -141,28 +141,28 @@ class GroupappsMigrateService(object):
                 return False
         return True
 
-    def start_migrate(self, session: SessionClass, user, current_team, current_region, migrate_team, migrate_region,
+    def start_migrate(self, session: SessionClass, user, tenant_env, current_region, migrate_team, migrate_region,
                       backup_id,
                       migrate_type, event_id,
                       restore_id):
-        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=current_team.tenant_id,
+        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant_env.tenant_id,
                                                                    backup_id=backup_id)
         if not backup_record:
             raise ErrBackupRecordNotFound
 
         if migrate_type == "recover":
             is_all_services_closed = self.__check_group_service_status(session=session, region=current_region,
-                                                                       tenant=current_team,
+                                                                       tenant_env=tenant_env,
                                                                        group_id=backup_record.group_id)
             if not is_all_services_closed:
                 raise ErrNeedAllServiceCloesed
 
-        restore_mode = self.__get_restore_type(current_team, current_region, migrate_team, migrate_region)
+        restore_mode = self.__get_restore_type(tenant_env, current_region, migrate_team, migrate_region)
 
         # 数据迁移到其他地方先处理数据中心数据拷贝
         new_group, new_backup_record = self.__copy_backup_record(session=session, restore_mode=restore_mode,
                                                                  origin_backup_record=backup_record,
-                                                                 current_team=current_team,
+                                                                 tenant_env=tenant_env,
                                                                  current_region=current_region,
                                                                  migrate_team=migrate_team,
                                                                  migrate_region=migrate_region,
@@ -176,7 +176,7 @@ class GroupappsMigrateService(object):
             "restore_mode": restore_mode,
             "tenant_id": migrate_team.tenant_id
         }
-        body = remote_migrate_client_api.star_apps_migrate_task(session, migrate_region, migrate_team.tenant_name,
+        body = remote_migrate_client_api.star_apps_migrate_task(session, migrate_region, tenant_env,
                                                                 new_backup_record.backup_id,
                                                                 data)
 
@@ -235,7 +235,7 @@ class GroupappsMigrateService(object):
 
     def __save_port(self, session: SessionClass,
                     region_name,
-                    tenant,
+                    tenant_env,
                     service,
                     tenant_service_ports,
                     governance_mode,
@@ -256,19 +256,20 @@ class GroupappsMigrateService(object):
             k8s_service_name = port.get("k8s_service_name", "")
             if k8s_service_name:
                 try:
-                    port_repo.get_by_k8s_service_name(session, tenant.tenant_id, k8s_service_name)
+                    port_repo.get_by_k8s_service_name(session, tenant_env.tenant_id, k8s_service_name)
                     k8s_service_name = service.service_alias + "-" + str(port["container_port"])
                     # update port if k8s_service_name has changed.
                     body = port
                     body["k8s_service_name"] = k8s_service_name
                     if sync_flag:
-                        port_service.update_service_port(session=session, tenant=tenant, region_name=region_name,
+                        port_service.update_service_port(session=session, tenant_env=tenant_env,
+                                                         region_name=region_name,
                                                          service_alias=service.service_alias, body=body)
                 except:
                     pass
             new_port = TeamComponentPort(**port)
             new_port.service_id = service.service_id
-            new_port.tenant_id = tenant.tenant_id
+            new_port.tenant_id = tenant_env.tenant_id
             new_port.k8s_service_name = port.get("k8s_service_name")
             new_port.port_alias = (service.service_alias + str(port["container_port"])).upper()
             port_list.append(new_port)
@@ -287,7 +288,7 @@ class GroupappsMigrateService(object):
                     # update env if attr_value has changed.
                     if origin_attr_value != env["attr_value"] and sync_flag:
                         remote_component_client.update_service_env(session,
-                                                                   region_name, tenant.tenant_name,
+                                                                   region_name, tenant_env,
                                                                    service.service_alias, {
                                                                        "env_name": env["attr_name"],
                                                                        "env_value": env["attr_value"]
@@ -311,11 +312,11 @@ class GroupappsMigrateService(object):
                             service_name = service.service_alias
                             container_port = port.container_port
                             domain_name = str(container_port) + "." + str(service_name) + "." + str(
-                                tenant.tenant_name) + "." + str(region.httpdomain)
+                                tenant_env.tenant_name) + "." + str(region.httpdomain)
                             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             protocol = "http"
                             http_rule_id = make_uuid(domain_name)
-                            tenant_id = tenant.tenant_id
+                            tenant_id = tenant_env.tenant_id
                             service_alias = service.service_cname
                             region_id = region.region_id
                             domain_repo.create_service_domains(session,
@@ -327,14 +328,14 @@ class GroupappsMigrateService(object):
                             data = dict()
                             data["domain"] = domain_name
                             data["service_id"] = service.service_id
-                            data["tenant_id"] = tenant.tenant_id
-                            data["tenant_name"] = tenant.tenant_name
+                            data["tenant_id"] = tenant_env.tenant_id
+                            data["tenant_name"] = tenant_env.tenant_name
                             data["protocol"] = protocol
                             data["container_port"] = int(container_port)
                             data["http_rule_id"] = http_rule_id
                             try:
                                 remote_domain_client_api.bind_http_domain(session, service.service_region,
-                                                                          tenant.tenant_name, data)
+                                                                          tenant_env, data)
                             except Exception as e:
                                 logger.exception(e)
                                 domain_repo.delete_http_domains(session, http_rule_id)
@@ -349,7 +350,7 @@ class GroupappsMigrateService(object):
                                 service_tcp_domain.is_outer_service = True
                         else:
                             # 在service_tcp_domain表中保存数据
-                            res, data = remote_build_client.get_port(session, region.region_name, tenant.tenant_name,
+                            res, data = remote_build_client.get_port(session, region.region_name, tenant_env,
                                                                      True)
                             if int(res.status) != 200:
                                 continue
@@ -361,7 +362,7 @@ class GroupappsMigrateService(object):
                             protocol = port.protocol
                             service_alias = service.service_cname
                             tcp_rule_id = make_uuid(end_point)
-                            tenant_id = tenant.tenant_id
+                            tenant_id = tenant_env.tenant_id
                             region_id = region.region_id
                             tcp_domain_repo.create_service_tcp_domains(session,
                                                                        service_id, service_name, end_point,
@@ -381,7 +382,7 @@ class GroupappsMigrateService(object):
         if env_list:
             port_repo.bulk_all(session, env_list)
 
-    def __save_volume(self, session: SessionClass, tenant, service, tenant_service_volumes, service_config_file):
+    def __save_volume(self, session: SessionClass, tenant_env, service, tenant_service_volumes, service_config_file):
         contain_config_file = False if not service_config_file else True
         if not service_config_file:
             contain_config_file = True
@@ -398,7 +399,8 @@ class GroupappsMigrateService(object):
                         new_config_file = TeamComponentConfigurationFile(**config_file)
                         new_config_file.service_id = service.service_id
                         config_list.append(new_config_file)
-            settings = volume_service.get_best_suitable_volume_settings(session=session, tenant=tenant, service=service,
+            settings = volume_service.get_best_suitable_volume_settings(session=session, tenant_env=tenant_env,
+                                                                        service=service,
                                                                         volume_type=volume["volume_type"],
                                                                         access_mode=volume.get("access_mode"),
                                                                         share_policy=volume.get("share_policy"),
@@ -412,7 +414,7 @@ class GroupappsMigrateService(object):
                 volume["volume_type"] = settings["volume_type"]
             new_volume = TeamComponentVolume(**volume)
             new_volume.service_id = service.service_id
-            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id,
+            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(tenant_env.tenant_id, service.service_id,
                                                                    new_volume.volume_path)
             new_volume.host_path = host_path
             volume_list.append(new_volume)
@@ -666,12 +668,12 @@ class GroupappsMigrateService(object):
                                  tenant=env)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             application_service.add_service_to_group(session, env, migrate_region, group.ID, ts.service_id)
-            self.__save_port(session=session, region_name=migrate_region, tenant=env, service=ts,
+            self.__save_port(session=session, region_name=migrate_region, tenant_env=env, service=ts,
                              tenant_service_ports=app["service_ports"], governance_mode=group.governance_mode,
                              tenant_service_env_vars=app["service_env_vars"], sync_flag=sync_flag)
             self.__save_env(session=session, tenant=env, service=ts,
                             tenant_service_env_vars=app["service_env_vars"])
-            self.__save_volume(session=session, tenant=env, service=ts,
+            self.__save_volume(session=session, tenant_env=env, service=ts,
                                tenant_service_volumes=app["service_volumes"],
                                service_config_file=app["service_config_file"] if 'service_config_file' in app else None)
             self.__save_compile_env(session=session, service=ts, compile_env=app["service_compile_env"])
@@ -689,14 +691,14 @@ class GroupappsMigrateService(object):
             self.__save_component_graphs(session=session, service=ts, component_graphs=app.get("component_graphs"))
 
             if ts.service_source == "third_party":
-                application_service.create_third_party_service(session=session, tenant=env, service=ts,
+                application_service.create_third_party_service(session=session, tenant_env=env, service=ts,
                                                                user_name=user.nick_name)
                 probes = probe_repo.get_service_probe(session, ts.service_id)
                 # 为组件添加默认探针
                 if not probes:
                     if self.is_need_to_add_default_probe(session=session, service=ts):
                         code, msg, probe = application_service.add_service_default_porbe(session=session,
-                                                                                         tenant=env,
+                                                                                         tenant_env=env,
                                                                                          service=ts)
                         logger.debug("add default probe; code: {}; msg: {}".format(code, msg))
                 else:
@@ -720,7 +722,7 @@ class GroupappsMigrateService(object):
                         try:
                             res, body = remote_component_client.add_service_probe(session,
                                                                                   ts.service_region,
-                                                                                  env.tenant_name,
+                                                                                  env,
                                                                                   ts.service_alias, prob_data)
                             if res.get("status") != 200:
                                 logger.debug(body)
@@ -788,7 +790,7 @@ class GroupappsMigrateService(object):
                 logger.debug("service change : {0}".format(service_change))
                 metadata = bean["metadata"]
                 migrate_team = env_repo.get_tenant_by_tenant_name(session=session,
-                                                                   team_name=migrate_record.migrate_team)
+                                                                  team_name=migrate_record.migrate_team)
                 try:
                     self.save_data(session,
                                    env, migrate_record.migrate_region, user, service_change,
@@ -809,7 +811,7 @@ class GroupappsMigrateService(object):
                         application_service.sync_app_services(migrate_team, session, migrate_record.migrate_region,
                                                               migrate_record.group_id)
                         remote_component_client.change_application_volumes(session,
-                                                                           migrate_team.tenant_name,
+                                                                           tenant_env,
                                                                            migrate_record.migrate_region,
                                                                            region_app_id)
                 except Exception as e:

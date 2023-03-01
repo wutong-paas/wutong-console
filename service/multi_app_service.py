@@ -11,12 +11,12 @@ from service.component_service import component_check_service
 
 class MultiAppService(object):
 
-    def save_multi_services(self, session, region_name, tenant, group_id, service, user, service_infos):
-        service_source = service_source_repo.get_service_source(session, tenant.tenant_id, service.service_id)
+    def save_multi_services(self, session, region_name, tenant_env, group_id, service, user, service_infos):
+        service_source = service_source_repo.get_service_source(session, tenant_env.tenant_id, service.service_id)
         service_ids = []
         for service_info in service_infos:
             code, msg_show, new_service = application_service \
-                .create_source_code_app(session, region_name, tenant, user,
+                .create_source_code_app(session, region_name, tenant_env, user,
                                         service.code_from,
                                         service_info["cname"],
                                         service.clone_url,
@@ -26,32 +26,36 @@ class MultiAppService(object):
                                         oauth_service_id=service.oauth_service_id,
                                         git_full_name=service.git_full_name)
             if code != 200:
-                raise AbortRequest("Multiple services; Service alias: {}; error creating service".format(service.service_alias),
-                                   "创建多组件应用失败")
+                raise AbortRequest(
+                    "Multiple services; Service alias: {}; error creating service".format(service.service_alias),
+                    "创建多组件应用失败")
             # add username and password
             if service_source:
                 git_password = service_source.password
                 git_user_name = service_source.user_name
                 if git_password or git_user_name:
-                    application_service.create_service_source_info(session, tenant, new_service, git_user_name, git_password)
+                    application_service.create_service_source_info(session, tenant_env, new_service, git_user_name,
+                                                                   git_password)
             #  add group
-            code, msg_show = application_service.add_service_to_group(session, tenant, region_name, group_id, new_service.service_id)
+            code, msg_show = application_service.add_service_to_group(session, tenant_env, region_name, group_id,
+                                                                      new_service.service_id)
             if code != 200:
                 logger.debug("Group ID: {0}; Service ID: {1}; error adding service to group".format(
                     group_id, new_service.service_id))
                 raise AbortRequest("app not found", "创建多组件应用失败", 404, 404)
             # save service info, such as envs, ports, etc
-            component_check_service.save_service_info(session, tenant, new_service, service_info)
-            new_service = application_service.create_region_service(session, tenant, new_service, user.nick_name)
+            component_check_service.save_service_info(session, tenant_env, new_service, service_info)
+            new_service = application_service.create_region_service(session, tenant_env, new_service, user.nick_name)
             new_service.create_status = "complete"
             # new_service.save()
             service_ids.append(new_service.service_id)
 
         return service_ids
 
-    def create_services(self, session, region_name, tenant, user, service_alias, service_infos):
+    def create_services(self, session, region_name, tenant_env, user, service_alias, service_infos):
         # get temporary service
-        temporary_service = service_info_repo.get_service_by_tenant_and_alias(session, tenant.tenant_id, service_alias)
+        temporary_service = service_info_repo.get_service_by_tenant_and_alias(session, tenant_env.tenant_id,
+                                                                              service_alias)
         if not temporary_service:
             raise AbortRequest("service not found", "组件不存在", status_code=404, error_code=11005)
 
@@ -61,13 +65,13 @@ class MultiAppService(object):
         service_ids = self.save_multi_services(
             session=session,
             region_name=region_name,
-            tenant=tenant,
+            tenant_env=tenant_env,
             group_id=group_id,
             service=temporary_service,
             user=user,
             service_infos=service_infos)
 
-        code, msg = app_manage_service.delete(session, user, tenant, temporary_service, True)
+        code, msg = app_manage_service.delete(session, user, tenant_env, temporary_service, True)
         if code != 200:
             raise AbortRequest(
                 "Service id: " + temporary_service.service_id + "; error deleting temporary service",

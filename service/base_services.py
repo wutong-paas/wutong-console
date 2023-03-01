@@ -3,7 +3,6 @@ from re import split as re_split
 from loguru import logger
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
-from core.git.regionapi import RegionInvokeApi
 from core.setting import settings
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
@@ -11,8 +10,6 @@ from repository.application.app_repository import app_repo
 from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import service_source_repo
 from repository.teams.env_repo import env_repo
-
-region_api = RegionInvokeApi()
 
 
 class BaseService:
@@ -86,9 +83,9 @@ class BaseService:
         session.remove()
         return services
 
-    def status_multi_service(self, session: SessionClass, region, tenant_name, service_ids, enterprise_id):
+    def status_multi_service(self, session: SessionClass, region, tenant_env, service_ids, enterprise_id):
         try:
-            body = remote_component_client.service_status(session, region, tenant_name, {"service_ids": service_ids,
+            body = remote_component_client.service_status(session, region, tenant_env, {"service_ids": service_ids,
                                                                                          "enterprise_id": enterprise_id})
             return body["list"]
         except Exception as e:
@@ -210,16 +207,16 @@ class BaseService:
             build_infos[service.service_id] = bean
         return build_infos
 
-    def get_not_run_services_request_memory(self, session: SessionClass, tenant, services):
+    def get_not_run_services_request_memory(self, session: SessionClass, tenant_env, services):
         if not services or len(services) == 0:
             return 0
         not_run_service_ids = []
         memory = 0
         service_ids = [service.service_id for service in services]
         service_status_list = self.status_multi_service(session=session, region=services[0].service_region,
-                                                        tenant_name=tenant.tenant_name,
+                                                        tenant_env=tenant_env,
                                                         service_ids=service_ids,
-                                                        enterprise_id=tenant.enterprise_id)
+                                                        enterprise_id=tenant_env.enterprise_id)
         if service_status_list:
             for status_map in service_status_list:
                 if status_map.get("status") in ["undeploy", "closed"]:
@@ -250,56 +247,6 @@ class BaseTenantService(object):
         # The algorithm is obsolete
         min_cpu = int(min_memory) / 128 * 20
         return int(min_cpu)
-
-
-class CodeRepositoriesService(object):
-    def __init__(self):
-        self.MODULES = settings.MODULES
-
-    def codeCheck(self, service, check_type="first_check", event_id=None):
-        data = {}
-        data["tenant_id"] = service.tenant_id
-        data["service_id"] = service.service_id
-        data["git_url"] = "--branch " + service.code_version + " --depth 1 " + service.git_url
-        data["check_type"] = check_type
-        data["url_repos"] = service.git_url
-        data['code_version'] = service.code_version
-        data['git_project_id'] = int(service.git_project_id)
-        data['code_from'] = service.code_from
-        if event_id:
-            data['event_id'] = event_id
-        parsed_git_url = git_url_parse(service.git_url)
-        if parsed_git_url.host == "code.goodrain.com" and service.code_from == "gitlab_new":
-            gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2ssh
-        elif parsed_git_url.host == 'github.com':
-            createUser = Users.objects.get(user_id=service.creater)
-            if settings.MODULES.get('Privite_Github', True):
-                gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
-            else:
-                gitUrl = "--branch " + service.code_version + " --depth 1 " + parsed_git_url.url2https_token(
-                    createUser.github_token)
-        else:
-            gitUrl = "--branch " + service.code_version + " --depth 1 " + service.git_url
-        data["git_url"] = gitUrl
-
-        task = {}
-        task["tube"] = "code_check"
-        task["service_id"] = service.service_id
-        # task["data"] = data
-        task.update(data)
-        logger.debug(json.dumps(task))
-        tenant = Tenants.objects.get(tenant_id=service.tenant_id)
-        task["enterprise_id"] = tenant.enterprise_id
-        region_api.code_check(service.service_region, tenant.tenant_name, task)
-
-    def showGitUrl(self, service):
-        httpGitUrl = service.git_url
-        if service.code_from == "gitlab_new" or service.code_from == "gitlab_exit":
-            cur_git_url = service.git_url.split(":")
-            httpGitUrl = "http://code.goodrain.com/" + cur_git_url[1]
-        elif service.code_from == "gitlab_manual":
-            httpGitUrl = service.git_url
-        return httpGitUrl
 
 
 base_service = BaseService()

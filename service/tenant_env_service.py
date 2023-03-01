@@ -1,12 +1,9 @@
-from fastapi_pagination import Params, paginate
 from loguru import logger
 from sqlalchemy import select
 from clients.remote_build_client import remote_build_client
-from core.idaasapi import idaas_api
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
-from models.teams import TeamEnvInfo, PermRelTenant
-from repository.enterprise.enterprise_repo import enterprise_repo
+from models.teams import TeamEnvInfo
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from service.app_actions.app_deploy import RegionApiBaseHttpClient
@@ -16,8 +13,8 @@ from service.region_service import region_services
 class TenantEnvService(object):
 
     @staticmethod
-    def check_resource_name(session, tenant_name: str, region_name: str, rtype: str, name: str):
-        return remote_build_client.check_resource_name(session, tenant_name, region_name, rtype, name)
+    def check_resource_name(session, tenant_env, region_name: str, rtype: str, name: str):
+        return remote_build_client.check_resource_name(session, tenant_env, region_name, rtype, name)
 
     def set_tenant_env_memory_limit(self, session, eid, region_id, tenant_env, limit):
         try:

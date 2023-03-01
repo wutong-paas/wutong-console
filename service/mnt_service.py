@@ -15,7 +15,7 @@ class AppMntService(object):
     SHARE = 'share-file'
     CONFIG = 'config-file'
 
-    def delete_service_mnt_relation(self, session, tenant, service, dep_vol_id, user_name=''):
+    def delete_service_mnt_relation(self, session, tenant_env, service, dep_vol_id, user_name=''):
         dep_volume = volume_repo.get_service_volume_by_pk(session, dep_vol_id)
 
         try:
@@ -23,12 +23,12 @@ class AppMntService(object):
                 data = {
                     "depend_service_id": dep_volume.service_id,
                     "volume_name": dep_volume.volume_name,
-                    "enterprise_id": tenant.tenant_name,
+                    "enterprise_id": tenant_env.tenant_name,
                     "operator": user_name
                 }
                 res, body = remote_component_client.delete_service_dep_volumes(session,
                                                                                service.service_region,
-                                                                               tenant.tenant_name,
+                                                                               tenant_env,
                                                                                service.service_alias, data)
                 logger.debug("delete service mnt info res:{0}, body {1}".format(res, body))
             mnt_repo.delete_mnt_relation(session, service.service_id, dep_volume.service_id, dep_volume.volume_name)
@@ -165,7 +165,7 @@ class AppMntService(object):
 
         return result
 
-    def add_service_mnt_relation(self, session: SessionClass, tenant, service, source_path, dep_volume, user_name=''):
+    def add_service_mnt_relation(self, session: SessionClass, tenant_env, service, source_path, dep_volume, user_name=''):
         if not dep_volume:
             return
         if service.create_status == "complete":
@@ -174,7 +174,7 @@ class AppMntService(object):
                     "depend_service_id": dep_volume.service_id,
                     "volume_name": dep_volume.volume_name,
                     "volume_path": source_path,
-                    "enterprise_id": tenant.enterprise_id,
+                    "enterprise_id": tenant_env.enterprise_id,
                     "volume_type": dep_volume.volume_type
                 }
             else:
@@ -185,25 +185,25 @@ class AppMntService(object):
                     "volume_path": source_path,
                     "volume_type": dep_volume.volume_type,
                     "file_content": config_file.file_content,
-                    "enterprise_id": tenant.enterprise_id
+                    "enterprise_id": tenant_env.enterprise_id
                 }
             data["operator"] = user_name
             res, body = remote_component_client.add_service_dep_volumes(session,
                                                                         service.service_region,
-                                                                        tenant.tenant_name, service.service_alias,
+                                                                        tenant_env, service.service_alias,
                                                                         data)
             logger.debug("add service mnt info res: {0}, body:{1}".format(res, body))
 
-        mnt_relation = mnt_repo.add_service_mnt_relation(session, tenant.tenant_id, service.service_id,
+        mnt_relation = mnt_repo.add_service_mnt_relation(session, tenant_env, service.service_id,
                                                          dep_volume.service_id,
                                                          dep_volume.volume_name, source_path)
         logger.debug(
             "mnt service {0} to service {1} on dir {2}".format(mnt_relation.service_id, mnt_relation.dep_service_id,
                                                                mnt_relation.mnt_dir))
 
-    def batch_mnt_serivce_volume(self, session: SessionClass, tenant, service, dep_vol_data, user_name=''):
+    def batch_mnt_serivce_volume(self, session: SessionClass, tenant_env, service, dep_vol_data, user_name=''):
         local_path = []
-        tenant_service_volumes = volume_service.get_service_volumes(session=session, tenant=tenant, service=service)
+        tenant_service_volumes = volume_service.get_service_volumes(session=session, tenant_env=tenant_env, service=service)
         local_path = [l_path["volume_path"] for l_path in tenant_service_volumes]
         for dep_vol in dep_vol_data:
             volume_service.check_volume_path(session=session, service=service, volume_path=dep_vol["path"],
@@ -213,7 +213,7 @@ class AppMntService(object):
             source_path = dep_vol['path'].strip()
             dep_volume = volume_repo.get_service_volume_by_pk(session, dep_vol_id)
             try:
-                self.add_service_mnt_relation(session=session, tenant=tenant, service=service, source_path=source_path,
+                self.add_service_mnt_relation(session=session, tenant_env=tenant_env, service=service, source_path=source_path,
                                               dep_volume=dep_volume, user_name=user_name)
             except Exception as e:
                 logger.exception(e)

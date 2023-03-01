@@ -21,13 +21,13 @@ from service.application_service import application_service
 
 class DevopsRepository:
     @staticmethod
-    def delete_dependency_component(session, user, tenant, service, dep_service_ids):
+    def delete_dependency_component(session, user, tenant_env, service, dep_service_ids):
         """
         删除组件的某个依赖
         """
         dep_service_list = dep_service_ids.split(",")
         for dep_id in dep_service_list:
-            code, msg, dependency = dependency_service.delete_service_dependency(session=session, tenant=tenant,
+            code, msg, dependency = dependency_service.delete_service_dependency(session=session, tenant_env=tenant_env,
                                                                                  service=service, dep_service_id=dep_id,
                                                                                  user_name=user.nick_name)
             if code != 200:
@@ -36,29 +36,29 @@ class DevopsRepository:
         return general_message(200, "success", "删除成功")
 
     @staticmethod
-    def delete_envs(session, user, tenant, service, key):
+    def delete_envs(session, user, tenant_env, service, key):
         """
         删除组件的某个环境变量
         """
         env = session.execute(select(ComponentEnvVar).where(
-            ComponentEnvVar.tenant_id == tenant.tenant_id,
+            ComponentEnvVar.tenant_id == tenant_env.tenant_id,
             ComponentEnvVar.service_id == service.service_id,
             ComponentEnvVar.attr_name == key
         )).scalars().first()
 
         if not env:
             return general_message(200, "delete env not found", "需要删除的环境变量未找到")
-        env_var_service.delete_env_by_env_id(session=session, tenant=tenant, service=service, env_id=env.ID,
+        env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service, env_id=env.ID,
                                              user_name=user.nick_name)
         return general_message(200, "success", "删除成功")
 
     @staticmethod
-    def modify_env(session, user, tenant, service, key, name, attr_value):
+    def modify_env(session, user, tenant_env, service, key, name, attr_value):
         """
         修改组件环境变量
         """
         env = session.execute(select(ComponentEnvVar).where(
-            ComponentEnvVar.tenant_id == tenant.tenant_id,
+            ComponentEnvVar.tenant_id == tenant_env.tenant_id,
             ComponentEnvVar.service_id == service.service_id,
             ComponentEnvVar.attr_name == key
         )).scalars().first()
@@ -66,7 +66,7 @@ class DevopsRepository:
         if not env:
             return general_message(400, "update env not found", "需要更新的环境变量未找到")
 
-        code, msg, env = env_var_service.update_env_by_env_id(session=session, tenant=tenant, service=service,
+        code, msg, env = env_var_service.update_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
                                                               env_id=str(env.ID), name=name, attr_value=attr_value,
                                                               user_name=user.nick_name)
         if code != 200:
@@ -75,7 +75,7 @@ class DevopsRepository:
         return general_message(200, "success", "更新成功", bean=jsonable_encoder(env))
 
     @staticmethod
-    def component_build(session, user, tenant, service):
+    def component_build(session, user, tenant_env, service):
         """
         组件构建
         """
@@ -85,17 +85,18 @@ class DevopsRepository:
             if service.service_source == "third_party":
                 is_deploy = False
                 # create third component from region
-                new_service = application_service.create_third_party_service(session=session, tenant=tenant,
+                new_service = application_service.create_third_party_service(session=session, tenant_env=tenant_env,
                                                                              service=service, user_name=user.nick_name)
             else:
                 # 数据中心创建组件
-                new_service = application_service.create_region_service(session=session, tenant=tenant, service=service,
+                new_service = application_service.create_region_service(session=session, tenant_env=tenant_env,
+                                                                        service=service,
                                                                         user_name=user.nick_name)
 
             service = new_service
             if is_deploy:
                 try:
-                    app_manage_service.deploy(session=session, tenant=tenant, service=service, user=user)
+                    app_manage_service.deploy(session=session, tenant=tenant_env, service=service, user=user)
                 except ErrInsufficientResource as e:
                     return general_message(e.error_code, e.msg, e.msg_show)
                 except Exception as e:
@@ -123,11 +124,11 @@ class DevopsRepository:
         #     probe_service.delete_service_probe(tenant, service, probe.probe_id)
         if service.service_source != "third_party":
             event_service.delete_service_events(session=session, service=service)
-            port_service.delete_region_port(session=session, tenant=tenant, service=service)
-            volume_service.delete_region_volumes(session=session, tenant=tenant, service=service)
-            env_var_service.delete_region_env(session=session, tenant=tenant, service=service)
-            dependency_service.delete_region_dependency(session=session, tenant=tenant, service=service)
-            app_manage_service.delete_region_service(session=session, tenant=tenant, service=service)
+            port_service.delete_region_port(session=session, tenant_env=tenant_env, service=service)
+            volume_service.delete_region_volumes(session=session, tenant_env=tenant_env, service=service)
+            env_var_service.delete_region_env(session=session, tenant_env=tenant_env, service=service)
+            dependency_service.delete_region_dependency(session=session, tenant_env=tenant_env, service=service)
+            app_manage_service.delete_region_service(session=session, tenant=tenant_env, service=service)
         service.create_status = "checked"
         return result
 
@@ -166,14 +167,14 @@ class DevopsRepository:
             logger.exception(e)
 
     @staticmethod
-    def add_envs(session, attr_name, attr_value, name, user, tenant, service):
+    def add_envs(session, attr_name, attr_value, name, user, tenant_env, service):
         scope = "inner"
         is_change = True
         if not scope or not attr_name:
             return general_message(400, "params error", "参数异常")
         if scope not in ("inner", "outer"):
             return general_message(400, "params error", "scope范围只能是inner或outer")
-        code, msg, data = env_var_service.add_service_env_var(session=session, tenant=tenant, service=service,
+        code, msg, data = env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
                                                               container_port=0, name=name, attr_name=attr_name,
                                                               attr_value=attr_value,
                                                               is_change=is_change, scope=scope,

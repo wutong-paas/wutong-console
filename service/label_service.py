@@ -65,7 +65,7 @@ class LabelService(object):
         }
         return result
 
-    def set_service_os_label(self, session: SessionClass, tenant, service, os):
+    def set_service_os_label(self, session: SessionClass, tenant_env, service, os):
         os_label = (
             session.execute(select(Labels).where(Labels.label_name == os))
         ).scalars().first()
@@ -76,9 +76,9 @@ class LabelService(object):
             os_label = Labels(label_id=label_id, label_name=os, label_alias=os, create_time=create_time)
             session.add(os_label)
 
-        return self.add_service_labels(session=session, tenant=tenant, service=service, label_ids=[os_label.label_id])
+        return self.add_service_labels(session=session, tenant_env=tenant_env, service=service, label_ids=[os_label.label_id])
 
-    def add_service_labels(self, session: SessionClass, tenant, service, label_ids, user_name=''):
+    def add_service_labels(self, session: SessionClass, tenant_env, service, label_ids, user_name=''):
         labels = (
             session.execute(select(Labels).where(Labels.label_id.in_(label_ids)))
         ).scalars().all()
@@ -89,7 +89,7 @@ class LabelService(object):
         service_labels = list()
         for label_id in label_ids:
             service_label = ComponentLabels(
-                tenant_id=tenant.tenant_id, service_id=service.service_id, label_id=label_id,
+                tenant_id=tenant_env.tenant_id, service_id=service.service_id, label_id=label_id,
                 region=service.service_region)
             service_labels.append(service_label)
 
@@ -103,7 +103,7 @@ class LabelService(object):
             body["operator"] = user_name
             try:
                 remote_component_client.addServiceNodeLabel(session,
-                                                            service.service_region, tenant.tenant_name,
+                                                            service.service_region, tenant_env,
                                                             service.service_alias, body)
             except remote_component_client.CallApiError as e:
                 if "is exist" not in e.body.get("msg"):
@@ -114,8 +114,8 @@ class LabelService(object):
         session.flush()
         return 200, "操作成功", None
 
-    def get_region_labels(self, session: SessionClass, tenant, region_name):
-        data = remote_component_client.get_region_labels(session, region_name, tenant.tenant_name)
+    def get_region_labels(self, session: SessionClass, tenant_env, region_name):
+        data = remote_component_client.get_region_labels(session, region_name, tenant_env)
         return data["list"]
 
     def _sync_labels(self, session: SessionClass, labels):
@@ -203,9 +203,9 @@ class LabelService(object):
 
         return app_info, plugin_ids
 
-    def list_available_labels(self, session: SessionClass, tenant, region_name):
+    def list_available_labels(self, session: SessionClass, tenant_env, region_name):
         try:
-            labels = self.get_region_labels(session=session, tenant=tenant, region_name=region_name)
+            labels = self.get_region_labels(session=session, tenant_env=tenant_env, region_name=region_name)
             if not labels:
                 return
 
@@ -217,7 +217,7 @@ class LabelService(object):
             logger.exception(e)
             return []
 
-    def delete_service_label(self, session: SessionClass, tenant, service, label_id, user_name=''):
+    def delete_service_label(self, session: SessionClass, tenant_env, service, label_id, user_name=''):
         label = label_repo.get_label_by_label_id(session, label_id)
         if not label:
             return 404, "指定标签不存在", None
@@ -233,7 +233,7 @@ class LabelService(object):
         logger.debug('-------------------->{0}'.format(body))
         try:
             remote_component_client.deleteServiceNodeLabel(session,
-                                                           service.service_region, tenant.tenant_name,
+                                                           service.service_region, tenant_env,
                                                            service.service_alias, body)
             service_label_repo.delete_service_labels(session, service.service_id, label_id)
         except remote_component_client.CallApiError as e:

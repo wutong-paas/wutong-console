@@ -160,7 +160,7 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         return session.execute(select(TeamComponentInfo).where(
             TeamComponentInfo.service_id == service_id)).scalars().first()
 
-    def get_group_service_by_group_id(self, session, group_id, region_name, team_id, team_name, enterprise_id,
+    def get_group_service_by_group_id(self, session, group_id, region_name, team_id, tenant_env, enterprise_id,
                                       query=""):
         # todo
         group_services_list = base_service.get_group_services_list(session=session, team_id=team_id,
@@ -169,7 +169,7 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         if not group_services_list:
             return []
         service_ids = [service.service_id for service in group_services_list]
-        status_list = base_service.status_multi_service(session=session, region=region_name, tenant_name=team_name,
+        status_list = base_service.status_multi_service(session=session, region=region_name, tenant_env=tenant_env,
                                                         service_ids=service_ids, enterprise_id=enterprise_id)
         status_cache = {}
         statuscn_cache = {}
@@ -216,13 +216,13 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                                                 TeamComponentInfo.tenant_service_group_id.in_(service_group_ids)))
         ).scalars().all()
 
-    def get_no_group_service_status_by_group_id(self, session, team_name, team_id, region_name, enterprise_id):
+    def get_no_group_service_status_by_group_id(self, session, tenant_env, team_id, region_name, enterprise_id):
         no_services = base_service.get_no_group_services_list(session=session, team_id=team_id,
                                                               region_name=region_name)
         if no_services:
             service_ids = [service.service_id for service in no_services]
             status_list = base_service.status_multi_service(session=session,
-                                                            region=region_name, tenant_name=team_name,
+                                                            region=region_name, tenant_env=tenant_env,
                                                             service_ids=service_ids, enterprise_id=enterprise_id)
             status_cache = {}
             statuscn_cache = {}

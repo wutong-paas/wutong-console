@@ -181,8 +181,8 @@ class ApplicationService(object):
         return 200, "创建成功", ts
 
     @staticmethod
-    def get_pod(session, tenant, region_name, pod_name):
-        return remote_build_client.get_pod(session, region_name, tenant.tenant_name, pod_name)
+    def get_pod(session, tenant_env, region_name, pod_name):
+        return remote_build_client.get_pod(session, region_name, tenant_env, pod_name)
 
     def install_app(self, session, tenant_env, region_name, app_id, overrides):
         if overrides:
@@ -196,7 +196,7 @@ class ApplicationService(object):
     def get_service_group_info(self, session, service_id):
         return app_component_relation_repo.get_group_info_by_service_id(session, service_id)
 
-    def add_service_default_porbe(self, session, tenant, service):
+    def add_service_default_porbe(self, session, tenant_env, service):
         ports = port_service.get_service_ports(session, service)
         port_length = len(ports)
         if port_length >= 1:
@@ -220,7 +220,7 @@ class ApplicationService(object):
                 "probe_id": make_uuid(),
                 "mode": "readiness"
             }
-            return probe_service.add_service_probe(session, tenant, service, data)
+            return probe_service.add_service_probe(session, tenant_env, service, data)
         return 200, "success", None
 
     def update_check_app(self, session, tenant, service, data):
@@ -429,14 +429,14 @@ class ApplicationService(object):
         app.k8s_app = region_app["k8s_app"]
         session.merge(app)
 
-    def get_app_detail(self, session: SessionClass, tenant, region_name, app_id):
+    def get_app_detail(self, session: SessionClass, tenant_env, region_name, app_id):
         # app metadata
         app = application_repo.get_by_primary_key(session=session, primary_key=app_id)
 
         if not app:
             raise ServiceHandleException(msg="not found application", msg_show="应用不存在", status_code=400)
 
-        self.sync_app_services(session=session, tenant=tenant, region_name=region_name, app_id=app_id)
+        self.sync_app_services(session=session, tenant_env=tenant_env, region_name=region_name, app_id=app_id)
 
         res = app.__dict__
         res['app_id'] = app.ID
@@ -445,14 +445,14 @@ class ApplicationService(object):
         res['service_num'] = app_component_relation_repo.count_service_by_app_id(session, app_id)
         res['backup_num'] = backup_record_repo.count_by_app_id(session=session, app_id=app_id)
         res['share_num'] = component_share_repo.count_by_app_id(session=session, app_id=app_id)
-        res['ingress_num'] = self.count_ingress_by_app_id(session=session, tenant_id=tenant.tenant_id,
+        res['ingress_num'] = self.count_ingress_by_app_id(session=session, tenant_id=tenant_env.tenant_id,
                                                           region_name=region_name, app_id=app_id)
         res['config_group_num'] = app_config_group_repo.count_by_region_and_app_id(session, region_name, app_id)
         res['logo'] = app.logo
         res['k8s_app'] = app.k8s_app
         res['can_edit'] = True
         components = app_component_relation_repo.get_services_by_group(session, app_id)
-        running_components = remote_component_client.get_dynamic_services_pods(session, region_name, tenant.tenant_name,
+        running_components = remote_component_client.get_dynamic_services_pods(session, region_name, tenant_env,
                                                                                [component.service_id for component in
                                                                                 components])
         if running_components.get("list") and len(running_components["list"]) > 0:
@@ -743,14 +743,14 @@ class ApplicationService(object):
             "service_code_version": service.code_version,
         }
 
-    def create_third_party_service(self, session: SessionClass, tenant, service, user_name, is_inner_service=False):
-        data = self.__init_third_party_data(tenant=tenant, service=service, user_name=user_name)
+    def create_third_party_service(self, session: SessionClass, tenant_env, service, user_name, is_inner_service=False):
+        data = self.__init_third_party_data(tenant=tenant_env, service=service, user_name=user_name)
         # env var
         envs_info = (
             session.execute(
                 select(ComponentEnvVar.container_port, ComponentEnvVar.name, ComponentEnvVar.attr_name,
                        ComponentEnvVar.attr_value, ComponentEnvVar.is_change, ComponentEnvVar.scope).where(
-                    ComponentEnvVar.tenant_id == tenant.tenant_id,
+                    ComponentEnvVar.tenant_id == tenant_env.tenant_id,
                     ComponentEnvVar.service_id == service.service_id))
         ).scalars().all()
         if envs_info:
@@ -759,7 +759,7 @@ class ApplicationService(object):
         ports_info = (
             session.execute(
                 select(TeamComponentPort).where(
-                    TeamComponentPort.tenant_id == tenant.tenant_id,
+                    TeamComponentPort.tenant_id == tenant_env.tenant_id,
                     TeamComponentPort.service_id == service.service_id))
         ).scalars().all()
 
@@ -804,7 +804,7 @@ class ApplicationService(object):
             service.k8s_component_name = service.service_alias
         data["k8s_component_name"] = service.k8s_component_name
         logger.debug('create third component from region, data: {0}'.format(data))
-        remote_component_client.create_service(session, service.service_region, tenant.tenant_name, data)
+        remote_component_client.create_service(session, service.service_region, tenant_env, data)
         # 将组件创建状态变更为创建完成
         service.create_status = "complete"
         session.merge(service)
@@ -861,10 +861,10 @@ class ApplicationService(object):
         data["service_name"] = service.service_name
         return data
 
-    def create_region_service(self, session: SessionClass, tenant, service, user_name, do_deploy=True, dep_sids=None):
-        data = self.__init_create_data(tenant=tenant, service=service, user_name=user_name, do_deploy=do_deploy,
+    def create_region_service(self, session: SessionClass, tenant_env, service, user_name, do_deploy=True, dep_sids=None):
+        data = self.__init_create_data(tenant=tenant_env, service=service, user_name=user_name, do_deploy=do_deploy,
                                        dep_sids=dep_sids)
-        service_dep_relations = dep_relation_repo.get_service_dependencies(session, tenant.tenant_id,
+        service_dep_relations = dep_relation_repo.get_service_dependencies(session, tenant_env.tenant_id,
                                                                            service.service_id)
         # handle dependencies attribute
         depend_ids = [{
@@ -876,7 +876,7 @@ class ApplicationService(object):
         } for dep in service_dep_relations]
         data["depend_ids"] = depend_ids
         # handle port attribute
-        ports = port_repo.get_service_ports(session, tenant.tenant_id, service.service_id)
+        ports = port_repo.get_service_ports(session, tenant_env.tenant_id, service.service_id)
         ports_info = []
         for port in ports:
             ports_info.append({
@@ -894,7 +894,7 @@ class ApplicationService(object):
             data["ports_info"] = ports_info
         # handle env attribute
         envs_info = []
-        envs_info_list = team_env_var_repo.get_service_env(session, tenant.tenant_id, service.service_id)
+        envs_info_list = team_env_var_repo.get_service_env(session, tenant_env.tenant_id, service.service_id)
         for envs in envs_info_list:
             envs_info.append({
                 'container_port': envs.container_port,
@@ -919,7 +919,7 @@ class ApplicationService(object):
                 volume_list.append(volume_info)
             data["volumes_info"] = volume_list
 
-        logger.debug(tenant.tenant_name + " start create_service:" + datetime.now().strftime('%Y%m%d%H%M%S'))
+        logger.debug(tenant_env.tenant_name + " start create_service:" + datetime.now().strftime('%Y%m%d%H%M%S'))
         # handle dep volume attribute
         mnt_info = mnt_repo.get_service_mnts(session, service.tenant_id, service.service_id)
         if mnt_info:
@@ -943,7 +943,7 @@ class ApplicationService(object):
         # handle component monitor
         monitors = []
         monitors_list = service_monitor_service.get_component_service_monitors(session=session,
-                                                                               tenant_id=tenant.tenant_id,
+                                                                               tenant_id=tenant_env.tenant_id,
                                                                                service_id=service.service_id)
         for monitor in monitors_list:
             monitors.append({
@@ -971,7 +971,7 @@ class ApplicationService(object):
         if http_rules:
             rule_data = []
             for rule in http_rules:
-                rule_data.append(self.__init_http_rule_for_region(session, tenant, service, rule, user_name))
+                rule_data.append(self.__init_http_rule_for_region(session, tenant_env, service, rule, user_name))
             data["http_rules"] = rule_data
 
         stream_rule = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
@@ -984,7 +984,7 @@ class ApplicationService(object):
             service.k8s_component_name = service.service_alias
         data["k8s_component_name"] = service.k8s_component_name
         # create in region
-        remote_component_client.create_service(session, service.service_region, tenant.tenant_name, data)
+        remote_component_client.create_service(session, service.service_region, tenant_env, data)
         # conponent install complete
         service.create_status = "complete"
         # service_repo.save_service(service)
@@ -1292,7 +1292,7 @@ class ApplicationService(object):
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
         return remote_app_client.list_app_releases(session, region_name, tenant_env, region_app_id)
 
-    def get_region_app_statuses(self, session: SessionClass, tenant_name, region_name, app_ids):
+    def get_region_app_statuses(self, session: SessionClass, tenant_env, region_name, app_ids):
         # Obtain the application ID of the cluster and
         # record the corresponding relationship of the console application ID
         region_apps = region_app_repo.list_by_app_ids(session, region_name, app_ids)
@@ -1302,7 +1302,7 @@ class ApplicationService(object):
             region_app_ids.append(region_app.region_app_id)
             app_id_rels[region_app.app_id] = region_app.region_app_id
         # Get the status of cluster application
-        resp = remote_build_client.list_app_statuses_by_app_ids(session, tenant_name, region_name,
+        resp = remote_build_client.list_app_statuses_by_app_ids(session, tenant_env, region_name,
                                                                 {"app_ids": region_app_ids})
         app_statuses = resp.get("list", [])
         # The relationship between cluster application ID and state
@@ -1319,7 +1319,7 @@ class ApplicationService(object):
             app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
         return app_id_status_rels
 
-    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_name, tenant, status="all"):
+    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_name, tenant_env, status="all"):
         count = {
             "running": 0,
             "closed": 0,
@@ -1333,14 +1333,14 @@ class ApplicationService(object):
         app_list = application_repo.get_multi_app_info(session, app_ids)
         service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
         service_ids = [service.service_id for service in service_list]
-        status_list = base_service.status_multi_service(session=session, region=region, tenant_name=tenant_name,
-                                                        service_ids=service_ids, enterprise_id=tenant.enterprise_id)
+        status_list = base_service.status_multi_service(session=session, region=region, tenant_env=tenant_env,
+                                                        service_ids=service_ids, enterprise_id=tenant_env.enterprise_id)
         service_status = dict()
         if status_list is None:
             raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
         for status_dict in status_list:
             service_status[status_dict["service_id"]] = status_dict
-        app_id_statuses = self.get_region_app_statuses(session=session, tenant_name=tenant_name, region_name=region,
+        app_id_statuses = self.get_region_app_statuses(session=session, tenant_env=tenant_env, region_name=region,
                                                        app_ids=app_ids)
         apps = dict()
         for app in app_list:
@@ -1361,7 +1361,7 @@ class ApplicationService(object):
                         "accesses": [],
                     }
         # 获取应用下组件的访问地址
-        accesses = port_service.list_access_infos(session=session, tenant=tenant, services=service_list)
+        accesses = port_service.list_access_infos(session=session, tenant=tenant_env, services=service_list)
         for service in service_list:
             svc_sas = service_status.get(service.service_id, {"status": "failure",
                                                               "used_mem": 0})

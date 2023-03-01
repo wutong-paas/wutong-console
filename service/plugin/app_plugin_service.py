@@ -36,17 +36,17 @@ has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_sh
 
 
 class AppPluginService(object):
-    def update_config_if_have_export_plugin(self, session, tenant, service):
+    def update_config_if_have_export_plugin(self, session, tenant_env, service):
         plugins = self.get_service_abled_plugin(session, service)
         for plugin in plugins:
             if PluginCategoryConstants.OUTPUT_NET == plugin.category or \
                     PluginCategoryConstants.OUTPUT_INPUT_NET == plugin.category:
-                pbv = plugin_version_service.get_newest_usable_plugin_version(session, tenant.tenant_id,
+                pbv = plugin_version_service.get_newest_usable_plugin_version(session, tenant_env.tenant_id,
                                                                               plugin.plugin_id)
                 if pbv:
-                    configs = self.get_service_plugin_config(session, tenant, service, plugin.plugin_id,
+                    configs = self.get_service_plugin_config(session, tenant_env, service, plugin.plugin_id,
                                                              pbv.build_version)
-                    self.update_service_plugin_config(session, tenant, service, plugin.plugin_id, pbv.build_version,
+                    self.update_service_plugin_config(session, tenant_env, service, plugin.plugin_id, pbv.build_version,
                                                       configs,
                                                       service.service_region)
 
@@ -196,18 +196,18 @@ class AppPluginService(object):
         base_plugins = plugin_repo.get_plugin_by_plugin_ids(session, plugin_ids)
         return base_plugins
 
-    def update_config_if_have_entrance_plugin(self, session: SessionClass, tenant, service):
+    def update_config_if_have_entrance_plugin(self, session: SessionClass, tenant_env, service):
         plugins = self.get_service_abled_plugin(session=session, service=service)
         for plugin in plugins:
             if PluginCategoryConstants.INPUT_NET == plugin.category:
                 pbv = plugin_version_service.get_newest_usable_plugin_version(session=session,
-                                                                              tenant_id=tenant.tenant_id,
+                                                                              tenant_id=tenant_env.tenant_id,
                                                                               plugin_id=plugin.plugin_id)
                 if pbv:
-                    configs = self.get_service_plugin_config(session=session, tenant=tenant, service=service,
+                    configs = self.get_service_plugin_config(session=session, tenant=tenant_env, service=service,
                                                              plugin_id=plugin.plugin_id,
                                                              build_version=pbv.build_version)
-                    self.update_service_plugin_config(session=session, tenant=tenant, service=service,
+                    self.update_service_plugin_config(session=session, tenant_env=tenant_env, service=service,
                                                       plugin_id=plugin.plugin_id, build_version=pbv.build_version,
                                                       config=configs,
                                                       response_region=service.service_region)
@@ -216,16 +216,16 @@ class AppPluginService(object):
         service_plugin_config_repo.delete_service_plugin_config_var(session=session, service_id=service.service_id,
                                                                     plugin_id=plugin_id)
 
-    def delete_filemanage_service_plugin_port(self, session: SessionClass, team, service, response_region, user,
+    def delete_filemanage_service_plugin_port(self, session: SessionClass, tenant_env, service, response_region, user,
                                               container_port, plugin_id):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin" or plugin_info.origin_share_id == "redis_dbgate_plugin" \
                     or plugin_info.origin_share_id == "mysql_dbgate_plugin":
                 port = port_service.get_port_by_container_port(session, service, container_port)
                 if not port:
                     return
-                code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
+                code, msg, data = port_service.manage_port(session=session, tenant_env=tenant_env, service=service,
                                                            region_name=response_region, container_port=container_port,
                                                            action="close_inner",
                                                            protocol="http", port_alias=None,
@@ -234,12 +234,12 @@ class AppPluginService(object):
                 if code != 200:
                     logger.debug("close file manager inner error", msg)
 
-                port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
+                port_service.delete_port_by_container_port(session=session, tenant_env=tenant_env, service=service,
                                                            container_port=container_port,
                                                            user_name=user.nick_name)
 
-    def update_java_agent_plugin_env(self, session: SessionClass, team, service, plugin_id, user):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, team.tenant_id, plugin_id)
+    def update_java_agent_plugin_env(self, session: SessionClass, tenant_env, service, plugin_id, user):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
                 env_name = "JAVA_TOOL_OPTIONS"
@@ -257,11 +257,11 @@ class AppPluginService(object):
                     else:
                         return
                     if repl_value == '':
-                        env_var_service.delete_env_by_env_id(session=session, tenant=team, service=service,
+                        env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
                                                              env_id=env.ID,
                                                              user_name=user.nick_name)
                     else:
-                        env_var_service.update_env_by_env_id(session=session, tenant=team,
+                        env_var_service.update_env_by_env_id(session=session, tenant_env=tenant_env,
                                                              service=service,
                                                              env_id=str(env.ID), name=env_name,
                                                              attr_value=repl_value,
@@ -371,7 +371,7 @@ class AppPluginService(object):
 
         return region_env_config
 
-    def update_service_plugin_config(self, session: SessionClass, tenant, service, plugin_id, build_version, config,
+    def update_service_plugin_config(self, session: SessionClass, tenant_env, service, plugin_id, build_version, config,
                                      response_region):
         # delete old config
         self.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
@@ -382,7 +382,7 @@ class AppPluginService(object):
         region_config = self.get_region_config_from_db(session=session, service=service, plugin_id=plugin_id,
                                                        build_version=build_version)
         remote_plugin_client.update_service_plugin_config(session,
-                                                          response_region, tenant.tenant_name,
+                                                          response_region, tenant_env,
                                                           service.service_alias, plugin_id,
                                                           region_config)
 
@@ -510,10 +510,12 @@ class AppPluginService(object):
         else:
             return
         # create internal port
-        port_service.create_internal_port(session=session, tenant=tenant_env, component=service, container_port=port,
+        port_service.create_internal_port(session=session, tenant_env=tenant_env, component=service,
+                                          container_port=port,
                                           user_name=user_name)
         try:
-            service_monitor_service.create_component_service_monitor(session=session, tenant_env=tenant_env, service=service,
+            service_monitor_service.create_component_service_monitor(session=session, tenant_env=tenant_env,
+                                                                     service=service,
                                                                      name="mysqldexporter-" + make_uuid()[0:4],
                                                                      path=path,
                                                                      port=port, service_show_name=show_name,
@@ -594,15 +596,15 @@ class AppPluginService(object):
         data["plugin_cpu"] = plugin_rel.min_cpu
         data["plugin_memory"] = plugin_rel.min_memory
         try:
-            remote_plugin_client.install_service_plugin(session, region, tenant_env.tenant_name, service.service_alias,
+            remote_plugin_client.install_service_plugin(session, region, tenant_env, service.service_alias,
                                                         data)
         except remote_plugin_client.CallApiError as e:
             if "body" in e.message and "msg" in e.message["body"] \
                     and "a same kind plugin has been linked" in e.message["body"]["msg"]:
                 raise ServiceHandleException(msg="install plugin fail", msg_show="相同类插件已开通不能重复安装", status_code=409)
 
-    def add_filemanage_port(self, session: SessionClass, tenant, service, plugin_id, container_port, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
+    def add_filemanage_port(self, session: SessionClass, tenant_env, service, plugin_id, container_port, user=None):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
 
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin" \
@@ -618,7 +620,7 @@ class AppPluginService(object):
                 port = port_service.get_port_by_container_port(session, service, port_num)
                 if port:
                     return
-                port_service.add_service_port(session=session, tenant=tenant, service=service,
+                port_service.add_service_port(session=session, tenant_env=tenant_env, service=service,
                                               container_port=port_num, protocol=protocol,
                                               port_alias=port_alias,
                                               is_inner_service=True,
@@ -626,19 +628,19 @@ class AppPluginService(object):
                                               k8s_service_name=None,
                                               user_name=user.nick_name)
 
-    def add_filemanage_mount(self, session: SessionClass, tenant, service, plugin_id, plugin_version, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
+    def add_filemanage_mount(self, session: SessionClass, tenant_env, service, plugin_id, plugin_version, user=None):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
-                result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=tenant,
+                result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=tenant_env,
                                                                            service=service,
                                                                            plugin_id=plugin_id,
                                                                            build_version=plugin_version)
                 config = jsonpath(result_bean, '$.undefine_env..config')[0][1]
                 attr_value = config["attr_value"]
 
-                volumes = volume_service.get_service_volumes(session=session, tenant=tenant, service=service,
+                volumes = volume_service.get_service_volumes(session=session, tenant_env=tenant_env, service=service,
                                                              is_config_file=False)
 
                 for volume in volumes:
@@ -652,7 +654,7 @@ class AppPluginService(object):
                             'allow_expansion': False}
                 volume_service.add_service_volume(
                     session=session,
-                    tenant=tenant,
+                    tenant_env=tenant_env,
                     service=service,
                     volume_path=attr_value,
                     volume_type="share-file",
@@ -662,13 +664,13 @@ class AppPluginService(object):
                     user_name=user.nick_name,
                     mode=None)
 
-    def add_init_agent_mount(self, session: SessionClass, tenant, service, plugin_id, plugin_version, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
+    def add_init_agent_mount(self, session: SessionClass, tenant_env, service, plugin_id, plugin_version, user=None):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
 
-                volumes = volume_service.get_service_volumes(session=session, tenant=tenant, service=service,
+                volumes = volume_service.get_service_volumes(session=session, tenant_env=tenant_env, service=service,
                                                              is_config_file=False)
 
                 for volume in volumes:
@@ -682,7 +684,7 @@ class AppPluginService(object):
                             'allow_expansion': False}
                 volume_service.add_service_volume(
                     session=session,
-                    tenant=tenant,
+                    tenant_env=tenant_env,
                     service=service,
                     volume_path="/agent",
                     volume_type="share-file",
@@ -692,9 +694,9 @@ class AppPluginService(object):
                     user_name=user.nick_name,
                     mode=None)
 
-    def modify_init_agent_env(self, session: SessionClass, tenant, service, plugin_id, user=None):
+    def modify_init_agent_env(self, session: SessionClass, tenant_env, service, plugin_id, user=None):
 
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
                 env_name = "JAVA_TOOL_OPTIONS"
@@ -704,7 +706,7 @@ class AppPluginService(object):
                 )).scalars().first()
 
                 if not env:
-                    env_var_service.add_service_env_var(session=session, tenant=tenant, service=service,
+                    env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
                                                         container_port=0, name=env_name, attr_name=env_name,
                                                         attr_value=settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name,
                                                         is_change=True, scope="inner",

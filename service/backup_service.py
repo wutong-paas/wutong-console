@@ -41,15 +41,15 @@ class GroupAppBackupService(object):
         return backup_record_repo.get_group_backup_records(session=session, team_id=tenant.tenant_id,
                                                            region_name=region, group_id=group_id)
 
-    def check_backup_condition(self, session: SessionClass, tenant, region, group_id):
+    def check_backup_condition(self, session: SessionClass, tenant_env, region, group_id):
         """
         检测备份条件，有状态组件备份应该
         """
         services = application_service.get_group_services(session=session, group_id=group_id)
         service_ids = [s.service_id for s in services]
-        body = remote_component_client.service_status(session, region, tenant.tenant_name, {
+        body = remote_component_client.service_status(session, region, tenant_env, {
             "service_ids": service_ids,
-            "enterprise_id": tenant.enterprise_id
+            "enterprise_id": tenant_env.enterprise_id
         })
         status_list = body["list"]
         service_status_map = {status_map["service_id"]: status_map["status"] for status_map in status_list}
@@ -221,11 +221,11 @@ class GroupAppBackupService(object):
         all_data["app_config_group_info"] = app_config_groups
         return total_memory, all_data
 
-    def backup_group_apps(self, session: SessionClass, tenant, user, region_name, group_id, mode, note, force=False):
+    def backup_group_apps(self, session: SessionClass, tenant_env, user, region_name, group_id, mode, note, force=False):
         services = application_service.get_group_services(session=session, group_id=group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(session=session, group_id=group_id)
-        total_memory, metadata = self.get_group_app_metadata(session=session, group_id=group_id, tenant=tenant,
+        total_memory, metadata = self.get_group_app_metadata(session=session, group_id=group_id, tenant=tenant_env,
                                                              region_name=region_name)
         version = current_time_str("%Y%m%d%H%M%S")
 
@@ -240,14 +240,14 @@ class GroupAppBackupService(object):
         }
         # 向数据中心发起备份任务
         try:
-            body = remote_migrate_client_api.backup_group_apps(session, region_name, tenant.tenant_name, data)
+            body = remote_migrate_client_api.backup_group_apps(session, region_name, tenant_env, data)
             bean = body["bean"]
             record_data = {
                 "group_id": group_id,
                 "event_id": event_id,
                 "group_uuid": group_uuid,
                 "version": version,
-                "team_id": tenant.tenant_id,
+                "team_id": tenant_env.tenant_id,
                 "region": region_name,
                 "status": bean["status"],
                 "note": note,
@@ -269,14 +269,14 @@ class GroupAppBackupService(object):
                 raise ServiceHandleException(msg="backup failed", msg_show="有状态组件必须停止方可进行备份")
             raise ServiceHandleException(msg=e.message["body"].get("msg", "backup failed"), msg_show="备份失败")
 
-    def get_groupapp_backup_status_by_backup_id(self, session: SessionClass, tenant, region, backup_id):
-        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant.tenant_id,
+    def get_groupapp_backup_status_by_backup_id(self, session: SessionClass, tenant_env, region, backup_id):
+        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant_env.tenant_id,
                                                                    backup_id=backup_id)
         if not backup_record:
             return 404, "不存在该备份记录", None
         if backup_record.status == "starting":
             body = remote_migrate_client_api.get_backup_status_by_backup_id(session,
-                                                                            region, tenant.tenant_name, backup_id)
+                                                                            region, tenant_env, backup_id)
             bean = body["bean"]
             backup_record.status = bean["status"]
             backup_record.source_dir = bean["source_dir"]
@@ -284,8 +284,8 @@ class GroupAppBackupService(object):
             backup_record.backup_size = bean["backup_size"]
         return 200, "success", backup_record
 
-    def delete_group_backup_by_backup_id(self, session: SessionClass, tenant, region, backup_id):
-        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant.tenant_id,
+    def delete_group_backup_by_backup_id(self, session: SessionClass, tenant_env, region, backup_id):
+        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant_env.tenant_id,
                                                                    backup_id=backup_id)
         if not backup_record:
             raise ErrBackupRecordNotFound
@@ -293,14 +293,14 @@ class GroupAppBackupService(object):
             return ErrBackupInProgress
 
         try:
-            remote_migrate_client_api.delete_backup_by_backup_id(session, region, tenant.tenant_name, backup_id)
+            remote_migrate_client_api.delete_backup_by_backup_id(session, region, tenant_env, backup_id)
         except remote_migrate_client_api.CallApiError as e:
             if e.status != 404:
                 raise e
 
-        backup_record_repo.delete_record_by_backup_id(session=session, team_id=tenant.tenant_id, backup_id=backup_id)
+        backup_record_repo.delete_record_by_backup_id(session=session, team_id=tenant_env.tenant_id, backup_id=backup_id)
 
-    def import_group_backup(self, session, tenant, region, group_id, upload_file):
+    def import_group_backup(self, session, tenant_env, region, group_id, upload_file):
         group = application_repo.get_group_by_id(session, group_id)
         if not group:
             return 404, "需要导入的组不存在", None
@@ -327,7 +327,7 @@ class GroupAppBackupService(object):
             "backup_mode": data["mode"],
             "backup_size": data["backup_size"]
         }
-        body = remote_migrate_client_api.copy_backup_data(session, region, tenant.tenant_name, params)
+        body = remote_migrate_client_api.copy_backup_data(session, region, tenant_env, params)
 
         bean = body["bean"]
         record_data = {
@@ -335,7 +335,7 @@ class GroupAppBackupService(object):
             "event_id": event_id,
             "group_uuid": group_uuid,
             "version": data["version"],
-            "team_id": tenant.tenant_id,
+            "team_id": tenant_env.tenant_id,
             "region": region,
             "status": bean["status"],
             "note": data["note"],

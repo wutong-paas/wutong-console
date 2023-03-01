@@ -7,17 +7,18 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_actions.app_log import log_service
 
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/log", response_model=Response, name="获取组件的日志")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/log", response_model=Response, name="获取组件的日志")
 async def get_log(request: Request,
+                  env_id: Optional[str] = None,
                   serviceAlias: Optional[str] = None,
-                  session: SessionClass = Depends(deps.get_session),
-                  team=Depends(deps.get_current_team)) -> Any:
+                  session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件的日志
     ---
@@ -44,11 +45,14 @@ async def get_log(request: Request,
           paramType: query
 
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     action = request.query_params.get("action", "service")
     lines = request.query_params.get("lines", 100)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
-    code, msg, log_list = log_service.get_service_logs(session=session, tenant=team, service=service, action=action,
+    code, msg, log_list = log_service.get_service_logs(session=session, tenant_env=env, service=service, action=action,
                                                        lines=int(lines))
     if code != 200:
         return JSONResponse(general_message(code, "query service log error", msg), status_code=code)

@@ -151,18 +151,18 @@ class PluginService(object):
         base_plugins = plugin_repo.get_plugin_by_plugin_ids(session, plugin_ids)
         return base_plugins
 
-    def update_config_if_have_entrance_plugin(self, session: SessionClass, tenant, service):
+    def update_config_if_have_entrance_plugin(self, session: SessionClass, tenant_env, service):
         plugins = self.get_service_abled_plugin(session=session, service=service)
         for plugin in plugins:
             if PluginCategoryConstants.INPUT_NET == plugin.category:
                 pbv = plugin_version_service.get_newest_usable_plugin_version(session=session,
-                                                                              tenant_id=tenant.tenant_id,
+                                                                              tenant_id=tenant_env.tenant_id,
                                                                               plugin_id=plugin.plugin_id)
                 if pbv:
-                    configs = self.get_service_plugin_config(session=session, tenant=tenant, service=service,
+                    configs = self.get_service_plugin_config(session=session, tenant=tenant_env, service=service,
                                                              plugin_id=plugin.plugin_id,
                                                              build_version=pbv.build_version)
-                    self.update_service_plugin_config(session=session, tenant=tenant, service=service,
+                    self.update_service_plugin_config(session=session, tenant_env=tenant_env, service=service,
                                                       plugin_id=plugin.plugin_id, build_version=pbv.build_version,
                                                       config=configs,
                                                       response_region=service.service_region)
@@ -275,7 +275,7 @@ class PluginService(object):
 
         return region_env_config
 
-    def update_service_plugin_config(self, session: SessionClass, tenant, service, plugin_id, build_version, config,
+    def update_service_plugin_config(self, session: SessionClass, tenant_env, service, plugin_id, build_version, config,
                                      response_region):
         # delete old config
         self.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
@@ -286,7 +286,7 @@ class PluginService(object):
         region_config = self.get_region_config_from_db(session=session, service=service, plugin_id=plugin_id,
                                                        build_version=build_version)
         remote_plugin_client.update_service_plugin_config(session,
-                                                          response_region, tenant.tenant_name,
+                                                          response_region, tenant_env,
                                                           service.service_alias, plugin_id,
                                                           region_config)
 

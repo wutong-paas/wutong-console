@@ -35,9 +35,9 @@ class AppRestore(MarketApp):
     3. AppRestore will not restore components that were deleted after the upgrade.
     """
 
-    def __init__(self, session, tenant, region: RegionConfig, user, app: Application, component_group: TeamApplication,
+    def __init__(self, session, tenant_env, region: RegionConfig, user, app: Application, component_group: TeamApplication,
                  app_upgrade_record: ApplicationUpgradeRecord):
-        self.tenant = tenant
+        self.tenant_env = tenant_env
         self.region = region
         self.region_name = region.region_name
         self.user = user
@@ -47,9 +47,9 @@ class AppRestore(MarketApp):
         self.rollback_record = None
         self.component_group = component_group
 
-        self.support_labels = label_service.list_available_labels(session, tenant, region.region_name)
+        self.support_labels = label_service.list_available_labels(session, tenant_env, region.region_name)
 
-        self.original_app = OriginalApp(session, tenant, region, app, component_group.ID, self.support_labels)
+        self.original_app = OriginalApp(session, tenant_env, region, app, component_group.ID, self.support_labels)
         self.snapshot = self._get_snapshot(session)
         self.new_app = self._create_new_app(session)
         super(AppRestore, self).__init__(session, self.original_app, self.new_app)

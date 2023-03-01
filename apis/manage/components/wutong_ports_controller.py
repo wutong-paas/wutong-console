@@ -14,6 +14,7 @@ from exceptions.bcode import ErrComponentPortExists
 from exceptions.main import AbortRequest
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_config.domain_service import domain_service
 from service.app_config.port_service import port_service
@@ -91,14 +92,14 @@ async def get_ports(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/ports/{port}", response_model=Response,
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/ports/{port}", response_model=Response,
             name="修改组件的某个端口（打开|关闭|修改协议|修改环境变量）")
 async def update_ports(request: Request,
+                       env_id: Optional[str] = None,
                        serviceAlias: Optional[str] = None,
                        port: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
-                       user=Depends(deps.get_current_user),
-                       team=Depends(deps.get_current_team)) -> Any:
+                       user=Depends(deps.get_current_user)) -> Any:
     """
     修改组件的某个端口（打开|关闭|修改协议|修改环境变量）
     ---
@@ -143,20 +144,23 @@ async def update_ports(request: Request,
     k8s_service_name = await parse_item(request, "k8s_service_name", default="")
     if not container_port:
         raise AbortRequest("container_port not specify", "端口变量名未指定")
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
     if service.service_source == "third_party" and ("outer" in action):
-        msg, msg_show, code = port_service.check_domain_thirdpart(session=session, tenant=team, service=service)
+        msg, msg_show, code = port_service.check_domain_thirdpart(session=session, tenant_env=env, service=service)
         if code != 200:
             logger.exception(msg, msg_show)
             return JSONResponse(general_message(code, msg, msg_show), status_code=code)
 
-    code, msg, data = port_service.manage_port(session=session, tenant=team, service=service,
+    code, msg, data = port_service.manage_port(session=session, tenant_env=env, service=service,
                                                region_name=response_region, container_port=int(container_port),
                                                action=action,
                                                protocol=protocol, port_alias=port_alias,
@@ -169,12 +173,12 @@ async def update_ports(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/ports", response_model=Response, name="为组件添加端口")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/ports", response_model=Response, name="为组件添加端口")
 async def add_ports(request: Request,
+                    env_id: Optional[str] = None,
                     serviceAlias: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session),
-                    user=Depends(deps.get_current_user),
-                    team=Depends(deps.get_current_team)) -> Any:
+                    user=Depends(deps.get_current_user)) -> Any:
     """
     为组件添加端口
     ---
@@ -223,7 +227,11 @@ async def add_ports(request: Request,
     is_inner_service = data.get('is_inner_service', False)
     is_outer_service = data.get('is_outer_service', False)
 
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
     if not port:
         return JSONResponse(general_message(400, "params error", "缺少端口参数"), status_code=400)
@@ -232,7 +240,7 @@ async def add_ports(request: Request,
     if not port_alias:
         port_alias = service.service_alias.upper().replace("-", "_") + str(port)
     try:
-        code, msg, port_info = port_service.add_service_port(session=session, tenant=team, service=service,
+        code, msg, port_info = port_service.add_service_port(session=session, tenant_env=env, service=service,
                                                              container_port=port, protocol=protocol,
                                                              port_alias=port_alias,
                                                              is_inner_service=is_inner_service,
@@ -247,12 +255,13 @@ async def add_ports(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/ports/{port}", response_model=Response, name="删除组件的某个端口")
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/ports/{port}", response_model=Response,
+               name="删除组件的某个端口")
 async def delete_ports(serviceAlias: Optional[str] = None,
+                       env_id: Optional[str] = None,
                        port: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
-                       user=Depends(deps.get_current_user),
-                       team=Depends(deps.get_current_team)) -> Any:
+                       user=Depends(deps.get_current_user)) -> Any:
     """
      删除组件的某个端口
      ---
@@ -275,11 +284,14 @@ async def delete_ports(serviceAlias: Optional[str] = None,
 
      """
     try:
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
         container_port = port
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")
-        data = port_service.delete_port_by_container_port(session=session, tenant=team, service=service,
+        data = port_service.delete_port_by_container_port(session=session, tenant_env=env, service=service,
                                                           container_port=int(container_port),
                                                           user_name=user.nick_name)
         result = general_message(200, "success", "删除成功", bean=jsonable_encoder(data))

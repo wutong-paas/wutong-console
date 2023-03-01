@@ -25,8 +25,8 @@ from service.component_service import component_check_service
 
 class ComposeService(object):
 
-    def give_up_compose_create(self, session, tenant, group_id, compose_id):
-        self.__delete_created_compose_info(session, tenant, compose_id)
+    def give_up_compose_create(self, session, tenant_env, group_id, compose_id):
+        self.__delete_created_compose_info(session, tenant_env, compose_id)
 
         compose_repo.delete_group_compose_by_compose_id(session, compose_id)
         application_repo.delete_group_by_id(session, group_id)
@@ -90,11 +90,11 @@ class ComposeService(object):
         service_ids = list(service_ids)
         return service_info_repo.get_services_by_service_ids(session, service_ids)
 
-    def __delete_created_compose_info(self, session, tenant, compose_id):
+    def __delete_created_compose_info(self, session, tenant_env, compose_id):
         services = self.get_compose_services(session, compose_id)
         for s in services:
             # 彻底删除组件
-            code, msg = app_manage_service.truncate_service(session, tenant, s)
+            code, msg = app_manage_service.truncate_service(session, tenant_env, s)
             if code != 200:
                 logger.error("delete compose services error {0}".format(msg))
 
@@ -143,7 +143,7 @@ class ComposeService(object):
         service_id_list = [s.service_id for s in services]
         compose_relation_repo.bulk_create_compose_service_relation(session, service_id_list, team_id, compose_id)
 
-    def __save_service_dep_relation(self, session, tenant, service_dep_map, name_service_map):
+    def __save_service_dep_relation(self, session, tenant_env, service_dep_map, name_service_map):
         if service_dep_map:
             for key in list(service_dep_map.keys()):
                 dep_services_names = service_dep_map[key]
@@ -151,18 +151,18 @@ class ComposeService(object):
                 for dep_name in dep_services_names:
                     dep_service = name_service_map[dep_name]
                     code, msg, d = dependency_service.add_service_dependency(
-                        session, tenant, s, dep_service.service_id, open_inner=True)
+                        session, tenant_env, s, dep_service.service_id, open_inner=True)
                     if code != 200:
                         logger.error("compose add service error {0}".format(msg))
 
-    def save_compose_services(self, session, tenant, user, region, group_compose, data):
+    def save_compose_services(self, session, tenant_env, user, region, group_compose, data):
         service_list = []
         try:
             if data["check_status"] == "success":
                 if group_compose.create_status == "checking":
                     logger.debug("checking compose service install,save info into database")
                 # 先删除原来创建的组件
-                self.__delete_created_compose_info(session, tenant, group_compose.compose_id)
+                self.__delete_created_compose_info(session, tenant_env, group_compose.compose_id)
                 # 保存compose检测结果
                 if data["check_status"] == "success":
                     service_info_list = data["service_info"]
@@ -173,15 +173,15 @@ class ComposeService(object):
                         service_cname = service_info.get("cname", service_info["image_alias"])
                         image = service_info["image"]["name"] + ":" + service_info["image"]["tag"]
                         # 保存信息
-                        service = self.__init_compose_service(tenant, user, service_cname, image, region)
+                        service = self.__init_compose_service(tenant_env, user, service_cname, image, region)
                         # 缓存创建的组件
                         service_list.append(service)
                         name_service_map[service_cname] = service
 
-                        application_service.add_service_to_group(session, tenant, region, group_compose.group_id,
+                        application_service.add_service_to_group(session, tenant_env, region, group_compose.group_id,
                                                                  service.service_id)
 
-                        component_check_service.save_service_info(session, tenant, service, service_info)
+                        component_check_service.save_service_info(session, tenant_env, service, service_info)
                         # save service info
                         session.add(service)
                         session.flush()
@@ -194,15 +194,15 @@ class ComposeService(object):
                                 hub_user = env.get("value")
                             if env.get("name", "") == "HUB_PASSWORD":
                                 hub_password = env.get("value")
-                        application_service.create_service_source_info(session, tenant, service, hub_user, hub_password)
+                        application_service.create_service_source_info(session, tenant_env, service, hub_user, hub_password)
                         dependencies = service_info.get("depends", None)
                         if dependencies:
                             service_dep_map[service_cname] = dependencies
 
                     # 保存compose-relation
-                    self.__save_compose_relation(session, service_list, tenant.tenant_id, group_compose.compose_id)
+                    self.__save_compose_relation(session, service_list, tenant_env.tenant_id, group_compose.compose_id)
                     # 保存依赖关系
-                    self.__save_service_dep_relation(session, tenant, service_dep_map, name_service_map)
+                    self.__save_service_dep_relation(session, tenant_env, service_dep_map, name_service_map)
                 group_compose.create_status = "checked"
         except Exception as e:
             logger.exception(e)

@@ -10,6 +10,7 @@ from core import deps
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from repository.application.application_repo import application_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
@@ -59,13 +60,16 @@ async def get_team_backup_info(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/groupapp/{group_id}/delete", response_model=Response,
+@router.delete("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/delete", response_model=Response,
                name="应用数据删除")
 async def delete_team_app_info(request: Request,
+                               env_id: Optional[str] = None,
                                group_id: Optional[str] = None,
-                               session: SessionClass = Depends(deps.get_session),
-                               team=Depends(deps.get_current_team)) -> Any:
+                               session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         if not group_id:
             return JSONResponse(general_message(400, "group id is null", "请确认需要删除的组"), status_code=400)
@@ -80,11 +84,12 @@ async def delete_team_app_info(request: Request,
 
         new_group = application_repo.get_group_by_id(session, new_group_id)
         if not new_group:
-            return Response(general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)), status=400)
+            return JSONResponse(general_message(400, "new group not exist", "组ID {0} 不存在".format(new_group_id)),
+                                status_code=400)
         services = application_service.get_group_services(session, group_id)
         for service in services:
             try:
-                app_manage_service.truncate_service(session, team, service)
+                app_manage_service.truncate_service(session, env, service)
             except Exception as le:
                 logger.exception(le)
 

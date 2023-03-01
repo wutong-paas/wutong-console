@@ -15,7 +15,7 @@ from service.region_service import region_services
 
 class TopologicalService(object):
 
-    def get_group_topological_graph_details(self, session, team, team_id, team_name, service, region_name):
+    def get_group_topological_graph_details(self, session, tenant_env, team_id, team_name, service, region_name):
         result = dict()
         # 组件信息
         result['tenant_id'] = team_id
@@ -85,17 +85,17 @@ class TopologicalService(object):
             status_data = remote_component_client.check_service_status(
                 session=session,
                 region=region_name,
-                tenant_name=team_name,
+                tenant_env=tenant_env,
                 service_alias=service.service_alias,
-                enterprise_id=team.enterprise_id)
+                enterprise_id=tenant_env.enterprise_id)
             region_data = status_data["bean"]
 
             pod_list = remote_component_client.get_service_pods(
                 session=session,
                 region=region_name,
-                tenant_name=team_name,
+                tenant_env=tenant_env,
                 service_alias=service.service_alias,
-                enterprise_id=team.enterprise_id)
+                enterprise_id=tenant_env.enterprise_id)
             region_data["pod_list"] = pod_list["list"]
         except remote_component_client.CallApiError as e:
             if e.message["httpcode"] == 404:
@@ -234,7 +234,7 @@ class TopologicalService(object):
         result["result_list"] = result_list
         return result
 
-    def get_group_topological_graph(self, session: SessionClass, group_id, region, team_name, enterprise_id):
+    def get_group_topological_graph(self, session: SessionClass, group_id, region, tenant_env, enterprise_id):
         topological_info = dict()
         service_group_relation_list = (
             session.execute(select(ComponentApplicationRelation).where(ComponentApplicationRelation.group_id == group_id))
@@ -264,7 +264,7 @@ class TopologicalService(object):
         # 批量查询组件状态
         if len(service_list) > 0:
             try:
-                service_status_list = remote_component_client.service_status(session, region, team_name, {
+                service_status_list = remote_component_client.service_status(session, region, tenant_env, {
                     "service_ids": all_service_id_list,
                     "enterprise_id": enterprise_id
                 })
@@ -277,7 +277,7 @@ class TopologicalService(object):
 
         # 拼接组件状态
         try:
-            dynamic_services_info = remote_component_client.get_dynamic_services_pods(session, region, team_name,
+            dynamic_services_info = remote_component_client.get_dynamic_services_pods(session, region, tenant_env,
                                                                                       [service.service_id for
                                                                                        service in
                                                                                        service_list])

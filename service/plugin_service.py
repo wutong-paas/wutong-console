@@ -49,7 +49,7 @@ class PluginService(object):
         tenant_plugin = plugin_repo.create_plugin(session, **plugin_params)
         return 200, "success", tenant_plugin
 
-    def create_region_plugin(self, session: SessionClass, region, tenant, tenant_plugin, image_tag="latest"):
+    def create_region_plugin(self, session: SessionClass, region, tenant_env, tenant_plugin, image_tag="latest"):
         """创建region端插件信息"""
         plugin_data = dict()
         plugin_data["build_model"] = tenant_plugin.build_source
@@ -59,12 +59,12 @@ class PluginService(object):
         plugin_data["plugin_info"] = tenant_plugin.desc
         plugin_data["plugin_model"] = tenant_plugin.category
         plugin_data["plugin_name"] = tenant_plugin.plugin_name
-        plugin_data["tenant_id"] = tenant.tenant_id
+        plugin_data["tenant_id"] = tenant_env.tenant_id
         plugin_data["origin"] = tenant_plugin.origin
-        remote_plugin_client.create_plugin(session, region, tenant.tenant_name, plugin_data)
+        remote_plugin_client.create_plugin(session, region, tenant_env, plugin_data)
         return 200, "success"
 
-    def build_plugin(self, session: SessionClass, region, plugin, plugin_version, user, tenant, event_id,
+    def build_plugin(self, session: SessionClass, region, plugin, plugin_version, user, tenant_env, event_id,
                      image_info=None):
 
         build_data = dict()
@@ -80,7 +80,7 @@ class PluginService(object):
         build_data["repo_url"] = plugin_version.code_version
         build_data["username"] = plugin.username  # git username
         build_data["password"] = plugin.password  # git password
-        build_data["tenant_id"] = tenant.tenant_id
+        build_data["tenant_id"] = tenant_env.tenant_id
         build_data["ImageInfo"] = image_info
         build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
         origin = plugin.origin
@@ -92,24 +92,24 @@ class PluginService(object):
             plugin_from = None
         build_data["plugin_from"] = plugin_from
 
-        body = remote_plugin_client.build_plugin(session, region, tenant.tenant_name, plugin.plugin_id, build_data)
+        body = remote_plugin_client.build_plugin(session, region, tenant_env, plugin.plugin_id, build_data)
         return body
 
-    def delete_plugin(self, session: SessionClass, region, team, plugin_id, ignore_cluster_resource=False,
+    def delete_plugin(self, session: SessionClass, region, tenant_env, plugin_id, ignore_cluster_resource=False,
                       is_force=False):
         services = app_plugin_relation_repo.get_used_plugin_services(session=session, plugin_id=plugin_id)
         if services and not is_force:
             raise ErrPluginIsUsed
         if not ignore_cluster_resource:
             try:
-                remote_plugin_client.delete_plugin(session, region, team.tenant_name, plugin_id)
+                remote_plugin_client.delete_plugin(session, region, tenant_env, plugin_id)
             except remote_plugin_client.CallApiError as e:
                 if e.status != 404:
                     raise ServiceHandleException(msg="delete plugin form cluster failure", msg_show="从集群删除插件失败")
         app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(session=session, plugin_id=plugin_id)
-        plugin_version_repo.delete_build_version_by_plugin_id(session=session, tenant_id=team.tenant_id,
+        plugin_version_repo.delete_build_version_by_plugin_id(session=session, tenant_id=tenant_env.tenant_id,
                                                               plugin_id=plugin_id)
-        plugin_repo.delete_by_plugin_id(session=session, tenant_id=team.tenant_id, plugin_id=plugin_id)
+        plugin_repo.delete_by_plugin_id(session=session, tenant_id=tenant_env.tenant_id, plugin_id=plugin_id)
         config_item_repo.delete_config_items_by_plugin_id(session=session, plugin_id=plugin_id)
         config_group_repo.delete_config_group_by_plugin_id(session=session, plugin_id=plugin_id)
 
@@ -119,7 +119,7 @@ class PluginService(object):
     with open(file_path, encoding='utf-8') as f:
         all_default_config = json.load(f)
 
-    def add_default_plugin(self, session: SessionClass, user, tenant, region, plugin_type="perf_analyze_plugin",
+    def add_default_plugin(self, session: SessionClass, user, tenant_env, region, plugin_type="perf_analyze_plugin",
                            build_version=None):
         plugin_base_info = None
         try:
@@ -170,7 +170,7 @@ class PluginService(object):
             plugin_build_version = plugin_version_service.create_build_version(session=session,
                                                                                region=region,
                                                                                plugin_id=plugin_base_info.plugin_id,
-                                                                               tenant_id=tenant.tenant_id,
+                                                                               tenant_id=tenant_env.tenant_id,
                                                                                user_id=user.user_id, update_info="",
                                                                                build_status="unbuild",
                                                                                min_memory=min_memory,
@@ -213,11 +213,11 @@ class PluginService(object):
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            self.create_region_plugin(session=session, region=region, tenant=tenant, tenant_plugin=plugin_base_info,
+            self.create_region_plugin(session=session, region=region, tenant_env=tenant_env, tenant_plugin=plugin_base_info,
                                       image_tag=image_tag)
 
             self.build_plugin(session=session, region=region, plugin=plugin_base_info,
-                              plugin_version=plugin_build_version, user=user, tenant=tenant, event_id=event_id)
+                              plugin_version=plugin_build_version, user=user, tenant_env=tenant_env, event_id=event_id)
             plugin_build_version.build_status = "build_success"
 
             return plugin_base_info.plugin_id
@@ -225,7 +225,7 @@ class PluginService(object):
         except Exception as e:
             logger.exception(e)
             if plugin_base_info:
-                self.delete_plugin(session=session, region=region, team=tenant, plugin_id=plugin_base_info.plugin_id,
+                self.delete_plugin(session=session, region=region, team=tenant_env, plugin_id=plugin_base_info.plugin_id,
                                    is_force=True)
             raise e
 
@@ -269,7 +269,7 @@ class PluginService(object):
     def delete_console_tenant_plugin(self, session, tenant_id, plugin_id):
         plugin_repo.delete_by_plugin_id(session, tenant_id, plugin_id)
 
-    def update_region_plugin_info(self, session, region, tenant, tenant_plugin, plugin_build_version):
+    def update_region_plugin_info(self, session, region, tenant_env, tenant_plugin, plugin_build_version):
         data = dict()
         data["build_model"] = tenant_plugin.build_source
         data["git_url"] = tenant_plugin.code_repo
@@ -283,11 +283,11 @@ class PluginService(object):
         data["plugin_model"] = tenant_plugin.category
         data["plugin_name"] = tenant_plugin.plugin_name
         remote_plugin_client.update_plugin_info(session,
-                                                region, tenant.tenant_name, tenant_plugin.plugin_id, data)
+                                                region, tenant_env, tenant_plugin.plugin_id, data)
 
-    def get_plugin_event_log(self, session, region, tenant, event_id, level):
+    def get_plugin_event_log(self, session, region, tenant_env, event_id, level):
         data = {"event_id": event_id, "level": level}
-        body = remote_plugin_client.get_plugin_event_log(session, region, tenant.tenant_name, data)
+        body = remote_plugin_client.get_plugin_event_log(session, region, tenant_env, data)
         return body["list"]
 
     def get_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):

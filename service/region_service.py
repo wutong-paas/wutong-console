@@ -75,10 +75,10 @@ class RegionService(object):
         region = region
         return region
 
-    def get_public_key(self, session, tenant, region):
+    def get_public_key(self, session, tenant_env, region):
         try:
-            res, body = remote_build_client.get_region_publickey(session, tenant.tenant_name, region,
-                                                                 tenant.enterprise_id, tenant.tenant_id)
+            res, body = remote_build_client.get_region_publickey(session, tenant_env, region,
+                                                                 tenant_env.enterprise_id, tenant_env.tenant_id)
             if body and "bean" in body:
                 return body["bean"]
             return {}
@@ -171,9 +171,9 @@ class RegionService(object):
             return None
         return self.conver_region_info(session, region, check_status)
 
-    def get_region_license_features(self, session: SessionClass, tenant, region_name):
+    def get_region_license_features(self, session: SessionClass, tenant_env, region_name):
         try:
-            body = remote_build_client.get_region_license_feature(session, tenant, region_name)
+            body = remote_build_client.get_region_license_feature(session, tenant_env, region_name)
             if body and "list" in body:
                 return body["list"]
             return []
@@ -335,7 +335,7 @@ class RegionService(object):
             # check component status
             service_ids = [service.service_id for service in services]
             status_list = base_service.status_multi_service(session=session,
-                                                            region=region_name, tenant_name=env.env_name,
+                                                            region=region_name, tenant_env=env,
                                                             service_ids=service_ids,
                                                             enterprise_id=env.enterprise_id)
             status_list = [x for x in [x["status"] for x in status_list] if x not in ["closed", "undeploy"]]
@@ -347,14 +347,14 @@ class RegionService(object):
         # and removing the cluster only ensures that the component's resources are freed up.
         not_delete_from_cluster = False
         for service in services:
-            not_delete_from_cluster = app_manage_service.really_delete_service(session=session, tenant=env,
+            not_delete_from_cluster = app_manage_service.really_delete_service(session=session, tenant_env=env,
                                                                                service=service, user=user,
                                                                                ignore_cluster_result=ignore_cluster_resource,
                                                                                not_delete_from_cluster=not_delete_from_cluster)
         plugins = plugin_repo.get_tenant_plugins(session, env.env_id, region_name)
         if plugins:
             for plugin in plugins:
-                plugin_service.delete_plugin(session=session, region=region_name, team=env,
+                plugin_service.delete_plugin(session=session, region=region_name, tenant_env=env,
                                              plugin_id=plugin.plugin_id,
                                              ignore_cluster_resource=ignore_cluster_resource,
                                              is_force=True)
@@ -363,7 +363,7 @@ class RegionService(object):
         # delete env
         if not ignore_cluster_resource:
             try:
-                remote_tenant_client.delete_env(session, region_name, env.env_name)
+                remote_tenant_client.delete_env(session, region_name, env)
             except remote_tenant_client.CallApiError as e:
                 if e.status != 404:
                     logger.error("delete tenant failure {}".format(e.body))

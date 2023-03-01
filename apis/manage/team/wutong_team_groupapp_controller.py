@@ -55,16 +55,19 @@ async def get_backup_info(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/groupapp/{group_id}/backup", response_model=Response, name="应用备份")
+@router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup", response_model=Response, name="应用备份")
 async def get_backup_info(request: Request,
+                          env_id: Optional[str] = None,
                           group_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          user=Depends(deps.get_current_user),
-                          team=Depends(deps.get_current_team)) -> Any:
+                          user=Depends(deps.get_current_user)) -> Any:
     """
     应用备份
     ---
     """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if not group_id:
         return JSONResponse(general_message(400, "group id is null", "请选择需要备份的组"), status_code=400)
     data = await request.json()
@@ -83,7 +86,8 @@ async def get_backup_info(request: Request,
     if not force:
         # state service can't backup while it is running
         code, running_state_services = groupapp_backup_service.check_backup_condition(session=session,
-                                                                                      tenant=team, region=region_name,
+                                                                                      tenant_env=env,
+                                                                                      region=region_name,
                                                                                       group_id=group_id)
         if running_state_services:
             return JSONResponse(
@@ -99,7 +103,7 @@ async def get_backup_info(request: Request,
                 status_code=412)
 
     try:
-        back_up_record = groupapp_backup_service.backup_group_apps(session=session, tenant=team, user=user,
+        back_up_record = groupapp_backup_service.backup_group_apps(session=session, tenant_env=env, user=user,
                                                                    region_name=region_name, group_id=group_id,
                                                                    mode=mode,
                                                                    note=note, force=force)
@@ -111,16 +115,19 @@ async def get_backup_info(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/groupapp/{group_id}/backup", response_model=Response, name="根据应用备份ID查询备份状态")
+@router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup", response_model=Response,
+            name="根据应用备份ID查询备份状态")
 async def backup_app(request: Request,
+                     env_id: Optional[str] = None,
                      group_id: Optional[str] = None,
-                     session: SessionClass = Depends(deps.get_session),
-                     team=Depends(deps.get_current_team),
-                     user=Depends(deps.get_current_user)) -> Any:
+                     session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     根据应用备份ID查询备份状态
     """
     try:
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         if not group_id:
             return JSONResponse(general_message(400, "group id is null", "请选择需要备份的组"), status_code=400)
         backup_id = request.query_params.get("backup_id", None)
@@ -131,7 +138,7 @@ async def backup_app(request: Request,
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
         code, msg, backup_record = groupapp_backup_service.get_groupapp_backup_status_by_backup_id(session=session,
-                                                                                                   tenant=team,
+                                                                                                   tenant_env=env,
                                                                                                    region=response_region,
                                                                                                    backup_id=backup_id)
         if code != 200:
@@ -147,11 +154,13 @@ async def backup_app(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/groupapp/{group_id}/backup", response_model=Response, name="删除应用备份")
+@router.delete("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup", response_model=Response, name="删除应用备份")
 async def delete_backup_app(request: Request,
-                            session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team),
-                            user=Depends(deps.get_current_user)) -> Any:
+                            env_id: Optional[str] = None,
+                            session: SessionClass = Depends(deps.get_session)) -> Any:
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     backup_id = data.get("backup_id", None)
     if not backup_id:
@@ -160,7 +169,7 @@ async def delete_backup_app(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    groupapp_backup_service.delete_group_backup_by_backup_id(session=session, tenant=team, region=response_region,
+    groupapp_backup_service.delete_group_backup_by_backup_id(session=session, tenant_env=env, region=response_region,
                                                              backup_id=backup_id)
     result = general_message(200, "success", "删除成功")
     return JSONResponse(result, status_code=result["code"])
@@ -200,11 +209,11 @@ async def get_migrate_record(request: Request, session: SessionClass = Depends(d
     return JSONResponse(general_message(200, "success", "查询成功", bean=bean), status_code=200)
 
 
-@router.post("/teams/{team_name}/groupapp/{group_id}/migrate", response_model=Response, name="应用迁移")
+@router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="应用迁移")
 async def app_migrate(request: Request,
+                      env_id: Optional[str] = None,
                       session: SessionClass = Depends(deps.get_session),
-                      user=Depends(deps.get_current_user),
-                      cache_team=Depends(deps.get_current_team)) -> Any:
+                      user=Depends(deps.get_current_user)) -> Any:
     """
     应用迁移
     ---
@@ -216,8 +225,11 @@ async def app_migrate(request: Request,
     migrate_type = data.get("migrate_type", "migrate")
     event_id = data.get("event_id", None)
     restore_id = data.get("restore_id", None)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
-    region = team_region_repo.get_region_by_tenant_id(session, cache_team.tenant_id)
+    region = team_region_repo.get_region_by_tenant_id(session, env.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
@@ -227,7 +239,7 @@ async def app_migrate(request: Request,
     if not migrate_team:
         return JSONResponse(general_message(404, "team is not found", "需要迁移的团队{0}不存在".format(team)), status_code=404)
     regions = region_services.get_team_usable_regions(session=session, team_name=migrate_team.tenant_name,
-                                                      enterprise_id=cache_team.enterprise_id)
+                                                      enterprise_id=env.enterprise_id)
     if not regions:
         return JSONResponse(general_message(412, "region is not usable", "团队未开通任何集群"), status_code=412)
     if migrate_region not in [r.region_name for r in regions]:
@@ -235,7 +247,7 @@ async def app_migrate(request: Request,
         return JSONResponse(general_message(412, "region is not usable", msg_cn), status_code=412)
 
     try:
-        migrate_record = migrate_service.start_migrate(session=session, user=user, current_team=cache_team,
+        migrate_record = migrate_service.start_migrate(session=session, user=user, tenant_env=env,
                                                        current_region=response_region, migrate_team=migrate_team,
                                                        migrate_region=migrate_region,
                                                        backup_id=backup_id, migrate_type=migrate_type,
@@ -269,18 +281,20 @@ async def get_app_migrate_state(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/groupapp/{group_id}/backup/import", response_model=Response, name="导入备份")
+@router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup/import", response_model=Response, name="导入备份")
 async def set_backup_info(request: Request,
+                          env_id: Optional[str] = None,
                           group_id: Optional[str] = None,
-                          session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team),
-                          user=Depends(deps.get_current_user)) -> Any:
+                          session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         form_data = await request.form()
         if not group_id:
             return JSONResponse(general_message(400, "group id is null", "请选择需要导出备份的组"), status_code=400)
         if not form_data or not form_data.get('file'):
             return JSONResponse(general_message(400, "param error", "请指定需要导入的备份信息"), status_code=400)
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         upload_file = form_data.get('file')
         file_data = await upload_file.read()
         if len(file_data) > StorageUnit.ONE_MB * 2:
@@ -290,7 +304,7 @@ async def set_backup_info(request: Request,
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
-        code, msg, record = groupapp_backup_service.import_group_backup(session, team, response_region,
+        code, msg, record = groupapp_backup_service.import_group_backup(session, env, response_region,
                                                                         group_id,
                                                                         file_data)
         if code != 200:

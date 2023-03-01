@@ -1,14 +1,11 @@
-from sqlalchemy import select, func
+from sqlalchemy import select
 from core.idaasapi import idaas_api
-from exceptions.exceptions import UserRoleNotFoundException
-from models.application.models import Application
 from models.teams.enterprise import TeamEnterprise
 from models.teams import PermRelTenant, TeamEnvInfo
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.group_service_repo import  service_info_repo
 from repository.enterprise.enterprise_user_perm_repo import enterprise_user_perm_repo
-from repository.teams.env_repo import env_repo
 
 
 class EnterpriseRepository:

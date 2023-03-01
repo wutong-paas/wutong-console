@@ -17,10 +17,10 @@ from repository.teams.team_region_repo import team_region_repo
 
 
 class AppEventService:
-    def get_event_log(self, session, tenant, region_name, event_id):
+    def get_event_log(self, session, tenant_env, region_name, event_id):
         content = []
         try:
-            res, rt_data = remote_build_client.get_events_log(session, tenant.tenant_name, region_name, event_id)
+            res, rt_data = remote_build_client.get_events_log(session, tenant_env, region_name, event_id)
             if int(res.status) == 200:
                 content = rt_data["list"]
         except remote_build_client.CallApiError as e:
@@ -44,7 +44,7 @@ class AppEventService:
                 return True
         return False
 
-    def __sync_region_service_event_status(self, session: SessionClass, region, tenant_name, events, timeout=False):
+    def __sync_region_service_event_status(self, session: SessionClass, region, tenant_env, events, timeout=False):
         local_events_not_complete = dict()
         for event in events:
             if not event.final_status or not event.status:
@@ -55,7 +55,7 @@ class AppEventService:
 
         try:
             body = remote_build_client.get_tenant_events(session,
-                                                         region, tenant_name,
+                                                         region, tenant_env,
                                                          list(local_events_not_complete.keys()))
         except Exception as e:
             logger.exception(e)
@@ -82,12 +82,12 @@ class AppEventService:
                     local_event.end_time = datetime.datetime.now()
                 local_event.save()
 
-    def get_target_events(self, session: SessionClass, target, target_id, tenant, region, page, page_size):
+    def get_target_events(self, session: SessionClass, target, target_id, tenant_env, region, page, page_size):
         msg_list = []
         has_next = False
         total = 0
         res, rt_data = remote_build_client.get_target_events_list(session,
-                                                                  region, tenant.tenant_name, target, target_id,
+                                                                  region, tenant_env, target, target_id,
                                                                   page, page_size)
         if int(res.status) == 200:
             msg_list = rt_data.get("list", [])
@@ -123,13 +123,13 @@ class AppEventService:
         TYPE_MAP = ServiceEventConstants.TYPE_MAP
         return TYPE_MAP.get(action_type, action_type)
 
-    def get_service_event(self, session: SessionClass, tenant, service, page, page_size, start_time_str):
+    def get_service_event(self, session: SessionClass, tenant_env, service, page, page_size, start_time_str):
         # 前端传入时间到分钟，默认会加上00，这样一来刚部署的组件的日志无法查询到，所有将当前时间添加一分钟
         if start_time_str:
             start_time = str_to_time(start_time_str, fmt="%Y-%m-%d %H:%M")
             start_time_str = time_to_str(start_time + datetime.timedelta(minutes=1))
 
-        events = event_repo.get_events_before_specify_time(tenant.tenant_id, service.service_id, start_time_str)
+        events = event_repo.get_events_before_specify_time(tenant_env.tenant_id, service.service_id, start_time_str)
         params = Params(page=page, size=page_size)
         event_paginator = paginate(events, params)
         total = event_paginator.total
@@ -138,7 +138,7 @@ class AppEventService:
         if page_size * page >= total:
             has_next = False
         self.__sync_region_service_event_status(session=session, region=service.service_region,
-                                                tenant_name=tenant.tenant_name, events=page_events)
+                                                tenant_env=tenant_env, events=page_events)
 
         re_events = []
         for event in list(page_events):
@@ -203,24 +203,24 @@ class AppWebSocketService(object):
 
 
 class AppLogService(object):
-    def get_history_log(self, session, tenant, service):
+    def get_history_log(self, session, tenant_env, service):
         try:
             body = remote_component_client.get_service_log_files(session,
-                                                                 service.service_region, tenant.tenant_name,
+                                                                 service.service_region, tenant_env,
                                                                  service.service_alias,
-                                                                 tenant.enterprise_id)
+                                                                 tenant_env.enterprise_id)
             file_list = body["list"]
             return 200, "success", file_list
         except remote_component_client.CallApiError as e:
             logger.exception(e)
             return 200, "success", []
 
-    def get_service_logs(self, session: SessionClass, tenant, service, action="service", lines=100):
+    def get_service_logs(self, session: SessionClass, tenant_env, service, action="service", lines=100):
         log_list = []
         try:
             if action == LogConstants.SERVICE:
                 body = remote_component_client.get_service_logs(session,
-                                                                service.service_region, tenant.tenant_name,
+                                                                service.service_region, tenant_env,
                                                                 service.service_alias, lines)
                 log_list = body["list"]
             return 200, "success", log_list
