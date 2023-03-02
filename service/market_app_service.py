@@ -170,9 +170,9 @@ class MarketAppService(object):
     def get_wutong_app(self, session, eid, app_id):
         return app_repo.get_wutong_app_qs_by_key(session, eid, app_id)
 
-    def check_market_service_info(self, session, tenant, service):
+    def check_market_service_info(self, session, tenant_env, service):
         app_not_found = MarketAppLost("当前云市应用已删除")
-        service_source = service_source_repo.get_service_source(session, tenant.tenant_id, service.service_id)
+        service_source = service_source_repo.get_service_source(session, tenant_env.tenant_id, service.service_id)
         if not service_source:
             logger.info("app has been delete on market:{0}".format(service.service_cname))
             raise app_not_found
@@ -180,7 +180,7 @@ class MarketAppService(object):
         extend_info = json.loads(extend_info_str)
         if not extend_info.get("install_from_cloud", False):
             wutong_app, wutong_app_version = market_app_service.get_wutong_app_and_version(
-                session, tenant.enterprise_id, service_source.group_key, service_source.version)
+                session, tenant_env.enterprise_id, service_source.group_key, service_source.version)
             if not wutong_app or not wutong_app_version:
                 logger.info("app has been delete on market:{0}".format(service.service_cname))
                 raise app_not_found
@@ -188,7 +188,7 @@ class MarketAppService(object):
             # get from cloud
             try:
                 market = application_service.get_app_market_by_name(
-                    session, tenant.enterprise_id, extend_info.get("market_name"), raise_exception=True)
+                    session, tenant_env.enterprise_id, extend_info.get("market_name"), raise_exception=True)
                 # resp = application_service.get_market_app_model_version(market, service_source.group_key, service_source.version)
                 # if not resp:
                 #     raise app_not_found
@@ -365,7 +365,7 @@ class MarketAppService(object):
         result.sort(reverse=True)
         return result
 
-    def list_wutong_app_components(self, session, enterprise_id, tenant, app_id, model_app_key, upgrade_group_id):
+    def list_wutong_app_components(self, session, enterprise_id, tenant_env, app_id, model_app_key, upgrade_group_id):
         """
         return the list of the rainbond app.
         """
@@ -548,7 +548,7 @@ class MarketAppService(object):
 
     def install_app(self,
                     session,
-                    tenant,
+                    tenant_env,
                     region,
                     user,
                     app_id,
@@ -565,7 +565,7 @@ class MarketAppService(object):
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
         if install_from_cloud:
-            _, market = market_app_service.get_app_market(session, tenant.enterprise_id, market_name, raise_exception=True)
+            _, market = market_app_service.get_app_market(session, tenant_env.enterprise_id, market_name, raise_exception=True)
             market_app, app_version = market_app_service.cloud_app_model_to_db_model(
                 market, app_model_key, version, for_install=True)
         else:
@@ -583,12 +583,12 @@ class MarketAppService(object):
         app_template = json.loads(app_version.app_template)
         app_template["update_time"] = app_version.update_time
 
-        component_group = self._create_tenant_service_group(session, region.region_name, tenant.tenant_id, app.app_id,
+        component_group = self._create_tenant_service_group(session, region.region_name, tenant_env.tenant_id, app.app_id,
                                                             market_app.app_id, version, market_app.app_name)
         app_upgrade = AppUpgrade(
             session,
             user.enterprise_id,
-            tenant,
+            tenant_env,
             region,
             user,
             app,
@@ -712,12 +712,12 @@ class MarketAppService(object):
                 app_models.append(Dict(market_info))
         return app_models
 
-    def count_upgradeable_market_apps(self, session: SessionClass, tenant, region_name, app_id):
-        market_apps = self.get_market_apps_in_app(session, region_name, tenant, app_id)
+    def count_upgradeable_market_apps(self, session: SessionClass, tenant_env, region_name, app_id):
+        market_apps = self.get_market_apps_in_app(session, region_name, tenant_env, app_id)
         apps = [app for app in market_apps if app["can_upgrade"]]
         return len(apps)
 
-    def get_market_apps_in_app(self, session: SessionClass, region_name, tenant, app_id):
+    def get_market_apps_in_app(self, session: SessionClass, region_name, tenant_env, app_id):
         component_groups = tenant_service_group_repo.get_group_by_app_id(session, app_id)
         group_ids = [component.ID for component in component_groups]
         components, service_sources = application_service.get_component_and_resource_by_group_ids(session=session,
@@ -741,7 +741,7 @@ class MarketAppService(object):
                     # The version of the component group is the version of the application
                     upgrade_app_models[upgrade_app_key] = {'version': component_group.group_version,
                                                            'component_source': ss}
-        iterator = self.yield_app_info(session=session, app_models=upgrade_app_models, tenant=tenant, app_id=app_id)
+        iterator = self.yield_app_info(session=session, app_models=upgrade_app_models, tenant=tenant_env, app_id=app_id)
         # todo
         if iterator:
             app_info_list = [app_info for app_info in iterator]
@@ -1070,7 +1070,7 @@ class MarketAppService(object):
                 })
         return Dict(app_model)
 
-    def list_upgradeable_versions(self, session, tenant, service):
+    def list_upgradeable_versions(self, session, tenant_env, service):
         component_source = service_source_repo.get_service_source(session, service.tenant_id, service.service_id)
         if component_source:
             market_name = component_source.get_market_name()
@@ -1078,7 +1078,7 @@ class MarketAppService(object):
             install_from_cloud = component_source.is_install_from_cloud()
 
             return self.__get_upgradeable_versions(session,
-                                                   tenant.enterprise_id, component_source.group_key,
+                                                   tenant_env.enterprise_id, component_source.group_key,
                                                    component_source.version,
                                                    component_source.get_template_update_time(), install_from_cloud,
                                                    market)

@@ -22,7 +22,6 @@ from service.application_service import application_service
 from service.base_services import base_service
 from service.common_services import common_services
 from service.region_service import region_services
-from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -31,7 +30,6 @@ router = APIRouter()
 async def get_app_state(request: Request,
                         page: int = Query(default=1, ge=1, le=9999),
                         page_size: int = Query(default=10, ge=-1, le=999),
-                        team_name: Optional[str] = None,
                         env_id: Optional[str] = None,
                         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -106,7 +104,6 @@ async def get_app_state(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/overview", response_model=Response, name="总览团队信息")
 async def overview_team_info(region_name: Optional[str] = None,
-                             team_name: Optional[str] = None,
                              env_id: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session)
                              ) -> Any:
@@ -225,10 +222,10 @@ async def overview_team_info(region_name: Optional[str] = None,
     return JSONResponse(general_message(200, "success", "查询成功", bean=overview_detail), status_code=200)
 
 
-@router.get("/teams/{team_name}/overview/groups", response_model=Response, name="团队应用列表")
+@router.get("/teams/{team_name}/env/{env_id}/overview/groups", response_model=Response, name="团队应用列表")
 async def team_app_group(request: Request,
                          session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+                         env=Depends(deps.get_current_team_env)) -> Any:
     """
        应用列表
        ---
@@ -244,8 +241,6 @@ async def team_app_group(request: Request,
              type: string
              paramType: query
    """
-    if not team:
-        return JSONResponse(general_message(400, "tenant not exist", "团队不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -253,7 +248,7 @@ async def team_app_group(request: Request,
 
     query = request.query_params.get("query", "")
     app_type = request.query_params.get("app_type", "")
-    groups_services = application_service.get_groups_and_services(session=session, tenant=team, region=region_name,
+    groups_services = application_service.get_groups_and_services(session=session, tenant_env=env, region=region_name,
                                                                   query=query, app_type=app_type)
     return general_message(200, "success", "查询成功", list=groups_services)
 
@@ -263,7 +258,6 @@ async def team_app_group(
         request: Request,
         env_id: Optional[str] = None,
         region_name: Optional[str] = None,
-        team_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("page_size", 10)

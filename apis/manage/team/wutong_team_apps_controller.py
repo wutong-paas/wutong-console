@@ -67,11 +67,11 @@ async def get_assembly_state(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/detail", response_model=Response, name="应用详情")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/detail", response_model=Response, name="应用详情")
 async def get_app_detail(request: Request,
                          serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+                         env=Depends(deps.get_current_team_env)) -> Any:
     """
      组件详情信息
      ---
@@ -91,10 +91,10 @@ async def get_app_detail(request: Request,
     bean = dict()
     time.sleep(0.5)
     session.flush()
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
-    namespace = team.namespace
+    namespace = env.namespace
     service_model = jsonable_encoder(service)
     group_map = application_service.get_services_group_name(session=session, service_ids=[service.service_id])
     group_name = group_map.get(service.service_id)["group_name"]
@@ -117,13 +117,13 @@ async def get_app_detail(request: Request,
     event_websocket_url = ws_service.get_event_log_ws(session=session, request=request, region=service.service_region)
     bean.update({"event_websocket_url": event_websocket_url})
     if service.service_source == "market":
-        service_source = service_source_repo.get_service_source(session, team.tenant_id, service.service_id)
+        service_source = service_source_repo.get_service_source(session, env.tenant_id, service.service_id)
         if not service_source:
             result = general_message(200, "success", "查询成功", bean=bean)
             return JSONResponse(result, status_code=result["code"])
         wutong_app, wutong_app_version = market_app_service.get_wutong_detail_app_and_version(
             session=session,
-            enterprise_id=team.enterprise_id,
+            enterprise_id=env.enterprise_id,
             app_id=service_source.group_key,
             app_version=service_source.version)
         if not wutong_app:

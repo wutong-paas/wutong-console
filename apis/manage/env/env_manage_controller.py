@@ -89,7 +89,7 @@ async def delete_env(request: Request,
                      env_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
                      user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team)) -> Any:
+                     team=Depends(deps.get_current_team_env)) -> Any:
     """
     删除环境
     """
@@ -159,7 +159,6 @@ async def get_all_envs(
 
 @router.get("/teams/{team_name}/env/{env_id}", response_model=Response, name="查询单个环境")
 async def get_env_by_env_id(
-        request: Request,
         env_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """

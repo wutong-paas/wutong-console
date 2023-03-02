@@ -392,7 +392,7 @@ async def market_create(
 @router.get("/v1.0/devops/teams/{team_name}/regions", response_model=Response, name="查询团队绑定集群")
 async def get_team_regions(
         request: Request,
-        team=Depends(deps.get_current_team),
+        team=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     region_info_map = []
@@ -411,7 +411,7 @@ async def check_resource(
         request: Request,
         application_code: Optional[int] = -1,
         component_code: Optional[str] = None,
-        team=Depends(deps.get_current_team),
+        team=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     is_app = True

@@ -59,11 +59,11 @@ async def validate_parameter(data):
             raise AbortRequest(msg="the range of metric_target_value is [0, 65535]")
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/xparules", response_model=Response, name="查询组件伸缩规则")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules", response_model=Response, name="查询组件伸缩规则")
 async def get_xparuler(serviceAlias: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
-                       team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+                       env=Depends(deps.get_current_team_env)) -> Any:
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     rules = autoscaler_service.list_autoscaler_rules(session=session, service_id=service.service_id)
     result = general_message(200, "success", "查询成功", list=rules)
     return JSONResponse(result, status_code=200)
@@ -118,7 +118,7 @@ async def get_xparecords(request: Request,
 @router.get("/teams/{team_name}/apps/{serviceAlias}/extend_method", response_model=Response, name="获取组件扩展方式")
 async def get_extend_method(serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
+                            env=Depends(deps.get_current_team_env)) -> Any:
     """
     获取组件扩展方式
     ---
@@ -134,7 +134,7 @@ async def get_extend_method(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     node_list, memory_list = extend_service.get_app_extend_method(session=session, service=service)
     bean = {
         "node_list": node_list,
@@ -154,7 +154,7 @@ async def get_extend_method(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/xparules/{rule_id}", response_model=Response, name="查询组件伸缩指标")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules/{rule_id}", response_model=Response, name="查询组件伸缩指标")
 async def get_xparules_index(rule_id: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session)) -> Any:
     res = autoscaler_service.get_by_rule_id(session, rule_id)

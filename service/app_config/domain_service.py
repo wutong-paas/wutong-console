@@ -83,15 +83,15 @@ class DomainService(object):
         data["private_key"] = certificate.private_key
         return 200, "success", data
 
-    def __check_certificate_alias(self, session, tenant, alias):
-        if domain_repo.get_certificate_by_alias(session, tenant.tenant_id, alias):
+    def __check_certificate_alias(self, session, tenant_env, alias):
+        if domain_repo.get_certificate_by_alias(session, tenant_env.tenant_id, alias):
             raise ServiceHandleException("certificate name already exists", "证书别名已存在", 412, 412)
 
-    def add_certificate(self, session, tenant, alias, certificate_id, certificate, private_key, certificate_type):
-        self.__check_certificate_alias(session, tenant, alias)
+    def add_certificate(self, session, tenant_env, alias, certificate_id, certificate, private_key, certificate_type):
+        self.__check_certificate_alias(session, tenant_env, alias)
         cert_is_effective(certificate, private_key)
         certificate = base64.b64encode(bytes(certificate, 'utf-8'))
-        certificate = domain_repo.add_certificate(session, tenant.tenant_id, alias, certificate_id, certificate,
+        certificate = domain_repo.add_certificate(session, tenant_env.tenant_id, alias, certificate_id, certificate,
                                                   private_key,
                                                   certificate_type)
         return certificate
@@ -181,10 +181,10 @@ class DomainService(object):
         tcp_domain_repo.add_service_tcpdomain(session, **domain_info)
         return 200, "success"
 
-    def get_certificate(self, session: SessionClass, tenant, page, page_size):
+    def get_certificate(self, session: SessionClass, tenant_env, page, page_size):
         end = page_size * page - 1  # 一页数据的开始索引
         start = end - page_size + 1  # 一页数据的结束索引
-        certificate, nums = domain_repo.get_tenant_certificate_page(session, tenant.tenant_id, start, end)
+        certificate, nums = domain_repo.get_tenant_certificate_page(session, tenant_env.tenant_id, start, end)
         c_list = []
         for c in certificate:
             cert = base64.b64decode(c.certificate)
@@ -345,7 +345,7 @@ class DomainService(object):
                 service.service_alias, port.container_port, end_point))
 
     # 获取应用下策略列表
-    def get_app_service_domain_list(self, session: SessionClass, region, tenant, app_id, search_conditions, page,
+    def get_app_service_domain_list(self, session: SessionClass, region, tenant_env, app_id, search_conditions, page,
                                     page_size):
         # 查询分页排序
         if search_conditions:
@@ -353,7 +353,7 @@ class DomainService(object):
                 search_conditions = search_conditions.decode('utf-8')
             # 获取总数
             domain_count = domain_repo.get_domain_count_search_conditions(session,
-                                                                          tenant.tenant_id, region.region_id,
+                                                                          tenant_env.tenant_id, region.region_id,
                                                                           search_conditions, app_id)
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -362,26 +362,26 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
             tenant_tuples = domain_repo.get_tenant_tuples_search_conditions(session,
-                                                                            tenant.tenant_id, region.region_id,
+                                                                            tenant_env.tenant_id, region.region_id,
                                                                             search_conditions, start, end, app_id)
         else:
             # 获取总数
-            domain_count = domain_repo.get_domain_count(session, tenant.tenant_id, region.region_id, app_id)
+            domain_count = domain_repo.get_domain_count(session, tenant_env.tenant_id, region.region_id, app_id)
             total = domain_count[0][0]
-            tenant_tuples = domain_repo.get_tenant_tuples(session, tenant.tenant_id, region.region_id, app_id)
+            tenant_tuples = domain_repo.get_tenant_tuples(session, tenant_env.tenant_id, region.region_id, app_id)
 
         return tenant_tuples, total
 
         # 获取应用下tcp&udp策略列表
 
-    def get_app_service_tcp_domain_list(self, session: SessionClass, region, tenant, app_id, search_conditions, page,
+    def get_app_service_tcp_domain_list(self, session: SessionClass, region, tenant_env, app_id, search_conditions, page,
                                         page_size):
         # 查询分页排序
         if search_conditions:
             if isinstance(search_conditions, bytes):
                 search_conditions = search_conditions.decode('utf-8')
             # 获取总数
-            domain_count = tcp_domain_repo.get_domain_count_search_conditions(session, tenant.tenant_id,
+            domain_count = tcp_domain_repo.get_domain_count_search_conditions(session, tenant_env.tenant_id,
                                                                               region.region_id,
                                                                               search_conditions, app_id)
 
@@ -392,14 +392,14 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
 
-            tenant_tuples = tcp_domain_repo.get_tenant_tuples_search_conditions(session, tenant.tenant_id,
+            tenant_tuples = tcp_domain_repo.get_tenant_tuples_search_conditions(session, tenant_env.tenant_id,
                                                                                 region.region_id,
                                                                                 search_conditions, start,
                                                                                 end,
                                                                                 app_id)
         else:
             # 获取总数
-            domain_count = tcp_domain_repo.get_domain_count(session, tenant.tenant_id, region.region_id, app_id)
+            domain_count = tcp_domain_repo.get_domain_count(session, tenant_env.tenant_id, region.region_id, app_id)
 
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -408,7 +408,7 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
 
-            tenant_tuples = tcp_domain_repo.get_tenant_tuples(session, tenant.tenant_id, region.region_id, start, end,
+            tenant_tuples = tcp_domain_repo.get_tenant_tuples(session, tenant_env.tenant_id, region.region_id, start, end,
                                                               app_id)
         return tenant_tuples, total
 
@@ -491,7 +491,7 @@ class DomainService(object):
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else ""
         domain_info["domain_heander"] = domain_heander if domain_heander else ""
         domain_info["the_weight"] = int(httpdomain.get("the_weight", 100))
-        domain_info["tenant_id"] = tenant.tenant_id
+        domain_info["tenant_id"] = tenant_env.tenant_id
         domain_info["auto_ssl"] = auto_ssl
         domain_info["auto_ssl_config"] = auto_ssl_config
 
@@ -515,7 +515,7 @@ class DomainService(object):
         region = region_repo.get_region_by_region_name(session, service.service_region)
         # 判断类型（默认or自定义）
         if domain_name != "{0}.{1}.{2}.{3}".format(httpdomain["container_port"], service.service_alias,
-                                                   tenant.tenant_name,
+                                                   tenant_env.tenant_name,
                                                    region.httpdomain):
             domain_info["type"] = 1
         # 高级路由

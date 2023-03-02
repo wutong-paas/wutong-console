@@ -6,7 +6,6 @@ from common.base_client_service import get_region_access_info, get_env_region_in
     get_region_access_info_by_enterprise_id
 from exceptions.main import ServiceHandleException
 from models.teams import RegionConfig
-from repository.region.region_config_repo import region_config_repo
 
 
 class RemoteBuildClient(ApiBaseHttpClient):
@@ -339,19 +338,19 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region_name)
         return body["bean"]
 
-    def get_monitor_metrics(self, session, region_name, tenant, target, app_id, component_id):
+    def get_monitor_metrics(self, session, region_name, tenant_env, target, app_id, component_id):
         """
         :param session:
         :param region_name:
-        :param tenant:
+        :param tenant_env:
         :param target:
         :param app_id:
         :param component_id:
         :return:
         """
-        url, token = get_region_access_info(tenant.tenant_name, region_name, session)
+        url, token = get_region_access_info(tenant_env.tenant_name, region_name, session)
         url += "/v2/monitor/metrics?target={target}&tenant={tenant_id}&app={app_id}&component={component_id}".format(
-            target=target, tenant_id=tenant.tenant_id, app_id=app_id, component_id=component_id)
+            target=target, tenant_id=tenant_env.tenant_id, app_id=app_id, component_id=component_id)
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_name)
         return body

@@ -29,10 +29,10 @@ from service.region_service import EnterpriseConfigService, region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/group/service/visit", response_model=Response, name="获取组件访问信息")
+@router.get("/teams/{team_name}/env/{env_id}/group/service/visit", response_model=Response, name="获取组件访问信息")
 async def get_group_service_visit(service_alias: Optional[str] = None,
                                   session: SessionClass = Depends(deps.get_session),
-                                  team=Depends(deps.get_current_team)) -> Any:
+                                  env=Depends(deps.get_current_team_env)) -> Any:
     """
     获取组件访问信息
     ---
@@ -53,13 +53,11 @@ async def get_group_service_visit(service_alias: Optional[str] = None,
         if not service_alias:
             return JSONResponse(general_message(200, "not service", "当前组内无组件", bean={"is_null": True}), status_code=200)
         service_access_list = list()
-        if not team:
-            return JSONResponse(general_message(400, "not tenant", "团队不存在"), status_code=400)
         service_list = service_alias.split('-')
         for service_alias in service_list:
             bean = dict()
             service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
-            access_type, data = port_service.get_access_info(session=session, tenant=team, service=service)
+            access_type, data = port_service.get_access_info(session=session, tenant_env=env, service=service)
             bean["access_type"] = access_type
             bean["access_info"] = jsonable_encoder(data)
             service_access_list.append(bean)
@@ -231,8 +229,10 @@ async def add_http_domain(request: Request,
     return JSONResponse(result, status_code=status.HTTP_201_CREATED)
 
 
-@router.get("/teams/{team_name}/domain/{rule_id}/put_gateway", response_model=Response, name="获取策略的网关自定义参数")
-async def get_domain_parameter(rule_id: Optional[str] = None, session: SessionClass = Depends(deps.get_session)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/domain/{rule_id}/put_gateway", response_model=Response, name="获取策略的网关自定义参数")
+async def get_domain_parameter(
+        rule_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     if not rule_id:
         return JSONResponse(general_message(400, "parameters are missing", "参数缺失"), status_code=400)
     cf = configuration_repo.get_configuration_by_rule_id(session, rule_id)
@@ -266,8 +266,10 @@ async def set_domain_parameter(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/httpdomain", response_model=Response, name="获取单个http策略")
-async def add_http_domain(request: Request, session: SessionClass = Depends(deps.get_session)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/httpdomain", response_model=Response, name="获取单个http策略")
+async def add_http_domain(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     http_rule_id = request.query_params.get("http_rule_id", None)
     # 判断参数
     if not http_rule_id:
@@ -464,8 +466,9 @@ async def add_tcp_domain(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/tcpdomain", response_model=Response, name="获取单个tcp/udp策略信息")
-async def get_tcp_domain(request: Request, session: SessionClass = Depends(deps.get_session)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="获取单个tcp/udp策略信息")
+async def get_tcp_domain(request: Request,
+                         session: SessionClass = Depends(deps.get_session)) -> Any:
     tcp_rule_id = request.query_params.get("tcp_rule_id", None)
     # 判断参数
     if not tcp_rule_id:

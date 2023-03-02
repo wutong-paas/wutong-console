@@ -1,9 +1,7 @@
 import json
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
-
 from core import deps
 from core.utils.reqparse import parse_argument
 from core.utils.return_message import general_message
@@ -17,11 +15,11 @@ from service.mnt_service import mnt_service
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/mnt", response_model=Response, name="获取组件挂载的组件")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/mnt", response_model=Response, name="获取组件挂载的组件")
 async def get_mnt(request: Request,
                   serviceAlias: Optional[str] = None,
                   session: SessionClass = Depends(deps.get_session),
-                  team=Depends(deps.get_current_team)) -> Any:
+                  env=Depends(deps.get_current_team_env)) -> Any:
     """
      获取组件挂载的组件
      ---
@@ -62,7 +60,7 @@ async def get_mnt(request: Request,
     volume_types = parse_argument(request, 'volume_types', value_type=list)
     is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
 
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
     if query == "undefined":
         query = ""
@@ -70,12 +68,12 @@ async def get_mnt(request: Request,
         is_config = True
 
     if query_type == "mnt":
-        mnt_list, total = mnt_service.get_service_mnt_details(session=session, tenant=team, service=service,
+        mnt_list, total = mnt_service.get_service_mnt_details(session=session, tenant_env=env, service=service,
                                                               volume_types='share-file')
     elif query_type == "unmnt":
-        services = app_repo.get_app_list(session, team.tenant_id, service.service_region, query)
+        services = app_repo.get_app_list(session, env.tenant_id, service.service_region, query)
         services_ids = [s.service_id for s in services]
-        mnt_list, total = mnt_service.get_service_unmount_volume_list(session=session, tenant=team, service=service,
+        mnt_list, total = mnt_service.get_service_unmount_volume_list(session=session, tenant=env, service=service,
                                                                       service_ids=services_ids, page=page,
                                                                       page_size=page_size, is_config=is_config)
     else:

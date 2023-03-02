@@ -25,11 +25,11 @@ from service.tenant_env_service import env_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/webhooks/get-url", response_model=Response, name="获取自动部署回调地址")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/get-url", response_model=Response, name="获取自动部署回调地址")
 async def get_auto_url(request: Request,
                        serviceAlias: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
-                       team=Depends(deps.get_current_team)) -> Any:
+                       env=Depends(deps.get_current_team_env)) -> Any:
     """
     判断该组件是否有webhooks自动部署功能，有则返回URL
     """
@@ -38,8 +38,8 @@ async def get_auto_url(request: Request,
         if not deployment_way:
             result = general_message(400, "Parameter cannot be empty", "缺少参数")
             return JSONResponse(result, status_code=400)
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-        tenant_id = team.tenant_id
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        tenant_id = env.tenant_id
         service_alias = service.service_alias
         service_obj = team_component_repo.get_one_by_model(session=session,
                                                            query_model=TeamComponentInfo(tenant_id=tenant_id,
@@ -113,11 +113,11 @@ async def get_auto_url(request: Request,
     return JSONResponse(result, status_code=500)
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/webhooks/status", response_model=Response, name="开启或关闭自动部署功能")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/status", response_model=Response, name="开启或关闭自动部署功能")
 async def run_or_stop_auto(request: Request,
                            serviceAlias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           env=Depends(deps.get_current_team_env)) -> Any:
     """
     开启或关闭自动部署功能
     ---
@@ -143,7 +143,7 @@ async def run_or_stop_auto(request: Request,
         data = await request.json()
         action = data.get("action", None)
         deployment_way = data.get("deployment_way", None)
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
         if not action or not deployment_way:
             result = general_message(400, "Parameter cannot be empty", "缺少参数")
             return JSONResponse(result, status_code=400)
@@ -167,11 +167,11 @@ async def run_or_stop_auto(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/webhooks/updatekey", response_model=Response, name="更新自动构建密钥")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/updatekey", response_model=Response, name="更新自动构建密钥")
 async def update_key(request: Request,
                      serviceAlias: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
-                     team=Depends(deps.get_current_team)) -> Any:
+                     env=Depends(deps.get_current_team_env)) -> Any:
     try:
         data = await request.json()
         secret_key = data.get("secret_key", None)
@@ -179,8 +179,8 @@ async def update_key(request: Request,
             code = 400
             result = general_message(code, "no secret_key", "请输入密钥")
             return JSONResponse(result, status_code=code)
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-        tenant_id = team.tenant_id
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        tenant_id = env.tenant_id
         service_alias = service.service_alias
         service_obj = team_component_repo.get_one_by_model(session=session,
                                                            query_model=TeamComponentInfo(tenant_id=tenant_id,
@@ -202,16 +202,16 @@ async def update_key(request: Request,
     return JSONResponse(result, status_code=500)
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/webhooks/trigger'", response_model=Response, name="更新自动部署触发方式")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/trigger'", response_model=Response, name="更新自动部署触发方式")
 async def update_deploy_mode(
         request: Request,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        env=Depends(deps.get_current_team_env)) -> Any:
     """镜像更新自动部署触发条件"""
     try:
         data = await request.json()
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
         service_webhook = service_webhooks_repo.get_or_create_service_webhook(session, service.service_id,
                                                                               "image_webhooks")
         trigger = data.get("trigger")

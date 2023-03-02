@@ -48,12 +48,12 @@ class UpgradeService(object):
         records = upgrade_repo.list_by_rollback_records(session, upgrade_record.ID)
         return [record.to_dict() for record in records]
 
-    def restore(self, session, tenant, region, user, app, record: ApplicationUpgradeRecord):
+    def restore(self, session, tenant_env, region, user, app, record: ApplicationUpgradeRecord):
         if not record.can_rollback():
             raise ErrAppUpgradeRecordCanNotRollback
 
         component_group = tenant_service_group_repo.get_component_group(session, record.upgrade_group_id)
-        app_restore = AppRestore(session, tenant, region, user, app, component_group, record)
+        app_restore = AppRestore(session, tenant_env, region, user, app, component_group, record)
         record, component_group = app_restore.restore(session)
         return self.serialized_upgrade_record(record), component_group.group_alias
 
@@ -129,7 +129,7 @@ class UpgradeService(object):
             } for service_record in app_record.service_upgrade_records],
             **app_record.to_dict())
 
-    def upgrade(self, session, tenant, region, user, app, version, record: ApplicationUpgradeRecord,
+    def upgrade(self, session, tenant_env, region, user, app, version, record: ApplicationUpgradeRecord,
                 component_keys=None):
         """
         Upgrade application market applications
@@ -145,8 +145,8 @@ class UpgradeService(object):
 
         app_upgrade = AppUpgrade(
             session,
-            tenant.enterprise_id,
-            tenant,
+            tenant_env.enterprise_id,
+            tenant_env,
             region,
             user,
             app,
@@ -171,7 +171,7 @@ class UpgradeService(object):
         component_source = service_source_repo.get_service_source(session, component.tenant_id, component.service_id)
         return component_source
 
-    def get_property_changes(self, session, tenant, region, user, app, upgrade_group_id, version):
+    def get_property_changes(self, session, tenant_env, region, user, app, upgrade_group_id, version):
         component_group = tenant_service_group_repo.get_component_group(session, upgrade_group_id)
 
         app_template_source = self._app_template_source(session, app.app_id, component_group.group_key,
@@ -179,7 +179,7 @@ class UpgradeService(object):
         app_template = self._app_template(session, user.enterprise_id, component_group.group_key, version,
                                           app_template_source)
 
-        app_upgrade = AppUpgrade(session, user.enterprise_id, tenant, region, user, app, version, component_group,
+        app_upgrade = AppUpgrade(session, user.enterprise_id, tenant_env, region, user, app, version, component_group,
                                  app_template,
                                  app_template_source.is_install_from_cloud(), app_template_source.get_market_name())
 
@@ -240,7 +240,7 @@ class UpgradeService(object):
         except JSONDecodeError:
             raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
 
-    def upgrade_component(self, session, tenant, region, user, app, component, version):
+    def upgrade_component(self, session, tenant_env, region, user, app, component, version):
         component_group = tenant_service_group_repo.get_component_group(session, component.upgrade_group_id)
         app_template_source = service_source_repo.get_service_source(session, component.tenant_id,
                                                                      component.component_id)
@@ -249,8 +249,8 @@ class UpgradeService(object):
 
         app_upgrade = AppUpgrade(
             session,
-            tenant.enterprise_id,
-            tenant,
+            tenant_env.enterprise_id,
+            tenant_env,
             region,
             user,
             app,
@@ -264,11 +264,11 @@ class UpgradeService(object):
             is_upgrade_one=True)
         app_upgrade.upgrade(session)
 
-    def create_upgrade_record(self, session, enterprise_id, tenant: TeamEnvInfo, app: Application, upgrade_group_id):
+    def create_upgrade_record(self, session, enterprise_id, tenant_env: TeamEnvInfo, app: Application, upgrade_group_id):
         component_group = tenant_service_group_repo.get_component_group(session, upgrade_group_id)
 
         # If there are unfinished record, it is not allowed to create new record
-        last_record = upgrade_repo.get_last_upgrade_record(session, tenant.tenant_id, app.ID, upgrade_group_id)
+        last_record = upgrade_repo.get_last_upgrade_record(session, tenant_env.tenant_id, app.ID, upgrade_group_id)
         if last_record and not last_record.is_finished():
             raise ErrLastRecordUnfinished
 
@@ -277,7 +277,7 @@ class UpgradeService(object):
 
         # create new record
         record = {
-            "tenant_id": tenant.tenant_id,
+            "tenant_id": tenant_env.tenant_id,
             "group_id": app.app_id,
             "group_key": component_group.app_model_key,
             "group_name": app.app_name,
@@ -402,12 +402,12 @@ class UpgradeService(object):
         self.sync_unfinished_records(session=session, tenant_env=tenant_env, region_name=region_name, records=records)
         return [record.to_dict() for record in records], event_paginator.total
 
-    def get_latest_upgrade_record(self, session: SessionClass, tenant: TeamEnvInfo, app: Application,
+    def get_latest_upgrade_record(self, session: SessionClass, tenant_env: TeamEnvInfo, app: Application,
                                   upgrade_group_id=None, record_type=None):
         if upgrade_group_id:
             # check upgrade_group_id
             tenant_service_group_repo.get_component_group(session=session, service_group_id=upgrade_group_id)
-        record = upgrade_repo.get_last_upgrade_record(session, tenant.tenant_id, app.app_id, upgrade_group_id,
+        record = upgrade_repo.get_last_upgrade_record(session, tenant_env.tenant_id, app.app_id, upgrade_group_id,
                                                       record_type)
         return jsonable_encoder(record) if record else None
 

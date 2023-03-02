@@ -1,9 +1,7 @@
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
 from loguru import logger
-
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -16,12 +14,12 @@ from service.app_actions.exception import ErrServiceSourceNotFound
 router = APIRouter()
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/deploy", response_model=Response, name="获取组件依赖的组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/deploy", response_model=Response, name="获取组件依赖的组件")
 async def deploy_component(request: Request,
                            serviceAlias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
                            user=Depends(deps.get_current_user),
-                           team=Depends(deps.get_current_team)) -> Any:
+                           env=Depends(deps.get_current_team_env)) -> Any:
     """
     部署组件
     ---
@@ -39,13 +37,13 @@ async def deploy_component(request: Request,
 
     """
     try:
-        service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
         oauth_instance, _ = None, None
 
         data = await request.json()
         group_version = data.get("group_version", None)
         code, msg, _ = app_deploy_service.deploy(
-            session, team, service, user, version=group_version, oauth_instance=oauth_instance)
+            session, env, service, user, version=group_version, oauth_instance=oauth_instance)
         bean = {}
         if code != 200:
             return JSONResponse(general_message(code, "deploy app error", msg, bean=bean), status_code=code)

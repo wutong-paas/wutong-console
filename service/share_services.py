@@ -414,7 +414,7 @@ class ShareService(object):
             logger.exception(e)
             return 500, "应用分享处理发生错误", None
 
-    def get_last_shared_app_and_app_list(self, enterprise_id, tenant, group_id, scope, market_name,
+    def get_last_shared_app_and_app_list(self, enterprise_id, tenant_env, group_id, scope, market_name,
                                          session: SessionClass):
         if scope == "market":
             last_shared = (
@@ -427,7 +427,7 @@ class ShareService(object):
             last_shared = (
                 session.execute(select(ServiceShareRecord).where(ServiceShareRecord.group_id == group_id,
                                                                  ServiceShareRecord.scope.in_(["team", "enterprise"]),
-                                                                 ServiceShareRecord.team_name == tenant.tenant_name,
+                                                                 ServiceShareRecord.team_name == tenant_env.tenant_name,
                                                                  ServiceShareRecord.is_success == True).order_by(
                     ServiceShareRecord.create_time.desc()))
             ).scalars().first()
@@ -435,51 +435,6 @@ class ShareService(object):
         dt = {"app_model_list": [], "last_shared_app": {}, "scope": scope}
         if scope == "market":
             logger.info("")
-            # market = market_app_service.get_app_market_by_name(session=session, enterprise_id=enterprise_id,
-            #                                                    name=market_name, raise_exception=True)
-            # apps_versions, _, _, _ = market_app_service.get_market_app_models(session=session, market=market,
-            #                                                                   page_size=-1, query=None,
-            #                                                                   query_all=True)
-            # if apps_versions:
-            #     for app in apps_versions:
-            #         versions = []
-            #         app_versions = app.versions
-            #         if app_versions:
-            #             for version in app_versions:
-            #                 versions.append({
-            #                     "version": version.app_version,
-            #                     "describe": version.desc,
-            #                     "version_alias": version.app_version_alias,
-            #                 })
-            #         dt["app_model_list"].append({
-            #             "app_name":
-            #                 app.app_name,
-            #             "app_id":
-            #                 app.app_id,
-            #             "versions":
-            #                 sorted(
-            #                     versions,
-            #                     key=lambda x: [int(str(y)) if str.isdigit(str(y)) else -1 for y in
-            #                                    x["version"].split(".")],
-            #                     reverse=True),
-            #             "pic":
-            #                 app.logo,
-            #             "app_describe":
-            #                 app.describe,
-            #             "dev_status":
-            #                 app.dev_status,
-            #             "scope": ("goodrain:" + app.publish_type).strip(":")
-            #         })
-            #         if last_shared and app.app_key_id == last_shared.app_id:
-            #             dt["last_shared_app"] = {
-            #                 "app_name": app.app_name,
-            #                 "app_id": app.app_id,
-            #                 "version": last_shared.share_version,
-            #                 "pic": app.pic,
-            #                 "describe": app.desc,
-            #                 "dev_status": app.dev_status,
-            #                 "scope": ("goodrain:" + app.publish_type).strip(":")
-            #             }
         else:
             logger.info("")
 
@@ -500,7 +455,7 @@ class ShareService(object):
                     "scope": last_shared_app_info.scope,
                     "tags": last_shared_app_info.tags
                 }
-        app_list = self.get_team_local_apps_versions(enterprise_id, tenant.tenant_name, session,
+        app_list = self.get_team_local_apps_versions(enterprise_id, tenant_env.tenant_name, session,
                                                      market=scope == "market")
         self._patch_rainbond_apps_tag(enterprise_id, app_list, session)
         dt["app_model_list"] = app_list
@@ -1182,7 +1137,7 @@ class ShareService(object):
     def delete_app(self, session, key):
         component_share_repo.delete_app(session, key)
 
-    def publish_app_to_public_market(self, session, tenant, share_record, user_name, app, share_type="private"):
+    def publish_app_to_public_market(self, session, tenant_env, share_record, user_name, app, share_type="private"):
         try:
             data = dict()
             data["description"] = app.app_version_info
@@ -1191,7 +1146,7 @@ class ShareService(object):
             data["template_type"] = app.template_type
             data["version"] = app.version
             data["version_alias"] = app.version_alias
-            market = market_app_service.get_app_market_by_name(session=session, enterprise_id=tenant.enterprise_id,
+            market = market_app_service.get_app_market_by_name(session=session, enterprise_id=tenant_env.enterprise_id,
                                                                name=share_record.share_app_market_name,
                                                                raise_exception=True)
             market_app_service.create_market_app_model_version(market, app.app_id, data)
@@ -1205,7 +1160,7 @@ class ShareService(object):
                 raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500,
                                              error_code=500)
 
-    def complete(self, session, tenant, user, share_record):
+    def complete(self, session, tenant_env, user, share_record):
         # app = rainbond_app_repo.get_app_version_by_record_id(share_record.ID)
         app = component_share_repo.get_app_version_by_record_id(session, share_record.ID)
         app_market_url = None
@@ -1217,7 +1172,7 @@ class ShareService(object):
                 if len(info) > 1:
                     share_type = info[1]
                 app_market_url = self.publish_app_to_public_market(session,
-                                                                   tenant, share_record, user.nick_name, app,
+                                                                   tenant_env, share_record, user.nick_name, app,
                                                                    share_type)
             app.is_complete = True
             app.update_time = datetime.datetime.now()

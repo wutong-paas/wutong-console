@@ -29,11 +29,11 @@ from service.share_services import share_service
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/groups/{group_id}/share/record/{record_id}", response_model=Response, name="查询分享记录详情")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response, name="查询分享记录详情")
 async def get_record_detail(group_id: Optional[str] = None,
                             record_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
+                            env=Depends(deps.get_current_team_env)) -> Any:
     data = None
     share_record = component_share_repo.get_by_primary_key(session=session, primary_key=record_id)
     if share_record:
@@ -48,14 +48,14 @@ async def get_record_detail(group_id: Optional[str] = None,
         scope = share_record.scope
         if store_id:
             extend, market = market_app_service.get_app_market(session=session,
-                                                               enterprise_id=team.enterprise_id,
+                                                               enterprise_id=env.enterprise_id,
                                                                market_name=share_record.share_app_market_name,
                                                                extend="true", raise_exception=True)
             if market:
                 store_name = market.name
                 store_version = extend.get("version", store_version)
         app = center_app_repo.get_one_by_model(session=session, query_model=CenterApp(app_id=share_record.app_id,
-                                                                                      enterprise_id=team.enterprise_id))
+                                                                                      enterprise_id=env.enterprise_id))
         if app:
             app_model_id = share_record.app_id
             app_model_name = app.app_name
@@ -87,7 +87,7 @@ async def get_record_detail(group_id: Optional[str] = None,
     return JSONResponse(general_message(200, "success", None, bean=jsonable_encoder(data)), status_code=200)
 
 
-@router.put("/teams/{team_name}/groups/{group_id}/share/record/{record_id}", response_model=Response, name="更新分享记录")
+@router.put("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response, name="更新分享记录")
 async def update_record(session: SessionClass = Depends(deps.get_session),
                         params: Optional[MarketShareUpdateParam] = MarketShareUpdateParam(),
                         group_id: Optional[str] = None,
@@ -99,7 +99,7 @@ async def update_record(session: SessionClass = Depends(deps.get_session),
         return general_message(200, "success", None, bean=jsonable_encoder(share_record))
 
 
-@router.delete("/teams/{team_name}/groups/{group_id}/share/record/{record_id}", response_model=Response,
+@router.delete("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response,
                name="删除分享记录")
 async def delete_record(session: SessionClass = Depends(deps.get_session),
                         group_id: Optional[str] = None,
@@ -191,16 +191,14 @@ async def create_share_info(
     return JSONResponse(general_message(code, "create share info", msg, bean=jsonable_encoder(bean)), status_code=code)
 
 
-@router.get("/teams/{team_name}/groups/{group_id}/shared/apps", response_model=Response, name="分享应用列表")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/shared/apps", response_model=Response, name="分享应用列表")
 async def shared_apps(scope: Optional[str] = None,
                       market_id: Optional[str] = None,
                       group_id: Optional[str] = None,
                       session: SessionClass = Depends(deps.get_session),
-                      team=Depends(deps.get_current_team)) -> Any:
-    if not team:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
+                      env=Depends(deps.get_current_team_env)) -> Any:
 
-    data = share_service.get_last_shared_app_and_app_list(enterprise_id=team.enterprise_id, tenant=team,
+    data = share_service.get_last_shared_app_and_app_list(enterprise_id=env.enterprise_id, tenant_env=env,
                                                           group_id=group_id, scope=scope,
                                                           market_name=market_id, session=session)
     return JSONResponse(general_message(
@@ -209,7 +207,7 @@ async def shared_apps(scope: Optional[str] = None,
         status_code=200)
 
 
-@router.get("/teams/{team_name}/share/{share_id}/events", response_model=Response, name="获取分享事件")
+@router.get("/teams/{team_name}/env/{env_id}/share/{share_id}/events", response_model=Response, name="获取分享事件")
 async def get_share_event(team_name: Optional[str] = None,
                           share_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -337,7 +335,7 @@ async def get_share_info(
         return JSONResponse(result, status_code=500)
 
 
-@router.delete("/teams/{team_name}/share/{share_id}/giveup", response_model=Response,
+@router.delete("/teams/{team_name}/env/{env_id}/share/{share_id}/giveup", response_model=Response,
                name="放弃应用分享操作，放弃时删除分享记录")
 async def delete_share_info(team_name: Optional[str] = None,
                             share_id: Optional[str] = None,
@@ -379,13 +377,13 @@ async def delete_share_info(team_name: Optional[str] = None,
         return JSONResponse(result, status_code=500)
 
 
-@router.post("/teams/{team_name}/share/{share_id}/complete", response_model=Response,
+@router.post("/teams/{team_name}/env/{env_id}/share/{share_id}/complete", response_model=Response,
              name="发布应用")
 async def share_app(team_name: Optional[str] = None,
                     share_id: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session),
                     user=Depends(deps.get_current_user),
-                    team=Depends(deps.get_current_team)) -> Any:
+                    env=Depends(deps.get_current_team_env)) -> Any:
     share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
     if not share_record:
         result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -405,7 +403,7 @@ async def share_app(team_name: Optional[str] = None,
     if count > 0 or plugin_count > 0:
         result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
         return JSONResponse(result, status_code=415)
-    app_market_url = share_service.complete(session, team, user, share_record)
+    app_market_url = share_service.complete(session, env, user, share_record)
     if share_record.scope == "market":
         # 分享至梧桐应用商店
         center_app = center_app_repo.get_one_by_model(session=session,
@@ -426,8 +424,7 @@ async def get_object_log(
         request: Request,
         env_id: Optional[str] = None,
         event_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取作用对象的event事件
     ---

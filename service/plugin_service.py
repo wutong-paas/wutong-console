@@ -33,8 +33,8 @@ default_plugins = [
 
 class PluginService(object):
 
-    def get_tenant_plugins(self, session: SessionClass, region, tenant):
-        return plugin_repo.get_tenant_plugins(session, tenant.tenant_id, region)
+    def get_tenant_plugins(self, session: SessionClass, region, tenant_env):
+        return plugin_repo.get_tenant_plugins(session, tenant_env.tenant_id, region)
 
     def create_tenant_plugin(self, session: SessionClass, plugin_params):
         plugin_id = make_uuid()
@@ -225,22 +225,22 @@ class PluginService(object):
         except Exception as e:
             logger.exception(e)
             if plugin_base_info:
-                self.delete_plugin(session=session, region=region, team=tenant_env, plugin_id=plugin_base_info.plugin_id,
+                self.delete_plugin(session=session, region=region, tenant_env=tenant_env, plugin_id=plugin_base_info.plugin_id,
                                    is_force=True)
             raise e
 
-    def get_default_plugin(self, session: SessionClass, region, tenant):
+    def get_default_plugin(self, session: SessionClass, region, tenant_env):
         # 兼容3.5版本升级
-        plugins = plugin_repo.get_def_tenant_plugins(session, tenant.tenant_id,
+        plugins = plugin_repo.get_def_tenant_plugins(session, tenant_env.tenant_id,
                                                      region, [plugin for plugin in default_plugins])
         if plugins:
             return plugins
         else:
             DEF_IMAGE_REPO = "goodrain.me"
             IMAGE_REPO = os.getenv("IMAGE_REPO", DEF_IMAGE_REPO)
-            return plugin_repo.get_default_tenant_plugins(session, tenant.tenant_id, region, PluginImage, IMAGE_REPO)
+            return plugin_repo.get_default_tenant_plugins(session, tenant_env.tenant_id, region, PluginImage, IMAGE_REPO)
 
-    def get_default_plugin_from_cache(self, session: SessionClass, region, tenant):
+    def get_default_plugin_from_cache(self, session: SessionClass, region, tenant_env):
         if not self.all_default_config:
             raise Exception("no config was found")
 
@@ -254,7 +254,7 @@ class PluginService(object):
             })
 
         installed_default_plugin_alias_list = None
-        installed_default_plugins = self.get_default_plugin(session=session, region=region, tenant=tenant)
+        installed_default_plugins = self.get_default_plugin(session=session, region=region, tenant_env=tenant_env)
         if installed_default_plugins:
             installed_default_plugin_alias_list = [plugin.plugin_alias for plugin in installed_default_plugins]
 

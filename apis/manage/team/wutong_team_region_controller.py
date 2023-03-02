@@ -25,8 +25,7 @@ router = APIRouter()
 async def team_app_group(
         env_id: Optional[str] = None,
         region_name: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取指定数据中心的授权功能列表
     ---
@@ -106,7 +105,7 @@ async def get_sort_domain_query(request: Request,
 async def get_sort_service_query(region_name: Optional[str] = None,
                                  env_id: Optional[str] = None,
                                  session: SessionClass = Depends(deps.get_session),
-                                 team=Depends(deps.get_current_team)) -> Any:
+                                 env=Depends(deps.get_current_team_env)) -> Any:
     """
             获取团队下组件访问量排序
             ---
@@ -117,16 +116,13 @@ async def get_sort_service_query(region_name: Optional[str] = None,
                   type: string
                   paramType: path
             """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     sufix_outer = "?query=sort_desc(sum(%20ceil(increase(" \
                   + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(service))".format(
-        team.tenant_id)
+        env.tenant_id)
 
     sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7B" \
                   + "tenant_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(
-        team.tenant_id)
+        env.tenant_id)
     # 对外组件访问量
     try:
         res, body = remote_build_client.get_query_service_access(session, region_name, env, sufix_outer)
@@ -313,7 +309,6 @@ async def manager(
 async def get_kubeconfig(request: Request,
                          team_name: Optional[str] = None,
                          env_id: Optional[str] = None,
-                         team=Depends(deps.get_current_team),
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:

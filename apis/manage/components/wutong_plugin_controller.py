@@ -24,11 +24,11 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/pluginlist", response_model=Response, name="获取组件可用的插件列表")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/pluginlist", response_model=Response, name="获取组件可用的插件列表")
 async def get_plugin_list(request: Request,
                           serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team),
+                          env=Depends(deps.get_current_team_env),
                           user=Depends(deps.get_current_user)) -> Any:
     """
     获取组件可用的插件列表
@@ -56,10 +56,10 @@ async def get_plugin_list(request: Request,
         if origin not in ("sys", "tenant", "shared"):
             return JSONResponse(general_message(400, "param can only be sys or tenant、shared", "参数错误"),
                                 status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     installed_plugins, not_install_plugins = service_plugin_config_repo.get_plugins_by_origin(session=session,
                                                                                               region=service.service_region,
-                                                                                              tenant=team,
+                                                                                              tenant_env=env,
                                                                                               service_id=service.service_id,
                                                                                               origin=origin,
                                                                                               user=user)
@@ -366,13 +366,13 @@ async def open_or_stop_plugin(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/plugins/{plugin_id}/configs", response_model=Response,
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/configs", response_model=Response,
             name="启停组件插件")
 async def get_plugin_config(request: Request,
                             plugin_id: Optional[str] = None,
                             serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
+                            env=Depends(deps.get_current_team_env)) -> Any:
     """
     组件插件查看配置
     ---
@@ -402,12 +402,12 @@ async def get_plugin_config(request: Request,
     if not plugin_id or not build_version:
         logger.error("plugin.relation", '参数错误，plugin_id and version_id')
         return JSONResponse(general_message(400, "params error", "请指定插件版本"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=team, service=service,
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=env, service=service,
                                                                plugin_id=plugin_id, build_version=build_version)
     svc_plugin_relation = app_plugin_service.get_service_plugin_relation(session=session, service_id=service.service_id,
                                                                          plugin_id=plugin_id)
-    pbv = plugin_version_service.get_by_id_and_version(session=session, tenant_id=team.tenant_id, plugin_id=plugin_id,
+    pbv = plugin_version_service.get_by_id_and_version(session=session, tenant_id=env.tenant_id, plugin_id=plugin_id,
                                                        plugin_version=build_version)
     if pbv:
         result_bean["build_info"] = pbv.update_info

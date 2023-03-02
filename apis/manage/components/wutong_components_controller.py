@@ -1,17 +1,14 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.responses import StreamingResponse
 from loguru import logger
 from sqlalchemy import delete
-
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core import deps
 from core.enum.component_enum import is_support
-
 from core.utils.constants import PluginCategoryConstants
 from core.utils.reqparse import parse_argument, parse_item
 from core.utils.return_message import general_message, error_message
@@ -43,10 +40,10 @@ from service.upgrade_service import upgrade_service
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/visit", response_model=Response, name="获取组件访问信息")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/visit", response_model=Response, name="获取组件访问信息")
 async def get_app_visit_info(serviceAlias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
-                             team=Depends(deps.get_current_team)) -> Any:
+                             env=Depends(deps.get_current_team_env)) -> Any:
     """
     获取组件访问信息
     ---
@@ -62,9 +59,9 @@ async def get_app_visit_info(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     bean = dict()
-    access_type, data = port_service.get_access_info(session=session, tenant=team, service=service)
+    access_type, data = port_service.get_access_info(session=session, tenant_env=env, service=service)
     bean["access_type"] = access_type
     bean["access_info"] = data
     result = general_message(200, "success", "操作成功", bean=jsonable_encoder(bean))
@@ -184,10 +181,10 @@ async def get_resource(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/brief", response_model=Response, name="获取组件详情信息")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/brief", response_model=Response, name="获取组件详情信息")
 async def get_brief(serviceAlias: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session),
-                    team=Depends(deps.get_current_team)) -> Any:
+                    env=Depends(deps.get_current_team_env)) -> Any:
     """
      组件详情信息
      ---
@@ -204,10 +201,10 @@ async def get_brief(serviceAlias: Optional[str] = None,
            paramType: path
      """
     msg = "查询成功"
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     if service.service_source == "market":
         try:
-            market_app_service.check_market_service_info(session=session, tenant=team, service=service)
+            market_app_service.check_market_service_info(session=session, tenant_env=env, service=service)
         except MarketAppLost as e:
             msg = e.msg
         except RbdAppNotFound as e:
@@ -246,10 +243,10 @@ async def modify_components_name(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/analyze_plugins", response_model=Response, name="查询组件的性能分析插件")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/analyze_plugins", response_model=Response, name="查询组件的性能分析插件")
 async def get_analyze_plugins(serviceAlias: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
+                              env=Depends(deps.get_current_team_env)) -> Any:
     """
      查询组件的性能分析插件
      ---
@@ -265,7 +262,7 @@ async def get_analyze_plugins(serviceAlias: Optional[str] = None,
            type: string
            paramType: path
      """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     service_abled_plugins = app_plugin_service.get_service_abled_plugin(session=session, service=service)
     analyze_plugins = []
     for plugin in service_abled_plugins:
@@ -296,11 +293,11 @@ async def get_volume_opts_list(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/build_envs", response_model=Response, name="获取构建组件的环境变量参数")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/build_envs", response_model=Response, name="获取构建组件的环境变量参数")
 async def get_build_envs(serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+                         env=Depends(deps.get_current_team_env)) -> Any:
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     # 获取组件构建时环境变量
     build_env_dict = dict()
     build_envs = env_var_service.get_service_build_envs(session=session, service=service)
@@ -311,35 +308,36 @@ async def get_build_envs(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/set/is_upgrade", response_model=Response, name="设置是否自动升级")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/set/is_upgrade", response_model=Response, name="设置是否自动升级")
 async def set_is_upgrade(request: Request,
                          serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
-                         team=Depends(deps.get_current_team)) -> Any:
+                         env=Depends(deps.get_current_team_env)) -> Any:
     """
     :param request:
-    :param args:
-    :param kwargs:
+    :param serviceAlias:
+    :param session:
+    :param env:
     :return:
     """
     data = await request.json()
     build_upgrade = data.get("build_upgrade", True)
 
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
     service.build_upgrade = build_upgrade
     result = general_message(200, "success", "操作成功", bean={"build_upgrade": service.build_upgrade})
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/restart", response_model=Response, name="重启组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/restart", response_model=Response, name="重启组件")
 async def restart_component(serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             user=Depends(deps.get_current_user),
-                            team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+                            env=Depends(deps.get_current_team_env)) -> Any:
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     oauth_instance, _ = None, None
-    code, msg = app_manage_service.restart(session=session, tenant=team, service=service, user=user)
+    code, msg = app_manage_service.restart(session=session, tenant_env=env, service=service, user=user)
     bean = {}
     if code != 200:
         return JSONResponse(general_message(code, "restart app error", msg, bean=bean), status_code=code)
@@ -347,27 +345,27 @@ async def restart_component(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/stop", response_model=Response, name="停止组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/stop", response_model=Response, name="停止组件")
 async def stop_component(serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user),
-                         team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+                         env=Depends(deps.get_current_team_env)) -> Any:
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
-    app_manage_service.stop(session=session, tenant=team, service=service, user=user)
+    app_manage_service.stop(session=session, tenant_env=env, service=service, user=user)
     result = general_message(200, "success", "操作成功", bean={})
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/start", response_model=Response, name="启动组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/start", response_model=Response, name="启动组件")
 async def start_component(serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
                           user=Depends(deps.get_current_user),
-                          team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+                          env=Depends(deps.get_current_team_env)) -> Any:
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     oauth_instance, _ = None, None
     try:
-        code, msg = app_manage_service.start(session=session, tenant=team, service=service, user=user)
+        code, msg = app_manage_service.start(session=session, tenant_env=env, service=service, user=user)
         bean = {}
         if code != 200:
             return JSONResponse(general_message(code, "start app error", msg, bean=bean), status_code=code)
@@ -380,18 +378,18 @@ async def start_component(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/upgrade", response_model=Response, name="更新组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/upgrade", response_model=Response, name="更新组件")
 async def upgrade_component(serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             user=Depends(deps.get_current_user),
-                            team=Depends(deps.get_current_team)) -> Any:
+                            env=Depends(deps.get_current_team_env)) -> Any:
     """
     更新
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     oauth_instance, _ = None, None
     try:
-        code, msg, _ = app_manage_service.upgrade(session=session, tenant=team, service=service, user=user)
+        code, msg, _ = app_manage_service.upgrade(session=session, tenant_env=env, service=service, user=user)
         bean = {}
         if code != 200:
             return JSONResponse(general_message(code, "upgrade app error", msg, bean=bean), status_code=code)
@@ -404,12 +402,12 @@ async def upgrade_component(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/group", response_model=Response, name="修改组件所在组")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/group", response_model=Response, name="修改组件所在组")
 async def group_component(request: Request,
                           serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+                          env=Depends(deps.get_current_team_env)) -> Any:
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = await request.json()
     group_id = data.get("group_id", None)
     if group_id is None:
@@ -419,27 +417,27 @@ async def group_component(request: Request,
         application_service.delete_service_group_relation_by_service_id(session=session, service_id=service.service_id)
     else:
         # check target app exists or not
-        application_service.get_group_by_id(session=session, tenant=team, region=service.service_region,
+        application_service.get_group_by_id(session=session, tenant_env=env, region=service.service_region,
                                             group_id=group_id)
         # update service relation
-        application_service.update_or_create_service_group_relation(session=session, tenant=team, service=service,
+        application_service.update_or_create_service_group_relation(session=session, tenant_env=env, service=service,
                                                                     group_id=group_id)
 
     result = general_message(200, "success", "修改成功")
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/apps/{serviceAlias}/delete", response_model=Response, name="删除组件")
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/delete", response_model=Response, name="删除组件")
 async def delete_component(request: Request,
                            serviceAlias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
                            user=Depends(deps.get_current_user),
-                           team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+                           env=Depends(deps.get_current_team_env)) -> Any:
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     data = await request.json()
     is_force = data.get("is_force", False)
 
-    code, msg = app_manage_service.delete(session=session, tenant=team, service=service, user=user, is_force=is_force)
+    code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user, is_force=is_force)
     bean = {}
     if code != 200:
         return JSONResponse(general_message(code, "delete service error", msg, bean=bean), status_code=code)
@@ -447,17 +445,17 @@ async def delete_component(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/un_dependency", response_model=Response, name="获取组件可以依赖但未依赖的组件")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/un_dependency", response_model=Response, name="获取组件可以依赖但未依赖的组件")
 async def get_un_dependency(request: Request,
                             serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
-                            team=Depends(deps.get_current_team)) -> Any:
+                            env=Depends(deps.get_current_team_env)) -> Any:
     page_num = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 25))
     search_key = request.query_params.get("search_key", None)
     condition = request.query_params.get("condition", None)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    un_dependencies = dependency_service.get_undependencies(session=session, tenant=team, service=service)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    un_dependencies = dependency_service.get_undependencies(session=session, tenant_env=env, service=service)
     service_ids = [s.service_id for s in un_dependencies]
     service_group_map = application_service.get_services_group_name(session=session, service_ids=service_ids)
     un_dep_list = []
@@ -521,15 +519,15 @@ async def modify_deploy_type(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/market_service/upgrade", response_model=Response,
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/market_service/upgrade", response_model=Response,
             name="判断云市安装的组件是否有（小版本，大版本）更新")
 async def get_market_service_upgrade(serviceAlias: Optional[str] = None,
                                      session: SessionClass = Depends(deps.get_session),
-                                     team=Depends(deps.get_current_team)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+                                     env=Depends(deps.get_current_team_env)) -> Any:
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     versions = []
     try:
-        versions = market_app_service.list_upgradeable_versions(session, team, service)
+        versions = market_app_service.list_upgradeable_versions(session, env, service)
     except RbdAppNotFound:
         return JSONResponse(general_message(404, "service lost", "未找到该组件"), status_code=404)
     except Exception as e:
@@ -538,39 +536,39 @@ async def get_market_service_upgrade(serviceAlias: Optional[str] = None,
     return JSONResponse(general_message(200, "success", "查询成功", list=versions), status_code=200)
 
 
-@router.post("/teams/{team_name}/apps/{serviceAlias}/market_service/upgrade", response_model=Response,
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/market_service/upgrade", response_model=Response,
              name="云市安装的组件升级")
 async def market_service_upgrade(
         request: Request,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
     version = await parse_item(request, "group_version", required=True)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     # get app
-    app = application_repo.get_by_service_id(session, team.tenant_id, service.service_id)
+    app = application_repo.get_by_service_id(session, env.tenant_id, service.service_id)
 
-    upgrade_service.upgrade_component(session, team, region, user, app, service, version)
+    upgrade_service.upgrade_component(session, env, region, user, app, service, version)
     return JSONResponse(general_message(200, "success", "升级成功"), status_code=200)
 
 
-@router.get("/teams/{team_name}/groups/{group_id}/apps/{app_id}/components", response_model=Response, name="获取组件实例")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/apps/{app_id}/components", response_model=Response, name="获取组件实例")
 async def get_pods_info(request: Request,
                         group_id: Optional[str] = None,
                         app_id: Optional[str] = None,
                         session: SessionClass = Depends(deps.get_session),
                         user=Depends(deps.get_current_user),
-                        team=Depends(deps.get_current_team)) -> Any:
+                        env=Depends(deps.get_current_team_env)) -> Any:
     app_model_key = parse_argument(
         request, 'app_model_key', value_type=str, required=True, error='app_model_key is a required parameter')
     components = market_app_service.list_wutong_app_components(session,
-                                                               user.enterprise_id, team, app_id,
+                                                               user.enterprise_id, env, app_id,
                                                                app_model_key, group_id)
     return JSONResponse(general_message(200, "success", "查询成功", list=components), status_code=200)
 
@@ -598,36 +596,34 @@ async def get_container_log(request: Request,
                                                             serviceAlias,
                                                             pod_name, container_name, follow)
     response = StreamingResponse(stream)
-    # disabled the GZipMiddleware on this call by inserting a fake header into the StreamingHttpResponse
-    # response['Content-Encoding'] = 'identity'
     return response
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/check_update", response_model=Response, name="组件检测信息修改")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/check_update", response_model=Response, name="组件检测信息修改")
 async def get_app_visit_info(
         request: Request,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        env=Depends(deps.get_current_team_env)) -> Any:
     """
     组件检测信息修改
     ---
     serializer: TenantServiceUpdateSerilizer
     """
     data = await request.json()
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
-    code, msg = application_service.update_check_app(session, team, service, data)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    code, msg = application_service.update_check_app(session, env, service, data)
     if code != 200:
         return JSONResponse(general_message(code, "update service info error", msg), status_code=code)
     result = general_message(200, "success", "修改成功")
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/docker_compose", response_model=Response, name="docker_compose创建组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/docker_compose", response_model=Response, name="docker_compose创建组件")
 async def docker_compose_components(
         request: Request,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
     group_name = data.get("group_name", None)
@@ -636,6 +632,7 @@ async def docker_compose_components(
     hub_pass = data.get("password", "")
     yaml_content = data.get("yaml_content", "")
     group_note = data.get("group_note", "")
+    project_id = data.get("project_id", "")
     if group_note and len(group_note) > 2048:
         return JSONResponse(general_message(400, "node too long", "应用备注长度限制2048"), status_code=400)
     if not group_name:
@@ -649,9 +646,9 @@ async def docker_compose_components(
     region = await region_services.get_region_by_request(session, request)
     # 创建组
     group_info = application_service.create_app(
-        session, team, region.region_name, group_name, group_note, user.get_username(), k8s_app=k8s_app)
+        session, env, project_id, region.region_name, group_name, group_note, user.get_username(), k8s_app=k8s_app)
     code, msg, group_compose = compose_service.create_group_compose(
-        session, team, region.region_name, group_info["group_id"], yaml_content, hub_user, hub_pass)
+        session, env, region.region_name, group_info["group_id"], yaml_content, hub_user, hub_pass)
     if code != 200:
         return JSONResponse(general_message(code, "create group compose error", msg), status_code=code)
     bean = dict()
@@ -719,18 +716,18 @@ async def compose_build(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/keyword", response_model=Response, name="修改组件触发自动部署关键字")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/keyword", response_model=Response, name="修改组件触发自动部署关键字")
 async def update_keyword(
         request: Request,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        env=Depends(deps.get_current_team_env)) -> Any:
     data = await request.json()
     keyword = data.get("keyword", None)
     if not keyword:
         return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
 
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     is_pass, msg = application_service.check_service_cname(keyword)
     if not is_pass:
         return JSONResponse(general_message(400, "param error", msg), status_code=400)
@@ -744,15 +741,15 @@ async def update_keyword(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/build_envs", response_model=Response, name="修改构建组件的环境变量参数")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/build_envs", response_model=Response, name="修改构建组件的环境变量参数")
 async def update_build_envs(
         request: Request,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        env=Depends(deps.get_current_team_env)) -> Any:
     data = await request.json()
     build_env_dict = data.get("build_env_dict", None)
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     build_envs = env_var_service.get_service_build_envs(session, service)
     # 传入为空，清除
     if not build_env_dict:
@@ -845,8 +842,7 @@ async def delete_components_version(
         env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
         version_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        user=Depends(deps.get_current_user)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     删除组件的某次构建版本
     ---

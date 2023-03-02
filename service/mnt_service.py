@@ -40,8 +40,8 @@ class AppMntService(object):
                 mnt_repo.delete_mnt_relation(service.service_id, dep_volume.service_id, dep_volume.volume_name)
         return 200, "success"
 
-    def get_service_mnt_details(self, session: SessionClass, tenant, service, volume_types, page=1, page_size=20):
-        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(session, tenant.tenant_id, service.service_id,
+    def get_service_mnt_details(self, session: SessionClass, tenant_env, service, volume_types, page=1, page_size=20):
+        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(session, tenant_env.tenant_id, service.service_id,
                                                                          volume_types)
         total = len(all_mnt_relations)
         params = Params(page=page, size=page_size)
@@ -71,7 +71,7 @@ class AppMntService(object):
                         })
         return mounted_dependencies, total
 
-    def get_service_unmount_volume_list(self, session: SessionClass, tenant, service, service_ids, page, page_size,
+    def get_service_unmount_volume_list(self, session: SessionClass, tenant_env, service, service_ids, page, page_size,
                                         is_config=False):
         """
         1. 获取租户下其他所有组件列表，方便后续进行名称的冗余
@@ -92,7 +92,7 @@ class AppMntService(object):
 
         current_tenant_services_id = service_ids
         # 已挂载的组件路径
-        mounted = mnt_repo.get_service_mnts(session, tenant.tenant_id, service.service_id)
+        mounted = mnt_repo.get_service_mnts(session, tenant_env.tenant_id, service.service_id)
         mounted_ids = [mnt.volume_id for mnt in mounted]
         # 当前未被挂载的共享路径
         service_volumes = []

@@ -18,8 +18,9 @@ async def get_env_memory_config(
         tenant_id: Optional[str] = None,
         env_id: Optional[str] = None,
         project_id: Optional[str] = None,
+        app_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    apps = application_service.get_apps_by_plat(session, tenant_id, env_id, project_id)
+    apps = application_service.get_apps_by_plat(session, tenant_id, env_id, project_id, app_name)
     result = general_message(200, "success", "获取成功", list=jsonable_encoder(apps))
     return JSONResponse(result, status_code=status.HTTP_200_OK)
 
@@ -34,4 +35,3 @@ async def get_env_memory_config(
         envs = env_services.get_all_envs(session)
     result = general_message(200, "success", "获取成功", list=jsonable_encoder(envs))
     return JSONResponse(result, status_code=status.HTTP_200_OK)
-

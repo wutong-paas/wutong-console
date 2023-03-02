@@ -50,7 +50,7 @@ class AppPluginService(object):
                                                       configs,
                                                       service.service_region)
 
-    def get_service_plugin_config(self, session: SessionClass, tenant, service, plugin_id, build_version):
+    def get_service_plugin_config(self, session: SessionClass, tenant_env, service, plugin_id, build_version):
         config_groups = plugin_config_service.get_config_group(session=session, plugin_id=plugin_id,
                                                                build_version=build_version)
         service_plugin_vars = service_plugin_config_repo.get_service_plugin_config_var(session=session,
@@ -136,7 +136,7 @@ class AppPluginService(object):
                         "config": copy.deepcopy(options)
                     })
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
-                dep_services = plugin_config_service.get_service_dependencies(session=session, tenant=tenant,
+                dep_services = plugin_config_service.get_service_dependencies(session=session, tenant_env=tenant_env,
                                                                               service=service)
                 for dep_service in dep_services:
                     ports = port_repo.list_inner_ports(session, dep_service.tenant_id, dep_service.service_id)

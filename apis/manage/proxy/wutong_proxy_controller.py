@@ -1,4 +1,3 @@
-import os
 from typing import Optional, Any
 from fastapi import APIRouter, Request, Depends
 from starlette.responses import JSONResponse

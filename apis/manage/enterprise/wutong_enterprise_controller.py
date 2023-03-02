@@ -44,6 +44,7 @@ async def get_enterprise_info(enterprise_id: Optional[str] = None,
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(enterprise_dict))
     return JSONResponse(result, status_code=result["code"])
 
+
 @router.get("/enterprise/{enterprise_id}/overview/app", response_model=Response, name="总览-应用信息")
 async def overview_app(
         request: Request,

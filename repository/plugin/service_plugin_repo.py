@@ -232,7 +232,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         plugin_build_version.plugin_version_status = "fixed"
         return plugin_build_version
 
-    def get_plugins_by_origin(self, session, region, tenant, service_id, origin, user):
+    def get_plugins_by_origin(self, session, region, tenant_env, service_id, origin, user):
         """获取组件已开通和未开通的插件"""
 
         QUERY_INSTALLED_SQL = """
@@ -255,7 +255,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         WHERE
             tsp.service_id = "{0}"
             AND tp.region = "{1}"
-            AND tp.tenant_id = "{2}" """.format(service_id, region, tenant.tenant_id)
+            AND tp.tenant_id = "{2}" """.format(service_id, region, tenant_env.tenant_id)
 
         QUERI_UNINSTALLED_SQL = """
             SELECT
@@ -273,7 +273,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                 AND tp.tenant_id = "{1}"
                 AND tp.region = "{2}"
                 AND pbv.build_status = "{3}"
-        """.format(service_id, tenant.tenant_id, region, "build_success")
+        """.format(service_id, tenant_env.tenant_id, region, "build_success")
 
         SHARED_QUERI_UNINSTALLED_SQL = """
             SELECT

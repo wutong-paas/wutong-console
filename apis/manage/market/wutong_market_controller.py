@@ -1,9 +1,7 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends, Body
 from fastapi.encoders import jsonable_encoder
 from starlette.responses import JSONResponse
-
 from clients.wutong_market_client import wutong_market_client
 from core import deps
 from core.utils.crypt import make_uuid

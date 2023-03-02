@@ -48,8 +48,8 @@ class AppEnvVarService(object):
         if not is_pass:
             raise InvalidEnvName(msg)
 
-    def get_env_by_container_port(self, session: SessionClass, tenant, service, container_port):
-        data = env_var_repo.get_service_env_by_port(session, tenant.tenant_id, service.service_id, container_port)
+    def get_env_by_container_port(self, session: SessionClass, tenant_env, service, container_port):
+        data = env_var_repo.get_service_env_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
         return data
 
     def get_self_define_env(self, session: SessionClass, service):

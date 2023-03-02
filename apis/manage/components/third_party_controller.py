@@ -27,18 +27,16 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.post("/teams/{team_name}/apps/third_party", response_model=Response, name="第三方组件创建")
+@router.post("/teams/{team_name}/env/{env_id}/apps/third_party", response_model=Response, name="第三方组件创建")
 async def third_party(request: Request,
                       params: Optional[ThirdPartyCreateParam] = ThirdPartyCreateParam(),
                       session: SessionClass = Depends(deps.get_session),
                       user=Depends(deps.get_current_user),
-                      team=Depends(deps.get_current_team)) -> Any:
+                      env=Depends(deps.get_current_team_env)) -> Any:
     """
     创建第三方组件
 
     """
-    if not team:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -63,14 +61,14 @@ async def third_party(request: Request,
             return JSONResponse(general_message(400, "kubernetes service name is null", "Kubernetes Service名称必须指定"),
                                 status_code=400)
         source_config = {"service_name": service_name, "namespace": params.namespace}
-    new_service = application_service.create_third_party_app(session=session, region=region_name, tenant=team,
+    new_service = application_service.create_third_party_app(session=session, region=region_name, tenant_env=env,
                                                              user=user,
                                                              service_cname=params.service_cname,
                                                              static_endpoints=params.static,
                                                              endpoints_type=endpoints_type, source_config=source_config,
                                                              k8s_component_name=k8s_component_name)
     # 添加组件所在组
-    code, msg_show = application_service.add_component_to_app(session=session, tenant=team, region_name=region_name,
+    code, msg_show = application_service.add_component_to_app(session=session, tenant_env=env, region_name=region_name,
                                                               app_id=params.group_id,
                                                               component_id=new_service.service_id)
     if code != 200:
@@ -93,7 +91,7 @@ async def third_party(request: Request,
 
         if not endpoints:
             data = {
-                "tenant_id": team.tenant_id,
+                "tenant_id": env.tenant_id,
                 "service_id": new_service.service_id,
                 "service_cname": new_service.service_cname,
                 "endpoints_info": "",

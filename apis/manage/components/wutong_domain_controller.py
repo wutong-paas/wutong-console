@@ -1,9 +1,7 @@
 import re
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.responses import JSONResponse
-
 from core import deps
 from core.utils.constants import DomainType
 from core.utils.return_message import general_message

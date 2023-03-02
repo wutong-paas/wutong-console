@@ -21,34 +21,33 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/buildsource", response_model=Response, name="查询构建源")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/buildsource", response_model=Response, name="查询构建源")
 async def get_build_source(serviceAlias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team),
-                           user=Depends(deps.get_current_user)) -> Any:
+                           env=Depends(deps.get_current_team_env)) -> Any:
     """
     查询构建源信息
     ---
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     service_ids = [service.service_id]
-    build_infos = base_service.get_build_infos(session=session, tenant=team, service_ids=service_ids)
+    build_infos = base_service.get_build_infos(session=session, tenant_env=env, service_ids=service_ids)
     bean = build_infos.get(service.service_id, None)
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/apps/{serviceAlias}/buildsource", response_model=Response, name="修改构建源")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/buildsource", response_model=Response, name="修改构建源")
 async def modify_build_source(request: Request,
                               serviceAlias: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
                               user=Depends(deps.get_current_user),
-                              team=Depends(deps.get_current_team)) -> Any:
+                              env=Depends(deps.get_current_team_env)) -> Any:
     """
     修改构建源
     ---
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     try:
         data = await request.json()
         image = data.get("image", None)
@@ -91,15 +90,7 @@ async def modify_build_source(request: Request,
             else:
                 service.code_version = "master"
             if git_url:
-                if is_oauth:
-                    service_code_from = "oauth_" + oauth_service.oauth_type
-                    service.code_from = service_code_from
-                    service.git_url = git_url
-                    service.git_full_name = git_full_name
-                    service.oauth_service_id = oauth_service_id
-                    service.creater = user_id
-                else:
-                    service.git_url = git_url
+                service.git_url = git_url
             service.service_source = service_source
             service.code_from = ""
             service.server_type = server_type
@@ -132,13 +123,12 @@ async def modify_build_source(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/apps/source_code", response_model=Response, name="源码创建组件")
+@router.post("/teams/{team_name}/env/{env_id}/apps/source_code", response_model=Response, name="源码创建组件")
 async def code_create_component(
         request: Request,
-        serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
-        team=Depends(deps.get_current_team)) -> Any:
+        env=Depends(deps.get_current_team_env)) -> Any:
     data = await request.json()
     group_id = data.get("group_id", -1)
     service_code_from = data.get("code_from", None)
@@ -181,7 +171,7 @@ async def code_create_component(
         code, msg_show, new_service = application_service.create_source_code_app(
             session,
             response_region,
-            team,
+            env,
             user,
             service_code_from,
             service_cname,
@@ -198,7 +188,7 @@ async def code_create_component(
             return JSONResponse(general_message(code, "service create fail", msg_show), status_code=code)
         # 添加username,password信息
         if git_password or git_user_name:
-            application_service.create_service_source_info(session, team, new_service, git_user_name, git_password)
+            application_service.create_service_source_info(session, env, new_service, git_user_name, git_password)
 
         # 自动添加hook
         if open_webhook and is_oauth and not new_service.open_webhooks:
@@ -214,7 +204,7 @@ async def code_create_component(
                 logger.exception(e)
                 new_service.open_webhooks = False
             # new_service.save()
-        code, msg_show = application_service.add_service_to_group(session, team, response_region, group_id,
+        code, msg_show = application_service.add_service_to_group(session, env, response_region, group_id,
                                                                   new_service.service_id)
 
         if code != 200:

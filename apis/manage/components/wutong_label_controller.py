@@ -1,16 +1,13 @@
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_label_repo import node_label_repo, label_repo, service_label_repo
 from repository.teams.env_repo import env_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.label_service import label_service
 from service.region_service import region_services
@@ -18,10 +15,10 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/labels", response_model=Response, name="获取组件已使用和未使用的标签")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/labels", response_model=Response, name="获取组件已使用和未使用的标签")
 async def get_env(serviceAlias: Optional[str] = None,
                   session: SessionClass = Depends(deps.get_session),
-                  team=Depends(deps.get_current_team)) -> Any:
+                  env=Depends(deps.get_current_team_env)) -> Any:
     """
     获取组件已使用和未使用的标签
     ---
@@ -38,7 +35,7 @@ async def get_env(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     bean = label_service.get_service_labels(session=session, service=service)
     result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
     return JSONResponse(result, status_code=result["code"])

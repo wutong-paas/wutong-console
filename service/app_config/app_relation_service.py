@@ -11,17 +11,17 @@ from service.plugin.app_plugin_service import app_plugin_service
 
 
 class AppServiceRelationService(object):
-    def __get_dep_service_ids(self, session: SessionClass, tenant, service):
-        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant.tenant_id, service.service_id)
+    def __get_dep_service_ids(self, session: SessionClass, tenant_env, service):
+        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant_env.tenant_id, service.service_id)
         return [service_dep.dep_service_id for service_dep in service_dependencies]
 
-    def get_service_dependencies(self, session: SessionClass, tenant, service):
-        dep_ids = self.__get_dep_service_ids(session=session, tenant=tenant, service=service)
+    def get_service_dependencies(self, session: SessionClass, tenant_env, service):
+        dep_ids = self.__get_dep_service_ids(session=session, tenant_env=tenant_env, service=service)
         services = service_info_repo.get_services_by_service_ids(session, dep_ids)
         return services
 
     def delete_region_dependency(self, session: SessionClass, tenant_env, service):
-        deps = self.__get_dep_service_ids(session=session, tenant=tenant_env, service=service)
+        deps = self.__get_dep_service_ids(session=session, tenant_env=tenant_env, service=service)
         for dep_id in deps:
             task = {}
             task["dep_service_id"] = dep_id
@@ -35,18 +35,18 @@ class AppServiceRelationService(object):
             except Exception as e:
                 logger.exception(e)
 
-    def get_undependencies(self, session: SessionClass, tenant, service):
+    def get_undependencies(self, session: SessionClass, tenant_env, service):
 
         # 打开对内端口才能被依赖
         services = service_info_repo.get_tenant_region_services_by_service_id(session=session, region=service.service_region,
-                                                                              tenant_id=tenant.tenant_id,
+                                                                              tenant_id=tenant_env.tenant_id,
                                                                               service_id=service.service_id)
         not_dependencies = []
-        dep_services = dep_relation_repo.get_service_dependencies(session, tenant.tenant_id, service.service_id)
+        dep_services = dep_relation_repo.get_service_dependencies(session, tenant_env.tenant_id, service.service_id)
         dep_service_ids = [dep.dep_service_id for dep in dep_services]
         for s in services:
             # 查找打开内部访问的组件
-            open_inner_services = port_repo.get_service_ports_by_is_inner_service(session, tenant.tenant_id,
+            open_inner_services = port_repo.get_service_ports_by_is_inner_service(session, tenant_env.tenant_id,
                                                                                   s.service_id)
             if open_inner_services:
                 if s.service_id not in dep_service_ids:
@@ -120,7 +120,7 @@ class AppServiceRelationService(object):
         if dep_service_relation:
             return 212, "当前组件已被关联", None
 
-        dep_service = service_info_repo.get_service_by_tenant_and_id(session=session, tenant_id=tenant.tenant_id,
+        dep_service = service_info_repo.get_service_by_tenant_and_id(session=session, tenant_id=tenant_env.tenant_id,
                                                                      service_id=dep_service_id)
         # 开启对内端口
         if open_inner:
@@ -161,9 +161,9 @@ class AppServiceRelationService(object):
             app_plugin_service.update_config_if_have_export_plugin(session=session, tenant_env=tenant_env, service=service)
         return 200, "success", dep_relation
 
-    def patch_add_dependency(self, session: SessionClass, tenant, service, dep_service_ids, user_name=''):
+    def patch_add_dependency(self, session: SessionClass, tenant_env, service, dep_service_ids, user_name=''):
         dep_service_relations = dep_relation_repo.get_dependency_by_dep_service_ids(session,
-                                                                                    tenant.tenant_id,
+                                                                                    tenant_env.tenant_id,
                                                                                     service.service_id,
                                                                                     dep_service_ids)
         dep_ids = [dep.dep_service_id for dep in dep_service_relations]

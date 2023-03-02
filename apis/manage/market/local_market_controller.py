@@ -1,13 +1,11 @@
 import json
 import re
 from typing import Any, Optional
-
 from fastapi import APIRouter, Path, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from sqlalchemy import select
-
 from core import deps
 from core.utils.crypt import make_uuid
 from core.utils.dependencies import DALGetter
@@ -24,7 +22,6 @@ from repository.market.center_repo import CenterRepository
 from repository.region.region_config_repo import region_config_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
-from repository.teams.team_region_repo import team_region_repo
 from repository.teams.env_repo import env_repo
 from schemas import CenterAppCreate
 from schemas.market import MarketAppTemplateUpdateParam, MarketAppCreateParam
@@ -69,27 +66,23 @@ async def create_app_teams(enterprise_id: Optional[str] = None,
     return general_message(200, "success", "查询成功", list=teams)
 
 
-@router.post("/teams/{team_name}/apps/market_create", response_model=Response, name="安装市场应用")
+@router.post("/teams/{team_name}/env/{env_id}/apps/market_create", response_model=Response, name="安装市场应用")
 async def market_create(
         request: Request,
         params: Optional[MarketAppCreateParam] = MarketAppCreateParam(),
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
-        team=Depends(deps.get_current_team)) -> Any:
+        env=Depends(deps.get_current_team_env)) -> Any:
     """
     创建应用市场应用
     """
-    if not user:
-        return JSONResponse(general_message(400, "not found user", "用户不存在"), status_code=400)
-    if not team:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     region_info = region_config_repo.get_one_by_model(session=session,
                                                       query_model=RegionConfig(region_name=region.region_name))
-    market_app_service.install_app(session=session, tenant=team, region=region_info, user=user,
+    market_app_service.install_app(session=session, tenant=env, region=region_info, user=user,
                                    app_id=params.group_id,
                                    app_model_key=params.app_id, version=params.app_version,
                                    market_name=params.market_name,

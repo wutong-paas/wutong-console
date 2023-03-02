@@ -40,7 +40,6 @@ async def get_info(
 @router.get("/enterprise/{enterprise_id}/regions/{region_id}", response_model=Response, name="查询集群配置信息")
 async def get_region_config(enterprise_id: Optional[str] = None,
                             region_id: Optional[str] = None,
-                            user=Depends(deps.get_current_user),
                             session: SessionClass = Depends(deps.get_session)) -> Any:
     data = region_services.get_enterprise_region(session, enterprise_id, region_id, check_status=False)
     result = general_message(200, "success", "获取成功", bean=data)
@@ -54,7 +53,6 @@ async def update_maven_settings(
         enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
         name: Optional[str] = None,
-        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         data = await request.json()
@@ -132,7 +130,6 @@ async def get_mavens_ettings(
         request: Request,
         enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
-        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     onlyname = request.query_params.get("onlyname", True)
     res, body = remote_build_client.list_maven_settings(session, enterprise_id, region_name)
@@ -150,7 +147,6 @@ async def get_mavens_ettings(
 async def modify_region_config(request: Request,
                                enterprise_id: Optional[str] = None,
                                region_id: Optional[str] = None,
-                               user=Depends(deps.get_current_user),
                                session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     region = region_services.update_enterprise_region(session, enterprise_id, region_id, data)
@@ -162,7 +158,6 @@ async def modify_region_config(request: Request,
 async def delete_region(request: Request,
                         enterprise_id: Optional[str] = None,
                         region_id: Optional[str] = None,
-                        user=Depends(deps.get_current_user),
                         session: SessionClass = Depends(deps.get_session)) -> Any:
     region = region_repo.get_region_by_region_id(session, region_id)
     if not region:
@@ -176,7 +171,6 @@ async def delete_region(request: Request,
 async def get_env_memory_config(request: Request,
                                 enterprise_id: Optional[str] = None,
                                 region_id: Optional[str] = None,
-                                user=Depends(deps.get_current_user),
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("pageSize", 10)

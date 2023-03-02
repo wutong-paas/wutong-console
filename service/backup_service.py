@@ -37,8 +37,8 @@ from service.region_service import EnterpriseConfigService
 
 
 class GroupAppBackupService(object):
-    def get_group_back_up_info(self, session: SessionClass, tenant, region, group_id):
-        return backup_record_repo.get_group_backup_records(session=session, team_id=tenant.tenant_id,
+    def get_group_back_up_info(self, session: SessionClass, tenant_env, region, group_id):
+        return backup_record_repo.get_group_backup_records(session=session, team_id=tenant_env.tenant_id,
                                                            region_name=region, group_id=group_id)
 
     def check_backup_condition(self, session: SessionClass, tenant_env, region, group_id):
@@ -352,8 +352,8 @@ class GroupAppBackupService(object):
         new_backup_record = backup_record_repo.create_backup_records(session, **record_data)
         return 200, "success", new_backup_record
 
-    def get_all_group_back_up_info(self, session, tenant, region):
-        return backup_record_repo.get_group_backup_records_by_team_id(session, tenant.tenant_id, region)
+    def get_all_group_back_up_info(self, session, teant_env, region):
+        return backup_record_repo.get_group_backup_records_by_team_id(session, teant_env.tenant_id, region)
 
 
 groupapp_backup_service = GroupAppBackupService()

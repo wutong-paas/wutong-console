@@ -1,9 +1,7 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from loguru import logger
-
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -11,7 +9,6 @@ from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo
 from repository.teams.env_repo import env_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_config.port_service import port_service
 from service.region_service import region_services
@@ -21,10 +18,11 @@ router = APIRouter()
 
 
 @router.get("/teams/{team_name}/env/{env_id}/regions/{region_name}/topological", response_model=Response, name="应用拓扑图")
-async def get_topological(team_name, region_name,
-                          env_id: Optional[str] = None,
-                          group_id: Optional[str] = None,
-                          session: SessionClass = Depends(deps.get_session)) -> Any:
+async def get_topological(
+        region_name,
+        env_id: Optional[str] = None,
+        group_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     应用拓扑图(未分组应用无拓扑图, 直接返回列表展示)
     """
@@ -182,11 +180,11 @@ async def get_topological_internet_info(
 
 @router.get("/teams/{team_name}/env/{env_id}/topological/services/{serviceAlias}", response_model=Response,
             name="拓扑图中组件详情")
-async def get_topological_info(request: Request,
-                               env_id: Optional[str] = None,
-                               team_name: Optional[str] = None,
-                               serviceAlias: Optional[str] = None,
-                               session: SessionClass = Depends(deps.get_session)) -> Any:
+async def get_topological_info(
+        env_id: Optional[str] = None,
+        team_name: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     拓扑图中组件详情
     ---

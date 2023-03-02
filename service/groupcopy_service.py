@@ -31,12 +31,12 @@ class GroupAppCopyService(object):
                     return False
             return True
 
-    def get_group_services_with_build_source(self, session, tenant, region_name, group_id):
-        group_services = base_service.get_group_services_list(session, tenant.tenant_id, region_name, group_id)
+    def get_group_services_with_build_source(self, session, tenant_env, region_name, group_id):
+        group_services = base_service.get_group_services_list(session, tenant_env.tenant_id, region_name, group_id)
         if not group_services:
             return []
         service_ids = [group_service["service_id"] for group_service in group_services]
-        build_infos = base_service.get_build_infos(session, tenant, service_ids)
+        build_infos = base_service.get_build_infos(session, tenant_env, service_ids)
 
         group_services_list = []
         for group_service in group_services:

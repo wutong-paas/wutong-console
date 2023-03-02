@@ -7,7 +7,7 @@ import string
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, or_
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
@@ -136,7 +136,7 @@ class ApplicationService(object):
     def create_source_code_app(self,
                                session,
                                region,
-                               tenant,
+                               tenant_env,
                                user,
                                service_code_from,
                                service_cname,
@@ -154,9 +154,9 @@ class ApplicationService(object):
         if not is_pass:
             return 412, msg, None
         new_service = self.__init_source_code_app(region)
-        new_service.tenant_id = tenant.tenant_id
+        new_service.tenant_id = tenant_env.tenant_id
         new_service.service_cname = service_cname
-        service_id = make_uuid(tenant.tenant_id)
+        service_id = make_uuid(tenant_env.tenant_id)
         service_alias = self.create_service_alias(session, service_id)
         new_service.service_id = service_id
         new_service.service_alias = service_alias
@@ -221,9 +221,9 @@ class ApplicationService(object):
             return probe_service.add_service_probe(session, tenant_env, service, data)
         return 200, "success", None
 
-    def update_check_app(self, session, tenant, service, data):
+    def update_check_app(self, session, tenant_env, service, data):
 
-        service_source = service_source_repo.get_service_source(session, tenant.tenant_id, service.service_id)
+        service_source = service_source_repo.get_service_source(session, tenant_env.tenant_id, service.service_id)
         service_cname = data.get("service_cname", service.service_cname)
         image = data.get("image", service.image)
         cmd = data.get("cmd", service.cmd)
@@ -253,7 +253,7 @@ class ApplicationService(object):
         if user_name is not None:
             if not service_source:
                 params = {
-                    "team_id": tenant.tenant_id,
+                    "team_id": tenant_env.tenant_id,
                     "service_id": service.service_id,
                     "user_name": user_name,
                     "password": password,
@@ -264,14 +264,14 @@ class ApplicationService(object):
                 service_source.password = password
         return 200, "success"
 
-    def add_service_to_group(self, session, tenant, region_name, group_id, service_id):
+    def add_service_to_group(self, session, tenant_env, region_name, group_id, service_id):
         if group_id:
             group_id = int(group_id)
             if group_id > 0:
                 group = application_repo.get_by_primary_key(session=session, primary_key=group_id)
                 if not group:
                     return 404, "应用不存在"
-                app_component_relation_repo.add_service_group_relation(session, group_id, service_id, tenant.tenant_id,
+                app_component_relation_repo.add_service_group_relation(session, group_id, service_id, tenant_env.tenant_id,
                                                                        region_name)
         return 200, "success"
 
@@ -326,8 +326,7 @@ class ApplicationService(object):
             raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
 
     def create_app(self, session: SessionClass,
-                   team_id,
-                   env,
+                   tenant_env,
                    project_id,
                    region_name,
                    app_name,
@@ -355,7 +354,7 @@ class ApplicationService(object):
         :param logo:
         :return:
         """
-        self.check_app_name(session, team_id, env.env_id, region_name, app_name, k8s_app=k8s_app)
+        self.check_app_name(session, tenant_env.tenant_id, tenant_env.env_id, region_name, app_name, k8s_app=k8s_app)
         # check parameter for helm app
         app_type = AppType.wutong.name
         if app_store_name or app_template_name or version:
@@ -370,8 +369,8 @@ class ApplicationService(object):
                 raise AbortRequest("the field 'version' is required")
 
         app = Application(
-            tenant_id=team_id,
-            env_id=env.env_id,
+            tenant_id=tenant_env.tenant_id,
+            env_id=tenant_env.env_id,
             project_id=project_id,
             region_name=region_name,
             group_name=app_name,
@@ -389,7 +388,7 @@ class ApplicationService(object):
             k8s_app=k8s_app
         )
         application_repo.create(session=session, model=app)
-        self.create_region_app(session=session, env=env, region_name=region_name, app=app, eid=eid)
+        self.create_region_app(session=session, env=tenant_env, region_name=region_name, app=app, eid=eid)
 
         res = jsonable_encoder(app)
         # compatible with the old version
@@ -538,32 +537,32 @@ class ApplicationService(object):
         return status_info_map
 
     @staticmethod
-    def list_access_info(session: SessionClass, tenant, app_id):
+    def list_access_info(session: SessionClass, tenant_env, app_id):
         components = application_service.list_components(session=session, app_id=app_id)
         result = []
         for cpt in components:
-            access_type, data = port_service.get_access_info(session=session, tenant=tenant, service=cpt)
+            access_type, data = port_service.get_access_info(session=session, tenant_env=tenant_env, service=cpt)
             result.append({
                 "access_type": access_type,
                 "access_info": data,
             })
         return result
 
-    def create_docker_run_app(self, session: SessionClass, region_name, tenant, user, service_cname, docker_cmd,
+    def create_docker_run_app(self, session: SessionClass, region_name, tenant_env, user, service_cname, docker_cmd,
                               image_type, k8s_component_name):
         is_pass, msg = self.check_service_cname(service_cname=service_cname)
         if not is_pass:
             return 412, msg, None
         new_service = self.__init_docker_image_app(region_name=region_name)
-        new_service.tenant_id = tenant.tenant_id
+        new_service.tenant_id = tenant_env.tenant_id
         new_service.service_cname = service_cname
         new_service.service_source = image_type
-        service_id = make_uuid(tenant.tenant_id)
+        service_id = make_uuid(tenant_env.tenant_id)
         service_alias = self.create_service_alias(session, service_id)
         new_service.service_id = service_id
         new_service.service_alias = service_alias
         new_service.creater = user.user_id
-        new_service.host_path = "/wtdata/tenant/" + tenant.tenant_id + "/service/" + service_id
+        new_service.host_path = "/wtdata/tenant/" + tenant_env.tenant_id + "/service/" + service_id
         new_service.docker_cmd = docker_cmd
         new_service.image = ""
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
@@ -641,9 +640,9 @@ class ApplicationService(object):
         tenant_service.create_status = "creating"
         return tenant_service
 
-    def create_service_source_info(self, session: SessionClass, tenant, service, user_name, password):
+    def create_service_source_info(self, session: SessionClass, tenant_env, service, user_name, password):
         params = {
-            "team_id": tenant.tenant_id,
+            "team_id": tenant_env.tenant_id,
             "service_id": service.service_id,
             "user_name": user_name,
             "password": password,
@@ -1095,7 +1094,7 @@ class ApplicationService(object):
             session.add(add_model)
             session.flush()
 
-    def create_kubernetes_endpoints(self, session: SessionClass, tenant, component, service_name, namespace):
+    def create_kubernetes_endpoints(self, session: SessionClass, tenant_env, component, service_name, namespace):
         endpoints = (
             session.execute(
                 select(ThirdPartyComponentEndpoints).where(
@@ -1104,7 +1103,7 @@ class ApplicationService(object):
         if endpoints:
             return
         data = {
-            "tenant_id": tenant.tenant_id,
+            "tenant_id": tenant_env.tenant_id,
             "service_id": component.service_id,
             "service_cname": component.service_cname,
             "endpoints_info": json.dumps({
@@ -1148,7 +1147,7 @@ class ApplicationService(object):
     def create_third_party_app(self,
                                session: SessionClass,
                                region,
-                               tenant,
+                               tenant_env,
                                user,
                                service_cname,
                                static_endpoints,
@@ -1157,11 +1156,11 @@ class ApplicationService(object):
                                k8s_component_name=""):
         if source_config is None:
             source_config = {}
-        new_service = self._create_third_component(session, tenant, region, user, service_cname, k8s_component_name)
+        new_service = self._create_third_component(session, tenant_env, region, user, service_cname, k8s_component_name)
         session.add(new_service)
         session.flush()
         if endpoints_type == "kubernetes":
-            self.create_kubernetes_endpoints(session, tenant, new_service, source_config["service_name"],
+            self.create_kubernetes_endpoints(session, tenant_env, new_service, source_config["service_name"],
                                              source_config["namespace"])
         if endpoints_type == "static" and static_endpoints:
             errs, is_domain = self.check_endpoints(static_endpoints)
@@ -1189,7 +1188,7 @@ class ApplicationService(object):
                 if port:
                     port_alias = new_service.service_alias.upper().replace("-", "_") + str(port)
                     service_port = {
-                        "tenant_id": tenant.tenant_id,
+                        "tenant_id": tenant_env.tenant_id,
                         "service_id": new_service.service_id,
                         "container_port": port,
                         "mapping_port": port,
@@ -1200,7 +1199,7 @@ class ApplicationService(object):
                         "k8s_service_name": new_service.service_alias + "-" + str(port),
                     }
                     port_repo.add_service_port(session, **service_port)
-            self.update_or_create_endpoints(session, tenant, new_service, static_endpoints)
+            self.update_or_create_endpoints(session, tenant_env, new_service, static_endpoints)
 
         ts = (
             session.execute(
@@ -1210,7 +1209,7 @@ class ApplicationService(object):
 
         return ts
 
-    def update_or_create_endpoints(self, session: SessionClass, tenant, service, service_endpoints):
+    def update_or_create_endpoints(self, session: SessionClass, tenant_env, service, service_endpoints):
         endpoints = (
             session.execute(
                 select(ThirdPartyComponentEndpoints).where(
@@ -1224,7 +1223,7 @@ class ApplicationService(object):
             endpoints.endpoints_info = json.dumps(service_endpoints)
         else:
             data = {
-                "tenant_id": tenant.tenant_id,
+                "tenant_id": tenant_env.tenant_id,
                 "service_id": service.service_id,
                 "service_cname": service.service_cname,
                 "endpoints_info": json.dumps(service_endpoints),
@@ -1235,16 +1234,16 @@ class ApplicationService(object):
 
         return endpoints
 
-    def _create_third_component(self, session: SessionClass, tenant, region_name, user, service_cname,
+    def _create_third_component(self, session: SessionClass, tenant_env, region_name, user, service_cname,
                                 k8s_component_name=""):
         service_cname = service_cname.rstrip().lstrip()
         is_pass, msg = self.check_service_cname(service_cname=service_cname)
         if not is_pass:
             raise ServiceHandleException(msg=msg, msg_show="组件名称不合法", status_code=400, error_code=400)
         component = self.__init_third_party_app(region_name)
-        component.tenant_id = tenant.tenant_id
+        component.tenant_id = tenant_env.tenant_id
         component.service_cname = service_cname
-        service_id = make_uuid(tenant.tenant_id)
+        service_id = make_uuid(tenant_env.tenant_id)
         service_alias = self.create_service_alias(session, service_id)
         component.service_id = service_id
         component.service_alias = service_alias
@@ -1390,9 +1389,9 @@ class ApplicationService(object):
                 re_app_list.append(app)
         return re_app_list, count
 
-    def get_groups_and_services(self, session: SessionClass, tenant, region, query="", app_type=""):
-        groups = application_repo.get_tenant_region_groups(session, tenant.tenant_id, region, query, app_type)
-        services = service_info_repo.get_tenant_region_services(session, region, tenant.tenant_id)
+    def get_groups_and_services(self, session: SessionClass, tenant_env, region, query="", app_type=""):
+        groups = application_repo.get_tenant_region_groups(session, tenant_env.tenant_id, region, query, app_type)
+        services = service_info_repo.get_tenant_region_services(session, region, tenant_env.tenant_id)
 
         sl = []
         for ser in services:
@@ -1529,7 +1528,7 @@ class ApplicationService(object):
                 keys.append(record.restore_id)
         remote_app_client.delete_app(session, region_name, tenant_env, region_app_id, {"etcd_keys": keys})
 
-    def add_component_to_app(self, session: SessionClass, tenant, region_name, app_id, component_id):
+    def add_component_to_app(self, session: SessionClass, tenant_env, region_name, app_id, component_id):
         if not app_id:
             return
         app_id = int(app_id)
@@ -1542,7 +1541,7 @@ class ApplicationService(object):
                 raise ErrApplicationNotFound
             add_model: ComponentApplicationRelation = ComponentApplicationRelation(service_id=component_id,
                                                                                    group_id=app_id,
-                                                                                   tenant_id=tenant.tenant_id,
+                                                                                   tenant_id=tenant_env.tenant_id,
                                                                                    region_name=region_name)
             session.add(add_model)
             session.flush()
@@ -1551,7 +1550,7 @@ class ApplicationService(object):
     def delete_service_group_relation_by_service_id(self, session: SessionClass, service_id):
         app_component_relation_repo.delete_relation_by_service_id(session, service_id)
 
-    def update_or_create_service_group_relation(self, session: SessionClass, tenant, service, group_id):
+    def update_or_create_service_group_relation(self, session: SessionClass, tenant_env, service, group_id):
         gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
         if gsr:
             gsr.group_id = group_id
@@ -1560,12 +1559,12 @@ class ApplicationService(object):
             params = {
                 "service_id": service.service_id,
                 "group_id": group_id,
-                "tenant_id": tenant.tenant_id,
+                "tenant_id": tenant_env.tenant_id,
                 "region_name": service.service_region
             }
             app_component_relation_repo.create_service_group_relation(session, **params)
 
-    def get_group_by_id(self, session: SessionClass, tenant, region, group_id):
+    def get_group_by_id(self, session: SessionClass, tenant_env, region, group_id):
         principal_info = dict()
         principal_info["email"] = ""
         principal_info["is_delete"] = False
@@ -1695,12 +1694,12 @@ class ApplicationService(object):
 
         return k8s_services
 
-    def update_kubernetes_services(self, session, tenant, region_name, app, k8s_services):
-        port_service.check_k8s_service_names(session, tenant.tenant_id, k8s_services)
+    def update_kubernetes_services(self, session, tenant_env, region_name, app, k8s_services):
+        port_service.check_k8s_service_names(session, tenant_env.tenant_id, k8s_services)
 
         # check if the given k8s_services belong to the app based on app_id
         app_component_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session=session,
-                                                                                   tenant_id=tenant.tenant_id,
+                                                                                   tenant_id=tenant_env.tenant_id,
                                                                                    region_name=region_name,
                                                                                    app_id=app.app_id)
         component_ids = []
@@ -1709,7 +1708,7 @@ class ApplicationService(object):
                 raise AbortRequest("service({}) not belong to app({})".format(k8s_service["service_id"], app.app_id))
             component_ids.append(k8s_service["service_id"])
 
-        port_service.update_by_k8s_services(session, tenant, region_name, app, k8s_services)
+        port_service.update_by_k8s_services(session, tenant_env, region_name, app, k8s_services)
 
     def _parse_overrides(self, overrides):
         new_overrides = []
@@ -1774,42 +1773,24 @@ class ApplicationService(object):
         data["k8s_app"] = bean["k8s_app"]
         application_repo.update(session, app_id, **data)
 
-    def get_apps_by_plat(self, session, team_id, env_id, project_id):
-        if team_id and env_id and project_id:
-            apps = session.execute(select(Application).where(
-                Application.tenant_id == team_id,
-                Application.env_id == env_id,
-                Application.project_id == project_id
-            )).scalars().all()
-        elif team_id and env_id:
-            apps = session.execute(select(Application).where(
-                Application.tenant_id == team_id,
-                Application.env_id == env_id
-            )).scalars().all()
-        elif team_id and project_id:
-            apps = session.execute(select(Application).where(
-                Application.tenant_id == team_id,
-                Application.project_id == project_id
-            )).scalars().all()
-        elif env_id and project_id:
-            apps = session.execute(select(Application).where(
-                Application.env_id == env_id,
-                Application.project_id == project_id
-            )).scalars().all()
-        elif env_id:
-            apps = session.execute(select(Application).where(
-                Application.env_id == env_id
-            )).scalars().all()
-        elif team_id:
-            apps = session.execute(select(Application).where(
-                Application.tenant_id == team_id
-            )).scalars().all()
-        elif project_id:
-            apps = session.execute(select(Application).where(
-                Application.project_id == project_id
-            )).scalars().all()
-        else:
-            apps = session.execute(select(Application)).scalars().all()
+    def get_apps_by_plat(self, session, team_id, env_id, project_id, app_name):
+        sql = "select * from service_group where 1"
+        params = {
+            "team_id": team_id,
+            "env_id": env_id,
+            "project_id": project_id,
+            "app_name": app_name
+        }
+        if team_id:
+            sql += " and tenant_id=:team_id"
+        if env_id:
+            sql += " and env_id=:env_id"
+        if project_id:
+            sql += " and project_id=:project_id"
+        if app_name:
+            sql += " and group_name like '%' :app_name '%'"
+
+        apps = session.execute(sql, params).fetchall()
         return apps
 
 

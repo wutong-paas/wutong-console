@@ -119,12 +119,12 @@ class BaseService:
         services = (session.execute(query_sql)).fetchall()
         return services
 
-    def get_build_infos(self, session: SessionClass, tenant, service_ids):
+    def get_build_infos(self, session: SessionClass, tenant_env, service_ids):
         apps = dict()
         markets = dict()
         build_infos = dict()
         services = env_repo.list_by_component_ids(session=session, service_ids=service_ids)
-        svc_sources = service_source_repo.get_service_sources(session=session, team_id=tenant.tenant_id,
+        svc_sources = service_source_repo.get_service_sources(session=session, team_id=tenant_env.tenant_id,
                                                               service_ids=service_ids)
         service_sources = {svc_ss.service_id: svc_ss for svc_ss in svc_sources}
 
@@ -170,7 +170,7 @@ class BaseService:
                         try:
                             market = markets.get(market_name, None)
                             if not market:
-                                market = app_market_repo.get_app_market_by_name(session, tenant.enterprise_id,
+                                market = app_market_repo.get_app_market_by_name(session, tenant_env.enterprise_id,
                                                                                 market_name,
                                                                                 raise_exception=True)
                                 markets[market_name] = market
@@ -193,7 +193,7 @@ class BaseService:
                         bean["app_detail_url"] = app.describe
 
                 if not app:
-                    app = app_repo.get_wutong_app_qs_by_key(session, tenant.enterprise_id, service_source.group_key)
+                    app = app_repo.get_wutong_app_qs_by_key(session, tenant_env.enterprise_id, service_source.group_key)
                     if not app:
                         logger.warning("not found app {0} version {1} in local market".format(
                             service_source.group_key, service_source.version))

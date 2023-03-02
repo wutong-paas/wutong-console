@@ -1,8 +1,6 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
-
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -11,7 +9,6 @@ from repository.component.app_component_relation_repo import app_component_relat
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_config.domain_service import domain_service
 from service.region_service import region_services
@@ -19,12 +16,12 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/enterprise/{enterprise_id}/team/{team_name}/app/{app_id}/domain", response_model=Response,
+@router.get("/enterprise/{enterprise_id}/team/{team_name}/env/{env_id}/app/{app_id}/domain", response_model=Response,
             name="应用HTTP网关查询")
 async def get_domain_info(request: Request,
                           app_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team)) -> Any:
+                          env=Depends(deps.get_current_team_env)) -> Any:
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
@@ -33,7 +30,7 @@ async def get_domain_info(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     # todo 简化查询
     region = region_repo.get_region_by_region_name(session, region.region_name)
-    tenant_tuples, total = domain_service.get_app_service_domain_list(region=region, tenant=team, app_id=app_id,
+    tenant_tuples, total = domain_service.get_app_service_domain_list(region=region, tenant_env=env, app_id=app_id,
                                                                       search_conditions=search_conditions,
                                                                       page=page,
                                                                       page_size=page_size, session=session)
@@ -81,12 +78,12 @@ async def get_domain_info(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/enterprise/{enterprise_id}/team/{team_name}/app/{app_id}/tcpdomain", response_model=Response,
+@router.get("/enterprise/{enterprise_id}/team/{team_name}/env/{env_id}/app/{app_id}/tcpdomain", response_model=Response,
             name="应用TCP网关查询")
 async def get_tcp_domain_info(request: Request,
                               app_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
-                              team=Depends(deps.get_current_team)) -> Any:
+                              env=Depends(deps.get_current_team_env)) -> Any:
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
@@ -97,7 +94,7 @@ async def get_tcp_domain_info(request: Request,
     # todo 简化查询
     region = region_repo.get_region_by_region_name(session, region.region_name)
 
-    tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(region=region, tenant=team, app_id=app_id,
+    tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(region=region, tenant_env=env, app_id=app_id,
                                                                           search_conditions=search_conditions,
                                                                           page=page,
                                                                           page_size=page_size, session=session)

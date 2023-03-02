@@ -1,5 +1,4 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -26,11 +25,10 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/domain/query", response_model=Response, name="网关访问策略管理")
+@router.get("/teams/{team_name}/env/{env_id}/domain/query", response_model=Response, name="网关访问策略管理")
 async def get_domain_query(request: Request,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team),
-                           user=Depends(deps.get_current_user)) -> Any:
+                           env=Depends(deps.get_current_team_env)) -> Any:
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
@@ -43,7 +41,7 @@ async def get_domain_query(request: Request,
     if search_conditions:
         # 获取总数
         parms = {
-            "tenant_id": team.tenant_id,
+            "tenant_id": env.tenant_id,
             "region_id": region.region_id,
             "search_conditions": search_conditions
         }
@@ -68,7 +66,7 @@ async def get_domain_query(request: Request,
             tenant_tuples = []
         else:
             parms = {
-                "tenant_id": team.tenant_id,
+                "tenant_id": env.tenant_id,
                 "region_id": region.region_id,
                 "search_conditions": search_conditions,
                 "start": start,
@@ -91,7 +89,7 @@ async def get_domain_query(request: Request,
     else:
         # 获取总数
         domain_count = (session.execute(
-            select(func.count(ServiceDomain.ID)).where(ServiceDomain.tenant_id == team.tenant_id,
+            select(func.count(ServiceDomain.ID)).where(ServiceDomain.tenant_id == env.tenant_id,
                                                        ServiceDomain.region_id == region.region_id))).first()
 
         total = domain_count[0]
@@ -106,7 +104,7 @@ async def get_domain_query(request: Request,
             tenant_tuples = (session.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                 service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
                 domain_heander, the_weight, is_outer_service, path_rewrite, rewrites from service_domain where tenant_id='{0}'
-                and region_id='{1}' order by type desc LIMIT {2},{3};""".format(team.tenant_id, region.region_id,
+                and region_id='{1}' order by type desc LIMIT {2},{3};""".format(env.tenant_id, region.region_id,
                                                                                 start,
                                                                                 end))).fetchall()
     # 拼接展示数据
@@ -172,11 +170,9 @@ async def get_port(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/tcpdomain", response_model=Response, name="tcp/udp策略操作")
+@router.get("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="tcp/udp策略操作")
 async def service_tcp_domain(request: Request,
-                             session: SessionClass = Depends(deps.get_session),
-                             team=Depends(deps.get_current_team),
-                             user=Depends(deps.get_current_user)
+                             session: SessionClass = Depends(deps.get_session)
                              ) -> Any:
     # 获取单个tcp/udp策略信息
     tcp_rule_id = request.query_params.get("tcp_rule_id", None)
@@ -258,11 +254,10 @@ async def service_tcp_domain(request: Request,
     return general_message(200, "success", "策略修改成功")
 
 
-@router.get("/teams/{team_name}/tcpdomain/query", response_model=Response, name="查询团队下tcp/udp策略")
+@router.get("/teams/{team_name}/env/{env_id}/tcpdomain/query", response_model=Response, name="查询团队下tcp/udp策略")
 async def get_domain_query(request: Request,
                            session: SessionClass = Depends(deps.get_session),
-                           team=Depends(deps.get_current_team),
-                           user=Depends(deps.get_current_user)) -> Any:
+                           env=Depends(deps.get_current_team_env)) -> Any:
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
@@ -276,7 +271,7 @@ async def get_domain_query(request: Request,
         if search_conditions:
             # 获取总数
             parms = {
-                "tenant_id": team.tenant_id,
+                "tenant_id": env.tenant_id,
                 "region_id": region.region_id,
                 "search_conditions": search_conditions
             }
@@ -312,7 +307,7 @@ async def get_domain_query(request: Request,
         else:
             # 获取总数
             domain_count = (session.execute(
-                select(func.count(ServiceTcpDomain.ID)).where(ServiceTcpDomain.tenant_id == team.tenant_id,
+                select(func.count(ServiceTcpDomain.ID)).where(ServiceTcpDomain.tenant_id == env.tenant_id,
                                                               ServiceTcpDomain.region_id == region.region_id))).first()
 
             total = domain_count[0]
@@ -331,7 +326,7 @@ async def get_domain_query(request: Request,
                             from service_tcp_domain
                             where tenant_id='{0}' and region_id='{1}' order by type desc
                             LIMIT {2},{3};
-                        """.format(team.tenant_id, region.region_id, start, end))).fetchall()
+                        """.format(env.tenant_id, region.region_id, start, end))).fetchall()
     except Exception as e:
         logger.exception(e)
         return JSONResponse(general_message(405, "faild", "查询数据库失败"), status_code=405)
@@ -369,11 +364,10 @@ async def get_domain_query(request: Request,
     return general_message(200, "success", "查询成功", list=domain_list, bean=bean)
 
 
-@router.get("/teams/{team_name}/certificates", response_model=Response, name="网关证书管理")
+@router.get("/teams/{team_name}/env/{env_id}/certificates", response_model=Response, name="网关证书管理")
 async def get_tenant_certificates(request: Request,
                                   session: SessionClass = Depends(deps.get_session),
-                                  team=Depends(deps.get_current_team),
-                                  user=Depends(deps.get_current_user)) -> Any:
+                                  env=Depends(deps.get_current_team_env)) -> Any:
     """
     获取团队下的证书
     ---
@@ -387,17 +381,16 @@ async def get_tenant_certificates(request: Request,
     """
     page = int(request.query_params.get("page_num", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    certificates, nums = domain_service.get_certificate(session=session, tenant=team, page=page, page_size=page_size)
+    certificates, nums = domain_service.get_certificate(session=session, tenant_env=env, page=page, page_size=page_size)
     bean = {"nums": nums}
     result = general_message(200, "success", "查询成功", list=certificates, bean=bean)
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/teams/{team_name}/certificates", response_model=Response, name="添加网关证书")
+@router.post("/teams/{team_name}/env/{env_id}/certificates", response_model=Response, name="添加网关证书")
 async def add_tenant_certificates(request: Request,
                                   session: SessionClass = Depends(deps.get_session),
-                                  team=Depends(deps.get_current_team),
-                                  user=Depends(deps.get_current_user)) -> Any:
+                                  env=Depends(deps.get_current_team_env)) -> Any:
     data = await request.json()
     alias = data.get("alias", None)
     if len(alias) > 64:
@@ -407,7 +400,7 @@ async def add_tenant_certificates(request: Request,
     certificate_type = data.get("certificate_type", None)
     certificate_id = make_uuid()
     try:
-        new_c = domain_service.add_certificate(session, team, alias, certificate_id, certificate, private_key,
+        new_c = domain_service.add_certificate(session, env, alias, certificate_id, certificate, private_key,
                                                certificate_type)
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message(200, "success", "操作成功", bean=bean)
@@ -416,7 +409,7 @@ async def add_tenant_certificates(request: Request,
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
 
 
-@router.get("/teams/{team_name}/certificates/{certificate_id}", response_model=Response, name="获取网关证书")
+@router.get("/teams/{team_name}/env/{env_id}/certificates/{certificate_id}", response_model=Response, name="获取网关证书")
 async def get_certificates(request: Request,
                            certificate_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session)
@@ -453,12 +446,10 @@ async def modify_certificates(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/teams/{team_name}/certificates/{certificate_id}", response_model=Response, name="删除网关证书")
-async def delete_certificates(request: Request,
-                              certificate_id: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session),
-                              user=Depends(deps.get_current_user),
-                              team=Depends(deps.get_current_team)) -> Any:
+@router.delete("/teams/{team_name}/env/{env_id}/certificates/{certificate_id}", response_model=Response, name="删除网关证书")
+async def delete_certificates(
+        certificate_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     domain_service.delete_certificate_by_pk(session, certificate_id)
     result = general_message(200, "success", "证书删除成功")
     return JSONResponse(result, status_code=result["code"])

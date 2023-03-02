@@ -1,9 +1,7 @@
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -15,11 +13,11 @@ from service.probe_service import probe_service
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/probe", response_model=Response, name="获取组件指定模式的探针")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/probe", response_model=Response, name="获取组件指定模式的探针")
 async def get_probe(request: Request,
                     serviceAlias: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session),
-                    team=Depends(deps.get_current_team)) -> Any:
+                    env=Depends(deps.get_current_team_env)) -> Any:
     """
     获取组件指定模式的探针
     ---
@@ -40,7 +38,7 @@ async def get_probe(request: Request,
           type: string
           paramType: query
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     if service.service_source == "third_party":
         code, msg, probe = probe_service.get_service_probe(session=session, service=service)
         if code != 200:

@@ -1,12 +1,9 @@
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-
 from core import deps
-
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -23,11 +20,10 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/ports", response_model=Response, name="获取组件的端口信息")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/ports", response_model=Response, name="获取组件的端口信息")
 async def get_ports(serviceAlias: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session),
-                    team=Depends(deps.get_current_team),
-                    user=Depends(deps.get_current_user)) -> Any:
+                    env=Depends(deps.get_current_team_env)) -> Any:
     """
     获取组件的端口信息
     ---
@@ -43,12 +39,12 @@ async def get_ports(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_info_repo.get_service(session, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     tenant_service_ports = port_service.get_service_ports(session=session, service=service)
     port_list = []
     for port in tenant_service_ports:
         port_info = port.__dict__
-        variables = port_service.get_port_variables(session=session, tenant=team, service=service, port_info=port)
+        variables = port_service.get_port_variables(session=session, tenant_env=env, service=service, port_info=port)
         port_info["environment"] = variables["environment"]
         outer_url = ""
         inner_url = ""

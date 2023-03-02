@@ -233,7 +233,7 @@ class ComposeService(object):
     def get_group_compose_by_compose_id(self, session, compose_id):
         return compose_repo.get_group_compose_by_compose_id(session, compose_id)
 
-    def create_group_compose(self, session, tenant, region, group_id, compose_content, hub_user="", hub_pass=""):
+    def create_group_compose(self, session, tenant_env, region, group_id, compose_content, hub_user="", hub_pass=""):
         gc = compose_repo.get_group_compose_by_group_id(session, group_id)
         if gc:
             return 409, "该组已与其他compose组关联", None
@@ -242,7 +242,7 @@ class ComposeService(object):
             "hub_user": hub_user,
             "hub_pass": hub_pass,
             "group_id": group_id,
-            "team_id": tenant.tenant_id,
+            "team_id": tenant_env.tenant_id,
             "region": region,
             "compose_content": compose_content,
             "compose_id": make_uuid(),

@@ -1,17 +1,14 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import Params, paginate
 from loguru import logger
-
 from core import deps
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from repository.application.application_repo import application_repo
 from repository.teams.env_repo import env_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
@@ -21,22 +18,23 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/all/groupapp/backup", response_model=Response,
+@router.get("/teams/{team_name}/env/{env_id}/all/groupapp/backup", response_model=Response,
             name="查询当前团队 数据中心下所有备份信息")
 async def get_team_backup_info(
         request: Request,
+        env_id: Optional[str] = None,
         page: int = Query(default=1, ge=1, le=9999),
         page_size: int = Query(default=10, ge=1, le=500),
-        session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team)) -> Any:
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        # page = int(request.query_params.get("page", 1))
-        # page_size = int(request.query_params.get("page_size", 10))
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
-        backups = groupapp_backup_service.get_all_group_back_up_info(session, team, response_region)
+        backups = groupapp_backup_service.get_all_group_back_up_info(session, env, response_region)
         params = Params(page=page, size=page_size)
         event_paginator = paginate(backups, params)
         total = event_paginator.total

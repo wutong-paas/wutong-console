@@ -1,5 +1,4 @@
 from typing import Any, Optional
-
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -24,11 +23,10 @@ from service.tenant_env_service import env_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/groupapp/backup", response_model=Response, name="查询备份信息")
+@router.get("/teams/{team_name}/env/{env_id}/groupapp/backup", response_model=Response, name="查询备份信息")
 async def get_backup_info(request: Request,
                           session: SessionClass = Depends(deps.get_session),
-                          team=Depends(deps.get_current_team),
-                          user=Depends(deps.get_current_user)) -> Any:
+                          env=Depends(deps.get_current_team_env)) -> Any:
     """
     查询备份信息
     """
@@ -42,7 +40,7 @@ async def get_backup_info(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
 
-    backups = groupapp_backup_service.get_group_back_up_info(session=session, tenant=team, region=region_name,
+    backups = groupapp_backup_service.get_group_back_up_info(session=session, tenant_env=env, region=region_name,
                                                              group_id=group_id)
     params = Params(page=page, size=page_size)
     event_paginator = paginate(backups, params)
@@ -175,7 +173,8 @@ async def delete_backup_app(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/groupapp/{group_id}/migrate/record", response_model=Response, name="查询当前用户是否有未完成的恢复和迁移")
+@router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate/record", response_model=Response,
+            name="查询当前用户是否有未完成的恢复和迁移")
 async def get_migrate_record(request: Request, session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询当前用户是否有未完成的恢复和迁移
@@ -259,7 +258,7 @@ async def app_migrate(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/groupapp/{group_id}/migrate", response_model=Response, name="查询应用迁移状态")
+@router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="查询应用迁移状态")
 async def get_app_migrate_state(request: Request,
                                 team_name: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session),
@@ -316,18 +315,17 @@ async def set_backup_info(request: Request,
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/teams/{team_name}/groupapp/{group_id}/copy", response_model=Response, name="获取应用复制信息")
+@router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/copy", response_model=Response, name="获取应用复制信息")
 async def get_app_copy(
         request: Request,
         group_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
-        team=Depends(deps.get_current_team),
-        user=Depends(deps.get_current_user)) -> Any:
+        env=Depends(deps.get_current_team_env)) -> Any:
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    group_services = groupapp_copy_service.get_group_services_with_build_source(session, team, region_name, group_id)
+    group_services = groupapp_copy_service.get_group_services_with_build_source(session, env, region_name, group_id)
     result = general_message(200, "success", "获取成功", list=jsonable_encoder(group_services))
     return JSONResponse(result, status_code=200)
 
@@ -337,7 +335,7 @@ async def app_copy(request: Request,
                    env_id: Optional[str] = None,
                    group_id: Optional[str] = None,
                    user=Depends(deps.get_current_user),
-                   team=Depends(deps.get_current_team),
+                   team=Depends(deps.get_current_team_env),
                    session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     services = data.get("services", [])

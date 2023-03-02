@@ -1,9 +1,7 @@
 from typing import Any, Optional
-
 from fastapi import Request, APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-
 from core import deps
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
@@ -17,11 +15,11 @@ from service.app_env_service import env_var_service
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/envs", response_model=Response, name="获取组件的环境变量参数")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/envs", response_model=Response, name="获取组件的环境变量参数")
 async def get_env(request: Request,
                   serviceAlias: Optional[str] = None,
                   db: SessionClass = Depends(deps.get_session),
-                  team=Depends(deps.get_current_team)) -> Any:
+                  env=Depends(deps.get_current_team_env)) -> Any:
     """
     获取组件的环境变量参数
     ---
@@ -47,7 +45,7 @@ async def get_env(request: Request,
     page_size = int(request.query_params.get("page_size", 10))
     env_name = request.query_params.get("env_name", None)
 
-    service = service_info_repo.get_service(db, serviceAlias, team.tenant_id)
+    service = service_info_repo.get_service(db, serviceAlias, env.tenant_id)
 
     if not env_type:
         return JSONResponse(general_message(400, "param error", "参数异常"), status_code=400)
