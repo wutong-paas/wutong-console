@@ -88,8 +88,7 @@ async def add_env(request: Request,
 async def delete_env(request: Request,
                      env_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user),
-                     team=Depends(deps.get_current_team_env)) -> Any:
+                     user=Depends(deps.get_current_user)) -> Any:
     """
     删除环境
     """

@@ -389,14 +389,14 @@ async def market_create(
     return JSONResponse(general_message(200, "success", "部署成功"), status_code=200)
 
 
-@router.get("/v1.0/devops/teams/{team_name}/regions", response_model=Response, name="查询团队绑定集群")
+@router.get("/v1.0/devops/teams/{team_name}/env/{env_id}/regions", response_model=Response, name="查询团队绑定集群")
 async def get_team_regions(
         request: Request,
-        team=Depends(deps.get_current_team_env),
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     region_info_map = []
-    region_name_list = env_repo.get_team_region_names(session, team.tenant_id)
+    region_name_list = env_repo.get_team_region_names(session, env.tenant_id)
     if region_name_list:
         region_infos = region_repo.get_region_by_region_names(session, region_name_list)
         if region_infos:
@@ -406,12 +406,12 @@ async def get_team_regions(
     return JSONResponse(general_message(200, "success", "查询成功", data=region_info_map), status_code=200)
 
 
-@router.get("/v1.0/devops/teams/{team_name}/checkResource", response_model=Response, name="检查应用及组件是否存在")
+@router.get("/v1.0/devops/teams/{team_name}/env/{env_id}/checkResource", response_model=Response, name="检查应用及组件是否存在")
 async def check_resource(
         request: Request,
         application_code: Optional[int] = -1,
         component_code: Optional[str] = None,
-        team=Depends(deps.get_current_team_env),
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     is_app = True
@@ -419,7 +419,7 @@ async def check_resource(
     app = hunan_expressway_repo.get_app_by_app_id(session, application_code)
     if not app:
         is_app = False
-    service = service_info_repo.get_service_by_tenant_and_alias(session, team.tenant_id, component_code)
+    service = service_info_repo.get_service_by_tenant_and_alias(session, env.tenant_id, component_code)
     if not service:
         is_component = False
     data = {

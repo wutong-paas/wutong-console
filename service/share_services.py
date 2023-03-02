@@ -602,14 +602,14 @@ class ShareService(object):
             temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
-    def check_service_source(self, session: SessionClass, team, tenant_env, group_id, region_name):
-        service_list = component_share_repo.get_service_list_by_group_id(session=session, team=team, group_id=group_id)
+    def check_service_source(self, session: SessionClass, tenant_env, group_id, region_name):
+        service_list = component_share_repo.get_service_list_by_group_id(session=session, tenant_env=tenant_env, group_id=group_id)
         if service_list:
             # 批量查询组件状态
             service_ids = [service.service_id for service in service_list]
             status_list = base_service.status_multi_service(session=session,
                                                             region=region_name, tenant_env=tenant_env,
-                                                            service_ids=service_ids, enterprise_id=team.enterprise_id)
+                                                            service_ids=service_ids, enterprise_id=tenant_env.enterprise_id)
             for status in status_list:
                 if status["status"] == "running":
                     data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
@@ -624,7 +624,7 @@ class ShareService(object):
         return component_share_repo.create_service_share_record(session, **kwargs)
 
     def query_share_service_info(self, tenant_env, group_id, session: SessionClass, scope=None):
-        service_list = component_share_repo.get_service_list_by_group_id(session=session, team=tenant_env, group_id=group_id)
+        service_list = component_share_repo.get_service_list_by_group_id(session=session, tenant_env=tenant_env, group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
             deploy_versions = self.get_team_service_deploy_version(session, service_list[0].service_region, tenant_env,

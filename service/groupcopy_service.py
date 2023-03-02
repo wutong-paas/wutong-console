@@ -198,7 +198,7 @@ class GroupAppCopyService(object):
                     env["attr_name"] = envs[env["attr_name"]]
         return metadata
 
-    def copy_group_services(self, session, user, old_team, old_region_name, env, tar_region_name, tar_group,
+    def copy_group_services(self, session, user, old_region_name, env, tar_region_name, tar_group,
                             group_id,
                             choose_services):
         changes = {}
@@ -207,12 +207,12 @@ class GroupAppCopyService(object):
             for choose_service in choose_services:
                 service_ids.append(choose_service["service_id"])
                 changes.update({choose_service["service_id"]: choose_service.get("change")})
-        services_metadata, change_services_map = self.get_modify_group_metadata(session, old_team, old_region_name,
+        services_metadata, change_services_map = self.get_modify_group_metadata(session, env, old_region_name,
                                                                                 env,
                                                                                 tar_region_name, group_id, service_ids,
                                                                                 changes)
         self.save_new_group_app(session, user, env, tar_region_name, tar_group.ID,
-                                services_metadata, change_services_map, old_team == env,
+                                services_metadata, change_services_map, env == env,
                                 old_region_name == tar_region_name)
         return groupapp_copy_service.build_services(session, user, env, tar_region_name, tar_group.ID,
                                                     change_services_map)

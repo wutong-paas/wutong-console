@@ -332,19 +332,15 @@ async def get_app_copy(
 
 @router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/copy", response_model=Response, name="应用复制")
 async def app_copy(request: Request,
-                   env_id: Optional[str] = None,
                    group_id: Optional[str] = None,
                    user=Depends(deps.get_current_user),
-                   team=Depends(deps.get_current_team_env),
+                   env=Depends(deps.get_current_team_env),
                    session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     services = data.get("services", [])
     tar_team_name = data.get("tar_team_name")
     tar_region_name = data.get("tar_region_name")
     tar_group_id = data.get("tar_group_id")
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
 
     if not tar_team_name or not tar_region_name or not tar_group_id:
         raise ServiceHandleException(msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
@@ -355,7 +351,7 @@ async def app_copy(request: Request,
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
-        groupapp_copy_service.copy_group_services(session, user, team, region_name, env,
+        groupapp_copy_service.copy_group_services(session, user, region_name, env,
                                                   tar_region_name,
                                                   tar_group, group_id, services)
         result = general_message(

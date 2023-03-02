@@ -51,10 +51,10 @@ class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
         page_events = event_paginator.items
         return total, page_events
 
-    def get_service_list_by_group_id(self, session, team, group_id):
+    def get_service_list_by_group_id(self, session, tenant_env, group_id):
         svc_relations = (session.execute(
             select(ComponentApplicationRelation).where(
-                ComponentApplicationRelation.tenant_id == team.tenant_id,
+                ComponentApplicationRelation.tenant_id == tenant_env.tenant_id,
                 ComponentApplicationRelation.group_id == group_id)
         )).scalars().all()
         if not svc_relations:

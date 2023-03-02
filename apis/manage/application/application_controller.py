@@ -462,7 +462,7 @@ async def app_share(request: Request,
             return JSONResponse(result, status_code=200)
         # 判断是否满足分享条件
         data = share_service.check_service_source(session=session,
-                                                  team=env, tenant_env=env, group_id=group_id,
+                                                  tenant_env=env, group_id=group_id,
                                                   region_name=response_region)
         if data and data["code"] == 400:
             return JSONResponse(data, status_code=data["code"])
