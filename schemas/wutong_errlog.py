@@ -10,7 +10,6 @@ class ErrLogCreate(BaseModel):
     ID: Optional[int] = 0
     msg: Optional[str] = None
     username: Optional[str] = None
-    enterprise_id: Optional[str] = 0
     address: Optional[str] = None
 
     class Config:
@@ -21,7 +20,6 @@ class ErrLogCreate(BaseModel):
             "example": {
                 "msg": "错误：Error: Minified React error #62",
                 "username": "admin",
-                "enterprise_id": "test_enterprise_id",
                 "address": "test_address"
             }
         }

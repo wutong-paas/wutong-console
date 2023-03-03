@@ -8,10 +8,9 @@ from repository.region.region_config_repo import region_config_repo
 from repository.teams.team_region_repo import team_region_repo
 
 
-def get_region_access_info_by_enterprise_id(enterprise_id, region, session):
+def get_region_access_info(region, session):
     """
-
-    :param enterprise_id:
+    :param session:
     :param region:
     :return:
     """

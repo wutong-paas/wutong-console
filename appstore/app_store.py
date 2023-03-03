@@ -1,5 +1,4 @@
 from appstore.app_store_client import get_market_client
-from service.region_service import EnterpriseConfigService
 
 
 class AppStore(object):
@@ -15,7 +14,7 @@ class AppStore(object):
             image_config["namespace"] = data.namespace
         return image_config
 
-    def get_app_hub_info(self, session, store=None, app_id=None, enterprise_id=None):
+    def get_app_hub_info(self, session, store=None, app_id=None):
         image_config = {
             "hub_url": None,
             "hub_user": None,

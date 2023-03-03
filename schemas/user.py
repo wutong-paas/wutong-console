@@ -8,7 +8,6 @@ class UserInfo(BaseModel):
     nick_name: Optional[str] = None
     real_name: Optional[str] = None
     email: Optional[str] = None
-    enterprise_id: Optional[str] = None
     phone: Optional[str] = None
     token: Optional[str] = None
 

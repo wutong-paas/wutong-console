@@ -21,9 +21,8 @@ class RegionRepo(BaseRepository[RegionConfig]):
         session.flush()
         return region_config
 
-    def get_region_by_enterprise_id(self, session, enterprise_id):
+    def get_region_by_enterprise_id(self, session):
         return session.execute(select(RegionConfig).where(
-            RegionConfig.enterprise_id == enterprise_id
         )).scalars().first()
 
     def get_region_by_region_id(self, session, region_id):
@@ -31,8 +30,8 @@ class RegionRepo(BaseRepository[RegionConfig]):
             RegionConfig.region_id == region_id
         )).scalars().first()
 
-    def update_enterprise_region(self, session, eid, region_id, data):
-        region = self.get_region_by_id(session, eid, region_id)
+    def update_enterprise_region(self, session, region_id, data):
+        region = self.get_region_by_id(session, region_id)
         if not region:
             raise RegionNotFound("region no found")
         region.region_alias = data.get("region_alias")
@@ -48,9 +47,8 @@ class RegionRepo(BaseRepository[RegionConfig]):
         region.key_file = data.get("key_file")
         return region
 
-    def get_region_by_id(self, session, eid, region_id):
+    def get_region_by_id(self, session, region_id):
         return session.execute(select(RegionConfig).where(
-                RegionConfig.enterprise_id == eid,
                 RegionConfig.region_id == region_id
         )).scalars().first()
 

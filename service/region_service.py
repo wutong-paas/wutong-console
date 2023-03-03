@@ -9,20 +9,18 @@ from database.session import SessionClass
 from exceptions.main import ServiceHandleException, AbortRequest
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
-from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from repository.teams.team_region_repo import team_region_repo
 from repository.teams.env_repo import env_repo
 from service.app_actions.app_manage import app_manage_service
 from service.base_services import base_service
-from service.platform_config_service import ConfigService
 from service.plugin_service import plugin_service
 
 
 def get_region_list_by_team_name(session: SessionClass, team_name):
     """
-
+    :param session:
     :param team_name:
     :return:
     """
@@ -78,7 +76,7 @@ class RegionService(object):
     def get_public_key(self, session, tenant_env, region):
         try:
             res, body = remote_build_client.get_region_publickey(session, tenant_env, region,
-                                                                 tenant_env.enterprise_id, tenant_env.tenant_id)
+                                                                 tenant_env.tenant_id)
             if body and "bean" in body:
                 return body["bean"]
             return {}
@@ -93,10 +91,6 @@ class RegionService(object):
         return ""
 
     def add_region(self, session, region_data, user):
-        ent = enterprise_repo.get_enterprise_by_enterprise_id(session, region_data.get("enterprise_id"))
-        if not ent:
-            raise ServiceHandleException(status_code=404, msg="enterprise not found", msg_show="企业不存在")
-
         region = region_repo.get_region_by_region_name(session, region_data["region_name"])
         if region:
             raise ServiceHandleException(status_code=400, msg="",
@@ -108,7 +102,7 @@ class RegionService(object):
             raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
 
         # 根据当前企业查询是否有region
-        exist_region = region_repo.get_region_by_enterprise_id(session, ent.enterprise_id)
+        exist_region = region_repo.get_region_by_enterprise_id(session)
         region = region_repo.create_region(session, region_data)
 
         if exist_region:
@@ -158,15 +152,14 @@ class RegionService(object):
     def get_region_by_region_id(self, session, region_id):
         return region_repo.get_region_by_region_id(session=session, region_id=region_id)
 
-    def update_enterprise_region(self, session, enterprise_id, region_id, data):
+    def update_enterprise_region(self, session, region_id, data):
         return self.__init_region_resource_data(session,
                                                 region_repo.update_enterprise_region(session,
-                                                                                     enterprise_id,
                                                                                      region_id,
                                                                                      data))
 
-    def get_enterprise_region(self, session, enterprise_id, region_id, check_status=True):
-        region = region_repo.get_region_by_id(session, enterprise_id, region_id)
+    def get_enterprise_region(self, session, region_id, check_status=True):
+        region = region_repo.get_region_by_id(session, region_id)
         if not region:
             return None
         return self.conver_region_info(session, region, check_status)
@@ -181,8 +174,8 @@ class RegionService(object):
             logger.exception(e)
             return []
 
-    def get_enterprise_regions(self, session: SessionClass, enterprise_id, level="open", status="", check_status="yes"):
-        regions = team_region_repo.get_regions_by_enterprise_id(session, enterprise_id, status)
+    def get_enterprise_regions(self, session: SessionClass, level="open", status="", check_status="yes"):
+        regions = team_region_repo.get_regions(session, status)
         if not regions:
             return []
         return self.conver_regions_info(session=session, regions=regions, check_status=check_status, level=level)
@@ -201,9 +194,8 @@ class RegionService(object):
         if check_status == "yes":
             try:
                 _, rbd_version = remote_build_client.get_enterprise_api_version_v2(
-                    session=session, enterprise_id=region.enterprise_id, region=region.region_name)
+                    session=session, region=region.region_name)
                 res, body = remote_build_client.get_region_resources(session,
-                                                                     region.enterprise_id,
                                                                      region=region.region_name)
                 if not rbd_version:
                     rbd_version = "v1.0.0"
@@ -230,7 +222,6 @@ class RegionService(object):
         region_resource["region_name"] = region.region_name
         region_resource["status"] = region.status
         region_resource["region_type"] = (json.loads(region.region_type) if region.region_type else [])
-        region_resource["enterprise_id"] = region.enterprise_id
         region_resource["url"] = region.url
         region_resource["scope"] = region.scope
         region_resource["provider"] = region.provider
@@ -251,10 +242,6 @@ class RegionService(object):
         region_resource["used_disk"] = 0
         region_resource["rbd_version"] = "unknown"
         region_resource["health_status"] = "ok"
-        region_resource["enterprise_id"] = region.enterprise_id
-        enterprise_info = enterprise_repo.get_enterprise_by_enterprise_id(session, region.enterprise_id)
-        if enterprise_info:
-            region_resource["enterprise_alias"] = enterprise_info.enterprise_alias
         return region_resource
 
     def get_region_all_list_by_team_name(self, session: SessionClass, team_name):
@@ -287,13 +274,12 @@ class RegionService(object):
             raise ServiceHandleException(msg="cluster not found", msg_show="需要开通的集群不存在")
         env_region = region_repo.get_env_region_by_env_and_region(session, env.env_id, region_name)
         if not env_region:
-            env_region_info = {"env_id": env.env_id, "region_name": region_name, "is_active": False,
-                               "region_tenant_name": team_name}
+            env_region_info = {"region_name": region_name, "is_active": False}
             env_region = region_repo.create_tenant_region(session, **env_region_info)
         if not env_region.is_init:
             res, body = remote_tenant_client.create_env(session, region_name, team_id, team_name, env.env_name,
                                                         env.env_id,
-                                                        env.enterprise_id, namespace)
+                                                        namespace)
             if res["status"] != 200 and body['msg'] != 'env name {} is exist'.format(env.env_name):
                 logger.error(res)
                 raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")
@@ -302,20 +288,15 @@ class RegionService(object):
             env_region.region_env_id = env.env_id
             env_region.region_env_name = env.env_name
             env_region.region_scope = region_config.scope
-            env_region.enterprise_id = env.enterprise_id
-            env_region.region_tenant_name = team_name
         else:
             if (not env_region.region_env_id) or \
-                    (not env_region.region_env_name) or \
-                    (not env_region.enterprise_id):
+                    (not env_region.region_env_name):
                 env_region.region_env_id = env.env_id
                 env_region.region_env_name = env.env_name
                 env_region.region_scope = region_config.scope
-                env_region.enterprise_id = env.enterprise_id
-                env_region.region_tenant_name = team_name
         return env_region
 
-    def delete_env_on_region(self, session: SessionClass, enterprise_id, env, region_name, user):
+    def delete_env_on_region(self, session: SessionClass, env, region_name, user):
         env_region = region_repo.get_env_region_by_env_and_region(session, env.env_id, region_name)
         if not env_region:
             raise ServiceHandleException(msg="team not open cluster, not need close", msg_show="该团队未开通此集群，无需关闭")
@@ -326,7 +307,7 @@ class RegionService(object):
             # cluster spec info not found, cluster side resources are no longer operated on
             ignore_cluster_resource = True
         else:
-            info = remote_build_client.check_region_api(session, enterprise_id, region_name)
+            info = remote_build_client.check_region_api(session, region_name)
             # check cluster api health
             if not info or info["rbd_version"] == "":
                 ignore_cluster_resource = True
@@ -336,8 +317,7 @@ class RegionService(object):
             service_ids = [service.service_id for service in services]
             status_list = base_service.status_multi_service(session=session,
                                                             region=region_name, tenant_env=env,
-                                                            service_ids=service_ids,
-                                                            enterprise_id=env.enterprise_id)
+                                                            service_ids=service_ids)
             status_list = [x for x in [x["status"] for x in status_list] if x not in ["closed", "undeploy"]]
             if len(status_list) > 0:
                 raise ServiceHandleException(
@@ -373,10 +353,10 @@ class RegionService(object):
                 raise ServiceHandleException(msg="delete tenant from cluster failure", msg_show="从集群删除租户失败")
         region_repo.delete_team_region_by_tenant_and_region(session, env.env_id, region_name)
 
-    def get_team_unopen_region(self, session: SessionClass, team_name, enterprise_id):
+    def get_team_unopen_region(self, session: SessionClass, team_name):
         team_opened_regions = region_repo.get_team_opened_region(session, team_name, is_init=True)
         opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
-        unopen_regions = region_repo.get_usable_regions(session, enterprise_id, opened_regions_name)
+        unopen_regions = region_repo.get_usable_regions(session, opened_regions_name)
         return [jsonable_encoder(unopen_region) for unopen_region in unopen_regions]
 
     def get_region_tcpdomain(self, session: SessionClass, region_name):
@@ -396,78 +376,6 @@ class RegionService(object):
         region_names = [r.region_name for r in usable_regions]
         team_opened_regions = region_repo.get_team_opened_region_name(session, team_name, region_names)
         return team_opened_regions
-
-
-class EnterpriseConfigService(ConfigService):
-    def __init__(self, eid):
-        super(EnterpriseConfigService, self).__init__()
-        self.enterprise_id = eid
-        self.cfg_keys = [
-            "APPSTORE_IMAGE_HUB",
-            "NEWBIE_GUIDE",
-            "EXPORT_APP",
-            "CLOUD_MARKET",
-            "OBJECT_STORAGE",
-            "AUTO_SSL",
-            "VISUAL_MONITOR",
-        ]
-        self.cfg_keys_value = {
-            "APPSTORE_IMAGE_HUB": {
-                # "value": {
-                #     "hub_user": None,
-                #     "hub_url": None,
-                #     "namespace": None,
-                #     "hub_password": None
-                # },
-                "value": None,
-                "desc": "AppStore镜像仓库配置",
-                "enable": False
-            },
-            "NEWBIE_GUIDE": {
-                "value": None,
-                "desc": "开启/关闭新手引导",
-                "enable": True
-            },
-            "EXPORT_APP": {
-                "value": None,
-                "desc": "开启/关闭导出应用",
-                "enable": False
-            },
-            "CLOUD_MARKET": {
-                "value": None,
-                "desc": "开启/关闭云应用市场",
-                "enable": True
-            },
-            "OBJECT_STORAGE": {
-                # "value": {
-                #     "provider": "",
-                #     "endpoint": "",
-                #     "access_key": "",
-                #     "secret_key": "",
-                #     "bucket_name": "",
-                # },
-                "value": None,
-                "desc": "云端备份使用的对象存储信息",
-                "enable": False
-            },
-            "AUTO_SSL": {
-                "value": None,
-                "desc": "证书自动签发",
-                "enable": False
-            },
-            "VISUAL_MONITOR": {
-                # "value": {
-                #     "home_url": "",
-                #     "cluster_monitor_suffix": "/d/cluster/ji-qun-jian-kong-ke-shi-hua",
-                #     "node_monitor_suffix": "/d/node/jie-dian-jian-kong-ke-shi-hua",
-                #     "component_monitor_suffix": "/d/component/zu-jian-jian-kong-ke-shi-hua",
-                #     "slo_monitor_suffix": "/d/service/fu-wu-jian-kong-ke-shi-hua",
-                # },
-                "value": None,
-                "desc": "可视化监控配置(链接外部监控)",
-                "enable": False
-            },
-        }
 
 
 region_services = RegionService()

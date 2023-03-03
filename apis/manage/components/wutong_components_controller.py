@@ -97,8 +97,7 @@ async def get_pods_info(
     data = remote_component_client.get_service_pods(session,
                                                     service.service_region,
                                                     env,
-                                                    service.service_alias,
-                                                    env.enterprise_id)
+                                                    service.service_alias)
     result = {}
     if data["bean"]:
 
@@ -567,8 +566,7 @@ async def get_pods_info(request: Request,
                         env=Depends(deps.get_current_team_env)) -> Any:
     app_model_key = parse_argument(
         request, 'app_model_key', value_type=str, required=True, error='app_model_key is a required parameter')
-    components = market_app_service.list_wutong_app_components(session,
-                                                               user.enterprise_id, env, app_id,
+    components = market_app_service.list_wutong_app_components(session, env, app_id,
                                                                app_model_key, group_id)
     return JSONResponse(general_message(200, "success", "查询成功", list=components), status_code=200)
 

@@ -7,10 +7,8 @@ import string
 from loguru import logger
 from sqlalchemy import select, delete, not_
 from core.idaasapi import idaas_api
-from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
-from models.teams.enterprise import TeamEnterprise
 from models.region.models import EnvRegionInfo
 from models.teams import TeamEnvInfo, PermRelTenant, RegionConfig
 from models.component.models import TeamComponentInfo
@@ -97,10 +95,9 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         return session.execute(
             select(TeamEnvInfo).where(TeamEnvInfo.env_name == env_name)).scalars().first()
 
-    def get_team_by_team_name_and_eid(self, session, eid, team_name):
+    def get_team_by_team_name_and_eid(self, session, team_name):
         tenant = session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == team_name,
-                                  TeamEnvInfo.enterprise_id == eid)).scalars().first()
+            select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == team_name)).scalars().first()
         if not tenant:
             raise ServiceHandleException(msg_show="团队不存在", msg="team not found")
         return tenant
@@ -170,26 +167,25 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return tenant_name
 
-    def env_is_exists_by_env_name(self, session, team_id, env_alias, enterprise_id):
+    def env_is_exists_by_env_name(self, session, team_id, env_alias):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_alias == env_alias,
-            TeamEnvInfo.tenant_id == team_id,
-            TeamEnvInfo.enterprise_id == enterprise_id)).scalars().first()
+            TeamEnvInfo.tenant_id == team_id)).scalars().first()
 
-    def env_is_exists_by_namespace(self, session, tenant_id, namespace, enterprise_id):
+    def env_is_exists_by_namespace(self, session, tenant_id, env_name):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.namespace == namespace,
-            TeamEnvInfo.tenant_id == tenant_id,
-            TeamEnvInfo.enterprise_id == enterprise_id)).scalars().first()
+            TeamEnvInfo.env_name == env_name,
+            TeamEnvInfo.tenant_id == tenant_id)).scalars().first()
 
-    def create_env(self, session, user, enterprise, env_name, env_alias, team_id, team_name, namespace="", desc=""):
+    def create_env(self, session, user, region_name, env_name, env_alias, team_id, team_name, namespace="",
+                   desc=""):
         if not env_alias:
             env_alias = "{0}的环境".format(user.nick_name)
         params = {
             "env_name": env_name,
+            "region_name": region_name,
             "creater": user.user_id,
             "env_alias": env_alias,
-            "enterprise_id": enterprise.enterprise_id,
             "limit_memory": 0,
             "namespace": namespace,
             "tenant_id": team_id,

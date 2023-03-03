@@ -275,8 +275,8 @@ class ApplicationService(object):
                                                                        region_name)
         return 200, "success"
 
-    def get_app_market_by_name(self, session, enterprise_id, name, raise_exception=False):
-        return app_market_repo.get_app_market_by_name(session, enterprise_id, name, raise_exception=raise_exception)
+    def get_app_market_by_name(self, session, name, raise_exception=False):
+        return app_market_repo.get_app_market_by_name(session, name, raise_exception=raise_exception)
 
     def list_components_by_upgrade_group_id(self, session, group_id, upgrade_group_id):
         gsr = app_component_relation_repo.get_services_by_group(session, group_id)
@@ -330,13 +330,14 @@ class ApplicationService(object):
                    project_id,
                    region_name,
                    app_name,
+                   tenant_name,
+                   project_name="",
                    note="",
                    username="",
                    app_store_name="",
                    app_store_url="",
                    app_template_name="",
                    version="",
-                   eid="",
                    logo="",
                    k8s_app=""):
         """
@@ -350,7 +351,6 @@ class ApplicationService(object):
         :param app_store_url:
         :param app_template_name:
         :param version:
-        :param eid:
         :param logo:
         :return:
         """
@@ -372,6 +372,9 @@ class ApplicationService(object):
             tenant_id=tenant_env.tenant_id,
             env_id=tenant_env.env_id,
             project_id=project_id,
+            tenant_name=tenant_name,
+            env_name=tenant_env.env_alias,
+            project_name=project_name,
             region_name=region_name,
             group_name=app_name,
             note=note,
@@ -388,7 +391,7 @@ class ApplicationService(object):
             k8s_app=k8s_app
         )
         application_repo.create(session=session, model=app)
-        self.create_region_app(session=session, env=tenant_env, region_name=region_name, app=app, eid=eid)
+        self.create_region_app(session=session, env=tenant_env, region_name=region_name, app=app)
 
         res = jsonable_encoder(app)
         # compatible with the old version
@@ -398,18 +401,16 @@ class ApplicationService(object):
         return res
 
     @staticmethod
-    def create_region_app(session: SessionClass, env, region_name, app, eid=""):
+    def create_region_app(session: SessionClass, env, region_name, app):
         """
         创建集群资源
         :param tenant:
         :param region_name:
         :param app:
-        :param eid:
         """
         region_app = remote_app_client.create_application(
             session,
             region_name, env, {
-                "eid": eid,
                 "app_name": app.group_name,
                 "app_type": app.app_type,
                 "app_store_name": app.app_store_name,
@@ -524,8 +525,7 @@ class ApplicationService(object):
                 session,
                 service.service_region,
                 tenant_env,
-                service.service_alias,
-                tenant_env.enterprise_id)
+                service.service_alias)
             bean = body["bean"]
             status = bean["cur_status"]
             start_time = bean["start_time"]
@@ -815,7 +815,6 @@ class ApplicationService(object):
         data["service_alias"] = service.service_alias
         data["protocol"] = service.protocol
         data["ports_info"] = []
-        data["enterprise_id"] = tenant.enterprise_id
         data["operator"] = user_name
         data["namespace"] = service.namespace
         data["service_key"] = service.service_key
@@ -854,7 +853,6 @@ class ApplicationService(object):
         data["ports_info"] = []
         data["envs_info"] = []
         data["volumes_info"] = []
-        data["enterprise_id"] = tenant.enterprise_id
         data["service_name"] = service.service_name
         return data
 
@@ -1774,7 +1772,8 @@ class ApplicationService(object):
         application_repo.update(session, app_id, **data)
 
     def get_apps_by_plat(self, session, team_id, env_id, project_id, app_name):
-        sql = "select * from service_group where 1"
+        sql = "select ID, group_name, k8s_app, note, logo, tenant_name, env_name, project_name " \
+              "from service_group where 1"
         params = {
             "team_id": team_id,
             "env_id": env_id,

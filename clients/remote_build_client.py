@@ -3,7 +3,7 @@ import os
 from loguru import logger
 from common.api_base_http_client import ApiBaseHttpClient
 from common.base_client_service import get_region_access_info, get_env_region_info, get_enterprise_region_info, \
-    get_region_access_info_by_enterprise_id
+    get_region_access_info
 from exceptions.main import ServiceHandleException
 from models.teams import RegionConfig
 
@@ -96,10 +96,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
-    def delete_maven_setting(self, session, enterprise_id, region, name):
+    def delete_maven_setting(self, session, region, name):
         """
-
-        :param enterprise_id:
+        :param session:
         :param region:
         :param name:
         :return:
@@ -112,10 +111,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._delete(session, url, self.default_headers, region=region_info.region_name)
         return res, body
 
-    def add_maven_setting(self, session, enterprise_id, region, body):
+    def add_maven_setting(self, session, region, body):
         """
-
-        :param enterprise_id:
+        :param session:
         :param region:
         :param body:
         :return:
@@ -129,10 +127,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
                                body=json.dumps(body))
         return res, body
 
-    def get_maven_setting(self, session, enterprise_id, region, name):
+    def get_maven_setting(self, session, region, name):
         """
-
-        :param enterprise_id:
+        :param session:
         :param region:
         :param name:
         :return:
@@ -145,10 +142,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region_info.region_name)
         return res, body
 
-    def update_maven_setting(self, session, enterprise_id, region, name, body):
+    def update_maven_setting(self, session, region, name, body):
         """
-
-        :param enterprise_id:
+        :param session:
         :param region:
         :param name:
         :param body:
@@ -162,10 +158,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._put(session, url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
         return res, body
 
-    def list_maven_settings(self, session, enterprise_id, region):
+    def list_maven_settings(self, session, region):
         """
-
-        :param enterprise_id:
+        :param session:
         :param region:
         :return:
         """
@@ -177,27 +172,26 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region_info.region_name)
         return res, body
 
-    def get_enterprise_api_version_v2(self, session, enterprise_id, region, **kwargs):
+    def get_enterprise_api_version_v2(self, session, region, **kwargs):
         """获取api版本-v2"""
         kwargs["retries"] = 1
         kwargs["timeout"] = 1
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url, token = get_region_access_info(region, session)
         url += "/v2/show"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, **kwargs)
         return res, body
 
-    def get_region_resources(self, session, enterprise_id, **kwargs):
+    def get_region_resources(self, session, **kwargs):
         """
-
-        :param enterprise_id:
+        :param session:
         :param kwargs:
         :return:
         """
         region_name = kwargs.get("region")
         if kwargs.get("test"):
-            self.get_enterprise_api_version_v2(session, enterprise_id, region=region_name)
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region_name, session)
+            self.get_enterprise_api_version_v2(session, region=region_name)
+        url, token = get_region_access_info(region_name, session)
         url += "/v2/cluster"
         self._set_headers(token)
         kwargs["retries"] = 1
@@ -210,10 +204,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
         url = region.url + "/v2/show"
         return self._get(session, url, self.default_headers, region=region, for_test=True, retries=1, timeout=1)
 
-    def check_region_api(self, session, enterprise_id, region):
+    def check_region_api(self, session, region):
         """
-
-        :param enterprise_id:
+        :param session:
         :param region:
         :return:
         """
@@ -229,24 +222,22 @@ class RemoteBuildClient(ApiBaseHttpClient):
             logger.exception(e)
             return None
 
-    def list_tenant_envs(self, session, enterprise_id, region, page=1, page_size=10):
+    def list_tenant_envs(self, session, region, page=1, page_size=10):
         """list tenants envs"""
         region_info = get_enterprise_region_info(region, session)
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants/envs?page={0}&pageSize={1}&eid={2}".format(page, page_size,
-                                                                       enterprise_id)
+        url += "/v2/tenants/envs?page={0}&pageSize={1}".format(page, page_size)
         try:
             res, body = self._get(session, url, self.default_headers, region=region_info.region_name)
             return res, body
         except ApiBaseHttpClient.CallApiError as e:
             return {'status': e.message['httpcode']}, e.message['body']
 
-    def set_tenant_env_limit_memory(self, session, enterprise_id, tenant_env, region, body):
+    def set_tenant_env_limit_memory(self, session, tenant_env, region, body):
         """
         :param session:
-        :param enterprise_id:
         :param tenant_env:
         :param region:
         :param body:
@@ -261,10 +252,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
                                body=json.dumps(body))
         return res, body
 
-    def create_service_monitor(self, session, enterprise_id, region, tenant_env, service_alias, body):
+    def create_service_monitor(self, session, region, tenant_env, service_alias, body):
         """
         :param session:
-        :param enterprise_id:
         :param region:
         :param tenant_env:
         :param service_alias:
@@ -281,10 +271,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
                                body=json.dumps(body))
         return res, body
 
-    def update_service_monitor(self, session, enterprise_id, region, tenant_env, service_alias, name, body):
+    def update_service_monitor(self, session, region, tenant_env, service_alias, name, body):
         """
         :param session:
-        :param enterprise_id:
         :param region:
         :param tenant_env:
         :param service_alias:
@@ -302,10 +291,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._put(session, url, self.default_headers, region=region_info.region_name, body=json.dumps(body))
         return res, body
 
-    def delete_service_monitor(self, session, enterprise_id, region, tenant_env, service_alias, name, body):
+    def delete_service_monitor(self, session, region, tenant_env, service_alias, name, body):
         """
         :param session:
-        :param enterprise_id:
         :param region:
         :param tenant_env:
         :param service_alias:
@@ -477,12 +465,11 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._put(session, url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
 
-    def get_region_publickey(self, session, tenant_env, region, enterprise_id, tenant_id):
+    def get_region_publickey(self, session, tenant_env, region, tenant_id):
         """
         :param session:
         :param tenant_env:
         :param region:
-        :param enterprise_id:
         :param tenant_id:
         :return:
         """
@@ -527,9 +514,9 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_region_tenants_resources(self, session, region, data, enterprise_id=""):
+    def get_region_tenants_resources(self, session, region, data):
         """获取租户在数据中心下的资源使用情况"""
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url, token = get_region_access_info(region, session)
         url += "/v2/resources/tenants"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(data), region=region, timeout=15.0)

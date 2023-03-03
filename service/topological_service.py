@@ -86,16 +86,14 @@ class TopologicalService(object):
                 session=session,
                 region=region_name,
                 tenant_env=tenant_env,
-                service_alias=service.service_alias,
-                enterprise_id=tenant_env.enterprise_id)
+                service_alias=service.service_alias)
             region_data = status_data["bean"]
 
             pod_list = remote_component_client.get_service_pods(
                 session=session,
                 region=region_name,
                 tenant_env=tenant_env,
-                service_alias=service.service_alias,
-                enterprise_id=tenant_env.enterprise_id)
+                service_alias=service.service_alias)
             region_data["pod_list"] = pod_list["list"]
         except remote_component_client.CallApiError as e:
             if e.message["httpcode"] == 404:
@@ -234,7 +232,7 @@ class TopologicalService(object):
         result["result_list"] = result_list
         return result
 
-    def get_group_topological_graph(self, session: SessionClass, group_id, region, tenant_env, enterprise_id):
+    def get_group_topological_graph(self, session: SessionClass, group_id, region, tenant_env):
         topological_info = dict()
         service_group_relation_list = (
             session.execute(select(ComponentApplicationRelation).where(ComponentApplicationRelation.group_id == group_id))
@@ -265,8 +263,7 @@ class TopologicalService(object):
         if len(service_list) > 0:
             try:
                 service_status_list = remote_component_client.service_status(session, region, tenant_env, {
-                    "service_ids": all_service_id_list,
-                    "enterprise_id": enterprise_id
+                    "service_ids": all_service_id_list
                 })
                 service_status_list = service_status_list["list"]
                 if service_status_list:

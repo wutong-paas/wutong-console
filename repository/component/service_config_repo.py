@@ -477,7 +477,7 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
             ))
             session.add_all(component_deps)
 
-    def check_db_dep_by_eid(self, session, eid):
+    def check_db_dep_by_eid(self, session):
         """
         check if there is a database installed from the market that is dependent on
         """
@@ -491,12 +491,11 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
                 tenant_service d
             WHERE
                 b.tenant_id = c.tenant_id
-                AND c.enterprise_id = "{eid}"
                 AND a.service_id = d.service_id
                 AND a.dep_service_id = b.service_id
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
                 AND (b.service_source <> "market" OR d.service_source <> "market")
-                limit 1""".format(eid=eid)
+                limit 1"""
         result = session.execute(sql).fetchall()
         if len(result) > 0:
             return True
@@ -512,7 +511,6 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
                 service_source f
             WHERE
                 b.tenant_id = c.tenant_id
-                AND c.enterprise_id = "{eid}"
                 AND a.service_id = d.service_id
                 AND a.dep_service_id = b.service_id
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
@@ -520,7 +518,7 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
                 AND e.service_id = b.service_id
                 AND f.service_id = d.service_id
                 AND e.group_key <> f.group_key
-                LIMIT 1""".format(eid=eid)
+                LIMIT 1"""
         result2 = session.execute(sql2).fetchall()
         return True if len(result2) > 0 else False
 

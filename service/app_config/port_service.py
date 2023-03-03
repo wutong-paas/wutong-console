@@ -89,7 +89,6 @@ class AppPortService:
                                                            service.service_region, tenant_env,
                                                            service.service_alias, {
                                                                "env_name": old_env_attr_name,
-                                                               "enterprise_id": tenant_env.enterprise_id,
                                                                "operator": user_name
                                                            })
                 # step 2 添加新的
@@ -100,7 +99,6 @@ class AppPortService:
                     "is_change": env.is_change,
                     "name": env.name,
                     "scope": env.scope,
-                    "enterprise_id": tenant_env.enterprise_id,
                     "operator": user_name
                 }
                 remote_component_client.add_service_env(session,
@@ -124,7 +122,6 @@ class AppPortService:
     def update_service_port(self, session: SessionClass, tenant_env, region_name, service_alias, body, user_name=''):
         remote_component_client.update_service_port(session, region_name, tenant_env, service_alias, {
             "port": [body],
-            "enterprise_id": tenant_env.enterprise_id,
             "operator": user_name
         })
 
@@ -153,7 +150,6 @@ class AppPortService:
                                                       service.service_alias,
                                                       deal_port.container_port, {
                                                           "operation": "close",
-                                                          "enterprise_id": tenant_env.enterprise_id,
                                                           "operator": user_name
                                                       })
         # component port change, will change entrance network governance plugin configuration
@@ -202,7 +198,6 @@ class AppPortService:
                                                              service.service_alias,
                                                              deal_port.container_port, {
                                                                  "operation": "open",
-                                                                 "enterprise_id": tenant_env.enterprise_id,
                                                                  "operator": user_name
                                                              })
             logger.debug("open inner port {0}".format(body))
@@ -220,7 +215,6 @@ class AppPortService:
                                                       service.service_alias,
                                                       deal_port.container_port, {
                                                           "operation": "close",
-                                                          "enterprise_id": tenant_env.enterprise_id,
                                                           "operator": user_name
                                                       })
         # 改变httpdomain表中端口状态
@@ -253,7 +247,6 @@ class AppPortService:
                                                              service.service_alias,
                                                              deal_port.container_port, {
                                                                  "operation": "open",
-                                                                 "enterprise_id": tenant_env.enterprise_id,
                                                                  "operator": user_name
                                                              })
             logger.debug("open outer port body {}".format(body))
@@ -376,7 +369,6 @@ class AppPortService:
                                                              service.service_alias,
                                                              deal_port.container_port, {
                                                                  "operation": "open",
-                                                                 "enterprise_id": tenant_env.enterprise_id,
                                                                  "operator": user_name
                                                              })
             logger.debug("open outer port body {}".format(body))

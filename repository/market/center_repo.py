@@ -33,23 +33,20 @@ class AppImportRepository(object):
         session.add(app_import_record)
         return app_import_record
 
-    def get_user_not_finished_import_record_in_enterprise(self, session, eid, user_name):
+    def get_user_not_finished_import_record_in_enterprise(self, session, user_name):
         return session.execute(select(AppImportRecord).where(
             AppImportRecord.user_name == user_name,
-            AppImportRecord.enterprise_id == eid,
             not_(AppImportRecord.status.in_(["success", "failed"]))
         )).scalars().all()
 
 
 class CenterRepository(BaseRepository[CenterApp]):
-    def get_wutong_app_version_by_app_ids(self, session, eid, app_ids, is_complete=None, rm_template_field=False):
+    def get_wutong_app_version_by_app_ids(self, session, app_ids, is_complete=None, rm_template_field=False):
         sql = session.query(CenterAppVersion).where(
-            CenterAppVersion.enterprise_id == eid,
             CenterAppVersion.app_id.in_(app_ids)
         ).order_by(CenterAppVersion.create_time.asc())
         if is_complete:
             sql = session.query(CenterAppVersion).where(
-                CenterAppVersion.enterprise_id == eid,
                 CenterAppVersion.app_id.in_(app_ids),
                 CenterAppVersion.is_complete == is_complete
             ).order_by(CenterAppVersion.create_time.asc())
@@ -59,18 +56,17 @@ class CenterRepository(BaseRepository[CenterApp]):
 
     def get_wutong_app_in_enterprise_by_query(self,
                                               session,
-                                              eid,
                                               scope,
                                               app_name,
                                               tag_names=None,
                                               page=1,
                                               page_size=10,
                                               need_install="false"):
-        return self._prepare_get_wutong_app_by_query_sql(session, eid, scope, app_name, None, tag_names, page,
+        return self._prepare_get_wutong_app_by_query_sql(session, scope, app_name, None, tag_names, page,
                                                          page_size,
                                                          need_install)
 
-    def get_wutong_app_total_count(self, session, eid, scope, teams, app_name, tag_names, need_install="false"):
+    def get_wutong_app_total_count(self, session, scope, teams, app_name, tag_names, need_install="false"):
         extend_where = ""
         join_version = ""
         if tag_names:
@@ -79,8 +75,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         if app_name:
             extend_where += " and app.app_name like '%{0}%'".format(app_name)
         if need_install == "true":
-            join_version += " left join center_app_version apv on app.app_id = apv.app_id" \
-                            " and app.enterprise_id = apv.enterprise_id"
+            join_version += " left join center_app_version apv on app.app_id = apv.app_id"
             extend_where += " and apv.`version` <> '' and apv.is_complete"
         # if teams is None, create_team scope is ('')
         if scope == "team":
@@ -106,16 +101,14 @@ class CenterRepository(BaseRepository[CenterApp]):
                     rcatr.tag_id = tag.iD) tag on app.app_id = tag.app_id
             {join_version}
             where
-                app.enterprise_id = '{eid}'
                 {extend_where}
             """.format(
-            eid=eid, extend_where=extend_where, join_version=join_version)
+            extend_where=extend_where, join_version=join_version)
         count = session.execute(sql).fetchall()
         return count[0][0]
 
     def _prepare_get_wutong_app_by_query_sql(self,
                                              session,
-                                             eid,
                                              scope,
                                              app_name,
                                              teams=None,
@@ -149,13 +142,10 @@ class CenterRepository(BaseRepository[CenterApp]):
                 center_app app
             left join center_app_tag_relation apr on
                 app.app_id = apr.app_id
-                and app.enterprise_id = apr.enterprise_id
             left join center_app_tag tag on
                 apr.tag_id = tag.ID
-                and tag.enterprise_id = app.enterprise_id
             {join_version}
             where
-                app.enterprise_id = :eid
                 {extend_where}
             order by app.update_time desc
             limit :offset, :rows
@@ -170,14 +160,13 @@ class CenterRepository(BaseRepository[CenterApp]):
         if scope == "team" and teams:
             team_param = ",".join("'{0}'".format(team) for team in teams)
             sql = sql.bindparams(team_param=tuple(team_param.split(",")))
-        sql = sql.bindparams(eid=eid, offset=(page - 1) * page_size, rows=page_size)
+        sql = sql.bindparams(offset=(page - 1) * page_size, rows=page_size)
 
         apps = session.execute(sql).fetchall()
         return apps
 
     def get_wutong_app_in_teams_by_querey(self,
                                           session,
-                                          eid,
                                           scope,
                                           teams,
                                           app_name,
@@ -185,7 +174,7 @@ class CenterRepository(BaseRepository[CenterApp]):
                                           page=1,
                                           page_size=10,
                                           need_install="false"):
-        return self._prepare_get_wutong_app_by_query_sql(session, eid, scope, app_name, teams, tag_names, page,
+        return self._prepare_get_wutong_app_by_query_sql(session, scope, app_name, teams, tag_names, page,
                                                          page_size,
                                                          need_install)
 
@@ -314,26 +303,23 @@ class CenterRepository(BaseRepository[CenterApp]):
         } for plugin in plugins]
         return count, data
 
-    def get_wutong_app_versions(self, session: SessionClass, eid, app_id):
+    def get_wutong_app_versions(self, session: SessionClass, app_id):
 
         return (
             session.execute(
-                select(CenterAppVersion).where(CenterAppVersion.enterprise_id == eid,
-                                               CenterAppVersion.app_id == app_id))
+                select(CenterAppVersion).where(CenterAppVersion.app_id == app_id))
         ).scalars().all()
 
-    def get_wutong_app_and_version(self, session: SessionClass, enterprise_id, app_id, app_version):
+    def get_wutong_app_and_version(self, session: SessionClass, app_id, app_version):
         app = (
-            session.execute(select(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
-                                                    CenterApp.app_id == app_id))
+            session.execute(select(CenterApp).where(CenterApp.app_id == app_id))
         ).scalars().first()
 
         if not app_version:
             return app, None
         app_version = (
             session.execute(
-                select(CenterAppVersion).where(CenterAppVersion.enterprise_id == enterprise_id,
-                                               CenterAppVersion.app_id == app_id,
+                select(CenterAppVersion).where(CenterAppVersion.app_id == app_id,
                                                CenterAppVersion.version == app_version,
                                                CenterAppVersion.scope.in_(
                                                    ["gooodrain", "team", "enterprise"])).order_by(
@@ -344,8 +330,7 @@ class CenterRepository(BaseRepository[CenterApp]):
             return app, app_version
         app_version = (
             session.execute(
-                select(CenterAppVersion).where(CenterAppVersion.enterprise_id == "public",
-                                               CenterAppVersion.app_id == app_id,
+                select(CenterAppVersion).where(CenterAppVersion.app_id == app_id,
                                                CenterAppVersion.version == app_version,
                                                CenterAppVersion.scope.in_(
                                                    ["gooodrain", "team", "enterprise"])).order_by(
@@ -362,10 +347,9 @@ class CenterRepository(BaseRepository[CenterApp]):
                 values.append(value)
         return values
 
-    def get_wutong_app_by_app_id(self, session: SessionClass, eid, app_id):
+    def get_wutong_app_by_app_id(self, session: SessionClass, app_id):
         return session.execute(select(CenterApp).where(
-            CenterApp.app_id == app_id,
-            CenterApp.enterprise_id == eid)).scalars().first()
+            CenterApp.app_id == app_id)).scalars().first()
 
     @staticmethod
     def get_wutong_app_version_by_record_id(session: SessionClass, record_id):
@@ -375,12 +359,11 @@ class CenterRepository(BaseRepository[CenterApp]):
 
 class AppExportRepository(BaseRepository[ApplicationExportRecord]):
 
-    def get_export_record(self, session, eid, app_id, app_version, export_format):
+    def get_export_record(self, session, app_id, app_version, export_format):
         return session.execute(select(ApplicationExportRecord).where(
             ApplicationExportRecord.group_key == app_id,
             ApplicationExportRecord.version == app_version,
             ApplicationExportRecord.format == export_format,
-            ApplicationExportRecord.enterprise_id.in_([eid, "public"]),
             ApplicationExportRecord.status == "exporting"
         )).scalars().first()
 
@@ -390,11 +373,10 @@ class AppExportRepository(BaseRepository[ApplicationExportRecord]):
         session.flush()
         return app_export_record
 
-    def get_enter_export_record_by_key_and_version(self, session, enterprise_id, group_key, version):
+    def get_enter_export_record_by_key_and_version(self, session, group_key, version):
         return session.execute(select(ApplicationExportRecord).where(
             ApplicationExportRecord.group_key == group_key,
-            ApplicationExportRecord.version == version,
-            ApplicationExportRecord.enterprise_id.in_(["public", enterprise_id])
+            ApplicationExportRecord.version == version
         )).scalars().all()
 
     def delete_by_key_and_version(self, session: SessionClass, group_key, version):

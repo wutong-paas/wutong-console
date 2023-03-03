@@ -5,8 +5,6 @@ from pydantic import BaseModel
 
 
 class UpdateResourceEventBody(BaseModel):
-    enterprise_id: Optional[str] = None
-    enterprise_name: Optional[str] = None
     team_id: Optional[str] = None
     team_name: Optional[str] = None
     application_id: Optional[int] = None

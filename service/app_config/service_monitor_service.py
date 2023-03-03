@@ -46,7 +46,7 @@ class ComponentServiceMonitor(object):
                "operator": user.get_name() if user else None}
         if service.create_status == "complete":
             remote_build_client.create_service_monitor(session,
-                                                       tenant_env.enterprise_id, service.service_region,
+                                                       service.service_region,
                                                        tenant_env,
                                                        service.service_alias, req)
         req.pop("operator")
@@ -59,7 +59,7 @@ class ComponentServiceMonitor(object):
         except Exception as e:
             if service.create_status == "complete":
                 remote_build_client.delete_service_monitor(session,
-                                                           tenant_env.enterprise_id, service.service_region,
+                                                           service.service_region,
                                                            tenant_env,
                                                            service.service_alias, name, None)
             raise e
@@ -124,7 +124,7 @@ class ComponentServiceMonitor(object):
         req = {"path": path, "port": port, "service_show_name": service_show_name, "interval": interval,
                "operator": user.get_name()}
         remote_build_client.update_service_monitor(session,
-                                                   tenant_env.enterprise_id, service.service_region, tenant_env,
+                                                   service.service_region, tenant_env,
                                                    service.service_alias, name, req)
         req.pop("operator")
         session.execute(update(ComponentMonitor).where(
@@ -143,7 +143,7 @@ class ComponentServiceMonitor(object):
         }
         try:
             remote_build_client.delete_service_monitor(session,
-                                                       tenant_env.enterprise_id, service.service_region, tenant_env,
+                                                       service.service_region, tenant_env,
                                                        service.service_alias, name, body)
         except ServiceHandleException as e:
             if e.error_code != 10101:

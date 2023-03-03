@@ -55,7 +55,7 @@ async def upgrade_app_model(request: Request,
     app = application_repo.get_group_by_id(session, group_id)
     upgrade_group_id = await parse_item(request, 'upgrade_group_id', required=True)
     try:
-        record = upgrade_service.create_upgrade_record(session, user.enterprise_id, env, app, upgrade_group_id)
+        record = upgrade_service.create_upgrade_record(session, env, app, upgrade_group_id)
     except ErrLastRecordUnfinished as e:
         return JSONResponse(
             general_message(msg=e.msg, msg_show=e.msg_show, code=e.status_code), status_code=e.status_code)

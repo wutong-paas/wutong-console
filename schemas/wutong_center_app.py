@@ -42,7 +42,6 @@ class CenterAppCreate(BaseModel):
     scope: Optional[str] = None
     describe: Optional[str] = None
     is_ingerit: Optional[bool] = True
-    enterprise_id: Optional[str] = None
     install_number: Optional[int] = 0
     is_official: Optional[bool] = True
     details: Optional[str] = None
@@ -63,7 +62,6 @@ class CenterAppCreate(BaseModel):
                 "scope": "all",
                 "describe": "describe",
                 "is_ingerit": True,
-                "enterprise_id": "test_enterprise_id",
                 "install_number": 10010,
                 "is_official": True,
                 "details": "details"

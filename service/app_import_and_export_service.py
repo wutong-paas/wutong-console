@@ -24,13 +24,13 @@ class AppImportService(object):
         try:
             import_record = app_import_record_repo.get_import_record_by_event_id(session, event_id)
             remote_migrate_client_api.delete_enterprise_import(session, import_record.region,
-                                                               import_record.enterprise_id, event_id)
+                                                               event_id)
         except Exception as e:
             logger.exception(e)
 
         app_import_record_repo.delete_by_event_id(session, event_id)
 
-    def start_import_apps(self, session, scope, event_id, file_names, tenant_env, enterprise_id=None):
+    def start_import_apps(self, session, scope, event_id, file_names, tenant_env):
         import_record = app_import_record_repo.get_import_record_by_event_id(session, event_id)
         if not import_record:
             raise RecordNotFound("import_record not found")
@@ -38,11 +38,11 @@ class AppImportService(object):
         if tenant_env.team_name:
             import_record.team_name = tenant_env.team_name
 
-        service_image = app_store.get_app_hub_info(session=session, enterprise_id=enterprise_id)
+        service_image = app_store.get_app_hub_info(session=session)
         data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
         if scope == "enterprise":
             remote_migrate_client_api.import_app_2_enterprise(session, import_record.region,
-                                                              import_record.enterprise_id, data)
+                                                              data)
         else:
             res, body = remote_migrate_client_api.import_app(session, import_record.region, tenant_env, data)
         import_record.status = "importing"
@@ -55,14 +55,13 @@ class AppImportService(object):
             raise RecordNotFound("import_record not found")
         res, body = remote_migrate_client_api.get_enterprise_import_file_dir(session,
                                                                              import_record.region,
-                                                                             import_record.enterprise_id, event_id)
+                                                                             event_id)
         app_tars = body["bean"]["apps"]
         return app_tars
 
     def create_app_version(self, session, app, import_record, app_template):
         version = CenterAppVersion(
             scope=import_record.scope,
-            enterprise_id=import_record.enterprise_id,
             app_id=app.app_id,
             app_template=json.dumps(app_template),
             version=app_template["group_version"],
@@ -102,7 +101,7 @@ class AppImportService(object):
             app_describe = app_template.pop("describe", "")
             if annotations.get("describe", ""):
                 app_describe = annotations.pop("describe", "")
-            app = center_app_repo.get_wutong_app_by_app_id(session, import_record.enterprise_id,
+            app = center_app_repo.get_wutong_app_by_app_id(session,
                                                            app_template["group_key"])
             # if app exists, update it
             if app:
@@ -142,7 +141,6 @@ class AppImportService(object):
                     continue
                 key_and_version_list.append(key_and_version)
                 wutong_app = CenterApp(
-                    enterprise_id=import_record.enterprise_id,
                     app_id=app_template["group_key"],
                     app_name=app_template["group_name"],
                     source="import",
@@ -177,7 +175,7 @@ class AppImportService(object):
             raise RecordNotFound("import_record not found")
         # get import status from region
         res, body = remote_migrate_client_api.get_enterprise_app_import_status(session, import_record.region,
-                                                                               import_record.enterprise_id, event_id)
+                                                                               event_id)
         status = body["bean"]["status"]
         if import_record.status != "success":
             if status == "success":
@@ -190,7 +188,7 @@ class AppImportService(object):
                 try:
                     remote_migrate_client_api.delete_enterprise_import_file_dir(session,
                                                                                 import_record.region,
-                                                                                import_record.enterprise_id, event_id)
+                                                                                event_id)
                 except Exception as e:
                     logger.exception(e)
             else:
@@ -214,24 +212,23 @@ class AppImportService(object):
 
         return import_record, apps_status
 
-    def select_handle_region(self, session, eid):
-        data = region_services.get_enterprise_regions(session, eid, level="safe", status=1, check_status=True)
+    def select_handle_region(self, session):
+        data = region_services.get_enterprise_regions(session, level="safe", status=1, check_status=True)
         if data:
             for region in data:
                 if region["rbd_version"] != "":
                     return region_services.get_region_by_region_id(session, data[0]["region_id"])
         raise RegionNotFound("暂无可用的集群、应用导入功能不可用")
 
-    def get_user_not_finish_import_record_in_enterprise(self, session, eid, user):
-        return app_import_record_repo.get_user_not_finished_import_record_in_enterprise(session, eid, user.nick_name)
+    def get_user_not_finish_import_record_in_enterprise(self, session, user):
+        return app_import_record_repo.get_user_not_finished_import_record_in_enterprise(session, user.nick_name)
 
-    def create_app_import_record_2_enterprise(self, session, eid, user_name):
+    def create_app_import_record_2_enterprise(self, session, user_name):
         event_id = make_uuid()
-        region = self.select_handle_region(session, eid)
+        region = self.select_handle_region(session)
         import_record_params = {
             "event_id": event_id,
             "status": "uploading",
-            "enterprise_id": eid,
             "region": region.region_name,
             "user_name": user_name
         }
@@ -284,23 +281,23 @@ class AppExportService(object):
         }
         return json.dumps(app_template, cls=MyEncoder)
 
-    def select_handle_region(self, session, eid):
-        data = region_services.get_enterprise_regions(session, eid, level="safe", status=1, check_status=True)
+    def select_handle_region(self, session):
+        data = region_services.get_enterprise_regions(session, level="safe", status=1, check_status=True)
         if data:
             for region in data:
                 if region["rbd_version"] != "":
                     return region_services.get_region_by_region_id(session, data[0]["region_id"])
         raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
 
-    def export_app(self, session, eid, app_id, version, export_format, is_export_image):
-        app, app_version = center_app_repo.get_wutong_app_and_version(session, eid, app_id, version)
+    def export_app(self, session, app_id, version, export_format, is_export_image):
+        app, app_version = center_app_repo.get_wutong_app_and_version(session, app_id, version)
         if not app or not app_version:
             raise RbdAppNotFound("未找到该应用")
 
         # get region TODO: get region by app publish meta info
-        region = self.select_handle_region(session, eid)
+        region = self.select_handle_region(session)
         region_name = region.region_name
-        export_record = app_export_record_repo.get_export_record(session, eid, app_id, version, export_format)
+        export_record = app_export_record_repo.get_export_record(session, app_id, version, export_format)
         if export_record:
             if export_record.status == "success":
                 raise ExportAppError(msg="exported", status_code=409)
@@ -320,7 +317,7 @@ class AppExportService(object):
         }
 
         try:
-            remote_migrate_client_api.export_app(session, region_name, eid, data)
+            remote_migrate_client_api.export_app(session, region_name, data)
         except remote_migrate_client_api.CallApiError as e:
             logger.exception(e)
             raise ExportAppError()
@@ -331,7 +328,6 @@ class AppExportService(object):
             "version": version,
             "format": export_format,
             "status": "exporting",
-            "enterprise_id": eid,
             "region_name": region.region_name,
             "is_export_image": is_export_image
         }
@@ -347,9 +343,9 @@ class AppExportService(object):
             else:
                 return "http://" + splits_texts[1] + raw_url
 
-    def get_export_status(self, session, enterprise_id, app, app_version):
+    def get_export_status(self, session, app, app_version):
         app_export_records = app_export_record_repo.get_enter_export_record_by_key_and_version(
-            session, enterprise_id, app.app_id, app_version.version)
+            session, app.app_id, app_version.version)
         wutong_app_init_data = {
             "is_export_before": False,
         }
@@ -369,7 +365,6 @@ class AppExportService(object):
                     try:
                         res, body = remote_migrate_client_api.get_app_export_status(session,
                                                                                     export_record.region_name,
-                                                                                    enterprise_id,
                                                                                     export_record.event_id)
                         result_bean = body["bean"]
                         if result_bean["status"] in ("failed", "success"):

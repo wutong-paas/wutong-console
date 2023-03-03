@@ -339,8 +339,7 @@ class ComponentCheckService(object):
                                                                region_info=region_info,
                                                                service=service, port=t_port)
                 else:
-                    logger.error("get region {0} from enterprise {1} failure".format(tenant_env.enterprise_id,
-                                                                                     service.service_region))
+                    logger.error("get region {0} failure".format(service.service_region))
 
         return 200, "success"
 

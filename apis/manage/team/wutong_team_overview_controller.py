@@ -62,8 +62,7 @@ async def get_app_state(request: Request,
                 session=session,
                 tenant_env=env,
                 team_id=env.tenant_id,
-                region_name=region_name,
-                enterprise_id=env.enterprise_id)
+                region_name=region_name)
             if page_size == "-1" or page_size == "" or page_size == "0":
                 page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
             params = Params(page=page, size=page_size)
@@ -85,7 +84,6 @@ async def get_app_state(request: Request,
             region_name=region_name,
             team_id=env.tenant_id,
             tenant_env=env,
-            enterprise_id=env.enterprise_id,
             query=query)
         if page_size == -1 or str(page_size) == "" or page_size == 0:
             page_size = len(group_service_list) if len(group_service_list) > 0 else 10
@@ -186,7 +184,6 @@ async def overview_team_info(region_name: Optional[str] = None,
     team_app_num = application_repo.get_tenant_region_groups_count(session, env.tenant_id, region_name)
     overview_detail["team_app_num"] = team_app_num
     overview_detail["team_service_num"] = team_service_num
-    overview_detail["eid"] = env.enterprise_id
     overview_detail["team_service_memory_count"] = 0
     overview_detail["team_service_total_disk"] = 0
     overview_detail["team_service_total_cpu"] = 0
@@ -277,8 +274,7 @@ async def team_app_group(
             status_list = base_service.status_multi_service(session=session,
                                                             region=region_name,
                                                             tenant_env=env,
-                                                            service_ids=service_ids,
-                                                            enterprise_id=env.enterprise_id)
+                                                            service_ids=service_ids)
             status_cache = {}
             statuscn_cache = {}
             for status in status_list:

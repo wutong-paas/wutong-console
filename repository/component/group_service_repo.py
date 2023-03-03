@@ -28,7 +28,7 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
             TeamComponentInfo.service_id.in_(service_ids)
         )).scalars().all()
 
-    def check_image_svc_by_eid(self, session, eid):
+    def check_image_svc_by_eid(self, session):
         sql = """
             SELECT
                 service_alias
@@ -37,15 +37,14 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = :eid
                 AND a.create_status='complete'
                 AND a.service_source IN ( 'docker_image', 'docker_compose', 'docker_run' )
                 LIMIT 1"""
-        sql = text(sql).bindparams(eid=eid)
+        sql = text(sql)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 
-    def check_db_from_market_by_eid(self, session, eid):
+    def check_db_from_market_by_eid(self, session):
         sql = """
             SELECT
                 service_alias
@@ -54,15 +53,14 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = :eid
                 AND a.service_source = 'market'
                 AND ( a.image LIKE "%mysql%" OR a.image LIKE "%postgres%" OR a.image LIKE "%mariadb%" )
                 LIMIT 1"""
-        sql = text(sql).bindparams(eid=eid)
+        sql = text(sql)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 
-    def check_sourcecode_svc_by_eid(self, session, eid):
+    def check_sourcecode_svc_by_eid(self, session):
         sql = """
             SELECT
                 service_alias
@@ -71,11 +69,10 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = :eid
                 AND a.service_source = 'source_code'
                 AND a.create_status = 'complete'
                 LIMIT 1"""
-        sql = text(sql).bindparams(eid=eid)
+        sql = text(sql)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 

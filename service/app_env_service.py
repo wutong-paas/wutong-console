@@ -101,7 +101,6 @@ class AppEnvVarService(object):
                 "scope": scope,
                 "env_name": attr_name,
                 "env_value": str(attr_value),
-                "enterprise_id": tenant_env.enterprise_id,
                 "operator": user_name
             }
             remote_component_client.add_service_env(session,
@@ -124,7 +123,7 @@ class AppEnvVarService(object):
         envs = env_var_repo.get_service_env_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
         if service.create_status == "complete":
             for env in envs:
-                data = {"env_name": env.attr_name, "enterprise_id": tenant_env.enterprise_id, "operator": user_name}
+                data = {"env_name": env.attr_name, "operator": user_name}
                 remote_component_client.delete_service_env(session,
                                                            service.service_region, tenant_env,
                                                            service.service_alias, data)
@@ -164,7 +163,7 @@ class AppEnvVarService(object):
         if service:
             envs = env_var_repo.get_service_env(session, service.tenant_id, service.service_id)
             for env in envs:
-                data = {"env_name": env.attr_name, "enterprise_id": tenant_env.enterprise_id}
+                data = {"env_name": env.attr_name}
                 try:
                     remote_component_client.delete_service_env(session,
                                                                service.service_region, tenant_env,
@@ -182,7 +181,6 @@ class AppEnvVarService(object):
                                                            tenant_env, service.service_alias,
                                                            {
                                                                "env_name": env.attr_name,
-                                                               "enterprise_id": tenant_env.enterprise_id,
                                                                "operator": user_name
                                                            })
 

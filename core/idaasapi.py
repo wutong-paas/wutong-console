@@ -9,7 +9,7 @@ from schemas.user import UserInfo
 
 class IDaaSApi:
     def __init__(self):
-        self._url = "http://localhost:18099"
+        self._url = "https://wutong.talkweb.com.cn/bone-gateway"
         self.session = requests.Session()
         self.headers = {}
         self.token = ""
@@ -75,11 +75,11 @@ class IDaaSApi:
             return data, "", ""
         return None, rst["msg"], code
 
-    def get_user_info_url(self, home_url=None):
+    def get_url(self, home_url=None):
         return "/wutong-bone-core" + home_url
 
     def get_user_info(self, user_id):
-        data, msg, code = self.__post(self.get_user_info_url("/user/detail"), params={"id": user_id})
+        data, msg, code = self.__post(self.get_url("/user/detail"), params={"id": user_id})
         if not data:
             raise ServiceHandleException(msg_show=msg, msg="failed", status_code=code)
         user = {
@@ -94,7 +94,7 @@ class IDaaSApi:
         return user
 
     def get_user_infos(self, url, params):
-        data, msg, code = self.__post(self.get_user_info_url(url), params=params)
+        data, msg, code = self.__post(self.get_url(url), params=params)
         if not data:
             raise ServiceHandleException(msg_show=msg, msg="failed", status_code=code)
         user_list = []
@@ -126,6 +126,12 @@ class IDaaSApi:
         }
         users = self.get_user_infos(url="/user/page", params=params)
         return users
+
+    def check_user_password(self, params):
+        data, msg, code = self.__post(self.get_url("/user/check-password-MD5"), params=params)
+        if not data:
+            raise ServiceHandleException(msg_show=msg, msg="failed", status_code=code)
+        return data
 
 
 idaas_api = IDaaSApi()

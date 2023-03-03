@@ -28,8 +28,6 @@ async def get_info(
     :return:
     """
     data = {}
-    if data.get("enterprise_id", None) is None:
-        data["enterprise_id"] = os.getenv('ENTERPRISE_ID', '')
     data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
     data["is_offline"] = os.getenv('IS_OFFLINE', False)
     data["login_timeout"] = 15
@@ -37,26 +35,25 @@ async def get_info(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/enterprise/{enterprise_id}/regions/{region_id}", response_model=Response, name="查询集群配置信息")
-async def get_region_config(enterprise_id: Optional[str] = None,
+@router.get("/enterprise/regions/{region_id}", response_model=Response, name="查询集群配置信息")
+async def get_region_config(
                             region_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session)) -> Any:
-    data = region_services.get_enterprise_region(session, enterprise_id, region_id, check_status=False)
+    data = region_services.get_enterprise_region(session, region_id, check_status=False)
     result = general_message(200, "success", "获取成功", bean=data)
     return JSONResponse(result, status_code=status.HTTP_200_OK)
 
 
-@router.put("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings/{name}", response_model=Response,
+@router.put("/enterprise/regions/{region_name}/mavensettings/{name}", response_model=Response,
             name="修改Maven配置")
 async def update_maven_settings(
         request: Request,
-        enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
         name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         data = await request.json()
-        res, body = remote_build_client.update_maven_setting(session, enterprise_id, region_name, name, data)
+        res, body = remote_build_client.update_maven_setting(session, region_name, name, data)
         result = general_message(200, 'update success', '修改成功', bean=body.get("bean"))
     except RegionApiBaseHttpClient.CallApiError as exc:
         if exc.message.get("httpcode") == 404:
@@ -73,15 +70,14 @@ async def update_maven_settings(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.delete("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings/{name}", response_model=Response,
+@router.delete("/enterprise/regions/{region_name}/mavensettings/{name}", response_model=Response,
                name="删除Maven配置")
 async def delete_maven_settings(
-        enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
         name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        res, body = remote_build_client.delete_maven_setting(session, enterprise_id, region_name, name)
+        res, body = remote_build_client.delete_maven_setting(session, region_name, name)
         result = general_message(200, 'delete success', '删除成功', bean=body.get("bean"))
     except RegionApiBaseHttpClient.CallApiError as exc:
         if exc.message.get("httpcode") == 404:
@@ -98,16 +94,15 @@ async def delete_maven_settings(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.post("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings", response_model=Response,
+@router.post("/enterprise/regions/{region_name}/mavensettings", response_model=Response,
              name="添加Maven配置")
 async def add_maven_settings(
         request: Request,
-        enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         data = await request.json()
-        res, body = remote_build_client.add_maven_setting(session, enterprise_id, region_name, data)
+        res, body = remote_build_client.add_maven_setting(session, region_name, data)
         result = general_message(200, 'query success', '添加成功', bean=body.get("bean"))
     except RegionApiBaseHttpClient.CallApiError as exc:
         if exc.message.get("httpcode") == 400:
@@ -124,15 +119,14 @@ async def add_maven_settings(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.get("/enterprise/{enterprise_id}/regions/{region_name}/mavensettings", response_model=Response,
+@router.get("/enterprise/regions/{region_name}/mavensettings", response_model=Response,
             name="获取构建源手动配置项")
 async def get_mavens_ettings(
         request: Request,
-        enterprise_id: Optional[str] = None,
         region_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     onlyname = request.query_params.get("onlyname", True)
-    res, body = remote_build_client.list_maven_settings(session, enterprise_id, region_name)
+    res, body = remote_build_client.list_maven_settings(session, region_name)
     redata = body.get("list")
     if redata and isinstance(redata, list) and (onlyname is True or onlyname == "true"):
         newdata = []
@@ -143,38 +137,35 @@ async def get_mavens_ettings(
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/enterprise/{enterprise_id}/regions/{region_id}", response_model=Response, name="修改集群配置信息")
+@router.put("/enterprise/regions/{region_id}", response_model=Response, name="修改集群配置信息")
 async def modify_region_config(request: Request,
-                               enterprise_id: Optional[str] = None,
                                region_id: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
-    region = region_services.update_enterprise_region(session, enterprise_id, region_id, data)
+    region = region_services.update_enterprise_region(session, region_id, data)
     result = general_message(200, "success", "更新成功", bean=region)
     return JSONResponse(result, status_code=result.get("code", 200))
 
 
-@router.delete("/enterprise/{enterprise_id}/regions/{region_id}", response_model=Response, name="删除集群")
-async def delete_region(request: Request,
-                        enterprise_id: Optional[str] = None,
+@router.delete("/enterprise/regions/{region_id}", response_model=Response, name="删除集群")
+async def delete_region(
                         region_id: Optional[str] = None,
                         session: SessionClass = Depends(deps.get_session)) -> Any:
     region = region_repo.get_region_by_region_id(session, region_id)
     if not region:
         raise ServiceHandleException(status_code=404, msg="集群已不存在")
-    region_repo.del_by_enterprise_region_id(session, enterprise_id, region_id)
+    region_repo.del_by_enterprise_region_id(session, region_id)
     result = general_message(200, "success", "删除成功")
     return JSONResponse(result, status_code=result.get("code", 200))
 
 
-@router.get("/enterprise/{enterprise_id}/regions/{region_id}/envs", response_model=Response, name="获取环境内存配置信息")
+@router.get("/enterprise/regions/{region_id}/envs", response_model=Response, name="获取环境内存配置信息")
 async def get_env_memory_config(request: Request,
-                                enterprise_id: Optional[str] = None,
                                 region_id: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("pageSize", 10)
-    envs, total = env_services.get_tenant_env_list_by_region(session, enterprise_id, region_id, page, page_size)
+    envs, total = env_services.get_tenant_env_list_by_region(session, region_id, page, page_size)
     result = general_message(
         200, "success", "获取成功", bean={
             "envs": envs,
@@ -183,11 +174,10 @@ async def get_env_memory_config(request: Request,
     return JSONResponse(result, status_code=status.HTTP_200_OK)
 
 
-@router.post("/enterprise/{enterprise_id}/regions/{region_id}/tenants/{tenant_name}/env/{env_id}/limit",
+@router.post("/enterprise/regions/{region_id}/tenants/{tenant_name}/env/{env_id}/limit",
              response_model=Response,
              name="设置团队内存限额")
 async def set_team_memory_limit(request: Request,
-                                enterprise_id: Optional[str] = None,
                                 region_id: Optional[str] = None,
                                 env_id: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -195,13 +185,12 @@ async def set_team_memory_limit(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
-    env_services.set_tenant_env_memory_limit(session, enterprise_id, region_id, env, data)
+    env_services.set_tenant_env_memory_limit(session, region_id, env, data)
     return JSONResponse({}, status_code=status.HTTP_200_OK)
 
 
-@router.post("/enterprise/{enterprise_id}/regions", response_model=Response, name="集群配置")
+@router.post("/enterprise/regions", response_model=Response, name="集群配置")
 async def set_region_config(request: Request,
-                            enterprise_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
@@ -211,14 +200,13 @@ async def set_region_config(request: Request,
     desc = data.get("desc")
     region_type = json.dumps(data.get("region_type", []))
     region_data = region_services.parse_token(token, region_name, region_alias, region_type)
-    region_data["enterprise_id"] = enterprise_id
     region_data["desc"] = desc
     region_data["provider"] = data.get("provider", "")
     region_data["provider_cluster_id"] = data.get("provider_cluster_id", "")
     region_data["status"] = "1"
     region = region_services.add_region(session, region_data, user)
     if region:
-        data = region_services.get_enterprise_region(session, enterprise_id, region.region_id, check_status=False)
+        data = region_services.get_enterprise_region(session, region.region_id, check_status=False)
         result = general_message(200, "success", "创建成功", bean=data)
         return JSONResponse(result, status_code=status.HTTP_200_OK)
     else:

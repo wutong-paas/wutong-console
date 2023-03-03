@@ -9,7 +9,7 @@ from repository.base import BaseRepository
 
 
 class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
-    def check_app_by_eid(self, session, eid):
+    def check_app_by_eid(self, session):
         """
         check if an app has been shared
         """
@@ -21,9 +21,8 @@ class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
                 tenant_info b
             WHERE
                 a.team_name = b.tenant_name
-                AND b.enterprise_id = :eid
                 LIMIT 1"""
-        sql = text(sql).bindparams(eid=eid)
+        sql = text(sql)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 

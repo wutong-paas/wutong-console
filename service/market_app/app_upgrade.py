@@ -38,7 +38,6 @@ from service.market_app.update_components import UpdateComponents
 class AppUpgrade(MarketApp):
     def __init__(self,
                  session,
-                 enterprise_id,
                  tenant_env,
                  region: RegionConfig,
                  user,
@@ -55,14 +54,13 @@ class AppUpgrade(MarketApp):
         """
         components_keys: component keys that the user select.
         """
-        self.enterprise_id = enterprise_id
         self.tenant_env = tenant_env
         self.tenant_id = tenant_env.tenant_id
         self.region = region
         self.region_name = region.region_name
         self.user = user
 
-        self.component_group = ComponentGroup(enterprise_id, component_group, version)
+        self.component_group = ComponentGroup(component_group, version)
         self.record = record
         self.app = app
         self.app_id = app.app_id

@@ -60,7 +60,7 @@ class DomainService(object):
             "certificate": base64.b64decode(cert.certificate).decode(),
             "private_key": cert.private_key,
         }
-        team_regions = cert_service.get_team_usable_regions(session, tenant_env.tenant_name, tenant_env.enterprise_id)
+        team_regions = cert_service.get_team_usable_regions(session, tenant_env.tenant_name)
         for team_region in team_regions:
             try:
                 remote_build_client.update_ingresses_by_certificate(session, team_region.region_name,
@@ -443,7 +443,6 @@ class DomainService(object):
         data["container_port"] = int(httpdomain["container_port"])
         data["add_time"] = self.get_time_now()
         data["add_user"] = user.nick_name if user else ""
-        data["enterprise_id"] = tenant_env.enterprise_id
         data["http_rule_id"] = http_rule_id
         data["path"] = domain_path
         data["cookie"] = domain_cookie
@@ -598,7 +597,6 @@ class DomainService(object):
         data["tenant_id"] = tenant_env.tenant_id
         data["tenant_name"] = tenant_env.tenant_name
         data["container_port"] = int(domain_info["container_port"])
-        data["enterprise_id"] = tenant_env.enterprise_id
         data["http_rule_id"] = http_rule_id
         data["path"] = domain_info["domain_path"] if domain_info["domain_path"] else None
         data["cookie"] = domain_info["domain_cookie"] if domain_info["domain_cookie"] else None

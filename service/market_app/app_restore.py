@@ -235,7 +235,7 @@ class AppRestore(MarketApp):
         version = component_group["group_version"]
         component_group = copy.deepcopy(self.component_group)
         component_group.group_version = version
-        return ComponentGroup(self.user.enterprise_id, component_group)
+        return ComponentGroup(component_group)
 
     def _create_plugins_deps(self):
         plugin_deps = []

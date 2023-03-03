@@ -244,7 +244,6 @@ class ShareService(object):
             if market_id:
                 scope = "wutong"
                 market = market_app_service.get_app_market_by_name(session=session,
-                                                                   enterprise_id=share_team.enterprise_id,
                                                                    name=market_id,
                                                                    raise_exception=True)
                 cloud_app = market_app_service.get_market_app_model(market, app_model_id, True)
@@ -294,7 +293,7 @@ class ShareService(object):
                 if plugins:
                     for plugin_info in plugins:
                         # one account for one plugin
-                        share_image_info = app_store.get_app_hub_info(session, market, app_model_id, share_team.enterprise_id)
+                        share_image_info = app_store.get_app_hub_info(session, market, app_model_id)
                         plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
@@ -334,14 +333,12 @@ class ShareService(object):
                         if not delivered_type:
                             continue
                         if delivered_type == "slug":
-                            service['service_slug'] = app_store.get_slug_hub_info(session, market, app_model_id,
-                                                                                  share_team.enterprise_id)
+                            service['service_slug'] = app_store.get_slug_hub_info(session, market, app_model_id)
                             service["share_type"] = "slug"
                             if not service['service_slug']:
                                 return 400, "获取源码包上传地址错误", None
                         else:
-                            service["service_image"] = app_store.get_app_hub_info(session, market, app_model_id,
-                                                                                  share_team.enterprise_id)
+                            service["service_image"] = app_store.get_app_hub_info(session, market, app_model_id)
                             service["share_type"] = "image"
                             if not service["service_image"]:
                                 return 400, "获取镜像上传地址错误", None
@@ -391,7 +388,6 @@ class ShareService(object):
                 scope=scope,
                 app_template=json.dumps(app_templete),
                 template_version="v2",
-                enterprise_id=share_team.enterprise_id,
                 upgrade_time=time.time(),
             )
             session.add(app_version)
@@ -414,7 +410,7 @@ class ShareService(object):
             logger.exception(e)
             return 500, "应用分享处理发生错误", None
 
-    def get_last_shared_app_and_app_list(self, enterprise_id, tenant_env, group_id, scope, market_name,
+    def get_last_shared_app_and_app_list(self, tenant_env, group_id, scope, market_name,
                                          session: SessionClass):
         if scope == "market":
             last_shared = (
@@ -455,17 +451,17 @@ class ShareService(object):
                     "scope": last_shared_app_info.scope,
                     "tags": last_shared_app_info.tags
                 }
-        app_list = self.get_team_local_apps_versions(enterprise_id, tenant_env.tenant_name, session,
+        app_list = self.get_team_local_apps_versions(tenant_env.tenant_name, session,
                                                      market=scope == "market")
-        self._patch_rainbond_apps_tag(enterprise_id, app_list, session)
+        self._patch_rainbond_apps_tag(app_list, session)
         dt["app_model_list"] = app_list
         return dt
 
-    def get_team_local_apps_versions(self, enterprise_id, team_name, session: SessionClass, market: bool = False):
+    def get_team_local_apps_versions(self, team_name, session: SessionClass, market: bool = False):
         app_list = []
         if market:
             apps = (
-                session.execute(select(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
+                session.execute(select(CenterApp).where(
                                                         # CenterApp.source == "local",
                                                         or_(CenterApp.create_team == team_name,
                                                             CenterApp.scope == "market")).order_by(
@@ -473,7 +469,7 @@ class ShareService(object):
             ).scalars().all()
         else:
             apps = (
-                session.execute(select(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
+                session.execute(select(CenterApp).where(
                                                         CenterApp.source == "local",
                                                         or_(CenterApp.create_team == team_name,
                                                             CenterApp.scope.in_(
@@ -506,9 +502,9 @@ class ShareService(object):
                 })
         return app_list
 
-    def _patch_rainbond_apps_tag(self, eid, apps, session: SessionClass):
+    def _patch_rainbond_apps_tag(self, apps, session: SessionClass):
         app_ids = [app["app_id"] for app in apps]
-        tags = self.get_multi_apps_tags(eid, app_ids, session)
+        tags = self.get_multi_apps_tags(app_ids, session)
         if not tags:
             return
         app_with_tags = dict()
@@ -520,7 +516,7 @@ class ShareService(object):
         for app in apps:
             app["tags"] = app_with_tags.get(app["app_id"])
 
-    def get_multi_apps_tags(self, eid, app_ids, session: SessionClass):
+    def get_multi_apps_tags(self, app_ids, session: SessionClass):
         if not app_ids:
             return None
         app_ids = ",".join("'{0}'".format(app_id) for app_id in app_ids)
@@ -531,13 +527,10 @@ class ShareService(object):
         from
             center_app_tag_relation atr
         left join center_app_tag tag on
-            atr.enterprise_id = tag.enterprise_id
-            and atr.tag_id = tag.ID
+            atr.tag_id = tag.ID
         where
-            atr.enterprise_id = '{eid}'
             and atr.app_id in ({app_ids});
-        """.format(
-            eid=eid, app_ids=app_ids)
+        """.format(app_ids=app_ids)
         result = (session.execute(text(sql))).fetchall()
         return result
 
@@ -565,9 +558,8 @@ class ShareService(object):
                 atr.enterprise_id = tag.enterprise_id
                 and atr.tag_id = tag.ID
             where
-                atr.enterprise_id = '{eid}'
                 and atr.app_id = '{app_id}';
-            """.format(eid=app.enterprise_id, app_id=app.app_id)
+            """.format(app_id=app.app_id)
         tags = (session.execute(text(sql))).fetchall()
 
         app.tags = []

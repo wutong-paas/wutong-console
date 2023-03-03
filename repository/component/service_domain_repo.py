@@ -37,7 +37,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             ServiceDomainCertificate.tenant_id == tenant_id,
             ServiceDomainCertificate.alias == alias)).scalars().first()
 
-    def check_custom_rule(self, session, eid):
+    def check_custom_rule(self, session):
         """
         check if there is a custom gateway rule
         """
@@ -49,7 +49,6 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                 tenant_info b
             WHERE
                 a.tenant_id = b.tenant_id
-                AND b.enterprise_id = :eid
                 AND (
                     a.certificate_id <> 0
                     OR ( a.domain_path <> '/' AND a.domain_path <> '' )
@@ -61,7 +60,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                     OR a.domain_name NOT LIKE concat('%',b.tenant_name,'%')
                 )
                 LIMIT 1"""
-        sql = text(sql).bindparams(eid=eid)
+        sql = text(sql)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 

@@ -2,7 +2,7 @@ from sqlalchemy import text
 
 
 class ServiceGroupRepository(object):
-    def check_non_default_group_by_eid(self, session, eid):
+    def check_non_default_group_by_eid(self, session):
         sql = """
             SELECT
                 group_name
@@ -12,10 +12,9 @@ class ServiceGroupRepository(object):
             WHERE
                 a.tenant_id = b.tenant_id
                 AND a.is_default = 0
-                AND b.enterprise_id = :eid
             LIMIT 1
             """
-        sql = text(sql).bindparams(eid=eid)
+        sql = text(sql)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 

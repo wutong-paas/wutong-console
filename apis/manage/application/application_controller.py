@@ -93,9 +93,10 @@ async def create_app(params: TeamAppCreateRequest,
             app_store_url=params.app_store_url,
             app_template_name=params.app_template_name,
             version=params.version,
-            eid=user.enterprise_id,
             logo=params.logo,
-            k8s_app=k8s_app
+            k8s_app=k8s_app,
+            tenant_name=params.team_alias,
+            project_name=params.project_alias
         )
     except ServiceHandleException as e:
         session.rollback()
@@ -355,8 +356,7 @@ async def app_share_record(request: Request,
         store_id = share_record.share_app_market_name
         scope = share_record.scope
         if scope != "wutong" and not app_model_name:
-            app = center_app_repo.get_wutong_app_by_app_id(session=session, eid=env.enterprise_id,
-                                                           app_id=share_record.app_id)
+            app = center_app_repo.get_wutong_app_by_app_id(session=session, app_id=share_record.app_id)
             app_model_name = app.app_name if app else ""
             app_version = center_app_repo.get_wutong_app_version_by_record_id(session=session,
                                                                               record_id=share_record.ID)
@@ -371,7 +371,6 @@ async def app_share_record(request: Request,
                 mkt = market.get(share_record.share_app_market_name, None)
                 if not mkt:
                     mkt = market_app_service.get_app_market_by_name(session=session,
-                                                                    enterprise_id=env.enterprise_id,
                                                                     name=share_record.share_app_market_name,
                                                                     raise_exception=True)
                     market[share_record.share_app_market_name] = mkt

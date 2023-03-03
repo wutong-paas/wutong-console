@@ -5,16 +5,16 @@ from repository.application.app_repository import app_repo
 
 
 class RbdCenterAppService(object):
-    def get_version_app(self, eid, version, service_source):
+    def get_version_app(self, version, service_source):
         """
         Get the specified version of the rainbond center(market) application
         raise: RecordNotFound
         raise: RbdAppNotFound
         """
-        rain_app = app_repo.get_enterpirse_app_by_key_and_version(eid, service_source.group_key, version)
+        rain_app = app_repo.get_enterpirse_app_by_key_and_version(service_source.group_key, version)
         if rain_app is None:
-            raise RecordNotFound("Enterprice id: {0}; Group key: {1}; version: {2}; \
-                RainbondCenterApp not found.".format(eid, service_source.group_key, version))
+            raise RecordNotFound("Group key: {0}; version: {1}; \
+                RainbondCenterApp not found.".format(service_source.group_key, version))
 
         apps_template = json.loads(rain_app.app_template)
         apps = apps_template.get("apps")

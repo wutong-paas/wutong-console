@@ -48,14 +48,12 @@ async def get_record_detail(group_id: Optional[str] = None,
         scope = share_record.scope
         if store_id:
             extend, market = market_app_service.get_app_market(session=session,
-                                                               enterprise_id=env.enterprise_id,
                                                                market_name=share_record.share_app_market_name,
                                                                extend="true", raise_exception=True)
             if market:
                 store_name = market.name
                 store_version = extend.get("version", store_version)
-        app = center_app_repo.get_one_by_model(session=session, query_model=CenterApp(app_id=share_record.app_id,
-                                                                                      enterprise_id=env.enterprise_id))
+        app = center_app_repo.get_one_by_model(session=session, query_model=CenterApp(app_id=share_record.app_id))
         if app:
             app_model_id = share_record.app_id
             app_model_name = app.app_name
@@ -198,7 +196,7 @@ async def shared_apps(scope: Optional[str] = None,
                       session: SessionClass = Depends(deps.get_session),
                       env=Depends(deps.get_current_team_env)) -> Any:
 
-    data = share_service.get_last_shared_app_and_app_list(enterprise_id=env.enterprise_id, tenant_env=env,
+    data = share_service.get_last_shared_app_and_app_list(tenant_env=env,
                                                           group_id=group_id, scope=scope,
                                                           market_name=market_id, session=session)
     return JSONResponse(general_message(

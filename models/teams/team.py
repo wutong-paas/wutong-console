@@ -20,6 +20,7 @@ class TeamEnvInfo(Base):
 
     ID = Column(Integer, primary_key=True)
     env_id = Column(String(33), comment="环境id", nullable=False, unique=True, default=make_env_id)
+    region_name = Column(String(33), comment="集群名", nullable=False)
     env_name = Column(String(64), comment="环境名称", nullable=False)
     tenant_id = Column(String(33), comment="团队id", nullable=False)
     tenant_name = Column(String(64), comment="环境名称", nullable=False)
@@ -30,7 +31,6 @@ class TeamEnvInfo(Base):
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
     update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     env_alias = Column(String(64), comment="环境别名", nullable=True, default='')
-    enterprise_id = Column(String(32), comment="企业id", nullable=True, default='')
     namespace = Column(String(33), comment="环境的命名空间", nullable=False)
     desc = Column(String(255), comment="描述", nullable=True)
 
@@ -156,7 +156,6 @@ class PermRelTenant(Base):
     user_id = Column(Integer, nullable=False, comment="关联用户")
     tenant_id = Column(Integer, nullable=False, comment="团队id")
     identity = Column(String(15), ChoiceType(tenant_identity), comment="租户身份", nullable=True)
-    enterprise_id = Column(Integer, nullable=False, comment="关联企业")
     role_id = Column(Integer, nullable=True, comment="角色")
 
 
@@ -182,7 +181,6 @@ class RegionConfig(Base):
     ssl_ca_cert = Column(Text, comment="数据中心访问ca证书地址", nullable=True)
     cert_file = Column(Text, comment="验证文件", nullable=True)
     key_file = Column(Text, comment="验证的key", nullable=True)
-    enterprise_id = Column(String(36), comment="企业id", nullable=True)
     provider = Column(String(24), comment="底层集群供应类型", nullable=True, default='')
     provider_cluster_id = Column(String(64), comment="底层集群ID", nullable=True, default='')
 

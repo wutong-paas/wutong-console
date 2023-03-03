@@ -3,7 +3,7 @@ import os
 from loguru import logger
 from common.api_base_http_client import ApiBaseHttpClient
 from common.base_client_service import get_region_access_info, get_env_region_info, \
-    get_region_access_info_by_enterprise_id
+    get_region_access_info
 
 
 class RemoteMigrateClient(ApiBaseHttpClient):
@@ -26,25 +26,25 @@ class RemoteMigrateClient(ApiBaseHttpClient):
             self.default_headers.update({"Authorization": token})
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
-    def export_app(self, session, region, enterprise_id, data):
+    def export_app(self, session, region, data):
         """导出应用"""
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url, token = get_region_access_info(region, session)
         url += "/v2/app/export"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data).encode('utf-8'))
         return res, body
 
-    def get_app_export_status(self, session, region, enterprise_id, event_id):
+    def get_app_export_status(self, session, region, event_id):
         """查询应用导出状态"""
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/export/" + event_id
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def import_app_2_enterprise(self, session, region, enterprise_id, data):
+    def import_app_2_enterprise(self, session, region, data):
         """ import app to enterprise"""
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url, token = get_region_access_info(region, session)
         url += "/v2/app/import"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
@@ -66,7 +66,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_enterprise_app_import_status(self, session, region, eid, event_id):
+    def get_enterprise_app_import_status(self, session, region, event_id):
         """
 
         :param region:
@@ -74,13 +74,13 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :param event_id:
         :return:
         """
-        url, token = get_region_access_info_by_enterprise_id(eid, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_enterprise_import_file_dir(self, session, region, eid, event_id):
+    def get_enterprise_import_file_dir(self, session, region, event_id):
         """
 
         :param region:
@@ -88,7 +88,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :param event_id:
         :return:
         """
-        url, token = get_region_access_info_by_enterprise_id(eid, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
@@ -102,15 +102,13 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def delete_enterprise_import(self, session, region, eid, event_id):
+    def delete_enterprise_import(self, session, region, event_id):
         """
-
         :param region:
-        :param eid:
         :param event_id:
         :return:
         """
-        url, token = get_region_access_info_by_enterprise_id(eid, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region)
@@ -132,15 +130,13 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         res, body = self._post(session, url, self.default_headers, region=region)
         return res, body
 
-    def delete_enterprise_import_file_dir(self, session, region, eid, event_id):
+    def delete_enterprise_import_file_dir(self, session, region, event_id):
         """
-
         :param region:
-        :param eid:
         :param event_id:
         :return:
         """
-        url, token = get_region_access_info_by_enterprise_id(eid, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region)

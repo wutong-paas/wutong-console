@@ -415,8 +415,7 @@ class Configuration():
         self.verify_ssl = verify_ssl
         # Set this to customize the certificate file to verify the peer.
         # 兼容证书路径和内容
-        file_path = settings.BASE_DIR + "/data/{0}-{1}/ssl".format(region_config.enterprise_id,
-                                                                   region_config.region_name)
+        file_path = settings.BASE_DIR + "/data/{0}/ssl".format(region_config.region_name)
         ssl_ca_cert = region_config.ssl_ca_cert
         cert_file = region_config.cert_file
         key_file = region_config.key_file

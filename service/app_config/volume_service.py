@@ -56,8 +56,7 @@ class AppVolumeService(object):
             return vos
         res, body = remote_component_client.get_service_volumes(session,
                                                                 service.service_region, tenant_env,
-                                                                service.service_alias,
-                                                                tenant_env.enterprise_id)
+                                                                service.service_alias)
         if body and body.list:
             status = {}
             for volume in body.list:
@@ -107,7 +106,6 @@ class AppVolumeService(object):
                 "volume_name": volume.volume_name,
                 "volume_path": volume.volume_path,
                 "volume_type": volume.volume_type,
-                "enterprise_id": tenant_env.enterprise_id,
                 "volume_capacity": volume.volume_capacity,
                 "volume_provider_name": volume.volume_provider_name,
                 "access_mode": volume.access_mode,
@@ -334,7 +332,7 @@ class AppVolumeService(object):
                                                                            tenant_env,
                                                                            service.service_alias,
                                                                            volume.volume_name,
-                                                                           tenant_env.enterprise_id, data)
+                                                                           data)
                 logger.debug(
                     "service {0} delete volume {1}, result {2}".format(service.service_cname, volume.volume_name,
                                                                        body))
@@ -355,8 +353,7 @@ class AppVolumeService(object):
                                                                            service.service_region,
                                                                            tenant_env,
                                                                            service.service_alias,
-                                                                           volume.volume_name,
-                                                                           tenant_env.enterprise_id)
+                                                                           volume.volume_name)
             except Exception as e:
                 logger.exception(e)
 

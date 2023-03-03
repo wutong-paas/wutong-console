@@ -33,7 +33,6 @@ from repository.teams.team_plugin_repo import plugin_repo
 from service.app_config.service_monitor_service import service_monitor_service
 from service.app_config_group import app_config_group_service
 from service.application_service import application_service
-from service.region_service import EnterpriseConfigService
 
 
 class GroupAppBackupService(object):
@@ -48,8 +47,7 @@ class GroupAppBackupService(object):
         services = application_service.get_group_services(session=session, group_id=group_id)
         service_ids = [s.service_id for s in services]
         body = remote_component_client.service_status(session, region, tenant_env, {
-            "service_ids": service_ids,
-            "enterprise_id": tenant_env.enterprise_id
+            "service_ids": service_ids
         })
         status_list = body["list"]
         service_status_map = {status_map["service_id"]: status_map["status"] for status_map in status_list}

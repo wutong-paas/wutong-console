@@ -38,8 +38,8 @@ class MarketAppService(object):
         data = store_client.get_market_info(market_domain=store.domain)
         return data
 
-    def get_app_market(self, session, enterprise_id, market_name, extend="false", raise_exception=False):
-        market = app_market_repo.get_app_market_by_name(session, enterprise_id, market_name, raise_exception)
+    def get_app_market(self, session, market_name, extend="false", raise_exception=False):
+        market = app_market_repo.get_app_market_by_name(session, market_name, raise_exception)
         dt = {
             "access_key": market.access_key,
             "name": market.name,
@@ -75,17 +75,16 @@ class MarketAppService(object):
             })
         return dt, market
 
-    def get_app_markets(self, enterprise_id, extend):
-        app_market_repo.create_default_app_market_if_not_exists(enterprise_id)
+    def get_app_markets(self, extend):
+        app_market_repo.create_default_app_market_if_not_exists()
 
         market_list = []
-        markets = app_market_repo.get_app_markets(enterprise_id)
+        markets = app_market_repo.get_app_markets()
         for market in markets:
             dt = {
                 "access_key": market.access_key,
                 "name": market.name,
                 "url": market.url,
-                "enterprise_id": market.enterprise_id,
                 "type": market.type,
                 "domain": market.domain,
                 "ID": market.ID,
@@ -117,13 +116,13 @@ class MarketAppService(object):
             market_list.append(dt)
         return market_list
 
-    def list_app_upgradeable_versions(self, session, enterprise_id, record: ApplicationUpgradeRecord):
+    def list_app_upgradeable_versions(self, session, record: ApplicationUpgradeRecord):
         component_group = tenant_service_group_repo.get_component_group(session, record.upgrade_group_id)
-        component_group = ComponentGroup(enterprise_id, component_group, record.old_version)
+        component_group = ComponentGroup(component_group, record.old_version)
         app_template_source = component_group.app_template_source(session)
-        market = app_market_repo.get_app_market_by_name(session, enterprise_id, app_template_source.get_market_name())
+        market = app_market_repo.get_app_market_by_name(session, app_template_source.get_market_name())
         return self.__get_upgradeable_versions(session,
-                                               enterprise_id, component_group.app_model_key, component_group.version,
+                                               component_group.app_model_key, component_group.version,
                                                app_template_source.get_template_update_time(),
                                                component_group.is_install_from_cloud(session), market)
 
@@ -164,11 +163,11 @@ class MarketAppService(object):
             app_version.template_type = app_template.template_type
         return wutong_app, app_version
 
-    def update_wutong_app_install_num(self, session, enterprise_id, app_id, app_version):
-        app_repo.add_wutong_install_num(session, enterprise_id, app_id, app_version)
+    def update_wutong_app_install_num(self, session, app_id, app_version):
+        app_repo.add_wutong_install_num(session, app_id, app_version)
 
-    def get_wutong_app(self, session, eid, app_id):
-        return app_repo.get_wutong_app_qs_by_key(session, eid, app_id)
+    def get_wutong_app(self, session, app_id):
+        return app_repo.get_wutong_app_qs_by_key(session, app_id)
 
     def check_market_service_info(self, session, tenant_env, service):
         app_not_found = MarketAppLost("当前云市应用已删除")
@@ -180,7 +179,7 @@ class MarketAppService(object):
         extend_info = json.loads(extend_info_str)
         if not extend_info.get("install_from_cloud", False):
             wutong_app, wutong_app_version = market_app_service.get_wutong_app_and_version(
-                session, tenant_env.enterprise_id, service_source.group_key, service_source.version)
+                session, service_source.group_key, service_source.version)
             if not wutong_app or not wutong_app_version:
                 logger.info("app has been delete on market:{0}".format(service.service_cname))
                 raise app_not_found
@@ -188,7 +187,7 @@ class MarketAppService(object):
             # get from cloud
             try:
                 market = application_service.get_app_market_by_name(
-                    session, tenant_env.enterprise_id, extend_info.get("market_name"), raise_exception=True)
+                    session, extend_info.get("market_name"), raise_exception=True)
                 # resp = application_service.get_market_app_model_version(market, service_source.group_key, service_source.version)
                 # if not resp:
                 #     raise app_not_found
@@ -198,15 +197,15 @@ class MarketAppService(object):
                     raise app_not_found
                 raise MarketAppLost("云市应用查询失败")
 
-    def delete_wutong_app_version(self, session, enterprise_id, app_id, version):
+    def delete_wutong_app_version(self, session, app_id, version):
         try:
-            app_repo.delete_app_version_by_version(session, enterprise_id, app_id, version)
+            app_repo.delete_app_version_by_version(session, app_id, version)
         except Exception as e:
             logger.exception(e)
             raise e
 
-    def update_wutong_app_version_info(self, session, enterprise_id, app_id, version, **body):
-        version = app_repo.update_app_version(session, enterprise_id, app_id, version, **body)
+    def update_wutong_app_version_info(self, session, app_id, version, **body):
+        version = app_repo.update_app_version(session, app_id, version, **body)
         if not version:
             raise ServiceHandleException(msg="can't get version", msg_show="应用下无该版本", status_code=404)
         return version
@@ -233,11 +232,11 @@ class MarketAppService(object):
                 apps_min_memory[app_model_version.app_id] = min_memory
         return apps_min_memory
 
-    def _patch_wutong_app_versions_tag(self, session, eid, apps, is_complete):
+    def _patch_wutong_app_versions_tag(self, session, apps, is_complete):
         app_ids = [app.app_id for app in apps]
-        versions = center_app_repo.get_wutong_app_version_by_app_ids(session, eid, app_ids, is_complete,
+        versions = center_app_repo.get_wutong_app_version_by_app_ids(session, app_ids, is_complete,
                                                                      rm_template_field=True)
-        tags = app_tag_repo.get_multi_apps_tags(session, eid, app_ids)
+        tags = app_tag_repo.get_multi_apps_tags(session, app_ids)
         app_with_tags = dict()
         app_with_versions = dict()
         app_release_ver_nums = dict()
@@ -308,7 +307,6 @@ class MarketAppService(object):
     def get_visiable_apps(self,
                           session,
                           user,
-                          eid,
                           scope,
                           app_name,
                           tag_names=None,
@@ -325,27 +323,27 @@ class MarketAppService(object):
                 teams = env_repo.get_tenants_by_user_id(session, user.user_id)
             if teams:
                 teams = [team.tenant_name for team in teams]
-            apps = center_app_repo.get_wutong_app_in_teams_by_querey(session, eid, scope, teams, app_name,
+            apps = center_app_repo.get_wutong_app_in_teams_by_querey(session, scope, teams, app_name,
                                                                      tag_names, page,
                                                                      page_size, need_install)
-            count = center_app_repo.get_wutong_app_total_count(session, eid, scope, teams, app_name, tag_names,
+            count = center_app_repo.get_wutong_app_total_count(session, scope, teams, app_name, tag_names,
                                                                need_install)
         else:
             # default scope is enterprise
-            apps = center_app_repo.get_wutong_app_in_enterprise_by_query(session, eid, scope, app_name, tag_names,
+            apps = center_app_repo.get_wutong_app_in_enterprise_by_query(session, scope, app_name, tag_names,
                                                                          page,
                                                                          page_size,
                                                                          need_install)
-            count = center_app_repo.get_wutong_app_total_count(session, eid, scope, None, app_name, tag_names,
+            count = center_app_repo.get_wutong_app_total_count(session, scope, None, app_name, tag_names,
                                                                need_install)
         if not apps:
             return [], count
 
-        apps_list = self._patch_wutong_app_versions_tag(session, eid, apps, is_complete)
+        apps_list = self._patch_wutong_app_versions_tag(session, apps, is_complete)
         return apps_list, count
 
-    def list_app_versions(self, session, enterprise_id, component_source):
-        versions = center_app_repo.get_wutong_app_versions(session, enterprise_id, component_source.group_key)
+    def list_app_versions(self, session, component_source):
+        versions = center_app_repo.get_wutong_app_versions(session, component_source.group_key)
         return versions
 
     def __upgradable_versions(self, component_source, versions):
@@ -365,7 +363,7 @@ class MarketAppService(object):
         result.sort(reverse=True)
         return result
 
-    def list_wutong_app_components(self, session, enterprise_id, tenant_env, app_id, model_app_key, upgrade_group_id):
+    def list_wutong_app_components(self, session, tenant_env, app_id, model_app_key, upgrade_group_id):
         """
         return the list of the rainbond app.
         """
@@ -381,7 +379,7 @@ class MarketAppService(object):
         component_ids = [cs.service_id for cs in component_sources_list]
         components = service_info_repo.list_by_component_ids(session, component_ids)
 
-        versions = self.list_app_versions(session, enterprise_id, component_sources_list[0])
+        versions = self.list_app_versions(session, component_sources_list[0])
 
         # make a map of component_sources
         component_sources = {cs.service_id: cs for cs in component_sources_list}
@@ -396,7 +394,7 @@ class MarketAppService(object):
 
         return result
 
-    def create_wutong_app(self, session, enterprise_id, app_info, app_id):
+    def create_wutong_app(self, session, app_info, app_id):
         app = CenterApp(
             app_id=app_id,
             app_name=app_info.get("app_name"),
@@ -408,7 +406,6 @@ class MarketAppService(object):
             dev_status=app_info.get("dev_status"),
             scope=app_info.get("scope"),
             describe=app_info.get("describe"),
-            enterprise_id=enterprise_id,
             details=app_info.get("details"),
         )
         session.add(app)
@@ -418,10 +415,9 @@ class MarketAppService(object):
             app_tag_repo.create_app_tags_relation(session, app, app_info.get("tag_ids"))
 
     # todo 事务
-    def update_rainbond_app(self, session: SessionClass, enterprise_id, app_id, app_info):
+    def update_wutong_app(self, session: SessionClass, app_id, app_info):
         app = (
-            session.execute(select(CenterApp).where(CenterApp.app_id == app_id,
-                                                    CenterApp.enterprise_id == enterprise_id))
+            session.execute(select(CenterApp).where(CenterApp.app_id == app_id))
         ).scalars().first()
 
         if not app:
@@ -432,13 +428,11 @@ class MarketAppService(object):
         app.details = app_info.get("details")
         app.dev_status = app_info.get("dev_status")
         session.execute(
-            delete(CenterAppTagsRelation).where(CenterAppTagsRelation.enterprise_id == enterprise_id,
-                                                CenterAppTagsRelation.app_id == app_id)
+            delete(CenterAppTagsRelation).where(CenterAppTagsRelation.app_id == app_id)
         )
         session.flush()
         for tag_id in app_info.get("tag_ids"):
-            add_model: CenterAppTagsRelation = CenterAppTagsRelation(enterprise_id=app.enterprise_id,
-                                                                     app_id=app.app_id, tag_id=tag_id)
+            add_model: CenterAppTagsRelation = CenterAppTagsRelation(app_id=app.app_id, tag_id=tag_id)
             session.add(add_model)
 
         app.scope = app_info.get("scope")
@@ -453,33 +447,23 @@ class MarketAppService(object):
                 if team:
                     app.create_team = create_team
 
-    def delete_rainbond_app_all_info_by_id(self, session: SessionClass, enterprise_id, app_id):
+    def delete_wutong_app_all_info_by_id(self, session: SessionClass, app_id):
         # todo 事务
-        session.execute(
-            delete(CenterAppTagsRelation).where(CenterAppTagsRelation.enterprise_id == enterprise_id,
-                                                CenterAppTagsRelation.app_id == app_id))
-        session.execute(
-            delete(CenterAppVersion).where(CenterAppVersion.enterprise_id == enterprise_id,
-                                           CenterAppVersion.app_id == app_id))
-        session.execute(delete(CenterApp).where(CenterApp.enterprise_id == enterprise_id,
-                                                CenterApp.app_id == app_id))
+        session.execute(delete(CenterAppTagsRelation).where(CenterAppTagsRelation.app_id == app_id))
+        session.execute(delete(CenterAppVersion).where(CenterAppVersion.app_id == app_id))
+        session.execute(delete(CenterApp).where(CenterApp.app_id == app_id))
 
-    def get_wutong_app_and_versions(self, session: SessionClass, enterprise_id, app_id, page, page_size):
+    def get_wutong_app_and_versions(self, session: SessionClass, app_id, page, page_size):
         app = (
-            session.execute(select(CenterApp).where(CenterApp.app_id == app_id,
-                                                    CenterApp.enterprise_id == enterprise_id))
+            session.execute(select(CenterApp).where(CenterApp.app_id == app_id))
         ).scalars().first()
 
         if not app:
             raise RbdAppNotFound("未找到该应用")
-        # todo
-        # app_versions = rainbond_app_repo.get_rainbond_app_version_by_app_ids(
-        #     enterprise_id, [app_id], rm_template_field=True).values()
 
         app_versions = (
             session.execute(
-                select(CenterAppVersion).where(CenterAppVersion.enterprise_id == enterprise_id,
-                                               CenterAppVersion.app_id == app_id))
+                select(CenterAppVersion).where(CenterAppVersion.app_id == app_id))
         ).scalars().all()
 
         apv_ver_nums = []
@@ -522,8 +506,7 @@ class MarketAppService(object):
         tag_list = []
         tags = (
             session.execute(
-                select(CenterAppTagsRelation).where(CenterAppTagsRelation.enterprise_id == enterprise_id,
-                                                    CenterAppTagsRelation.app_id == app_id))
+                select(CenterAppTagsRelation).where(CenterAppTagsRelation.app_id == app_id))
         ).scalars().all()
 
         for t in tags:
@@ -565,12 +548,11 @@ class MarketAppService(object):
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
         if install_from_cloud:
-            _, market = market_app_service.get_app_market(session, tenant_env.enterprise_id, market_name, raise_exception=True)
+            _, market = market_app_service.get_app_market(session, market_name, raise_exception=True)
             market_app, app_version = market_app_service.cloud_app_model_to_db_model(
                 market, app_model_key, version, for_install=True)
         else:
-            market_app, app_version = self.get_wutong_app_and_version(session, user.enterprise_id, app_model_key,
-                                                                      version)
+            market_app, app_version = self.get_wutong_app_and_version(session, app_model_key, version)
             if app_version and app_version.region_name and app_version.region_name != region.region_name:
                 raise AbortRequest(
                     msg="app version can not install to this region",
@@ -583,11 +565,11 @@ class MarketAppService(object):
         app_template = json.loads(app_version.app_template)
         app_template["update_time"] = app_version.update_time
 
-        component_group = self._create_tenant_service_group(session, region.region_name, tenant_env.tenant_id, app.app_id,
+        component_group = self._create_tenant_service_group(session, region.region_name, tenant_env.tenant_id,
+                                                            app.app_id,
                                                             market_app.app_id, version, market_app.app_name)
         app_upgrade = AppUpgrade(
             session,
-            user.enterprise_id,
             tenant_env,
             region,
             user,
@@ -633,7 +615,6 @@ class MarketAppService(object):
                                                             "12345678", version, "test")
         app_upgrade = AppUpgrade(
             session,
-            user.enterprise_id,
             tenant,
             region,
             user,
@@ -689,7 +670,6 @@ class MarketAppService(object):
                     "update_time": dt.update_time,
                     "local_market_id": market.ID,
                     "local_market_name": market.name,
-                    "enterprise_id": market.enterprise_id,
                     "source": "market",
                     "versions": versions,
                     "tags": [t for t in dt.tags],
@@ -768,7 +748,7 @@ class MarketAppService(object):
             market = None
             # todo
             install_from_cloud = component_source.is_install_from_cloud()
-            app_model, _ = center_app_repo.get_wutong_app_and_version(session, tenant.enterprise_id,
+            app_model, _ = center_app_repo.get_wutong_app_and_version(session,
                                                                       app_model_key,
                                                                       version)
             if not app_model:
@@ -786,7 +766,6 @@ class MarketAppService(object):
                 'source': app_model.source,
                 'market_name': market_name,
                 'describe': app_model.describe,
-                'enterprise_id': tenant.enterprise_id,
                 'is_official': app_model.is_official,
                 'details': app_model.details
             }
@@ -794,7 +773,7 @@ class MarketAppService(object):
                                                                  group_id=app_id,
                                                                  group_key=app_model_key)
             versions = self.__get_upgradeable_versions(session,
-                                                       tenant.enterprise_id, app_model_key, version,
+                                                       app_model_key, version,
                                                        component_source.get_template_update_time(),
                                                        install_from_cloud,
                                                        market)
@@ -808,7 +787,6 @@ class MarketAppService(object):
             yield dat
 
     def __get_upgradeable_versions(self, session: SessionClass,
-                                   enterprise_id,
                                    app_model_key,
                                    current_version,
                                    current_version_time,
@@ -819,7 +797,7 @@ class MarketAppService(object):
         if install_from_cloud and market:
             app_version_list = self.get_market_app_model_versions(session=session, market=market, app_id=app_model_key)
         else:
-            app_version_list = center_app_repo.get_wutong_app_versions(session=session, eid=enterprise_id,
+            app_version_list = center_app_repo.get_wutong_app_versions(session=session,
                                                                        app_id=app_model_key)
         if not app_version_list:
             return None
@@ -854,14 +832,13 @@ class MarketAppService(object):
                     "rainbond_version": dt.rainbond_version,
                     "create_time": dt.create_time,
                     "update_time": dt.update_time,
-                    "enterprise_id": market.enterprise_id,
                     "local_market_id": market.ID,
                 }
                 app_models.append(Dict(version))
         return app_models
 
-    def get_wutong_app_and_version(self, session: SessionClass, enterprise_id, app_id, app_version):
-        app, app_version = center_app_repo.get_wutong_app_and_version(session, enterprise_id, app_id, app_version)
+    def get_wutong_app_and_version(self, session: SessionClass, app_id, app_version):
+        app, app_version = center_app_repo.get_wutong_app_and_version(session, app_id, app_version)
         if not app:
             raise RbdAppNotFound("未找到该应用")
         return app, app_version

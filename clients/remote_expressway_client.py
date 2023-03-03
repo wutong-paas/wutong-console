@@ -1,7 +1,7 @@
 import os
 from loguru import logger
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info_by_enterprise_id
+from common.base_client_service import get_region_access_info
 
 
 class HunanExpresswayClient(ApiBaseHttpClient):
@@ -25,14 +25,14 @@ class HunanExpresswayClient(ApiBaseHttpClient):
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
     def get_region_cluster(self, session, region, enterprise_id):
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url, token = get_region_access_info(enterprise_id, region, session)
         url = url + "/v2/cluster"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
     def get_region_event(self, session, region, enterprise_id):
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url, token = get_region_access_info(enterprise_id, region, session)
         url = url + "/v2/cluster/events"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)

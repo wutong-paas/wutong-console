@@ -39,7 +39,6 @@ from service.app_config.service_monitor_service import service_monitor_service
 from service.app_config.volume_service import volume_service
 from service.app_config_group import app_config_group_service
 from service.application_service import application_service
-from service.region_service import EnterpriseConfigService
 
 
 class GroupappsMigrateService(object):
@@ -132,8 +131,7 @@ class GroupappsMigrateService(object):
         if not service_ids:
             return True
         body = remote_component_client.service_status(session, region, tenant_env, {
-            "service_ids": service_ids,
-            "enterprise_id": tenant_env.enterprise_id
+            "service_ids": service_ids
         })
         status_list = body["list"]
         for status in status_list:

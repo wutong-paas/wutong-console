@@ -194,7 +194,7 @@ class ApplicationRepository(BaseRepository[Application]):
 
 class AppMarketRepository(object):
 
-    def create_default_app_market_if_not_exists(self, session, eid):
+    def create_default_app_market_if_not_exists(self, session):
         access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "")
         domain = os.getenv("DEFAULT_APP_MARKET_DOMAIN", "rainbond")
         url = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
@@ -202,8 +202,7 @@ class AppMarketRepository(object):
 
         markets = session.execute(select(AppMarket).where(
             AppMarket.domain == domain,
-            AppMarket.url == url,
-            AppMarket.enterprise_id == eid
+            AppMarket.url == url
         )).scalars().all()
         if markets or os.getenv("DISABLE_DEFAULT_APP_MARKET", False):
             return
@@ -212,15 +211,13 @@ class AppMarketRepository(object):
             url=url,
             domain=domain,
             type="rainstore",
-            access_key=access_key,
-            enterprise_id=eid,
+            access_key=access_key
         )
         session.add(app_market)
         session.flush()
 
-    def get_app_market_by_name(self, session, enterprise_id, name, raise_exception=False):
+    def get_app_market_by_name(self, session, name, raise_exception=False):
         market = session.execute(select(AppMarket).where(
-            AppMarket.enterprise_id == enterprise_id,
             AppMarket.name == name
         )).scalars().first()
         if raise_exception:

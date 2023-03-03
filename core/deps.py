@@ -5,7 +5,6 @@ from core.idaasapi import idaas_api
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from models.teams import TeamEnvInfo
-from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.teams.env_repo import env_repo
 from schemas.user import UserInfo
 
@@ -28,19 +27,17 @@ async def get_session() -> SessionClass:
 
 
 async def get_current_user(request: Request, authorization: Optional[str] = Header(None),
-                           session: SessionClass = Depends(get_session)):
+                           session: SessionClass = Depends(get_session)) -> UserInfo:
     try:
         idaas_api.set_token(authorization)
         from urllib import parse
         data = dict(request.headers.raw)
-        enterprise = enterprise_repo.get_enterprise_first(session)
         user = {
             "user_id": data.get(b"userid"),
             "real_name": parse.unquote(str(data.get(b"userrealname"), "utf-8")),
             "nick_name": parse.unquote(str(data.get(b"usernickname"), "utf-8")),
             "email": data.get(b"useremail"),
             "phone": data.get(b"usermobile"),
-            "enterprise_id": enterprise.enterprise_id
         }
         user = UserInfo(**user)
         return user

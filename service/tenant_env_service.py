@@ -16,20 +16,20 @@ class TenantEnvService(object):
     def check_resource_name(session, tenant_env, region_name: str, rtype: str, name: str):
         return remote_build_client.check_resource_name(session, tenant_env, region_name, rtype, name)
 
-    def set_tenant_env_memory_limit(self, session, eid, region_id, tenant_env, limit):
+    def set_tenant_env_memory_limit(self, session, region_id, tenant_env, limit):
         try:
-            remote_build_client.set_tenant_env_limit_memory(session, eid, tenant_env, region_id, body=limit)
+            remote_build_client.set_tenant_env_limit_memory(session, tenant_env, region_id, body=limit)
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
             raise ServiceHandleException(status_code=500, msg="", msg_show="设置租户限额失败")
 
-    def get_tenant_env_list_by_region(self, session, eid, region_id, page=1, page_size=10):
-        teams = env_repo.get_team_by_enterprise_id(session, eid)
+    def get_tenant_env_list_by_region(self, session, region_id, page=1, page_size=10):
+        teams = env_repo.get_team_by_enterprise_id(session)
         team_maps = {}
         if teams:
             for team in teams:
                 team_maps[team.tenant_id] = team
-        res, body = remote_build_client.list_tenant_envs(session, eid, region_id, page, page_size)
+        res, body = remote_build_client.list_tenant_envs(session, region_id, page, page_size)
         tenant_list = []
         total = 0
         if body.get("bean"):
@@ -75,7 +75,8 @@ class TenantEnvService(object):
 
     def get_envs_by_tenant_id(self, session, tenant_id):
         envs = session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.tenant_id == tenant_id)).scalars().all()
+            select(TeamEnvInfo).where(
+                TeamEnvInfo.tenant_id == tenant_id)).scalars().all()
         return envs
 
     def get_all_envs(self, session: SessionClass):
@@ -87,7 +88,7 @@ class TenantEnvService(object):
         env_regions = region_repo.get_env_regions_by_envid(session, env.env_id)
         for region in env_regions:
             try:
-                region_services.delete_env_on_region(session=session, enterprise_id=env.enterprise_id,
+                region_services.delete_env_on_region(session=session,
                                                      env=env, region_name=region.region_name,
                                                      user=user)
             except ServiceHandleException as e:

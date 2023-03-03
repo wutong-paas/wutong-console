@@ -83,10 +83,9 @@ class BaseService:
         session.remove()
         return services
 
-    def status_multi_service(self, session: SessionClass, region, tenant_env, service_ids, enterprise_id):
+    def status_multi_service(self, session: SessionClass, region, tenant_env, service_ids):
         try:
-            body = remote_component_client.service_status(session, region, tenant_env, {"service_ids": service_ids,
-                                                                                         "enterprise_id": enterprise_id})
+            body = remote_component_client.service_status(session, region, tenant_env, {"service_ids": service_ids})
             return body["list"]
         except Exception as e:
             return []
@@ -170,7 +169,7 @@ class BaseService:
                         try:
                             market = markets.get(market_name, None)
                             if not market:
-                                market = app_market_repo.get_app_market_by_name(session, tenant_env.enterprise_id,
+                                market = app_market_repo.get_app_market_by_name(session,
                                                                                 market_name,
                                                                                 raise_exception=True)
                                 markets[market_name] = market
@@ -193,7 +192,7 @@ class BaseService:
                         bean["app_detail_url"] = app.describe
 
                 if not app:
-                    app = app_repo.get_wutong_app_qs_by_key(session, tenant_env.enterprise_id, service_source.group_key)
+                    app = app_repo.get_wutong_app_qs_by_key(session, service_source.group_key)
                     if not app:
                         logger.warning("not found app {0} version {1} in local market".format(
                             service_source.group_key, service_source.version))
@@ -215,8 +214,7 @@ class BaseService:
         service_ids = [service.service_id for service in services]
         service_status_list = self.status_multi_service(session=session, region=services[0].service_region,
                                                         tenant_env=tenant_env,
-                                                        service_ids=service_ids,
-                                                        enterprise_id=tenant_env.enterprise_id)
+                                                        service_ids=service_ids)
         if service_status_list:
             for status_map in service_status_list:
                 if status_map.get("status") in ["undeploy", "closed"]:

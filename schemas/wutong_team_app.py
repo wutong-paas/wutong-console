@@ -18,6 +18,8 @@ class TeamAppCreateRequest(BaseModel):
     k8s_app: Optional[str] = None
     project_id: Optional[str] = None
     team_id: Optional[str] = None
+    team_alias: Optional[str] = None
+    project_alias: Optional[str] = None
 
 
 class DevOpsTeamAppCreateParam(BaseModel):

@@ -123,7 +123,6 @@ async def get_app_detail(request: Request,
             return JSONResponse(result, status_code=result["code"])
         wutong_app, wutong_app_version = market_app_service.get_wutong_detail_app_and_version(
             session=session,
-            enterprise_id=env.enterprise_id,
             app_id=service_source.group_key,
             app_version=service_source.version)
         if not wutong_app:

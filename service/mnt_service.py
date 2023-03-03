@@ -23,7 +23,6 @@ class AppMntService(object):
                 data = {
                     "depend_service_id": dep_volume.service_id,
                     "volume_name": dep_volume.volume_name,
-                    "enterprise_id": tenant_env.tenant_name,
                     "operator": user_name
                 }
                 res, body = remote_component_client.delete_service_dep_volumes(session,
@@ -174,7 +173,6 @@ class AppMntService(object):
                     "depend_service_id": dep_volume.service_id,
                     "volume_name": dep_volume.volume_name,
                     "volume_path": source_path,
-                    "enterprise_id": tenant_env.enterprise_id,
                     "volume_type": dep_volume.volume_type
                 }
             else:
@@ -184,8 +182,7 @@ class AppMntService(object):
                     "volume_name": dep_volume.volume_name,
                     "volume_path": source_path,
                     "volume_type": dep_volume.volume_type,
-                    "file_content": config_file.file_content,
-                    "enterprise_id": tenant_env.enterprise_id
+                    "file_content": config_file.file_content
                 }
             data["operator"] = user_name
             res, body = remote_component_client.add_service_dep_volumes(session,

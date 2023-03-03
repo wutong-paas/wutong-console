@@ -140,12 +140,11 @@ class UpgradeService(object):
 
         app_template_source = self._app_template_source(session, record.group_id, record.group_key,
                                                         record.upgrade_group_id)
-        app_template = self._app_template(session, user.enterprise_id, component_group.group_key, version,
+        app_template = self._app_template(session, component_group.group_key, version,
                                           app_template_source)
 
         app_upgrade = AppUpgrade(
             session,
-            tenant_env.enterprise_id,
             tenant_env,
             region,
             user,
@@ -176,10 +175,10 @@ class UpgradeService(object):
 
         app_template_source = self._app_template_source(session, app.app_id, component_group.group_key,
                                                         upgrade_group_id)
-        app_template = self._app_template(session, user.enterprise_id, component_group.group_key, version,
+        app_template = self._app_template(session, component_group.group_key, version,
                                           app_template_source)
 
-        app_upgrade = AppUpgrade(session, user.enterprise_id, tenant_env, region, user, app, version, component_group,
+        app_upgrade = AppUpgrade(session, tenant_env, region, user, app, version, component_group,
                                  app_template,
                                  app_template_source.is_install_from_cloud(), app_template_source.get_market_name())
 
@@ -222,12 +221,12 @@ class UpgradeService(object):
             app_version.template_type = app_template.template_type
         return wutong_app, app_version
 
-    def _app_template(self, session, enterprise_id, app_model_key, version, app_template_source):
+    def _app_template(self, session, app_model_key, version, app_template_source):
         if not app_template_source.is_install_from_cloud():
-            _, app_version = center_app_repo.get_wutong_app_and_version(session, enterprise_id, app_model_key, version)
+            _, app_version = center_app_repo.get_wutong_app_and_version(session, app_model_key, version)
         else:
             market = app_market_repo.get_app_market_by_name(
-                session, enterprise_id, app_template_source.get_market_name(), raise_exception=True)
+                session, app_template_source.get_market_name(), raise_exception=True)
             _, app_version = self.upgrade_cloud_app_model_to_db_model(market, app_model_key, version)
 
         if not app_version:
@@ -244,12 +243,11 @@ class UpgradeService(object):
         component_group = tenant_service_group_repo.get_component_group(session, component.upgrade_group_id)
         app_template_source = service_source_repo.get_service_source(session, component.tenant_id,
                                                                      component.component_id)
-        app_template = self._app_template(session, user.enterprise_id, component_group.group_key, version,
+        app_template = self._app_template(session, component_group.group_key, version,
                                           app_template_source)
 
         app_upgrade = AppUpgrade(
             session,
-            tenant_env.enterprise_id,
             tenant_env,
             region,
             user,
@@ -264,7 +262,7 @@ class UpgradeService(object):
             is_upgrade_one=True)
         app_upgrade.upgrade(session)
 
-    def create_upgrade_record(self, session, enterprise_id, tenant_env: TeamEnvInfo, app: Application, upgrade_group_id):
+    def create_upgrade_record(self, session, tenant_env: TeamEnvInfo, app: Application, upgrade_group_id):
         component_group = tenant_service_group_repo.get_component_group(session, upgrade_group_id)
 
         # If there are unfinished record, it is not allowed to create new record
@@ -272,7 +270,7 @@ class UpgradeService(object):
         if last_record and not last_record.is_finished():
             raise ErrLastRecordUnfinished
 
-        component_group = ComponentGroup(enterprise_id, component_group)
+        component_group = ComponentGroup(component_group)
         app_template_source = component_group.app_template_source(session)
 
         # create new record

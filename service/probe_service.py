@@ -22,7 +22,6 @@ class ProbeService(object):
         logger.debug("create status: {}".format(service.create_status))
         if service.create_status == "complete":
             new_probe = copy.deepcopy(new_probe)
-            new_probe["enterprise_id"] = tenant_env.enterprise_id
             res, body = remote_component_client.add_service_probe(session,
                                                                   service.service_region, tenant_env,
                                                                   service.service_alias, jsonable_encoder(new_probe))
@@ -152,7 +151,6 @@ class ProbeService(object):
             "mode": data["mode"]
         }
         console_probe = copy.deepcopy(prob_data)
-        prob_data["enterprise_id"] = tenant_env.enterprise_id
         prob_data["operator"] = user_name
         if service.create_status == "complete":
             try:

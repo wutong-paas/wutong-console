@@ -24,7 +24,7 @@ from schemas.response import Response
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.domain_service import domain_service
 from service.app_config.port_service import port_service
-from service.region_service import EnterpriseConfigService, region_services
+from service.region_service import region_services
 
 router = APIRouter()
 

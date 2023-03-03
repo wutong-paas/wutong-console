@@ -4,12 +4,12 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from core import deps
+from core.idaasapi import idaas_api
 from core.utils.return_message import general_message, error_message
 from core.utils.validation import is_qualified_name
 from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrNamespaceExists
 from exceptions.main import ServiceHandleException
-from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
@@ -37,28 +37,26 @@ async def add_env(request: Request,
     desc = from_data.get("desc", "")
     if not is_qualified_name(env_name):
         raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
-    enterprise_id = user.enterprise_id
+
+    region = region_repo.get_region_by_region_name(session, region_name)
+    if not region:
+        return JSONResponse(general_message(404, "region not found", "集群不存在"), status_code=404)
 
     if not env_alias:
         result = general_message(400, "env name not null", "环境名不能为空")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_env_name(session, tenant_id, env_alias, enterprise_id)
+    env = env_repo.env_is_exists_by_env_name(session, tenant_id, env_alias)
     if env:
         result = general_message(400, "env name is exist", "该环境名已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_namespace(session, tenant_id, namespace, enterprise_id)
+    env = env_repo.env_is_exists_by_namespace(session, tenant_id, env_name)
     if env:
-        result = general_message(400, "env namespace is exist", "该环境英文名已存在")
+        result = general_message(400, "env namespace is exist", "该环境标识已存在")
         return JSONResponse(status_code=400, content=result)
 
-    enterprise = enterprise_repo.get_enterprise_by_enterprise_id(session, enterprise_id)
-    if not enterprise:
-        result = general_message(500, "user's enterprise is not found", "无企业信息")
-        return JSONResponse(status_code=500, content=result)
-
-    env = env_repo.create_env(session, user, enterprise, env_name, env_alias, tenant_id, team_name, namespace, desc)
+    env = env_repo.create_env(session, user, region.region_alias, env_name, env_alias, tenant_id, team_name, namespace, desc)
     exist_namespace_region_names = []
 
     try:
@@ -96,14 +94,19 @@ async def delete_env(request: Request,
     env_name = data.get("env_name", "")
     password = data.get("password", "")
     env = env_services.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    try:
-        env_services.delete_by_env_id(session=session, user=user, env=env)
-        result = general_message(200, "delete a team successfully", "删除环境成功")
-        return JSONResponse(result, status_code=result["code"])
-    except ServiceHandleException as e:
-        return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
+    # if not env:
+    #     return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    # if env.env_alias != env_name:
+    #     return JSONResponse(general_message(400, "env name error", "环境名不匹配"), status_code=400)
+    res = idaas_api.check_user_password(params={"userId": "1", "password": password})
+    if not res:
+        return JSONResponse(general_message(400, "password error", "密码不正确"), status_code=400)
+    # try:
+    #     env_services.delete_by_env_id(session=session, user=user, env=env)
+    #     result = general_message(200, "delete a team successfully", "删除环境成功")
+    #     return JSONResponse(result, status_code=result["code"])
+    # except ServiceHandleException as e:
+    #     return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/modify-env", response_model=Response, name="修改环境配置")
@@ -115,7 +118,6 @@ async def modify_env(request: Request,
     """
     data = await request.json()
     env_name = data.get("env_name", None)
-    region_name = data.get("region_name", None)
     desc = data.get("desc", None)
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:

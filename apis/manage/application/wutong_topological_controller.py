@@ -48,8 +48,7 @@ async def get_topological(
                                 status_code=code)
         topological_info = topological_service.get_group_topological_graph(session=session,
                                                                            group_id=group_id, region=region_name,
-                                                                           tenant_env=env,
-                                                                           enterprise_id=env.enterprise_id)
+                                                                           tenant_env=env)
         result = general_message(code, "Obtain topology success.", "获取拓扑图成功", bean=topological_info)
     return JSONResponse(result, status_code=result["code"])
 

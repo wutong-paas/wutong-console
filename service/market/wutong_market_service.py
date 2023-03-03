@@ -17,11 +17,10 @@ from service.market_app.app_upgrade import AppUpgrade
 from service.tenant_env_service import env_services
 
 
-def get_wutong_markets(session: SessionClass, enterprise_id: str, user: str):
+def get_wutong_markets(session: SessionClass, user: str):
 
     # 查询用户团队权限下应用店铺
-    # markets = wutong_market_repo.list_by_model(session=session, query_model=AppMarket(enterprise_id=enterprise_id))
-    markets = wutong_market_repo.get_market_list(session=session, enterprise_id=enterprise_id)
+    markets = wutong_market_repo.get_market_list(session=session)
     if not markets:
         return []
     result = []
@@ -35,7 +34,7 @@ def get_wutong_markets(session: SessionClass, enterprise_id: str, user: str):
     return result
 
 
-def bind_wutong_market(session: SessionClass, enterprise_id: str, params: MarketCreateParam):
+def bind_wutong_market(session: SessionClass, params: MarketCreateParam):
     # 字符串处理
     store_url = params.url
 
@@ -65,16 +64,15 @@ def bind_wutong_market(session: SessionClass, enterprise_id: str, params: Market
     wutong_market_repo.base_create(session=session,
                                    add_model=AppMarket(name=params.name, url=server_address, domain=params.url,
                                                        access_key=params.access_key, access_secret=params.access_secret,
-                                                       enterprise_id=enterprise_id, type=params.type,
+                                                       type=params.type,
                                                        store_id=store_id, scope=params.scope))
 
 
-def update_wutong_market(session: SessionClass, enterprise_id: str, market_id: str, market_name: str):
-    wutong_market_repo.update_by_primary_key(session=session, update_model=AppMarket(ID=market_id, name=market_name,
-                                                                                     enterprise_id=enterprise_id))
+def update_wutong_market(session: SessionClass, market_id: str, market_name: str):
+    wutong_market_repo.update_by_primary_key(session=session, update_model=AppMarket(ID=market_id, name=market_name))
 
 
-def install_cloud_market_app(session: SessionClass, user, enterprise_id: str, market_id: str,
+def install_cloud_market_app(session: SessionClass, user, market_id: str,
                              params: MarketAppInstallParam):
     # 前置校验
     application = application_repo.get_by_primary_key(session=session, primary_key=params.application_id)
@@ -102,7 +100,6 @@ def install_cloud_market_app(session: SessionClass, user, enterprise_id: str, ma
                                                   params.market_app_name)
     app_upgrade = AppUpgrade(
         session,
-        enterprise_id,
         team_info,
         region,
         user,
@@ -156,8 +153,8 @@ def push_local_application(session: SessionClass, store_id: str, service_share_r
     wutong_market_client.push_local_app(session=session, param_body=body, market=market, store_id=store_id)
 
 
-def get_store_list(session: SessionClass, enterprise_id: str):
-    store_list = wutong_market_repo.list_by_model(session=session, query_model=AppMarket(enterprise_id=enterprise_id))
+def get_store_list(session: SessionClass):
+    store_list = wutong_market_repo.list_by_model(session=session, query_model=AppMarket)
     if store_list:
         result = []
         for store in store_list:

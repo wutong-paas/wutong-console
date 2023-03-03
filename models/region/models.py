@@ -12,7 +12,6 @@ class EnvRegionInfo(Base):
     unique_together = (('env_id', 'region_name'),)
 
     ID = Column(Integer, primary_key=True)
-    env_id = Column(String(33), comment="租户id", nullable=False)
     region_name = Column(String(64), comment="集群ID", nullable=False)
     is_active = Column(Boolean, comment="是否已激活", nullable=False, default=True)
     is_init = Column(Boolean, comment="是否创建租户网络", nullable=False, default=False)
@@ -22,8 +21,6 @@ class EnvRegionInfo(Base):
     region_env_name = Column(String(64), comment="数据中心租户名", nullable=True, default='')
     region_env_id = Column(String(32), comment="数据中心租户id", nullable=True, default='')
     region_scope = Column(String(32), comment="数据中心类型", nullable=True, default='')
-    enterprise_id = Column(String(32), comment="企业id", nullable=True, default='')
-    region_tenant_name = Column(String(64), comment="数据中心租户名", nullable=True, default='')
 
 
 class RegionApp(Base):

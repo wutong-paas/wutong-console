@@ -28,7 +28,7 @@ class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
         )).scalars().all()
         return [rel for rel in rels]
 
-    def check_plugins_by_eid(self, session, eid):
+    def check_plugins_by_eid(self, session):
         """
         check if an app has been shared
         """
@@ -43,9 +43,8 @@ class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
                 c.tenant_id = b.tenant_id
                 AND a.service_id = c.service_id
                 AND c.service_source <> 'market'
-                AND b.enterprise_id = :eid
                 LIMIT 1"""
-        sql = text(sql).bindparams(eid=eid)
+        sql = text(sql)
         result = session.execute(sql).fetchall()
         return True if len(result) > 0 else False
 

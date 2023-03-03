@@ -56,16 +56,16 @@ class TeamRegionRepository(BaseRepository[EnvRegionInfo]):
         region_config = results.scalars().first()
         return region_config
 
-    def get_regions_by_enterprise_id(self, session: SessionClass, eid, status=None):
+    def get_regions(self, session: SessionClass, status=None):
         if status:
             data = (
                 session.execute(
-                    select(RegionConfig).where(RegionConfig.enterprise_id == eid, RegionConfig.status == status))
+                    select(RegionConfig).where(RegionConfig.status == status))
             ).scalars().all()
 
             return data
         result = (
-            session.execute(select(RegionConfig).where(RegionConfig.enterprise_id == eid))
+            session.execute(select(RegionConfig))
         ).scalars().all()
 
         return result

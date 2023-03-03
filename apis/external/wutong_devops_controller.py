@@ -88,8 +88,7 @@ async def get_app_state(
                 session=session,
                 tenant_env=env,
                 team_id=team.tenant_id,
-                region_name=region_name,
-                enterprise_id=team.enterprise_id)
+                region_name=region_name)
             if page_size == "-1" or page_size == "" or page_size == "0":
                 page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
             page_params = Params(page=page, size=page_size)
@@ -110,8 +109,7 @@ async def get_app_state(
             group_id=application_id,
             region_name=region_name,
             team_id=team.tenant_id,
-            tenant_env=env,
-            enterprise_id=team.enterprise_id)
+            tenant_env=env)
         params = Params(page=page, size=page_size)
         pg = paginate(group_service_list, params)
         total = pg.total

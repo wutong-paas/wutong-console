@@ -5,8 +5,7 @@ from service.application_service import application_service
 
 
 class ComponentGroup(object):
-    def __init__(self, enterprise_id, component_group: TeamApplication, version=None, need_save=True):
-        self.enterprise_id = enterprise_id
+    def __init__(self, component_group: TeamApplication, version=None, need_save=True):
         self.component_group = component_group
         self.app_id = self.component_group.service_group_id
         self.app_model_key = self.component_group.group_key

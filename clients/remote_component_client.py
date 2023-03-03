@@ -4,7 +4,7 @@ from loguru import logger
 from sqlalchemy import select
 from common.api_base_http_client import ApiBaseHttpClient
 from common.base_client_service import get_env_region_info, get_region_access_info, \
-    get_region_access_info_by_enterprise_id
+    get_region_access_info
 from exceptions.main import ServiceHandleException
 from models.teams import RegionConfig
 
@@ -54,14 +54,14 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._put(session, url, self.default_headers, region=region, body=json.dumps(body))
         return body
 
-    def delete_service(self, session, region, tenant_env, service_alias, enterprise_id, data=None):
+    def delete_service(self, session, region, tenant_env, service_alias, data=None):
         """删除组件"""
 
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/envs/" + tenant_env.env_name + "/services/" \
-              + service_alias + "?enterprise_id=" + enterprise_id
+              + service_alias
 
         self._set_headers(token)
         if not data:
@@ -206,13 +206,13 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def get_service_pods(self, session, region, tenant_env, service_alias, enterprise_id):
+    def get_service_pods(self, session, region, tenant_env, service_alias):
         """获取组件pod信息"""
 
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
-              + service_alias + "/pods?enterprise_id=" + enterprise_id
+              + service_alias + "/pods"
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, None, region=region, timeout=15)
@@ -269,13 +269,13 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def delete_service_port(self, session, region, tenant_env, service_alias, port, enterprise_id, body={}):
+    def delete_service_port(self, session, region, tenant_env, service_alias, port, body={}):
         """删除组件端口"""
 
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
-              "/services/" + service_alias + "/ports/" + str(port) + "?enterprise_id=" + enterprise_id
+              "/services/" + service_alias + "/ports/" + str(port)
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, json.dumps(body), region=region)
@@ -412,13 +412,13 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
         return body
 
-    def check_service_status(self, session, region, tenant_env, service_alias, enterprise_id):
+    def check_service_status(self, session, region, tenant_env, service_alias):
         """获取单个组件状态"""
 
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
-              "/services/" + service_alias + "/status?enterprise_id=" + enterprise_id
+              "/services/" + service_alias + "/status"
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
@@ -437,20 +437,19 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
-    def get_service_volumes(self, session, region, tenant_env, service_alias, enterprise_id):
+    def get_service_volumes(self, session, region, tenant_env, service_alias):
         """
-
+        :param session:
         :param region:
-        :param tenant_name:
+        :param tenant_env:
         :param service_alias:
-        :param enterprise_id:
         :return:
         """
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         tenant_name = tenant_region.region_tenant_name
-        url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes?enterprise_id={3}".format(
-            tenant_name, tenant_env.env_name, service_alias, enterprise_id)
+        url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes".format(
+            tenant_name, tenant_env.env_name, service_alias)
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
@@ -471,7 +470,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         self._set_headers(token)
         return self._post(session, url, self.default_headers, json.dumps(body), region=region)
 
-    def delete_service_volumes(self, session, region, tenant_env, service_alias, volume_name, enterprise_id, body={}):
+    def delete_service_volumes(self, session, region, tenant_env, service_alias, volume_name, body={}):
         """
 
         :param region:
@@ -485,8 +484,8 @@ class RemoteComponentClient(ApiBaseHttpClient):
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         tenant_name = tenant_region.region_tenant_name
-        url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes/{3}?enterprise_id={4}".format(
-            tenant_name, tenant_env.env_name, service_alias, volume_name, enterprise_id)
+        url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes/{3}".format(
+            tenant_name, tenant_env.env_name, service_alias, volume_name)
         self._set_headers(token)
         return self._delete(session, url, self.default_headers, json.dumps(body), region=region)
 
@@ -562,46 +561,44 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body), timeout=20)
         return body
 
-    def get_enterprise_api_version_v2(self, session, enterprise_id, region, **kwargs):
+    def get_enterprise_api_version_v2(self, session, region, **kwargs):
         """获取api版本-v2"""
         kwargs["retries"] = 1
         kwargs["timeout"] = 1
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
+        url, token = get_region_access_info(region, session)
         url += "/v2/show"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, **kwargs)
         return res, body
 
-    def get_enterprise_running_services(self, session, enterprise_id, region, test=False):
+    def get_enterprise_running_services(self, session, region, test=False):
         """
-
-        :param enterprise_id:
+        :param session:
         :param region:
         :param test:
         :return:
         """
         if test:
-            self.get_enterprise_api_version_v2(session, enterprise_id, region=region)
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
-        url = url + "/v2/enterprise/" + enterprise_id + "/running-services"
+            self.get_enterprise_api_version_v2(session, region=region)
+        url, token = get_region_access_info(region, session)
+        url = url + "/v2/enterprise/running-services"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=10)
         if res.get("status") == 200 and isinstance(body, dict):
             return body
         return None
 
-    def get_all_services_status(self, session, enterprise_id, region, test=False):
+    def get_all_services_status(self, session, region, test=False):
         """
-
-        :param enterprise_id:
+        :param session:
         :param region:
         :param test:
         :return:
         """
         if test:
-            self.get_enterprise_api_version_v2(session, enterprise_id, region=region)
-        url, token = get_region_access_info_by_enterprise_id(enterprise_id, region, session)
-        url = url + "/v2/enterprise/" + enterprise_id + "/services/status"
+            self.get_enterprise_api_version_v2(session, region=region)
+        url, token = get_region_access_info(region, session)
+        url = url + "/v2/enterprise/services/status"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=10)
         if res.get("status") == 200 and isinstance(body, dict):
@@ -619,13 +616,13 @@ class RemoteComponentClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return body
 
-    def get_service_log_files(self, session, region, tenant_env, service_alias, enterprise_id):
+    def get_service_log_files(self, session, region, tenant_env, service_alias):
         """获取组件日志文件列表"""
 
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
-              "/services/" + service_alias + "/log-file?enterprise_id=" + enterprise_id
+              "/services/" + service_alias + "/log-file"
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)

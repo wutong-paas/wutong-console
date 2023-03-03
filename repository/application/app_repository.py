@@ -17,36 +17,31 @@ class TenantServiceDeleteRepository(object):
 
 class AppRepo(object):
 
-    def add_wutong_install_num(self, session, enterprise_id, app_id, app_version):
+    def add_wutong_install_num(self, session, app_id, app_version):
         app = session.execute(select(CenterApp).where(
-            CenterApp.enterprise_id == enterprise_id,
             CenterApp.app_id == app_id
         )).scalars().first()
         app.install_number += 1
 
         app_version = session.execute(select(CenterAppVersion).where(
-            CenterAppVersion.enterprise_id == enterprise_id,
             CenterAppVersion.app_id == app_id,
             CenterAppVersion.version == app_version
         ).order_by(CenterAppVersion.update_time.desc())).scalars().first()
         app_version.install_number += 1
 
-    def get_wutong_app_qs_by_key(self, session, eid, app_id):
+    def get_wutong_app_qs_by_key(self, session, app_id):
         """使用group_key获取一个云市应用的所有版本查询集合"""
         return session.execute(select(CenterApp).where(
-            CenterApp.enterprise_id == eid,
             CenterApp.app_id == app_id)).scalars().first()
 
-    def delete_app_version_by_version(self, session, enterprise_id, app_id, version):
+    def delete_app_version_by_version(self, session, app_id, version):
         session.execute(delete(CenterAppVersion).where(
-            CenterAppVersion.enterprise_id == enterprise_id,
             CenterAppVersion.app_id == app_id,
             CenterAppVersion.version == version
         ))
 
-    def update_app_version(self, session, enterprise_id, app_id, version, **data):
+    def update_app_version(self, session, app_id, version, **data):
         version = session.execute(select(CenterAppVersion).where(
-            CenterAppVersion.enterprise_id == enterprise_id,
             CenterAppVersion.app_id == app_id,
             CenterAppVersion.version == version
         ).order_by(CenterAppVersion.create_time.desc())).scalars().first()
@@ -188,7 +183,7 @@ class ServiceRelationRecycleBinRepository(object):
 
 
 class AppTagRepository(object):
-    def get_multi_apps_tags(self, session, eid, app_ids):
+    def get_multi_apps_tags(self, session, app_ids):
         if not app_ids:
             return None
         app_ids = ",".join("'{0}'".format(app_id) for app_id in app_ids)
@@ -199,13 +194,11 @@ class AppTagRepository(object):
         from
             center_app_tag_relation atr
         left join center_app_tag tag on
-            atr.enterprise_id = tag.enterprise_id
             and atr.tag_id = tag.ID
         where
-            atr.enterprise_id = :eid
             and atr.app_id in :app_ids;
         """
-        sql = text(sql).bindparams(eid=eid, app_ids=tuple(app_ids.split(",")))
+        sql = text(sql).bindparams(app_ids=tuple(app_ids.split(",")))
         apps = session.execute(sql).fetchall()
         return apps
 
@@ -223,7 +216,6 @@ class AppTagRepository(object):
 
     def create_tag(self, session, enterprise_id, name):
         old_tag = session.execute(select(CenterAppTag).where(
-            CenterAppTag.enterprise_id == enterprise_id,
             CenterAppTag.name == name
         )).scalars().all()
         if old_tag:

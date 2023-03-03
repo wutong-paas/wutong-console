@@ -9,10 +9,7 @@ from database.session import Base
 class CenterApp(Base):
     """云市应用包(组)"""
 
-    # todo 改表名
     __tablename__ = "center_app"
-
-    # unique_together = ('app_id', 'enterprise_id')
 
     ID = Column(Integer, primary_key=True)
     app_id = Column(String(32), comment="应用包", nullable=False)
@@ -31,7 +28,6 @@ class CenterApp(Base):
     is_ingerit = Column(Boolean(), default=True, comment="是否可被继承", nullable=False)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
     update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
-    enterprise_id = Column(String(32), default="public", comment="企业ID", nullable=False)
     install_number = Column(Integer, default=0, comment='安装次数', nullable=False)
     is_official = Column(Boolean, default=False, comment='是否官方认证', nullable=False)
     details = Column(Text, nullable=True, comment="应用详情")
@@ -43,7 +39,6 @@ class CenterAppVersion(Base):
     __tablename__ = "center_app_version"
 
     ID = Column(Integer, primary_key=True)
-    enterprise_id = Column(String(32), default="public", comment="企业ID", nullable=False)
     app_id = Column(String(32), comment="应用id", nullable=False)
     version = Column(String(32), comment="版本", nullable=False)
     version_alias = Column(String(64), default="NA", comment="别名", nullable=False)
@@ -87,7 +82,6 @@ class CenterAppTagsRelation(Base):
     __tablename__ = "center_app_tag_relation"
 
     ID = Column(Integer, primary_key=True, comment="主键")
-    enterprise_id = Column(String(36), default="public", comment="企业id", nullable=False)
     app_id = Column(String(32), comment="当前应用", nullable=False)
     tag_id = Column(Integer, comment="标签id", nullable=False)
 
@@ -99,7 +93,6 @@ class CenterAppTag(Base):
 
     ID = Column(Integer, primary_key=True, comment="主键")
     name = Column(String(32), unique=True, comment="标签名称", nullable=False)
-    enterprise_id = Column(String(32), comment="企业id", nullable=False)
     is_deleted = Column(Boolean(), default=False, comment="是否删除", nullable=False)
 
 
@@ -127,7 +120,6 @@ class CenterPlugin(Base):
     is_complete = Column(Boolean(), default=False, comment="代码或镜像是否同步完成", nullable=False)
     create_time = Column(DateTime(), default=datetime.now, nullable=True, comment="创建时间")
     update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now, nullable=True, comment="更新时间")
-    enterprise_id = Column(String(32), default='public', comment="企业id", nullable=False)
     details = Column(Text, nullable=True, comment="插件详细信息")
 
 
@@ -139,7 +131,6 @@ class HelmMarket(Base):
     id = Column(BIGINT, primary_key=True, comment="主键")
     created_at = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
     updated_at = Column(DateTime(), nullable=True, default=datetime.now, comment="更新时间")
-    eid = Column(String(32), comment="eid", nullable=True)
     name = Column(String(32), comment="商店标识", nullable=True)
     url = Column(Text, comment="地址", nullable=True)
     branch = Column(Text, comment="分支", nullable=True)
@@ -161,12 +152,10 @@ class AppImportRecord(Base):
     team_name = Column(String(64), nullable=True, comment="正在导入的团队名称")
     region = Column(String(64), nullable=True, comment="数据中心")
     user_name = Column(String(64), nullable=True, comment="操作人")
-    enterprise_id = Column(String(64), nullable=True, comment="企业id")
 
 
 class AppMarket(Base):
     __tablename__ = "app_market"
-    unique_together = ('name', 'enterprise_id')
 
     ID = Column(Integer, primary_key=True, comment="主键")
     name = Column(String(64), comment="应用商店标识", nullable=False)
@@ -175,6 +164,5 @@ class AppMarket(Base):
     domain = Column(String(255), comment="应用商店域名", nullable=False)
     access_key = Column(String(1024), nullable=True, comment="应用商店访问令牌")
     access_secret = Column(String(1024), nullable=True, comment="应用商店访问密钥")
-    enterprise_id = Column(String(32), comment="企业id", nullable=False)
     type = Column(String(32), comment="类型", nullable=False)
     scope = Column(String(32), comment="可见范围", nullable=False)

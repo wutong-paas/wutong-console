@@ -27,7 +27,6 @@ class AppServiceRelationService(object):
             task["dep_service_id"] = dep_id
             task["tenant_id"] = tenant_env.tenant_id
             task["dep_service_type"] = "v"
-            task["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.delete_service_dependency(session,
                                                                   service.service_region, tenant_env,
@@ -143,7 +142,6 @@ class AppServiceRelationService(object):
             task["dep_service_id"] = dep_service_id
             task["tenant_id"] = tenant_env.tenant_id
             task["dep_service_type"] = dep_service.service_type
-            task["enterprise_id"] = tenant_env.enterprise_id
             task["operator"] = user_name
             remote_component_client.add_service_dependency(session,
                                                            service.service_region, tenant_env,
@@ -190,7 +188,6 @@ class AppServiceRelationService(object):
             task["dep_service_id"] = dep_service_id
             task["tenant_id"] = tenant_env.tenant_id
             task["dep_service_type"] = "v"
-            task["enterprise_id"] = tenant_env.enterprise_id
             task["operator"] = user_name
 
             remote_component_client.delete_service_dependency(session,
