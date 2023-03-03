@@ -36,7 +36,7 @@ async def close_teams_app(params: Optional[CloseTeamAppParam] = CloseTeamAppPara
                                                          user=user)
     else:
         app_manage_service.close_all_component_in_team(session=session, tenant_env=env, user=user)
-    return JSONResponse(general_message(200, "success", "操作成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "操作成功"), status_code=200)
 
 
 def __sort_events(event1, event2):
@@ -100,7 +100,7 @@ async def overview_team_app_info(request: Request,
 
     apps = apps[start:end]
     app_num_dict.update(count)
-    return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict),
+    return JSONResponse(general_message("0", "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict),
                         status_code=200)
 
 
@@ -179,5 +179,5 @@ async def again_delete_app(request: Request,
     service_id = data.get("service_id", None)
     service = service_info_repo.get_service_by_service_id(session, service_id)
     app_manage_service.delete_again(session, user, env, service, is_force=True)
-    result = general_message(200, "success", "操作成功", bean={})
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功", bean={})
+    return JSONResponse(result, status_code=200)

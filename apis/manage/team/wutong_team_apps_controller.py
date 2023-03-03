@@ -63,8 +63,8 @@ async def get_assembly_state(
     bean["check_uuid"] = service.check_uuid
     status_map = application_service.get_service_status(session=session, tenant_env=env, service=service)
     bean.update(status_map)
-    result = general_message(200, "success", "查询成功", bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=bean)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/detail", response_model=Response, name="应用详情")
@@ -119,15 +119,15 @@ async def get_app_detail(request: Request,
     if service.service_source == "market":
         service_source = service_source_repo.get_service_source(session, env.tenant_id, service.service_id)
         if not service_source:
-            result = general_message(200, "success", "查询成功", bean=bean)
-            return JSONResponse(result, status_code=result["code"])
+            result = general_message("0", "success", "查询成功", bean=bean)
+            return JSONResponse(result, status_code=200)
         wutong_app, wutong_app_version = market_app_service.get_wutong_detail_app_and_version(
             session=session,
             app_id=service_source.group_key,
             app_version=service_source.version)
         if not wutong_app:
-            result = general_message(200, "success", "当前组件安装源模版已删除", bean=bean)
-            return JSONResponse(result, status_code=result["code"])
+            result = general_message("0", "success", "当前组件安装源模版已删除", bean=bean)
+            return JSONResponse(result, status_code=200)
 
         bean.update({"rain_app_name": wutong_app.app_name})
         try:
@@ -189,8 +189,8 @@ async def get_app_detail(request: Request,
             if service_endpoints.endpoints_type == "kubernetes":
                 bean["kubernetes"] = json.loads(service_endpoints.endpoints_info)
 
-    result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/events", response_model=Response, name="获取作用对象的event事件")
@@ -227,9 +227,9 @@ async def get_events_info(request: Request,
                                                                       tenant_env=env, region=service.service_region,
                                                                       page=int(page),
                                                                       page_size=int(page_size))
-            result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
+            result = general_message("0", "success", "查询成功", list=events, total=total, has_next=has_next)
         else:
-            result = general_message(200, "success", "查询成功", list=[], total=0, has_next=False)
+            result = general_message("0", "success", "查询成功", list=[], total=0, has_next=False)
     elif target == "team":
         target_id = env.tenant_id
         region = response_region
@@ -238,8 +238,8 @@ async def get_events_info(request: Request,
                                                                   tenant_env=env, region=region,
                                                                   page=int(page),
                                                                   page_size=int(page_size))
-        result = general_message(200, "success", "查询成功", list=events, total=total, has_next=has_next)
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "查询成功", list=events, total=total, has_next=has_next)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/check-resource-name", response_model=Response, name="检查资源名称")
@@ -254,4 +254,4 @@ async def check_resource_name(
     rtype = await parse_item(request, "type", required=True)
     region_name = await parse_item(request, "region_name", required=True)
     components = env_services.check_resource_name(session, env, region_name, rtype, name)
-    return JSONResponse(general_message(200, "success", "查询成功", list=components), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", list=components), status_code=200)

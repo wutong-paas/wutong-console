@@ -65,7 +65,7 @@ async def get_xparuler(serviceAlias: Optional[str] = None,
                        env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     rules = autoscaler_service.list_autoscaler_rules(session=session, service_id=service.service_id)
-    result = general_message(200, "success", "查询成功", list=rules)
+    result = general_message("0", "success", "查询成功", list=rules)
     return JSONResponse(result, status_code=200)
 
 
@@ -88,7 +88,7 @@ async def set_xparuler(request: Request,
     res = autoscaler_service.create_autoscaler_rule(session, region_name, env,
                                                     service.service_alias,
                                                     data)
-    result = general_message(200, "success", "创建成功", bean=res)
+    result = general_message("0", "success", "创建成功", bean=res)
     return JSONResponse(result, status_code=200)
 
 
@@ -111,7 +111,7 @@ async def get_xparecords(request: Request,
                                                         tenant_env=env,
                                                         service_alias=service.service_alias, page=page,
                                                         page_size=page_size)
-    result = general_message(200, "success", "查询成功", bean=data)
+    result = general_message("0", "success", "查询成功", bean=data)
     return JSONResponse(result, status_code=200)
 
 
@@ -150,15 +150,15 @@ async def get_extend_method(serviceAlias: Optional[str] = None,
             "amd.com/gpu"
         ]
     }
-    result = general_message(200, "success", "操作成功", bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功", bean=bean)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules/{rule_id}", response_model=Response, name="查询组件伸缩指标")
 async def get_xparules_index(rule_id: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session)) -> Any:
     res = autoscaler_service.get_by_rule_id(session, rule_id)
-    result = general_message(200, "success", "查询成功", bean=res)
+    result = general_message("0", "success", "查询成功", bean=res)
     return JSONResponse(result, status_code=200)
 
 
@@ -184,5 +184,5 @@ async def set_xparules_index(request: Request,
                                                     service.service_alias,
                                                     rule_id, data, user.nick_name)
 
-    result = general_message(200, "success", "创建成功", bean=res)
+    result = general_message("0", "success", "创建成功", bean=res)
     return Response(data=result, status=200)

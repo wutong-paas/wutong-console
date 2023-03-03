@@ -58,5 +58,5 @@ async def file_upload(file: UploadFile = File(...)) -> Any:
     if not file_url:
         result = general_message(400, "upload file error", "上传失败")
     else:
-        result = general_message(200, "file upload success", "上传成功", bean={"file_url": file_url})
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "file upload success", "上传成功", bean={"file_url": file_url})
+    return JSONResponse(result, status_code=200)

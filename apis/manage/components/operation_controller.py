@@ -94,13 +94,13 @@ async def docker_run(
                                                                   component_id=new_service.service_id)
         if code != 200:
             logger.debug("service.create", msg_show)
-        result = general_message(200, "success", "创建成功", bean=jsonable_encoder(new_service))
+        result = general_message("0", "success", "创建成功", bean=jsonable_encoder(new_service))
     except ResourceNotEnoughException as re:
         raise re
     except AccountOverdueException as re:
         logger.exception(re)
         return JSONResponse(general_message(10410, "resource is not enough", re), status_code=10410)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/get_check_uuid", response_model=Response, name="组件构建检测")
@@ -113,7 +113,7 @@ async def get_check_uuid(service_alias: Optional[str] = None,
                                                        TeamComponentInfo.tenant_id == env.tenant_id))
     ).scalars().first()
 
-    return JSONResponse(general_message(200, "success", "获取成功", bean={"check_uuid": check_uuid}), status_code=200)
+    return JSONResponse(general_message("0", "success", "获取成功", bean={"check_uuid": check_uuid}), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
@@ -166,7 +166,7 @@ async def get_check_detail(check_uuid: Optional[str] = None,
             component_check_service.update_service_check_info(session=session, tenant=env, service=service,
                                                               data=data)
         check_brief_info = component_check_service.wrap_service_check_info(session=session, service=service, data=data)
-        return JSONResponse(general_message(200, "success", "请求成功", bean=check_brief_info), status_code=200)
+        return JSONResponse(general_message("0", "success", "请求成功", bean=check_brief_info), status_code=200)
 
     if data["service_info"] and len(data["service_info"]) < 2:
         # No need to save env, ports and other information for multiple services here.
@@ -180,8 +180,8 @@ async def get_check_detail(check_uuid: Optional[str] = None,
                 result_url = re.split("[:,@]", i["value"])
                 if len(result_url) != 2:
                     i["value"] = result_url[0] + '//' + result_url[-2] + result_url[-1]
-    result = general_message(200, "success", "请求成功", bean=check_brief_info)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "请求成功", bean=check_brief_info)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
@@ -220,8 +220,8 @@ async def check(
     if code != 200:
         result = general_message(code, "check service error", msg)
     else:
-        result = general_message(200, "success", "操作成功", bean=jsonable_encoder(service_info))
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "操作成功", bean=jsonable_encoder(service_info))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/build", response_model=Response, name="构建组件")
@@ -277,7 +277,7 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
                 return JSONResponse(general_message(err.error_code, e, err.msg_show), err.error_code)
             # 添加组件部署关系
             application_service.create_deploy_relation_by_service_id(session=session, service_id=service.service_id)
-        return JSONResponse(general_message(200, "success", "构建成功"), status_code=200)
+        return JSONResponse(general_message("0", "success", "构建成功"), status_code=200)
     except ApiBaseHttpClient.RemoteInvokeError as e:
         logger.exception(e)
         if e.status == 403:
@@ -299,7 +299,7 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
     service.create_status = "checked"
 
     session.merge(service)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/pods/{pod_name}/detail", response_model=Response,
@@ -363,7 +363,7 @@ async def component_vertical(request: Request,
     except AccountOverdueException as re:
         logger.exception(re)
         return JSONResponse(general_message(10410, "resource is not enough", "失败"), status_code=412)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/horizontal", response_model=Response, name="水平升级组件")
@@ -385,7 +385,7 @@ async def component_horizontal(request: Request,
         oauth_instance, _ = None, None
         app_manage_service.horizontal_upgrade(
             session, env, service, user, int(new_node), oauth_instance=oauth_instance)
-        result = general_message(200, "success", "操作成功", bean={})
+        result = general_message("0", "success", "操作成功", bean={})
     except ResourceNotEnoughException as re:
         raise re
     except AccountOverdueException as re:
@@ -394,7 +394,7 @@ async def component_horizontal(request: Request,
     except ServiceHandleException as re:
         logger.exception(re)
         return JSONResponse(general_message(re.status_code, re.msg, re.msg_show), status_code=re.status_code)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs", response_model=Response, name="查询组件图表")
@@ -403,15 +403,15 @@ async def component_graphs(service_alias: Optional[str] = None,
                            env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, service_alias, env.tenant_id)
     graphs = component_graph_service.list_component_graphs(session, service.service_id)
-    result = general_message(200, "success", "查询成功", list=graphs)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=graphs)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response, name="查询组件内部图表")
 async def component_graphs() -> Any:
     graphs = component_graph_service.list_internal_graphs()
-    result = general_message(200, "success", "查询成功", list=graphs)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=graphs)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response, name="一键导入内部图表")
@@ -423,8 +423,8 @@ async def import_component_graphs(request: Request,
     graph_name = await parse_item(request, "graph_name", required=True)
     service = service_info_repo.get_service(session, service_alias, env.tenant_id)
     component_graph_service.create_internal_graphs(session, service.service_id, graph_name)
-    result = general_message(200, "success", "导入成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "导入成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor", response_model=Response, name="查询组件监控点")
@@ -492,8 +492,8 @@ async def add_component_graphs(request: Request,
                                                                data['promql'])
     except FileNotFoundError as e:
         return JSONResponse(general_message(400, "failed", "系统找不到指定的文件"), status_code=400)
-    result = general_message(200, "success", "创建成功", bean=graph)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "创建成功", bean=graph)
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs", response_model=Response, name="批量删除组件图表")
@@ -504,8 +504,8 @@ async def delete_component_graphs(request: Request,
     graph_ids = await parse_item(request, "graph_ids", required=True)
     service = service_info_repo.get_service(session, service_alias, env.tenant_id)
     component_graph_service.batch_delete(session, service.service_id, graph_ids)
-    result = general_message(200, "success", "删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "删除成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor/{name}", response_model=Response,
@@ -571,8 +571,8 @@ async def get_history_log(request: Request,
 
     file_urls = [{"file_name": f["filename"], "file_url": log_domain_url + "/" + f["relative_path"]} for f in file_list]
 
-    result = general_message(200, "success", "查询成功", list=file_urls)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=file_urls)
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response, name="删除组件图表")
@@ -584,8 +584,8 @@ async def delete_component_graphs(
     service = service_info_repo.get_service(session, service_alias, env.tenant_id)
     graph = component_graph_repo.get_graph(session, service.service_id, graph_id)
     graphs = component_graph_service.delete_component_graph(session, graph)
-    result = general_message(200, "success", "删除成功", list=graphs)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "删除成功", list=graphs)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response, name="修改组件图表")
@@ -600,8 +600,8 @@ async def modify_component_graphs(
     graph = component_graph_repo.get_graph(session, service.service_id, graph_id)
     graphs = component_graph_service.update_component_graph(session, graph, data["title"], data["promql"],
                                                             data["sequence"])
-    result = general_message(200, "success", "修改成功", list=graphs)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "修改成功", list=graphs)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/multi/check", response_model=Response, name="进入多组件创建流程")
@@ -665,4 +665,4 @@ async def multi_create(
             "service_ids": service_ids,
         })
 
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

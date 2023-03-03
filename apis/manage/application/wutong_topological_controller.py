@@ -50,7 +50,7 @@ async def get_topological(
                                                                            group_id=group_id, region=region_name,
                                                                            tenant_env=env)
         result = general_message(code, "Obtain topology success.", "获取拓扑图成功", bean=topological_info)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/topological/ports", response_model=Response,
@@ -212,5 +212,5 @@ async def get_topological_info(
         team_name=team_name,
         service=service,
         region_name=service.service_region)
-    result = general_message(200, "success", "成功", bean=result)
+    result = general_message("0", "success", "成功", bean=result)
     return JSONResponse(result, status_code=200)

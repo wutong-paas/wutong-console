@@ -147,7 +147,7 @@ async def get_domain_query(request: Request,
         domain_list.append(domain_dict)
     bean = dict()
     bean["total"] = total
-    return general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+    return general_message("0", "success", "查询成功", list=domain_list, bean=bean)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/domain/get_port", response_model=Response, name="获取可用的port")
@@ -166,8 +166,8 @@ async def get_port(
     if int(ipres.status) != 200:
         result = general_message(400, "call region error", "请求数据中心异常")
         return JSONResponse(result, status_code=result["code"])
-    result = general_message(200, "success", "可用端口查询成功", list=ipdata.get("list"))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "可用端口查询成功", list=ipdata.get("list"))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="tcp/udp策略操作")
@@ -196,10 +196,10 @@ async def service_tcp_domain(request: Request,
         bean.update({"service_alias": service_alias})
         bean.update({"group_name": group_name})
         bean.update({"g_id": g_id})
-        result = general_message(200, "success", "查询成功", bean=bean)
+        result = general_message("0", "success", "查询成功", bean=bean)
     else:
         bean = dict()
-        result = general_message(200, "success", "查询成功", bean=bean)
+        result = general_message("0", "success", "查询成功", bean=bean)
     return JSONResponse(result, status_code=result["code"])
 
 
@@ -251,7 +251,7 @@ async def service_tcp_domain(request: Request,
     if code != 200:
         return JSONResponse(general_message(code, "bind domain error", msg), status_code=code)
 
-    return general_message(200, "success", "策略修改成功")
+    return general_message("0", "success", "策略修改成功")
 
 
 @router.get("/teams/{team_name}/env/{env_id}/tcpdomain/query", response_model=Response, name="查询团队下tcp/udp策略")
@@ -361,7 +361,7 @@ async def get_domain_query(request: Request,
         domain_list.append(domain_dict)
     bean = dict()
     bean["total"] = total
-    return general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+    return general_message("0", "success", "查询成功", list=domain_list, bean=bean)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/certificates", response_model=Response, name="网关证书管理")
@@ -383,7 +383,7 @@ async def get_tenant_certificates(request: Request,
     page_size = int(request.query_params.get("page_size", 10))
     certificates, nums = domain_service.get_certificate(session=session, tenant_env=env, page=page, page_size=page_size)
     bean = {"nums": nums}
-    result = general_message(200, "success", "查询成功", list=certificates, bean=bean)
+    result = general_message("0", "success", "查询成功", list=certificates, bean=bean)
     return JSONResponse(result, status_code=result["code"])
 
 
@@ -403,7 +403,7 @@ async def add_tenant_certificates(request: Request,
         new_c = domain_service.add_certificate(session, env, alias, certificate_id, certificate, private_key,
                                                certificate_type)
         bean = {"alias": alias, "id": new_c.ID}
-        result = general_message(200, "success", "操作成功", bean=bean)
+        result = general_message("0", "success", "操作成功", bean=bean)
         return JSONResponse(result, status_code=result["code"])
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
@@ -418,8 +418,8 @@ async def get_certificates(request: Request,
     if code != 200:
         return JSONResponse(general_message(code, "delete error", msg), status_code=code)
 
-    result = general_message(200, "success", "查询成功", bean=certificate)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=certificate)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/certificates/{certificate_id}", response_model=Response, name="修改网关证书")
@@ -442,8 +442,8 @@ async def modify_certificates(request: Request,
     certificate_type = data.get("certificate_type", None)
     domain_service.update_certificate(session, env, certificate_id, new_alias, certificate, private_key,
                                       certificate_type)
-    result = general_message(200, "success", "证书修改成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "证书修改成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/certificates/{certificate_id}", response_model=Response, name="删除网关证书")
@@ -451,5 +451,5 @@ async def delete_certificates(
         certificate_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     domain_service.delete_certificate_by_pk(session, certificate_id)
-    result = general_message(200, "success", "证书删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "证书删除成功")
+    return JSONResponse(result, status_code=200)

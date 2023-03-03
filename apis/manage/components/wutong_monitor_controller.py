@@ -67,11 +67,11 @@ async def get_monitor_info(request: Request,
             query = promql_service.add_or_update_label(service.service_id, query)
         sufix = "?" + get_sufix_path(request, query)
         res, body = remote_build_client.get_query_data(session, service.service_region, env, sufix)
-        result = general_message(200, "success", "查询成功", bean=body["data"])
+        result = general_message("0", "success", "查询成功", bean=body["data"])
     except Exception as e:
         logger.debug(e)
-        result = general_message(200, "success", "查询成功", bean=[])
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "查询成功", bean=[])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/monitor/query_range", response_model=Response,
@@ -107,8 +107,8 @@ async def get_monitor_info(request: Request,
             query = promql_service.add_or_update_label(service.service_id, query)
         sufix = "?" + get_sufix_path(request, query)
         res, body = remote_build_client.get_query_range_data(session, service.service_region, env, sufix)
-        result = general_message(200, "success", "查询成功", bean=body["data"])
+        result = general_message("0", "success", "查询成功", bean=body["data"])
     except Exception as e:
         logger.exception(e)
-        result = general_message(200, "success", "查询成功", bean=[])
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "查询成功", bean=[])
+    return JSONResponse(result, status_code=200)

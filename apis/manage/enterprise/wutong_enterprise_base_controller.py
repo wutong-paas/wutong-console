@@ -36,7 +36,7 @@ async def get_app_views(request: Request,
                 "tenant_name": tenant_name,
                 "region_name": app.region_name
             })
-    result = general_message(200, "success", "获取成功", list=jsonable_encoder(data), total_count=apps_count, page=page,
+    result = general_message("0", "success", "获取成功", list=jsonable_encoder(data), total_count=apps_count, page=page,
                              page_size=page_size)
     return JSONResponse(result, status_code=status.HTTP_200_OK)
 
@@ -62,6 +62,6 @@ async def get_components_views(request: Request,
                     "service_cname": service.service_cname,
                     "service_key": service.service_key,
                 })
-    result = general_message(200, "success", "获取成功", list=jsonable_encoder(data), total_count=count, page=page,
+    result = general_message("0", "success", "获取成功", list=jsonable_encoder(data), total_count=count, page=page,
                              page_size=page_size)
     return JSONResponse(result, status_code=status.HTTP_200_OK)

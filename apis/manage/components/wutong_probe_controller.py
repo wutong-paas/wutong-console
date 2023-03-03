@@ -43,23 +43,23 @@ async def get_probe(request: Request,
         code, msg, probe = probe_service.get_service_probe(session=session, service=service)
         if code != 200:
             return JSONResponse(general_message(code, "get probe error", msg))
-        result = general_message(200, "success", "查询成功", bean=jsonable_encoder(probe))
+        result = general_message("0", "success", "查询成功", bean=jsonable_encoder(probe))
     else:
         mode = request.query_params.get("mode", None)
         if not mode:
             code, msg, probe = probe_service.get_service_probe(session=session, service=service)
             if code != 200:
                 return JSONResponse(general_message(code, "get probe error", msg))
-            result = general_message(200, "success", "查询成功", bean=jsonable_encoder(probe))
+            result = general_message("0", "success", "查询成功", bean=jsonable_encoder(probe))
         else:
             code, msg, probe = probe_service.get_service_probe_by_mode(session=session, service=service, mode=mode)
             if code != 200:
                 return JSONResponse(general_message(code, "get probe error", msg))
             if not mode:
-                result = general_message(200, "success", "查询成功", list=probe)
+                result = general_message("0", "success", "查询成功", list=probe)
             else:
-                result = general_message(200, "success", "查询成功", bean=jsonable_encoder(probe))
-    return JSONResponse(result, status_code=result["code"])
+                result = general_message("0", "success", "查询成功", bean=jsonable_encoder(probe))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/probe", response_model=Response, name="添加组件探针")
@@ -83,8 +83,8 @@ async def add_probe(request: Request,
     code, msg, probe = probe_service.add_service_probe(session=session, tenant_env=env, service=service, data=params)
     if code != 200:
         return JSONResponse(general_message(code, "add probe error", msg))
-    result = general_message(200, "success", "添加成功", bean=jsonable_encoder(jsonable_encoder(probe) if probe else probe))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "添加成功", bean=jsonable_encoder(jsonable_encoder(probe) if probe else probe))
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/probe", response_model=Response, name="修改组件探针")
@@ -107,5 +107,5 @@ async def modify_probe(request: Request,
 
     probe = probe_service.update_service_probea(session=session,
                                                 tenant_env=env, service=service, data=data, user_name=user.nick_name)
-    result = general_message(200, "success", "修改成功", bean=jsonable_encoder(probe.__dict__ if probe else probe))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "修改成功", bean=jsonable_encoder(probe.__dict__ if probe else probe))
+    return JSONResponse(result, status_code=200)

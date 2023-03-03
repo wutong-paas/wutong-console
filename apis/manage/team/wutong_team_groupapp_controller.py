@@ -48,9 +48,9 @@ async def get_backup_info(request: Request,
     backup_records = event_paginator.items
     bean = {"is_configed": False}
     result = general_message(
-        200, "success", "查询成功", bean=jsonable_encoder(bean),
+        "0", "success", "查询成功", bean=jsonable_encoder(bean),
         list=[jsonable_encoder(backup) for backup in backup_records], total=total)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup", response_model=Response, name="应用备份")
@@ -106,11 +106,11 @@ async def get_backup_info(request: Request,
                                                                    mode=mode,
                                                                    note=note, force=force)
         bean = jsonable_encoder(back_up_record)
-        result = general_message(200, "success", "操作成功，正在备份中", bean=bean)
+        result = general_message("0", "success", "操作成功，正在备份中", bean=bean)
     except ServiceHandleException as e:
         code = 500
         result = general_message(code, e.msg, e.msg_show)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup", response_model=Response,
@@ -144,12 +144,12 @@ async def backup_app(request: Request,
         bean = jsonable_encoder(backup_record)
         bean.pop("backup_server_info")
 
-        result = general_message(200, "success", "查询成功", bean=bean)
+        result = general_message("0", "success", "查询成功", bean=bean)
 
     except Exception as e:
         logger.exception(e)
         result = error_message("失败")
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup", response_model=Response, name="删除应用备份")
@@ -169,8 +169,8 @@ async def delete_backup_app(request: Request,
     response_region = region.region_name
     groupapp_backup_service.delete_group_backup_by_backup_id(session=session, tenant_env=env, region=response_region,
                                                              backup_id=backup_id)
-    result = general_message(200, "success", "删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "删除成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate/record", response_model=Response,
@@ -205,7 +205,7 @@ async def get_migrate_record(request: Request, session: SessionClass = Depends(d
         is_finished = False
 
     bean = {"is_finished": is_finished, "data": data}
-    return JSONResponse(general_message(200, "success", "查询成功", bean=bean), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", bean=bean), status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="应用迁移")
@@ -253,8 +253,8 @@ async def app_migrate(request: Request,
                                                        restore_id=restore_id)
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
-    result = general_message(200, "success", "操作成功，开始迁移应用", bean=jsonable_encoder(migrate_record))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功，开始迁移应用", bean=jsonable_encoder(migrate_record))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="查询应用迁移状态")
@@ -275,8 +275,8 @@ async def get_app_migrate_state(request: Request,
                                                                  current_region=response_region)
     if not migrate_record:
         return JSONResponse(general_message(404, "not found record", "记录不存在"), status_code=404)
-    result = general_message(200, "success", "查询成功", bean=jsonable_encoder(migrate_record))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(migrate_record))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup/import", response_model=Response, name="导入备份")
@@ -307,11 +307,11 @@ async def set_backup_info(request: Request,
                                                                         file_data)
         if code != 200:
             return JSONResponse(general_message(code, "backup import failed", msg), status_code=code)
-        result = general_message(200, "success", "导入成功", bean=jsonable_encoder(record))
+        result = general_message("0", "success", "导入成功", bean=jsonable_encoder(record))
     except Exception as e:
         logger.exception(e)
         result = error_message("导入失败")
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/copy", response_model=Response, name="获取应用复制信息")
@@ -325,7 +325,7 @@ async def get_app_copy(
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     group_services = groupapp_copy_service.get_group_services_with_build_source(session, env, region_name, group_id)
-    result = general_message(200, "success", "获取成功", list=jsonable_encoder(group_services))
+    result = general_message("0", "success", "获取成功", list=jsonable_encoder(group_services))
     return JSONResponse(result, status_code=200)
 
 

@@ -99,7 +99,7 @@ async def third_party(request: Request,
             }
             add_model: ThirdPartyComponentEndpoints = ThirdPartyComponentEndpoints(**data)
             session.add(add_model)
-    result = general_message(200, "success", "创建成功", bean=bean)
+    result = general_message("0", "success", "创建成功", bean=bean)
     return result
 
 
@@ -123,7 +123,7 @@ async def get_third_party_pods(
         endpoint["ip"] = endpoint["address"]
     bean = {"endpoint_num": len(endpoint_list)}
 
-    result = general_message(200, "success", "查询成功", list=endpoint_list, bean=bean)
+    result = general_message("0", "success", "查询成功", list=endpoint_list, bean=bean)
     return JSONResponse(result, status_code=200)
 
 
@@ -149,7 +149,7 @@ async def add_third_party_pods(
         session.rollback()
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
 
-    result = general_message(200, "success", "添加成功")
+    result = general_message("0", "success", "添加成功")
     return JSONResponse(result, status_code=200)
 
 
@@ -188,5 +188,5 @@ async def delete_third_party_pods(request: Request,
     if res.status != 200:
         return JSONResponse(general_message(412, "region delete error", "数据中心删除失败"), status_code=412)
     # service_endpoints_repo.delete_service_endpoints_by_service_id(self.service.service_id)
-    result = general_message(200, "success", "删除成功")
+    result = general_message("0", "success", "删除成功")
     return JSONResponse(result, status_code=200)

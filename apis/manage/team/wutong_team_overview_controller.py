@@ -128,7 +128,7 @@ async def overview_team_info(region_name: Optional[str] = None,
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
         overview_detail["region_health"] = False
-        return general_message(200, "success", "查询成功", bean=overview_detail)
+        return general_message("0", "success", "查询成功", bean=overview_detail)
 
     # 同步应用到集群
     groups = application_repo.get_tenant_region_groups(session, env.tenant_id, region.region_name)
@@ -216,7 +216,7 @@ async def overview_team_info(region_name: Optional[str] = None,
             logger.exception(e)
     else:
         overview_detail["region_health"] = False
-    return JSONResponse(general_message(200, "success", "查询成功", bean=overview_detail), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", bean=overview_detail), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/overview/groups", response_model=Response, name="团队应用列表")
@@ -247,7 +247,7 @@ async def team_app_group(request: Request,
     app_type = request.query_params.get("app_type", "")
     groups_services = application_service.get_groups_and_services(session=session, tenant_env=env, region=region_name,
                                                                   query=query, app_type=app_type)
-    return general_message(200, "success", "查询成功", list=groups_services)
+    return general_message("0", "success", "查询成功", list=groups_services)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/overview/service/over", response_model=Response, name="团队应用信息")
@@ -315,5 +315,5 @@ async def team_app_group(
             return general_message(200, "failed", "查询失败", list=services_list)
         return JSONResponse(result, status_code=result["code"])
     else:
-        result = general_message(200, "success", "当前团队没有创建应用")
-        return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "当前团队没有创建应用")
+        return JSONResponse(result, status_code=200)

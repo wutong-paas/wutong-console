@@ -152,8 +152,8 @@ async def get_env(request: Request,
                 env_list.append(env_dict)
         bean = {"total": total}
 
-    result = general_message(200, "success", "查询成功", bean=bean, list=jsonable_encoder(env_list))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=bean, list=jsonable_encoder(env_list))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/envs", response_model=Response, name="为组件添加环境变量")
@@ -226,7 +226,7 @@ async def add_env(request: Request,
         result = general_message(code, "add env error", msg)
         return JSONResponse(result, status_code=code)
     result = general_message(code, msg, "环境变量添加成功", bean=jsonable_encoder(data))
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{tenant_env_id}/apps/{serviceAlias}/envs/{env_id}", response_model=Response,
@@ -263,8 +263,8 @@ async def delete_env(serviceAlias: Optional[str] = None,
     service = service_info_repo.get_service(session, serviceAlias, tenant_env.tenant_id)
     env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service, env_id=env_id,
                                          user_name=user.nick_name)
-    result = general_message(200, "success", "删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "删除成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.patch("/teams/{team_name}/env/{tenant_env_id}/apps/{serviceAlias}/envs/{env_id}", response_model=Response,
@@ -347,5 +347,5 @@ async def modify_env(request: Request,
                                                           user_name=user.nick_name)
     if code != 200:
         raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
-    result = general_message(200, "success", "更新成功", bean=jsonable_encoder(env))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "更新成功", bean=jsonable_encoder(env))
+    return JSONResponse(result, status_code=200)

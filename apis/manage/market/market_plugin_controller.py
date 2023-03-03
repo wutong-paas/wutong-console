@@ -27,8 +27,8 @@ async def market_plugins(page: int = 1,
     total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, page=page,
                                        limit=limit,
                                        order_by='is_complete', source='market', scope='goodrain', tenant=None)
-    result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/plugin/plugins", response_model=Response, name="内部插件市场插件列表")
@@ -49,8 +49,8 @@ async def internal_market_plugins(page: int = 1,
     total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, scope=scope,
                                        tenant=None,
                                        page=page, limit=limit)
-    result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/plugin/plugins/installable", response_model=Response, name="插件列表")
@@ -76,5 +76,5 @@ async def installable_internal_plugins(page: int = 1,
             plugin["is_installed"] = True
         else:
             plugin["is_installed"] = False
-    result = general_message(200, "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
+    return JSONResponse(result, status_code=200)

@@ -30,8 +30,8 @@ async def overview_app(
         result = general_message(404, "no found regions", "查询成功")
         return JSONResponse(result, status_code=200)
     data = enterprise_services.get_enterprise_runing_service(session=session, regions=usable_regions, team_ids=team_ids)
-    result = general_message(200, "success", "查询成功", bean=data)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=data)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/enterprise/monitor", response_model=Response, name="集群监控信息")
@@ -68,8 +68,8 @@ async def monitor(session: SessionClass = Depends(deps.get_session)) -> Any:
             "total": region_cpu_total
         }
     }
-    result = general_message(200, "success", None, bean=data)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", None, bean=data)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/enterprise/regions", response_model=Response, name="获取集群列表")
@@ -78,22 +78,22 @@ async def regions(status: Optional[str] = "", check_status: Optional[str] = "",
     data = region_services.get_enterprise_regions(session=session, level="safe",
                                                   status=status,
                                                   check_status=check_status)
-    result = general_message(200, "success", "获取成功", list=jsonable_encoder(data))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "获取成功", list=jsonable_encoder(data))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/enterprise/backups", response_model=Response, name="获取备份信息")
 async def get_enterprise_backup_info() -> Any:
     backups = platform_data_services.list_backups()
-    result = general_message(200, "success", "数据上传成功", list=backups)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "数据上传成功", list=backups)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/enterprise/backups", response_model=Response, name="增加备份")
 async def add_enterprise_backup() -> Any:
     platform_data_services.create_backup()
-    result = general_message(200, "success", "备份成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "备份成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/enterprise/backups", response_model=Response, name="删除备份")
@@ -104,8 +104,8 @@ async def delete_enterprise_backup(request: Request) -> Any:
         result = general_message(200, "backup file can not be empty", "备份文件名称不能为空")
     else:
         platform_data_services.remove_backup(name)
-        result = general_message(200, "success", "删除成功")
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "删除成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/enterprise/upload-backups", response_model=Response, name="导入备份")
@@ -120,8 +120,8 @@ async def import_enterprise_backup(request: Request) -> Any:
         return JSONResponse(general_message(400, "param error", "请上传以 tar.gz 结尾的数据备份文件"), status_code=400)
     # upload file
     await platform_data_services.upload_file(upload_file)
-    result = general_message(200, "success", "数据上传成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "数据上传成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/enterprise/backups/{backup_name}", response_model=Response, name="下载备份")
@@ -145,5 +145,5 @@ async def recovery_enterprise_backup(request: Request,
         result = general_message(200, "backup file can not be empty", "备份文件名称不能为空")
     else:
         platform_data_services.recover_platform_data(name)
-        result = general_message(200, "success", "恢复成功")
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "恢复成功")
+    return JSONResponse(result, status_code=200)

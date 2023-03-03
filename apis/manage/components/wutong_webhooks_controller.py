@@ -156,10 +156,10 @@ async def run_or_stop_auto(request: Request,
             service_webhook = service_webhooks_repo.create_service_webhooks(session, service.service_id, deployment_way)
         if action == "open":
             service_webhook.state = True
-            result = general_message(200, "success", "开启成功")
+            result = general_message("0", "success", "开启成功")
         else:
             service_webhook.state = False
-            result = general_message(200, "success", "关闭成功")
+            result = general_message("0", "success", "关闭成功")
     except Exception as e:
         logger.exception(e)
         result = error_message("失败")
@@ -191,7 +191,7 @@ async def update_key(request: Request,
         if deploy_obj:
             deploy_obj.secret_key = pwd
 
-            result = general_message(200, "success", "修改成功")
+            result = general_message("0", "success", "修改成功")
             return JSONResponse(result, 200)
         else:
             result = general_message(404, "not found", "没有该组件")

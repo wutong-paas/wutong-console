@@ -37,8 +37,8 @@ async def get_env(serviceAlias: Optional[str] = None,
     """
     service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     bean = label_service.get_service_labels(session=session, service=service)
-    result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/labels/available", response_model=Response,
@@ -87,8 +87,8 @@ async def get_available_labels(
         label_dict["label_alias"] = label_oj.label_alias
         labels_list.append(label_dict)
 
-    result = general_message(200, "success", "查询成功", list=labels_list)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=labels_list)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/labels", response_model=Response, name="添加组件标签")
@@ -129,8 +129,8 @@ async def set_available_labels(request: Request,
                                                         label_ids=label_ids, user_name=user.nick_name)
     if code != 200:
         return JSONResponse(general_message(code, "add labels error", msg), status_code=code)
-    result = general_message(200, "success", "标签添加成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "标签添加成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/labels", response_model=Response, name="删除组件标签")
@@ -174,5 +174,5 @@ async def delete_available_labels(request: Request,
                                                           label_id=label_id, user_name=user.nick_name)
     if code != 200:
         return JSONResponse(general_message(code, "add labels error", msg), status_code=code)
-    result = general_message(200, "success", "标签删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "标签删除成功")
+    return JSONResponse(result, status_code=200)

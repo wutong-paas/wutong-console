@@ -162,8 +162,8 @@ async def get_un_dependency(
             dep_list.append(dep_service_info)
 
     rt_list = dep_list[(page_num - 1) * page_size:page_num * page_size]
-    result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=rt_list, total=len(dep_list))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/v1.0/devops/teams/{team_code}/env/{env_id}/applications/{application_id}/build", response_model=Response,
@@ -179,7 +179,7 @@ async def deploy_business_component(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    result = general_message(200, "success", "成功")
+    result = general_message("0", "success", "成功")
     image_type = "docker_image"
     p = Pinyin()
     k8s_component_name = p.get_pinyin(params.component_name)
@@ -281,7 +281,7 @@ async def deploy_component(
         env = env_repo.get_env_by_env_id(session, env_id)
         if not env:
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-        result = general_message(200, "success", "成功")
+        result = general_message("0", "success", "成功")
         tenant = env_services.devops_get_tenant(tenant_name=team_code, session=session)
         service = service_info_repo.get_service(session, params.component_code, tenant.tenant_id)
         oauth_instance, _ = None, None
@@ -384,7 +384,7 @@ async def market_create(
                                    market_name=market_name,
                                    install_from_cloud=install_from_cloud,
                                    is_deploy=is_deploy)
-    return JSONResponse(general_message(200, "success", "部署成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "部署成功"), status_code=200)
 
 
 @router.get("/v1.0/devops/teams/{team_name}/env/{env_id}/regions", response_model=Response, name="查询团队绑定集群")
@@ -401,7 +401,7 @@ async def get_team_regions(
             for region in region_infos:
                 region_info_map.append(
                     {"id": region.ID, "region_name": region.region_name, "region_alias": region.region_alias})
-    return JSONResponse(general_message(200, "success", "查询成功", data=region_info_map), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", data=region_info_map), status_code=200)
 
 
 @router.get("/v1.0/devops/teams/{team_name}/env/{env_id}/checkResource", response_model=Response, name="检查应用及组件是否存在")
@@ -424,4 +424,4 @@ async def check_resource(
         "is_app": is_app,
         "is_component": is_component
     }
-    return JSONResponse(general_message(200, "success", "查询成功", bean=data), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", bean=data), status_code=200)

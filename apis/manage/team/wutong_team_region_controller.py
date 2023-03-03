@@ -83,7 +83,7 @@ async def get_sort_domain_query(request: Request,
         except Exception as e:
             logger.debug(e)
         bean = {"total": total, "total_traffic": total_traffic}
-        result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+        result = general_message("0", "success", "查询成功", list=domain_list, bean=bean)
         return JSONResponse(result, status_code=200)
     else:
         start = request.query_params.get("start", None)
@@ -96,7 +96,7 @@ async def get_sort_domain_query(request: Request,
             res, body = remote_build_client.get_query_range_data(session, region_name, env, sufix)
         except Exception as e:
             logger.exception(e)
-        result = general_message(200, "success", "查询成功", bean=body)
+        result = general_message("0", "success", "查询成功", bean=body)
         return JSONResponse(result, status_code=200)
 
 
@@ -176,7 +176,7 @@ async def get_sort_service_query(region_name: Optional[str] = None,
     # 排序取前十
     service_list = sorted(service_traffic_list, key=lambda x: x["value"][1], reverse=True)[0:10]
 
-    result = general_message(200, "success", "查询成功", list=service_list)
+    result = general_message("0", "success", "查询成功", list=service_list)
     return JSONResponse(result, status_code=200)
 
 
@@ -210,7 +210,7 @@ async def get_protocol_info(request: Request,
         p_list = []
         for p in protocols:
             p_list.append(p["protocol_child"])
-        result = general_message(200, "success", "查询成功", list=list(set(p_list)))
+        result = general_message("0", "success", "查询成功", list=list(set(p_list)))
     except Exception as e:
         logger.exception(e)
         result = general_message(200, "", "查询成功", list=["http", "stream"])

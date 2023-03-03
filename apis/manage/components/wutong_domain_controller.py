@@ -111,8 +111,8 @@ async def get_dependency_component(request: Request,
                                    container_port=container_port, protocol=protocol,
                                    certificate_id=certificate_id,
                                    domain_type=DomainType.WWW, rule_extensions=rule_extensions)
-    result = general_message(200, "success", "域名绑定成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "域名绑定成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/domain", response_model=Response, name="组件端口解绑域名")
@@ -162,5 +162,5 @@ async def delete_port_domain(request: Request,
         return JSONResponse(general_message(400, "params error", "参数错误"), status_code=400)
     domain_service.unbind_domain(session=session, tenant_env=env, service=service, container_port=container_port,
                                  domain_name=domain_name, is_tcp=is_tcp)
-    result = general_message(200, "success", "域名解绑成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "域名解绑成功")
+    return JSONResponse(result, status_code=200)

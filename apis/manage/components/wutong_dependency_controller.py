@@ -84,8 +84,8 @@ async def get_dependency_component(request: Request,
         for port in service_ports:
             port_list.append(port.container_port)
     bean = {"port_list": port_list, 'total': len(dep_list)}
-    result = general_message(200, "success", "查询成功", list=rt_list, total=len(dep_list), bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=rt_list, total=len(dep_list), bean=bean)
+    return JSONResponse(result, status_code=200)
 
 
 @router.patch("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/dependency", response_model=Response, name="为组件添加依赖组件")
@@ -129,7 +129,7 @@ async def add_dependency_component(request: Request,
         result = general_message(code, "add dependency error", msg)
         return JSONResponse(result, status_code=code)
     result = general_message(code, msg, "依赖添加成功")
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/dependency/{dep_service_id}",
@@ -171,8 +171,8 @@ async def delete_dependency_component(
     if code != 200:
         return JSONResponse(general_message(code, "delete dependency error", msg), status_code=code)
 
-    result = general_message(200, "success", "删除成功", bean=jsonable_encoder(dependency))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "删除成功", bean=jsonable_encoder(dependency))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/dependency", response_model=Response,
@@ -228,4 +228,4 @@ async def add_dependency_component_post(request: Request,
         result = general_message(code, "add dependency error", msg, list=data)
         return JSONResponse(result, status_code=code)
     result = general_message(code, msg, "依赖添加成功", bean=jsonable_encoder(data))
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

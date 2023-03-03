@@ -84,8 +84,8 @@ async def get_ports(serviceAlias: Optional[str] = None,
         else:
             port_info["bind_tcp_domains"] = []
         port_list.append(port_info)
-    result = general_message(200, "success", "查询成功", list=jsonable_encoder(port_list))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=jsonable_encoder(port_list))
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/ports/{port}", response_model=Response,
@@ -165,8 +165,8 @@ async def update_ports(request: Request,
         return JSONResponse(general_message(code, "change port fail", msg), status_code=code)
 
     session.commit()
-    result = general_message(200, "success", "操作成功", bean=jsonable_encoder(data))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功", bean=jsonable_encoder(data))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/ports", response_model=Response, name="为组件添加端口")
@@ -247,8 +247,8 @@ async def add_ports(request: Request,
     if code != 200:
         return JSONResponse(general_message(code, "add port error", msg), status_code=code)
 
-    result = general_message(200, "success", "端口添加成功", bean=jsonable_encoder(port_info))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "端口添加成功", bean=jsonable_encoder(port_info))
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/ports/{port}", response_model=Response,
@@ -290,7 +290,8 @@ async def delete_ports(serviceAlias: Optional[str] = None,
         data = port_service.delete_port_by_container_port(session=session, tenant_env=env, service=service,
                                                           container_port=int(container_port),
                                                           user_name=user.nick_name)
-        result = general_message(200, "success", "删除成功", bean=jsonable_encoder(data))
+        result = general_message("0", "success", "删除成功", bean=jsonable_encoder(data))
+        return JSONResponse(result, status_code=200)
     except AbortRequest as e:
         result = general_message(e.status_code, e.msg, e.msg_show)
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])

@@ -78,8 +78,8 @@ async def get_mnt(request: Request,
                                                                       page_size=page_size, is_config=is_config)
     else:
         return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
-    result = general_message(200, "success", "查询成功", list=mnt_list, total=total)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=mnt_list, total=total)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/mnt", response_model=Response, name="获取组件挂载的组件")
@@ -118,8 +118,8 @@ async def set_mnt(request: Request,
     dep_vol_data = json.loads(dep_vol_data)
     mnt_service.batch_mnt_serivce_volume(session=session, tenant_env=env, service=service, dep_vol_data=dep_vol_data,
                                          user_name=user.nick_name)
-    result = general_message(200, "success", "操作成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/mnt/{dep_vol_id}", response_model=Response,
@@ -139,5 +139,5 @@ async def delete_mnt(
     if code != 200:
         return JSONResponse(general_message(code, "add error", msg), status_code=code)
 
-    result = general_message(200, "success", "操作成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功")
+    return JSONResponse(result, status_code=200)

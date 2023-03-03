@@ -86,7 +86,7 @@ async def get_pods_info(
         pods = service_pods_info["bean"]
         pods_info = foobar(pods.get("new_pods", None))
     if pod_name != "all":
-        result = general_message(200, "success", "操作成功", bean=pods_info.get(pod_name))
+        result = general_message("0", "success", "操作成功", bean=pods_info.get(pod_name))
     else:
         total_memory_usage = 0
         total_usage_rate = 0
@@ -99,5 +99,5 @@ async def get_pods_info(
             total_cpu_rate += value["cpu_rate"]
         pod_dict = {"memory_usage": total_memory_usage, "memory_rate": total_usage_rate, "cpu_usage": total_cpu_usage,
                     "cpu_rate": total_cpu_rate}
-        result = general_message(200, "success", "操作成功", bean=pod_dict)
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "操作成功", bean=pod_dict)
+    return JSONResponse(result, status_code=200)

@@ -36,7 +36,7 @@ async def add_env(request: Request,
     tenant_id = from_data["tenant_id"]
     desc = from_data.get("desc", "")
     if not is_qualified_name(env_name):
-        raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
+        raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只能由小写字母、数字或“-”组成，“-”不能位于开头结尾")
 
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
@@ -78,15 +78,14 @@ async def add_env(request: Request,
         return JSONResponse(
             general_message(400, "success", "环境在集群【{} 】中已存在命名空间 {}".format(exist_namespace_region, env.namespace),
                             bean=jsonable_encoder(env)))
-    result = general_message(200, "success", "环境添加成功", bean=jsonable_encoder(env))
+    result = general_message("0", "success", "环境添加成功", bean=jsonable_encoder(env))
     return JSONResponse(status_code=200, content=result)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/delete-env", response_model=Response, name="删除环境")
 async def delete_env(request: Request,
                      env_id: Optional[str] = None,
-                     session: SessionClass = Depends(deps.get_session),
-                     user=Depends(deps.get_current_user)) -> Any:
+                     session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     删除环境
     """
@@ -126,8 +125,8 @@ async def modify_env(request: Request,
     env.env_alias = env_name
     env.desc = desc
 
-    result = general_message(200, "delete a team successfully", "修改环境成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "delete a team successfully", "修改环境成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/query/envs", response_model=Response, name="查询团队下环境")
@@ -139,11 +138,12 @@ async def get_team_envs(
     """
     try:
         envs = env_services.get_envs_by_tenant_name(session, team_name)
-        result = general_message(200, "success", "查询成功", list=envs)
+        result = general_message("0", "success", "查询成功", list=jsonable_encoder(envs))
     except Exception as e:
         logger.exception(e)
         result = error_message("错误")
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/plat/all/envs", response_model=Response, name="查询全部环境")
@@ -151,11 +151,12 @@ async def get_all_envs(
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         envs = env_services.get_all_envs(session)
-        result = general_message(200, "success", "查询成功", list=envs)
+        result = general_message("0", "success", "查询成功", list=jsonable_encoder(envs))
     except Exception as e:
         logger.exception(e)
         result = error_message("错误")
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}", response_model=Response, name="查询单个环境")
@@ -169,8 +170,9 @@ async def get_env_by_env_id(
         if not env_id:
             return JSONResponse(general_message(403, "env id is not null", "环境id不能为空"), status_code=403)
         env = env_services.get_env_by_env_id(session, env_id)
-        result = general_message(200, "success", "查询成功", bean=jsonable_encoder(env))
+        result = general_message("0", "success", "查询成功", bean=jsonable_encoder(env))
     except Exception as e:
         logger.exception(e)
         result = error_message("错误")
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

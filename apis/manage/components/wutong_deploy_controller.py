@@ -56,4 +56,4 @@ async def deploy_component(request: Request,
     except AccountOverdueException as re:
         logger.exception(re)
         return JSONResponse(general_message(10410, "resource is not enough", "构建失败"), status_code=412)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

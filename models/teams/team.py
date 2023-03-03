@@ -1,9 +1,7 @@
 import json
 from datetime import datetime
-
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, DECIMAL, Text
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text
 from sqlalchemy_utils import ChoiceType
-
 from core.utils.crypt import make_env_id, make_uuid
 from database.session import Base
 from core.setting import settings
@@ -21,11 +19,9 @@ class TeamEnvInfo(Base):
     ID = Column(Integer, primary_key=True)
     env_id = Column(String(33), comment="环境id", nullable=False, unique=True, default=make_env_id)
     region_name = Column(String(33), comment="集群名", nullable=False)
-    env_name = Column(String(64), comment="环境名称", nullable=False)
+    env_name = Column(String(32), comment="环境名称", nullable=False)
     tenant_id = Column(String(33), comment="团队id", nullable=False)
     tenant_name = Column(String(64), comment="环境名称", nullable=False)
-    # This property is deprecated
-    # region = Column(String(64, default='', comment="区域中心,弃用")
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     creater = Column(String(32), nullable=False, default=0, comment="租户创建者")
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")

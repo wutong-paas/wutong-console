@@ -88,7 +88,7 @@ async def get_store(
         }
     }
 
-    return JSONResponse(general_message(200, "success", "获取成功", bean=info), status_code=200)
+    return JSONResponse(general_message("0", "success", "获取成功", bean=info), status_code=200)
 
 
 @router.get("/v1.0/metrics/{enterprise_id}/overview/app", response_model=Response, name="总览-应用信息")
@@ -151,8 +151,8 @@ async def overview_app(
         "service_info": service_info
     }
 
-    result = general_message(200, "success", "查询成功", bean=info)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=info)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/v1.0/metrics/{enterprise_id}/tenant/info", response_model=Response, name="总览-团队信息")
@@ -194,8 +194,8 @@ async def overview_tenant(
             "pods": pods_num
         })
 
-    result = general_message(200, "success", "查询成功", bean=tenant_info)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=tenant_info)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/v1.0/metrics/{enterprise_id}/event", response_model=Response, name="集群事件统计")
@@ -296,5 +296,5 @@ async def get_region_event(
                     "level": "紧急",
                 })
 
-    result = general_message(200, "success", "查询成功", bean=events)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=events)
+    return JSONResponse(result, status_code=200)

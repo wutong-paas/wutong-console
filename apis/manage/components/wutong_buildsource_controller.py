@@ -33,8 +33,8 @@ async def get_build_source(serviceAlias: Optional[str] = None,
     service_ids = [service.service_id]
     build_infos = base_service.get_build_infos(session=session, tenant_env=env, service_ids=service_ids)
     bean = build_infos.get(service.service_id, None)
-    result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/buildsource", response_model=Response, name="修改构建源")
@@ -116,11 +116,11 @@ async def modify_build_source(request: Request,
             service.code_from = "image_manual"
             service.service_key = "application"
             # service_repo.save_service(service)
-        result = general_message(200, "success", "修改成功")
+        result = general_message("0", "success", "修改成功")
     except Exception as e:
         logger.exception(e)
         result = error_message("failed")
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/source_code", response_model=Response, name="源码创建组件")
@@ -210,10 +210,10 @@ async def code_create_component(
         if code != 200:
             logger.debug("service.create", msg_show)
         bean = jsonable_encoder(new_service)
-        result = general_message(200, "success", "创建成功", bean=bean)
+        result = general_message("0", "success", "创建成功", bean=bean)
     except ResourceNotEnoughException as re:
         raise re
     except AccountOverdueException as re:
         logger.exception(re)
         return JSONResponse(general_message(10410, "resource is not enough", "失败"), status_code=412)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

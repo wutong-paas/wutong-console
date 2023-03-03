@@ -44,5 +44,5 @@ async def batch_actions(
     if code != 200:
         result = general_message(code, "batch manage error", msg)
     else:
-        result = general_message(200, "success", "操作成功")
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "操作成功")
+    return JSONResponse(result, status_code=200)

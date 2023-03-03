@@ -31,8 +31,8 @@ async def get_info(
     data["is_disable_logout"] = os.getenv('IS_DISABLE_LOGOUT', False)
     data["is_offline"] = os.getenv('IS_OFFLINE', False)
     data["login_timeout"] = 15
-    result = general_message(200, "success", "查询成功", bean=data, initialize_info=[])
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=data, initialize_info=[])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/enterprise/regions/{region_id}", response_model=Response, name="查询集群配置信息")
@@ -40,7 +40,7 @@ async def get_region_config(
                             region_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session)) -> Any:
     data = region_services.get_enterprise_region(session, region_id, check_status=False)
-    result = general_message(200, "success", "获取成功", bean=data)
+    result = general_message("0", "success", "获取成功", bean=data)
     return JSONResponse(result, status_code=status.HTTP_200_OK)
 
 
@@ -143,7 +143,7 @@ async def modify_region_config(request: Request,
                                session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     region = region_services.update_enterprise_region(session, region_id, data)
-    result = general_message(200, "success", "更新成功", bean=region)
+    result = general_message("0", "success", "更新成功", bean=region)
     return JSONResponse(result, status_code=result.get("code", 200))
 
 
@@ -155,7 +155,7 @@ async def delete_region(
     if not region:
         raise ServiceHandleException(status_code=404, msg="集群已不存在")
     region_repo.del_by_enterprise_region_id(session, region_id)
-    result = general_message(200, "success", "删除成功")
+    result = general_message("0", "success", "删除成功")
     return JSONResponse(result, status_code=result.get("code", 200))
 
 
@@ -207,7 +207,7 @@ async def set_region_config(request: Request,
     region = region_services.add_region(session, region_data, user)
     if region:
         data = region_services.get_enterprise_region(session, region.region_id, check_status=False)
-        result = general_message(200, "success", "创建成功", bean=data)
+        result = general_message("0", "success", "创建成功", bean=data)
         return JSONResponse(result, status_code=status.HTTP_200_OK)
     else:
         result = general_message(500, "failed", "创建失败")

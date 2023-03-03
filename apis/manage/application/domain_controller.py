@@ -74,7 +74,7 @@ async def get_domain_info(request: Request,
         domain_list.append(domain_dict)
     bean = dict()
     bean["total"] = total
-    result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+    result = general_message("0", "success", "查询成功", list=domain_list, bean=bean)
     return JSONResponse(result, status_code=200)
 
 
@@ -129,5 +129,5 @@ async def get_tcp_domain_info(request: Request,
         domain_list.append(domain_dict)
     bean = dict()
     bean["total"] = total
-    result = general_message(200, "success", "查询成功", list=domain_list, bean=bean)
+    result = general_message("0", "success", "查询成功", list=domain_list, bean=bean)
     return JSONResponse(result, status_code=200)

@@ -33,7 +33,7 @@ class DevopsRepository:
             if code != 200:
                 return general_message(code, "delete dependency error", msg)
 
-        return general_message(200, "success", "删除成功")
+        return general_message("0", "success", "删除成功")
 
     @staticmethod
     def delete_envs(session, user, tenant_env, service, key):
@@ -50,7 +50,7 @@ class DevopsRepository:
             return general_message(200, "delete env not found", "需要删除的环境变量未找到")
         env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service, env_id=env.ID,
                                              user_name=user.nick_name)
-        return general_message(200, "success", "删除成功")
+        return general_message("0", "success", "删除成功")
 
     @staticmethod
     def modify_env(session, user, tenant_env, service, key, name, attr_value):
@@ -72,7 +72,7 @@ class DevopsRepository:
         if code != 200:
             raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
 
-        return general_message(200, "success", "更新成功", bean=jsonable_encoder(env))
+        return general_message("0", "success", "更新成功", bean=jsonable_encoder(env))
 
     @staticmethod
     def component_build(session, user, tenant_env, service):
@@ -106,7 +106,7 @@ class DevopsRepository:
                 # 添加组件部署关系
                 application_service.create_deploy_relation_by_service_id(session=session, service_id=service.service_id)
 
-            return general_message(200, "success", "部署成功")
+            return general_message("0", "success", "部署成功")
         except ApiBaseHttpClient.RemoteInvokeError as e:
             logger.exception(e)
             if e.status == 403:

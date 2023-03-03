@@ -57,7 +57,7 @@ async def create_app_teams(
             #     continue
             region_teams = env_services.team_with_region_info(session=session, tenant=tenant, request_user=user)
             teams.append(region_teams)
-    return general_message(200, "success", "查询成功", list=teams)
+    return general_message("0", "success", "查询成功", list=teams)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/market_create", response_model=Response, name="安装市场应用")
@@ -85,7 +85,7 @@ async def market_create(
     market_app_service.update_wutong_app_install_num(session=session,
                                                      app_id=params.app_id, app_version=params.app_version)
 
-    return JSONResponse(general_message(200, "success", "创建成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "创建成功"), status_code=200)
 
 
 @router.get("/enterprise/app-model/{app_id}", response_model=Response, name="获取应用模版")
@@ -99,7 +99,7 @@ async def get_app_template(page: Optional[int] = 1,
     # todo
     # todo
     return JSONResponse(
-        general_message(200, "success", "查询成功", list=jsonable_encoder(versions), bean=jsonable_encoder(app),
+        general_message("0", "success", "查询成功", list=jsonable_encoder(versions), bean=jsonable_encoder(app),
                         total=total), status_code=200)
 
 
@@ -133,7 +133,7 @@ async def update_app_template(params: Optional[MarketAppTemplateUpdateParam] = M
         "create_team": create_team,
     }
     market_app_service.update_wutong_app(session, app_id, app_info)
-    return JSONResponse(general_message(200, "success", None), status_code=200)
+    return JSONResponse(general_message("0", "success", None), status_code=200)
 
 
 @router.delete("/enterprise/app-model/{app_id}", response_model=Response, name="删除应用模版")
@@ -141,7 +141,7 @@ async def delete_app_template(
                               app_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session)) -> Any:
     market_app_service.delete_wutong_app_all_info_by_id(session, app_id)
-    return JSONResponse(general_message(200, "success", None), status_code=200)
+    return JSONResponse(general_message("0", "success", None), status_code=200)
 
 
 # 获取本地市场应用列表
@@ -175,7 +175,7 @@ async def app_models(request: Request,
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
         if not r.match(app_name):
             return JSONResponse(
-                general_message(200, "success", msg_show="查询成功", list=[], total=0,
+                general_message("0", "success", msg_show="查询成功", list=[], total=0,
                                 next_page=int(page) + 1),
                 status_code=200)
 
@@ -184,7 +184,7 @@ async def app_models(request: Request,
                                                        page_size, need_install)
 
     return JSONResponse(
-        general_message(200, "success", msg_show="查询成功", list=jsonable_encoder(apps), total=count,
+        general_message("0", "success", msg_show="查询成功", list=jsonable_encoder(apps), total=count,
                         next_page=int(page) + 1),
         status_code=200)
 
@@ -232,7 +232,7 @@ async def add_app_models(request: Request,
     }
     market_app_service.create_wutong_app(session, app_info, make_uuid())
 
-    result = general_message(200, "success", None)
+    result = general_message("0", "success", None)
     return JSONResponse(result, status_code=200)
 
 
@@ -241,7 +241,7 @@ async def update_tag(request: Request,
                      session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     name = data.get("name", None)
-    result = general_message(200, "success", "创建成功")
+    result = general_message("0", "success", "创建成功")
     if not name:
         result = general_message(400, "fail", "参数不正确")
     try:
@@ -262,8 +262,8 @@ async def get_tag(session: SessionClass = Depends(deps.get_session)) -> Any:
     if app_tag_list:
         for app_tag in app_tag_list:
             data.append({"name": app_tag.name, "tag_id": app_tag.ID})
-    result = general_message(200, "success", None, list=data)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", None, list=data)
+    return JSONResponse(result, status_code=200)
 
 
 # 创建应用市场应用
@@ -278,8 +278,8 @@ async def create_center_app(*,
     :return:
     """
     dal.create_center_app(session=session, params=params)
-    result = general_message(200, "success", None, None)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", None, None)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/enterprise/app-models/import", response_model=Response, name="创建新的导入记录")
@@ -311,7 +311,7 @@ async def add_app_models(
         try:
             r = import_service.create_app_import_record_2_enterprise(session, user.nick_name)
         except RegionNotFound:
-            return JSONResponse(general_message(200, "success", "查询成功", bean={"region_name": ''}), status_code=200)
+            return JSONResponse(general_message("0", "success", "查询成功", bean={"region_name": ''}), status_code=200)
     upload_url = import_service.get_upload_url(session, r.region, r.event_id)
     region = region_repo.get_region_by_region_name(session, r.region)
     data = {
@@ -321,7 +321,7 @@ async def add_app_models(
         "upload_url": upload_url,
         "region_name": region.region_alias if region else '',
     }
-    return JSONResponse(general_message(200, "success", "查询成功", bean=data), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", bean=data), status_code=200)
 
 
 @router.get("/enterprise/app-models/import/{event_id}", response_model=Response, name="查询应用包导入状态")
@@ -347,7 +347,7 @@ async def get_app_import(event_id: Optional[str] = None,
         result = general_message(200, 'success', "查询成功", bean=jsonable_encoder(record), list=apps_status)
     except Exception as e:
         raise e
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/enterprise/app-models/import/{event_id}/dir", response_model=Response, name="查询应用包目录")
@@ -372,8 +372,8 @@ async def get_app_dir(event_id: Optional[str] = None,
         return JSONResponse(general_message(400, "event id is null", "请指明需要查询的event id"), status_code=400)
 
     apps = import_service.get_import_app_dir(session, event_id)
-    result = general_message(200, "success", "查询成功", list=apps)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=apps)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/enterprise/app-model/{app_id}/version/{version}", response_model=Response, name="编辑应用模版")
@@ -394,7 +394,7 @@ async def set_app_template(request: Request,
         "app_version_info": app_version_info
     }
     version = market_app_service.update_wutong_app_version_info(session, app_id, version, **body)
-    result = general_message(200, "success", "更新成功", bean=jsonable_encoder(version))
+    result = general_message("0", "success", "更新成功", bean=jsonable_encoder(version))
     return JSONResponse(result, status_code=result.get("code", 200))
 
 
@@ -404,7 +404,7 @@ async def delete_app_template(
                               app_id: Optional[str] = None,
                               version: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session)) -> Any:
-    result = general_message(200, "success", "删除成功")
+    result = general_message("0", "success", "删除成功")
     market_app_service.delete_wutong_app_version(session, app_id, version)
     return JSONResponse(result, status_code=result.get("code", 200))
 
@@ -437,8 +437,8 @@ async def get_app_export_status(
         result = export_service.get_export_status(session, app, app_version)
         result_list.append(result)
 
-    result = general_message(200, "success", "查询成功", list=result_list)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=result_list)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/enterprise/app-models/export", response_model=Response, name="导出应用市场应用")
@@ -474,8 +474,8 @@ async def export_app_models(
     record = export_service.export_app(session, app_id, app_versions[0], export_format, is_export_image)
     new_export_record_list.append(jsonable_encoder(record))
 
-    result = general_message(200, "success", "操作成功，正在导出", list=new_export_record_list)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功，正在导出", list=new_export_record_list)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/enterprise/env/{env_id}/app-models/import/{event_id}", response_model=Response,
@@ -503,7 +503,7 @@ async def import_app(
     files = file_name.split(",")
     import_service.start_import_apps(session, scope, event_id, files, env)
     result = general_message(200, 'success', "操作成功，正在导入")
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/enterprise/app-models/import/{event_id}", response_model=Response, name="放弃应用包导入")
@@ -512,8 +512,9 @@ async def delete_import_app(
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         import_service.delete_import_app_dir_by_event_id(session, event_id)
-        result = general_message(200, "success", "操作成功")
+        result = general_message("0", "success", "操作成功")
     except Exception as e:
         logger.exception(e)
         result = error_message("失败")
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

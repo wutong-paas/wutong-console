@@ -54,7 +54,7 @@ async def get_team_all_plugins(
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     plugin_list = plugin_service.get_tenant_plugins(session=session, region=region_name, tenant_env=env)
-    return general_message(200, "success", "查询成功", list=plugin_list)
+    return general_message("0", "success", "查询成功", list=plugin_list)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins/default", response_model=Response, name="默认插件创建")
@@ -93,7 +93,7 @@ async def add_default_plugins(request: Request,
     region_name = region.region_name
     plugin_service.add_default_plugin(session=session, user=user, tenant_env=env, region=region_name,
                                       plugin_type=plugin_type)
-    return general_message(200, "success", "创建成功")
+    return general_message("0", "success", "创建成功")
 
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/default", response_model=Response, name="获取默认插件")
@@ -117,7 +117,7 @@ async def get_default_plugins(
     region_name = region.region_name
     default_plugin_dict = plugin_service.get_default_plugin_from_cache(session=session, region=region_name, tenant_env=env)
 
-    return general_message(200, "success", "查询成功", list=[])
+    return general_message("0", "success", "查询成功", list=[])
 
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins", response_model=Response, name="插件创建")
@@ -222,7 +222,7 @@ async def create_plugins(request: Request,
         bean["update_info"] = plugin_build_version.update_info
         bean["image_tag"] = plugin_build_version.image_tag
 
-        result = general_message(200, "success", "创建成功", bean=bean)
+        result = general_message("0", "success", "创建成功", bean=bean)
     except Exception as e:
         logger.exception(e)
         result = error_message("失败")
@@ -264,7 +264,7 @@ async def get_build_history(request: Request,
     result = general_message(
         200, "success", "查询成功", list=data, total=total, current_page=int(page), next_page=int(page) + 1)
 
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/used_services", response_model=Response, name="获取插件被哪些当前团队哪些组件使用")
@@ -279,8 +279,8 @@ async def get_used_services(request: Request,
                                                               plugin.plugin_id, env.tenant_id, page,
                                                               page_size)
 
-    result = general_message(200, "success", "查询成功", list=data, total=total)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=data, total=total)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/share/record", response_model=Response, name="查询插件分享记录")
@@ -316,8 +316,8 @@ async def get_plugin_config(
     main_url = region_services.get_region_wsurl(session, response_region)
     data["web_socket_url"] = "{0}/event_log".format(main_url)
 
-    result = general_message(200, "success", "查询成功", bean=data, list=config_groups)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=data, list=config_groups)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}", response_model=Response,
@@ -347,8 +347,8 @@ async def get_plugin_version(
     # update_status_thread.start()
     plugin_version_service.update_plugin_build_status(session, response_region, env)
     session.rollback()
-    result = general_message(200, "success", "查询成功", bean=data)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=data)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}", response_model=Response,
@@ -410,7 +410,7 @@ async def modify_plugin_version(request: Request,
         # self.plugin.save()
         # # 保存版本信息
         # self.plugin_version.save()
-        result = general_message(200, "success", "操作成功")
+        result = general_message("0", "success", "操作成功")
     except Exception as e:
         logger.exception(e)
         result = error_message("失败")
@@ -459,7 +459,7 @@ async def build_plugin(
         plugin_version.event_id = event_id
         # self.plugin_version.save()
         bean = {"event_id": event_id}
-        result = general_message(200, "success", "操作成功", bean=bean)
+        result = general_message("0", "success", "操作成功", bean=bean)
     except Exception as e:
         logger.exception(e)
         result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")
@@ -483,8 +483,8 @@ async def get_build_status(
     pbv = plugin_version_service.get_plugin_build_status(session, response_region, env,
                                                          plugin_version.plugin_id,
                                                          plugin_version.build_version)
-    result = general_message(200, "success", "查询成功", {"status": pbv.build_status, "event_id": pbv.event_id})
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", {"status": pbv.build_status, "event_id": pbv.event_id})
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/event-log",
@@ -507,8 +507,8 @@ async def get_build_log(request: Request,
     level = request.query_params.get("level", "info")
     event_id = plugin_version.event_id
     logs = plugin_service.get_plugin_event_log(session, response_region, env, event_id, level)
-    result = general_message(200, "success", "查询成功", list=logs)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=logs)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
@@ -537,9 +537,9 @@ async def add_plugin_config(
     plugin_config_service.create_config_groups(session, plugin_version.plugin_id, plugin_version.build_version,
                                                create_data)
 
-    result = general_message(200, "success", "添加成功")
+    result = general_message("0", "success", "添加成功")
 
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
@@ -578,8 +578,8 @@ async def modify_plugin_config(request: Request,
                                               plugin_version.plugin_id, plugin_version.build_version,
                                               service_meta_type, *options)
 
-    result = general_message(200, "success", "修改成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "修改成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
@@ -599,8 +599,8 @@ async def delete_plugin_config(
                                                            config_group.plugin_id, config_group.build_version,
                                                            config_group.service_meta_type)
 
-    result = general_message(200, "success", "删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "删除成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}", response_model=Response, name="删除插件")
@@ -619,8 +619,8 @@ async def delete_plugin(request: Request,
     response_region = region.region_name
     plugin = plugin_repo.get_plugin_by_plugin_id(session, env.tenant_id, plugin_id)
     plugin_service.delete_plugin(session, response_region, env, plugin.plugin_id, is_force=is_force)
-    result = general_message(200, "success", "删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "删除成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/share", response_model=Response, name="团队插件共享")
@@ -716,7 +716,7 @@ async def plugin_share(request: Request,
         plugin_build_version.event_id = event_id
         session.merge(plugin_build_version)
         bean = {"event_id": event_id}
-        result = general_message(200, "success", "共享成功", bean=bean)
+        result = general_message("0", "success", "共享成功", bean=bean)
     except Exception as e:
         logger.exception(e)
         result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")
@@ -728,4 +728,4 @@ async def plugin_share_list(session: SessionClass = Depends(deps.get_session),
                             env=Depends(deps.get_current_team_env)) -> Any:
     tenant_id = env.tenant_id
     plugins = plugin_service.get_by_share_plugins(session, tenant_id, "shared")
-    return JSONResponse(general_message(200, "success", "查询成功", list=jsonable_encoder(plugins)), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", list=jsonable_encoder(plugins)), status_code=200)

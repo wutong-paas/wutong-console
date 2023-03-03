@@ -54,5 +54,5 @@ async def get_log(request: Request,
                                                        lines=int(lines))
     if code != 200:
         return JSONResponse(general_message(code, "query service log error", msg), status_code=code)
-    result = general_message(200, "success", "查询成功", list=log_list)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=log_list)
+    return JSONResponse(result, status_code=200)

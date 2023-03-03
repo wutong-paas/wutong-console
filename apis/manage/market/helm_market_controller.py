@@ -31,5 +31,5 @@ async def get_helm_apps(
                                                             env,
                                                             {"helm_namespace": helm_namespace})
 
-    return JSONResponse(general_message(200, "success", msg_show="查询成功", list=helm_list), status_code=200)
+    return JSONResponse(general_message("0", "success", msg_show="查询成功", list=helm_list), status_code=200)
 

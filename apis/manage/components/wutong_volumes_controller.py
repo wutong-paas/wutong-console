@@ -74,8 +74,8 @@ async def get_volume_dir(request: Request,
         for vo in volumes:
             vo["dep_services"] = name2deps.get(vo["volume_name"], None)
             volumes_list.append(vo)
-    result = general_message(200, "success", "查询成功", list=jsonable_encoder(volumes_list))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=jsonable_encoder(volumes_list))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes", response_model=Response, name="为组件添加存储")
@@ -158,7 +158,8 @@ async def add_volume(
             settings=settings,
             user_name=user.nick_name,
             mode=mode)
-        result = general_message(200, "success", "持久化路径添加成功", bean=jsonable_encoder(data))
+        result = general_message("0", "success", "持久化路径添加成功", bean=jsonable_encoder(data))
+        return JSONResponse(result, status_code=200)
     except ErrVolumePath as e:
         result = general_message(e.status_code, e.msg, e.msg_show)
     except ServiceHandleException as e:
@@ -224,8 +225,8 @@ async def modify_volume(request: Request,
         if volume.volume_type == 'config-file':
             service_config.volume_name = volume.volume_name
             service_config.file_content = new_file_content
-        result = general_message(200, "success", "修改成功")
-        return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "修改成功")
+        return JSONResponse(result, status_code=200)
     return JSONResponse(general_message(405, "success", "修改失败"), status_code=405)
 
 
@@ -267,7 +268,8 @@ async def delete_volume(
     code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env, service=service,
                                                                    volume_id=int(volume_id),
                                                                    user_name=user.nick_name)
-    result = general_message(200, "success", "删除成功")
+    result = general_message("0", "success", "删除成功")
     if code != 200:
         result = general_message(code=code, msg="delete volume error", msg_show=msg)
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

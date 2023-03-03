@@ -82,7 +82,7 @@ async def get_record_detail(group_id: Optional[str] = None,
             },
             "record_id": share_record.ID,
         }
-    return JSONResponse(general_message(200, "success", None, bean=jsonable_encoder(data)), status_code=200)
+    return JSONResponse(general_message("0", "success", None, bean=jsonable_encoder(data)), status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response, name="更新分享记录")
@@ -94,7 +94,7 @@ async def update_record(session: SessionClass = Depends(deps.get_session),
     share_record = component_share_repo.get_by_primary_key(session=session, primary_key=record_id)
     if share_record and status:
         share_record.status = status
-        return general_message(200, "success", None, bean=jsonable_encoder(share_record))
+        return general_message("0", "success", None, bean=jsonable_encoder(share_record))
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response,
@@ -105,7 +105,7 @@ async def delete_record(session: SessionClass = Depends(deps.get_session),
     session.execute(update(ServiceShareRecord).where(
         ServiceShareRecord.group_id == group_id,
         ServiceShareRecord.ID == record_id).values({"status": 3}))
-    return JSONResponse(general_message(200, "success", None), status_code=200)
+    return JSONResponse(general_message("0", "success", None), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/share/{share_id}/info", response_model=Response, name="查询分享的所有应用信息和插件信息")
@@ -450,7 +450,7 @@ async def get_object_log(
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
         log_content = event_service.get_event_log(session, env, response_region, event_id)
-        result = general_message(200, "success", "查询成功", list=log_content)
+        result = general_message("0", "success", "查询成功", list=log_content)
     except Exception as e:
         logger.exception(e)
         result = error_message("failed")

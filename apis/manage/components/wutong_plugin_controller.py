@@ -64,8 +64,8 @@ async def get_plugin_list(request: Request,
                                                                                               origin=origin,
                                                                                               user=user)
     bean = {"installed_plugins": installed_plugins, "not_install_plugins": not_install_plugins}
-    result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
@@ -147,8 +147,8 @@ async def install_sys_plugin(request: Request,
     app_plugin_service.modify_init_agent_env(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                              user=user)
 
-    result = general_message(200, "success", "安装成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "安装成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/install", response_model=Response,
@@ -214,8 +214,8 @@ async def install_plugin(request: Request,
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
 
-    result = general_message(200, "success", "安装成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "安装成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/install",
@@ -283,7 +283,7 @@ async def delete_plugin(
     app_plugin_service.update_java_agent_plugin_env(session=session, tenant_env=env, service=service,
                                                     plugin_id=plugin_id, user=user)
 
-    return JSONResponse(general_message(200, "success", "卸载成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "卸载成功"), status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/open", response_model=Response,
@@ -362,8 +362,8 @@ async def open_or_stop_plugin(request: Request,
     # 更新本地数据
     app_plugin_service.start_stop_service_plugin(session=session, service_id=service.service_id, plugin_id=plugin_id,
                                                  is_active=is_active, cpu=cpu, memory=memory)
-    result = general_message(200, "success", "操作成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/configs", response_model=Response,
@@ -412,8 +412,8 @@ async def get_plugin_config(request: Request,
     if pbv:
         result_bean["build_info"] = pbv.update_info
         result_bean["memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
-    result = general_message(200, "success", "查询成功", bean=result_bean)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=result_bean)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/configs", response_model=Response,
@@ -526,5 +526,5 @@ async def update_plugin_config(request: Request,
                 except:
                     pass
 
-    result = general_message(200, "success", "配置更新成功")
-    return JSONResponse(result, result["code"])
+    result = general_message("0", "success", "配置更新成功")
+    return JSONResponse(result, 200)

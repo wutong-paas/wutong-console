@@ -73,7 +73,7 @@ async def create_app(params: TeamAppCreateRequest,
     if not k8s_app and params.app_name:
         k8s_app = params.app_name
     if k8s_app and not is_qualified_name(k8s_app):
-        raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，并且必须以字母开始、以数字或字母结尾")
+        raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，“-”不能位于开头结尾")
 
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
@@ -101,8 +101,8 @@ async def create_app(params: TeamAppCreateRequest,
     except ServiceHandleException as e:
         session.rollback()
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
-    result = general_message(200, "success", "创建成功", bean=jsonable_encoder(data))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "创建成功", bean=jsonable_encoder(data))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="团队应用详情")
@@ -120,8 +120,8 @@ async def get_app_detail(
         raise ServiceHandleException(msg="not found region", msg_show="数据中心不存在", status_code=400)
     region_name = region.region_name
     app = application_service.get_app_detail(session=session, tenant_env=env, region_name=region_name, app_id=app_id)
-    result = general_message(200, "success", "success", bean=jsonable_encoder(app))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "success", bean=jsonable_encoder(app))
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="更新团队应用")
@@ -159,8 +159,8 @@ async def update_app(request: Request,
         version=version,
         revision=revision,
         logo=logo)
-    result = general_message(200, "success", "修改成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "修改成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="删除团队应用")
@@ -201,10 +201,10 @@ async def delete_app(
     try:
         application_service.delete_app(session=session, tenant_env=env, region_name=region_name, app_id=app_id,
                                        app_type=app_type)
-        result = general_message(200, "success", "删除成功")
+        result = general_message("0", "success", "删除成功")
     except AbortRequest as e:
         result = general_message(e.status_code, e.msg, e.msg_show)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}/status", response_model=Response, name="查询应用状态")
@@ -221,9 +221,9 @@ async def get_app_status(
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
     status = application_service.get_app_status(session=session, tenant_env=env, region_name=region_name, app_id=app_id)
-    result = general_message(200, "success", "查询成功", list=status)
+    result = general_message("0", "success", "查询成功", list=status)
 
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}/upgradable_num", response_model=Response, name="查询待升级组件数量")
@@ -253,8 +253,8 @@ async def get_upgradable_num(
         if e.status_code != 404:
             raise e
 
-    result = general_message(200, "success", "success", bean=data)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "success", bean=data)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}/visit", response_model=Response, name="visit")
@@ -266,7 +266,7 @@ async def get_visit(
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     result = application_service.list_access_info(tenant_env=env, app_id=app_id, session=session)
-    return JSONResponse(general_message(200, "success", "查询成功", list=result), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", list=result), status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/groups/{app_id}/volumes", response_model=Response,
@@ -287,7 +287,7 @@ async def modify_storage_dir(
 
     region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
     remote_component_client.change_application_volumes(session, env, region_name, region_app_id)
-    result = general_message(200, "success", "存储路径修改成功")
+    result = general_message("0", "success", "存储路径修改成功")
     return JSONResponse(result, status_code=200)
 
 
@@ -325,8 +325,8 @@ async def common_operation(
     # 批量操作
     app_manage_service.batch_operations(tenant_env=env, region_name=region_name, user=user, action=action,
                                         service_ids=service_ids, session=session)
-    result = general_message(200, "success", "操作成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record", response_model=Response, name="应用发布")
@@ -346,7 +346,7 @@ async def app_share_record(request: Request,
     total, share_records = component_share_repo.get_service_share_records_by_groupid(
         session=session, team_name=team_name, group_id=group_id, page=page, page_size=page_size)
     if not share_records:
-        result = general_message(200, "success", "获取成功", bean={'total': total}, list=data)
+        result = general_message("0", "success", "获取成功", bean={'total': total}, list=data)
         return JSONResponse(result, status_code=200)
     for share_record in share_records:
         app_model_name = share_record.share_app_model_name
@@ -405,7 +405,7 @@ async def app_share_record(request: Request,
             "record_id": share_record.ID,
             "app_version_info": share_record.share_app_version_info,
         })
-    result = general_message(200, "success", "获取成功", bean={'total': total}, list=jsonable_encoder(data))
+    result = general_message("0", "success", "获取成功", bean={'total': total}, list=jsonable_encoder(data))
     return JSONResponse(result, status_code=200)
 
 
@@ -513,7 +513,7 @@ async def get_app_model(
     except ServiceHandleException as e:
         if e.status_code != 404:
             raise e
-    return JSONResponse(general_message(200, "success", "创建成功", list=jsonable_encoder(apps)), status_code=200)
+    return JSONResponse(general_message("0", "success", "创建成功", list=jsonable_encoder(apps)), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/configgroups", response_model=Response, name="查询应用配置组")
@@ -642,7 +642,7 @@ async def app_governance_mode(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     application_service.update_governance_mode(session, env, region_name, app_id, governance_mode)
-    result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
+    result = general_message("0", "success", "更新成功", bean={"governance_mode": governance_mode})
     return JSONResponse(result, status_code=200)
 
 
@@ -668,7 +668,7 @@ async def app_governance_mode(request: Request,
         application_service.check_governance_mode(session, env, region_name, app_id, governance_mode)
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
-    result = general_message(200, "success", "更新成功", bean={"governance_mode": governance_mode})
+    result = general_message("0", "success", "更新成功", bean={"governance_mode": governance_mode})
     return JSONResponse(result, status_code=200)
 
 
@@ -683,7 +683,7 @@ async def app_governance_mode(
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     res = application_service.list_kubernetes_services(session, env.tenant_id, region_name, app_id)
-    result = general_message(200, "success", "查询成功", list=res)
+    result = general_message("0", "success", "查询成功", list=res)
     return JSONResponse(result, status_code=200)
 
 
@@ -710,7 +710,7 @@ async def set_governance_mode(request: Request,
 
     application_service.update_kubernetes_services(session, env, region_name, app, k8s_services)
 
-    result = general_message(200, "success", "更新成功", list=k8s_services)
+    result = general_message("0", "success", "更新成功", list=k8s_services)
     return JSONResponse(result, status_code=200)
 
 
@@ -745,7 +745,7 @@ async def get_app_releases(
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
     releases = application_service.list_releases(session, region_name, env, app_id)
-    return JSONResponse(general_message(200, "success", "查询成功", list=releases), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", list=releases), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/get_check_uuid", response_model=Response, name="获取应用检测uuid")
@@ -758,7 +758,7 @@ async def get_check_uuid(
         return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status_code=400)
     group_compose = compose_service.get_group_compose_by_compose_id(session, compose_id)
     if group_compose:
-        result = general_message(200, "success", "获取成功", bean={"check_uuid": group_compose.check_uuid})
+        result = general_message("0", "success", "获取成功", bean={"check_uuid": group_compose.check_uuid})
     else:
         result = general_message(404, "success", "compose不存在", bean={"check_uuid": ""})
     return JSONResponse(result, status_code=200)
@@ -831,7 +831,7 @@ async def get_compose_check_info(
             else:
                 data["error_infos"] = [save_error]
         compose_check_brief = compose_service.wrap_compose_check_info(data)
-        result = general_message(200, "success", "请求成功", bean=compose_check_brief,
+        result = general_message("0", "success", "请求成功", bean=compose_check_brief,
                                  list=[jsonable_encoder(s) for s in service_list])
     except ResourceNotEnoughException as re:
         raise re
@@ -866,7 +866,7 @@ async def delete_compose_create(
         return JSONResponse(general_message(400, "params error", "请指明需要删除的compose ID "), status_code=400)
     compose_service.give_up_compose_create(session, env, group_id, compose_id)
     result = general_message(200, "compose delete success", "删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/compose/{compose_id}/content", response_model=Response, name="获取compose文件内容")
@@ -874,8 +874,8 @@ async def get_compose_info(
         compose_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     group_compose = compose_repo.get_group_compose_by_compose_id(session, compose_id)
-    result = general_message(200, "success", "查询成功", bean=jsonable_encoder(group_compose))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(group_compose))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/compose/{compose_id}/services", response_model=Response, name="获取compose组下的组件")
@@ -884,8 +884,8 @@ async def get_compose_services(
         session: SessionClass = Depends(deps.get_session)) -> Any:
     services = compose_service.get_compose_services(session, compose_id)
     s_list = [jsonable_encoder(s) for s in services]
-    result = general_message(200, "success", "查询成功", list=s_list)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=s_list)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/install", response_model=Response, name="安装应用市场app")
@@ -904,7 +904,7 @@ async def install_market_app(
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     region_name = region.region_name
     application_service.install_app(session, env, region_name, group_id, overrides)
-    result = general_message(200, "success", "安装成功")
+    result = general_message("0", "success", "安装成功")
     return JSONResponse(result, status_code=200)
 
 
@@ -922,5 +922,5 @@ async def get_pod_view(
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
     pod = application_service.get_pod(session, env, region_name, pod_name)
-    result = general_message(200, "success", "查询成功", bean=pod)
+    result = general_message("0", "success", "查询成功", bean=pod)
     return JSONResponse(result, status_code=200)

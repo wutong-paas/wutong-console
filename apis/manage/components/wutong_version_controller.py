@@ -133,5 +133,5 @@ async def get_version(request: Request,
         "success_num": str(success_num),
         "failure_num": str(failure_num)
     }
-    result = general_message(200, "success", "查询成功", bean=bean, list=res_versions, total=str(total_num))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=bean, list=res_versions, total=str(total_num))
+    return JSONResponse(result, status_code=200)

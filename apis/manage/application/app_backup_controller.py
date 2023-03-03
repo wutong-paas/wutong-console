@@ -51,11 +51,11 @@ async def get_team_backup_info(
                     backup_dict["group_name"] = "应用已删除"
                     backup_dict["is_delete"] = True
                 backup_list.append(backup_dict)
-        result = general_message(200, "success", "查询成功", list=backup_list, total=total)
+        result = general_message("0", "success", "查询成功", list=backup_list, total=total)
     except Exception as e:
         logger.exception(e)
         result = error_message("查询失败")
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/delete", response_model=Response,
@@ -75,7 +75,7 @@ async def delete_team_app_info(request: Request,
         if not new_group_id:
             return JSONResponse(general_message(400, "new group id is null", "请确认新恢复的组"), status_code=400)
         if group_id == new_group_id:
-            return JSONResponse(general_message(200, "success", "恢复到当前组无需删除"), status_code=200)
+            return JSONResponse(general_message("0", "success", "恢复到当前组无需删除"), status_code=200)
         group = application_repo.get_group_by_id(session, group_id)
         if not group:
             return JSONResponse(general_message(400, "group is delete", "该备份组已删除"), status_code=400)
@@ -92,8 +92,8 @@ async def delete_team_app_info(request: Request,
                 logger.exception(le)
 
         application_repo.delete_group_by_id(session, group_id)
-        result = general_message(200, "success", "操作成功")
+        result = general_message("0", "success", "操作成功")
     except Exception as e:
         logger.exception(e)
         result = error_message("failed")
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

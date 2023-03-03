@@ -64,8 +64,8 @@ async def get_app_visit_info(serviceAlias: Optional[str] = None,
     access_type, data = port_service.get_access_info(session=session, tenant_env=env, service=service)
     bean["access_type"] = access_type
     bean["access_info"] = data
-    result = general_message(200, "success", "操作成功", bean=jsonable_encoder(bean))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/pods", response_model=Response, name="获取组件实例")
@@ -139,8 +139,8 @@ async def get_pods_info(
         newpods = foobar(pods.get("new_pods", None))
         old_pods = foobar(pods.get("old_pods", None))
         result = {"new_pods": newpods, "old_pods": old_pods}
-    result = general_message(200, "success", "操作成功", list=result)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功", list=result)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/resource", response_model=Response, name="查询组件资源")
@@ -176,8 +176,8 @@ async def get_resource(
     resource["memory"] = result.get("memory", 0) if result else 0
     resource["disk"] = result.get("disk", 0) if result else 0
     resource["cpu"] = result.get("cpu", 0) if result else 0
-    result = general_message(200, "success", "查询成功", bean=resource)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=resource)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/brief", response_model=Response, name="获取组件详情信息")
@@ -210,8 +210,8 @@ async def get_brief(serviceAlias: Optional[str] = None,
             msg = e.msg
         except ServiceHandleException as e:
             logger.debug(e)
-    result = general_message(200, "success", msg, bean=jsonable_encoder(service))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", msg, bean=jsonable_encoder(service))
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/brief", response_model=Response, name="修改组件名称")
@@ -238,8 +238,8 @@ async def modify_components_name(
     service.service_cname = service_cname
     remote_component_client.update_service(session, service.service_region, env, service.service_alias,
                                            {"k8s_component_name": k8s_component_name})
-    result = general_message(200, "success", "修改成功", bean=jsonable_encoder(service))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "修改成功", bean=jsonable_encoder(service))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/analyze_plugins", response_model=Response, name="查询组件的性能分析插件")
@@ -268,8 +268,8 @@ async def get_analyze_plugins(serviceAlias: Optional[str] = None,
         if plugin.category == PluginCategoryConstants.PERFORMANCE_ANALYSIS:
             analyze_plugins.append(plugin)
 
-    result = general_message(200, "success", "查询成功", list=[jsonable_encoder(p) for p in analyze_plugins])
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=[jsonable_encoder(p) for p in analyze_plugins])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volume-opts", response_model=Response,
@@ -288,8 +288,8 @@ async def get_volume_opts_list(
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
     volume_types = volume_service.get_service_support_volume_options(session=session, tenant_env=env, service=service)
-    result = general_message(200, "success", "查询成功", list=volume_types)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=volume_types)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/build_envs", response_model=Response, name="获取构建组件的环境变量参数")
@@ -303,8 +303,8 @@ async def get_build_envs(serviceAlias: Optional[str] = None,
     if build_envs:
         for build_env in build_envs:
             build_env_dict[build_env.attr_name] = build_env.attr_value
-    result = general_message(200, "success", "查询成功", bean=build_env_dict)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=build_env_dict)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/set/is_upgrade", response_model=Response, name="设置是否自动升级")
@@ -325,8 +325,8 @@ async def set_is_upgrade(request: Request,
     service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
     service.build_upgrade = build_upgrade
-    result = general_message(200, "success", "操作成功", bean={"build_upgrade": service.build_upgrade})
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功", bean={"build_upgrade": service.build_upgrade})
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/restart", response_model=Response, name="重启组件")
@@ -341,7 +341,7 @@ async def restart_component(serviceAlias: Optional[str] = None,
     if code != 200:
         return JSONResponse(general_message(code, "restart app error", msg, bean=bean), status_code=code)
     result = general_message(code, "success", "操作成功", bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/stop", response_model=Response, name="停止组件")
@@ -352,8 +352,8 @@ async def stop_component(serviceAlias: Optional[str] = None,
     service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
 
     app_manage_service.stop(session=session, tenant_env=env, service=service, user=user)
-    result = general_message(200, "success", "操作成功", bean={})
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "操作成功", bean={})
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/start", response_model=Response, name="启动组件")
@@ -374,7 +374,7 @@ async def start_component(serviceAlias: Optional[str] = None,
     except AccountOverdueException as re:
         logger.exception(re)
         return JSONResponse(general_message(10410, "resource is not enough", "操作失败"), status_code=412)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/upgrade", response_model=Response, name="更新组件")
@@ -398,7 +398,7 @@ async def upgrade_component(serviceAlias: Optional[str] = None,
     except AccountOverdueException as re:
         logger.exception(re)
         return JSONResponse(general_message(10410, "resource is not enough", "操作失败"), status_code=412)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/group", response_model=Response, name="修改组件所在组")
@@ -422,8 +422,8 @@ async def group_component(request: Request,
         application_service.update_or_create_service_group_relation(session=session, tenant_env=env, service=service,
                                                                     group_id=group_id)
 
-    result = general_message(200, "success", "修改成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "修改成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/delete", response_model=Response, name="删除组件")
@@ -441,7 +441,7 @@ async def delete_component(request: Request,
     if code != 200:
         return JSONResponse(general_message(code, "delete service error", msg, bean=bean), status_code=code)
     result = general_message(code, "success", "操作成功", bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/un_dependency", response_model=Response, name="获取组件可以依赖但未依赖的组件")
@@ -486,8 +486,8 @@ async def get_un_dependency(request: Request,
             un_dep_list.append(dep_service_info)
 
     rt_list = un_dep_list[(page_num - 1) * page_size:page_num * page_size]
-    result = general_message(200, "success", "查询成功", list=rt_list, total=len(un_dep_list))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", list=rt_list, total=len(un_dep_list))
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/deploytype", response_model=Response,
@@ -512,10 +512,11 @@ async def modify_deploy_type(request: Request,
         logger.debug("env: {0}, service:{1}, extend_method:{2}".format(env, service, extend_method))
         app_manage_service.change_service_type(session=session, tenant_env=env, service=service,
                                                extend_method=extend_method, user_name=user.nick_name)
-        result = general_message(200, "success", "操作成功")
+        result = general_message("0", "success", "操作成功")
+        return JSONResponse(result, status_code=200)
     except CallRegionAPIException as e:
         result = general_message(e.code, "failure", e.message)
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/market_service/upgrade", response_model=Response,
@@ -531,8 +532,8 @@ async def get_market_service_upgrade(serviceAlias: Optional[str] = None,
         return JSONResponse(general_message(404, "service lost", "未找到该组件"), status_code=404)
     except Exception as e:
         logger.debug(e)
-        return JSONResponse(general_message(200, "success", "查询成功", list=versions), status_code=200)
-    return JSONResponse(general_message(200, "success", "查询成功", list=versions), status_code=200)
+        return JSONResponse(general_message("0", "success", "查询成功", list=versions), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", list=versions), status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/market_service/upgrade", response_model=Response,
@@ -554,7 +555,7 @@ async def market_service_upgrade(
     app = application_repo.get_by_service_id(session, env.tenant_id, service.service_id)
 
     upgrade_service.upgrade_component(session, env, region, user, app, service, version)
-    return JSONResponse(general_message(200, "success", "升级成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "升级成功"), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/apps/{app_id}/components", response_model=Response, name="获取组件实例")
@@ -568,7 +569,7 @@ async def get_pods_info(request: Request,
         request, 'app_model_key', value_type=str, required=True, error='app_model_key is a required parameter')
     components = market_app_service.list_wutong_app_components(session, env, app_id,
                                                                app_model_key, group_id)
-    return JSONResponse(general_message(200, "success", "查询成功", list=components), status_code=200)
+    return JSONResponse(general_message("0", "success", "查询成功", list=components), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/logs", response_model=Response, name="查看容器日志")
@@ -613,8 +614,8 @@ async def get_app_visit_info(
     code, msg = application_service.update_check_app(session, env, service, data)
     if code != 200:
         return JSONResponse(general_message(code, "update service info error", msg), status_code=code)
-    result = general_message(200, "success", "修改成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "修改成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/docker_compose", response_model=Response, name="docker_compose创建组件")
@@ -654,7 +655,7 @@ async def docker_compose_components(
     bean["compose_id"] = group_compose.compose_id
     bean["app_name"] = group_info["application_name"]
     result = general_message(200, "operation success", "compose组创建成功", bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/compose_build", response_model=Response,
@@ -694,7 +695,7 @@ async def compose_build(
                 logger.exception(e)
                 continue
 
-        result = general_message(200, "success", "构建成功")
+        result = general_message("0", "success", "构建成功")
     except Exception as e:
         logger.exception(e)
         result = error_message("failed")
@@ -735,8 +736,8 @@ async def update_keyword(
         return JSONResponse(general_message(412, "keyword is null", "组件自动部署属性不存在"), status_code=412)
     service_webhook.deploy_keyword = keyword
     # service_webhook.save()
-    result = general_message(200, "success", "修改成功", bean=jsonable_encoder(service_webhook))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "修改成功", bean=jsonable_encoder(service_webhook))
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/build_envs", response_model=Response, name="修改构建组件的环境变量参数")
@@ -756,7 +757,7 @@ async def update_build_envs(
                 ComponentEnvVar.ID == build_env.ID
             ))
             session.flush()
-        return JSONResponse(general_message(200, "success", "设置成功"))
+        return JSONResponse(general_message("0", "success", "设置成功"))
 
     # 传入有值，清空再添加
     if build_envs:
@@ -775,8 +776,8 @@ async def update_build_envs(
         if code != 200:
             continue
 
-    result = general_message(200, "success", "环境变量添加成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "环境变量添加成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/rollback", response_model=Response,
@@ -877,5 +878,5 @@ async def delete_components_version(
                                                      service.service_alias,
                                                      version_id)
     # event_repo.delete_event_by_build_version(self.service.service_id, version_id)
-    result = general_message(200, "success", "删除成功")
+    result = general_message("0", "success", "删除成功")
     return JSONResponse(result, status_code=result["code"])

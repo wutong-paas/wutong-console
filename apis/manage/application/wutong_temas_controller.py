@@ -61,7 +61,7 @@ async def get_group_service_visit(service_alias: Optional[str] = None,
             bean["access_type"] = access_type
             bean["access_info"] = jsonable_encoder(data)
             service_access_list.append(bean)
-        return JSONResponse(general_message(200, "success", "操作成功", list=service_access_list), status_code=200)
+        return JSONResponse(general_message("0", "success", "操作成功", list=service_access_list), status_code=200)
     except Exception as e:
         logger.exception(e)
         return error_message(e.__str__())
@@ -240,7 +240,7 @@ async def get_domain_parameter(
     if cf:
         bean["rule_id"] = cf.rule_id
         bean["value"] = json.loads(cf.value)
-    result = general_message(200, "success", "查询成功", bean=bean)
+    result = general_message("0", "success", "查询成功", bean=bean)
     return JSONResponse(result, status_code=200)
 
 
@@ -262,7 +262,7 @@ async def set_domain_parameter(request: Request,
     value = await parse_item(request, 'value', required=True, error='value is a required parameter')
     domain_service.update_rule_config(session=session, tenant_env=env, region_name=response_region, rule_id=rule_id,
                                       configs=value, type=type_name, service_id=service_id)
-    result = general_message(200, "success", "更新成功")
+    result = general_message("0", "success", "更新成功")
     return JSONResponse(result, status_code=200)
 
 
@@ -300,8 +300,8 @@ async def add_http_domain(
             bean.update({"rewrites": []})
     else:
         bean = dict()
-    result = general_message(200, "success", "查询成功", bean=jsonable_encoder(bean))
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/httpdomain", response_model=Response, name="编辑http策略")
@@ -378,7 +378,7 @@ async def add_http_domain(request: Request,
     }
     domain_service.update_httpdomain(session=session, tenant_env=env, service=service, http_rule_id=http_rule_id,
                                      update_data=update_data)
-    result = general_message(200, "success", "策略编辑成功")
+    result = general_message("0", "success", "策略编辑成功")
     return JSONResponse(result, status_code=200)
 
 
@@ -399,8 +399,8 @@ async def delete_http_domain(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     domain_service.unbind_httpdomain(session=session, tenant_env=env, region=response_region, http_rule_id=http_rule_id)
-    result = general_message(200, "success", "策略删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "策略删除成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="添加tcp网关策略")
@@ -462,8 +462,8 @@ async def add_tcp_domain(request: Request,
     data = domain_service.bind_tcpdomain(session=session, tenant_env=env, user=user, service=service,
                                          end_point=end_point, container_port=container_port, default_port=default_port,
                                          rule_extensions=rule_extensions, default_ip=default_ip)
-    result = general_message(200, "success", "tcp策略添加成功", bean=data)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "tcp策略添加成功", bean=data)
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="获取单个tcp/udp策略信息")
@@ -490,11 +490,11 @@ async def get_tcp_domain(request: Request,
         bean.update({"service_alias": service_alias})
         bean.update({"group_name": group_name})
         bean.update({"g_id": g_id})
-        result = general_message(200, "success", "查询成功", bean=bean)
+        result = general_message("0", "success", "查询成功", bean=bean)
     else:
         bean = dict()
-        result = general_message(200, "success", "查询成功", bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "success", "查询成功", bean=bean)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="修改单个tcp/udp策略信息")
@@ -546,8 +546,8 @@ async def set_tcp_domain(request: Request,
     if code != 200:
         return JSONResponse(general_message(code, "bind domain error", msg), status_code=code)
 
-    result = general_message(200, "success", "策略修改成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "策略修改成功")
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="删除单个tcp/udp策略信息")
@@ -566,5 +566,5 @@ async def delete_tcp_domain(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     domain_service.unbind_tcpdomain(session=session, tenant_env=env, region=response_region, tcp_rule_id=tcp_rule_id)
-    result = general_message(200, "success", "策略删除成功")
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "策略删除成功")
+    return JSONResponse(result, status_code=200)
