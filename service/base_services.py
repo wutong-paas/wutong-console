@@ -49,7 +49,7 @@ class BaseService:
         services = session.execute(query_sql, parms).fetchall()
         return services
 
-    def get_fuzzy_services_list(self, session: SessionClass, team_id, region_name, query_key, fields, order):
+    def get_fuzzy_services_list(self, session: SessionClass, env_id, region_name, query_key, fields, order):
         if fields != "update_time" and fields != "ID":
             fields = "ID"
         if order != "desc" and order != "asc":
@@ -72,13 +72,13 @@ class BaseService:
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
-                t.tenant_env_id = "{team_id}"
+                t.tenant_env_id = "{env_id}"
                 AND t.service_region = "{region_name}"
                 AND t.service_cname LIKE "%{query_key}%"
             ORDER BY
                 t.{fields} {order};
         '''.format(
-            team_id=team_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
+            env_id=env_id, region_name=region_name, query_key=query_key, fields=fields, order=order)
         services = (session.execute(query_sql)).fetchall()
         session.remove()
         return services
@@ -123,7 +123,7 @@ class BaseService:
         markets = dict()
         build_infos = dict()
         services = env_repo.list_by_component_ids(session=session, service_ids=service_ids)
-        svc_sources = service_source_repo.get_service_sources(session=session, team_id=tenant_env.env_id,
+        svc_sources = service_source_repo.get_service_sources(session=session, env_id=tenant_env.env_id,
                                                               service_ids=service_ids)
         service_sources = {svc_ss.service_id: svc_ss for svc_ss in svc_sources}
 

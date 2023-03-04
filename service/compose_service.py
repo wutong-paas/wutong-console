@@ -139,9 +139,9 @@ class ComposeService(object):
         tenant_service.create_status = "checked"
         return tenant_service
 
-    def __save_compose_relation(self, session, services, team_id, compose_id):
+    def __save_compose_relation(self, session, services, env_id, compose_id):
         service_id_list = [s.service_id for s in services]
-        compose_relation_repo.bulk_create_compose_service_relation(session, service_id_list, team_id, compose_id)
+        compose_relation_repo.bulk_create_compose_service_relation(session, service_id_list, env_id, compose_id)
 
     def __save_service_dep_relation(self, session, tenant_env, service_dep_map, name_service_map):
         if service_dep_map:

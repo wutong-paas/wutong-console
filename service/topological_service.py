@@ -15,10 +15,10 @@ from service.region_service import region_services
 
 class TopologicalService(object):
 
-    def get_group_topological_graph_details(self, session, tenant_env, team_id, team_name, service, region_name):
+    def get_group_topological_graph_details(self, session, tenant_env, env_id, team_name, service, region_name):
         result = dict()
         # 组件信息
-        result['tenant_env_id'] = team_id
+        result['tenant_env_id'] = env_id
         result['service_alias'] = service.service_alias
         result['service_cname'] = service.service_cname
         result['service_region'] = service.service_region

@@ -141,7 +141,7 @@ class DevopsRepository:
         try:
             cmd = None
             service_source_user = service_source_repo.get_service_source(
-                session=session, team_id=service.tenant_env_id, service_id=service.service_id)
+                session=session, env_id=service.tenant_env_id, service_id=service.service_id)
 
             if not service_source_user:
                 service_source_info = {

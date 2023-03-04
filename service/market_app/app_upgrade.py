@@ -503,7 +503,7 @@ class AppUpgrade(MarketApp):
         components = []
         for cpt in self.original_app.components():
             # component snapshot
-            csnap, _ = label_service.get_service_details(session, self.tenant, cpt.component)
+            csnap, _ = label_service.get_service_details(session, self.tenant_env, cpt.component)
             new_component = new_components.get(cpt.component.component_id)
             if new_component:
                 csnap["action_type"] = new_component.action_type

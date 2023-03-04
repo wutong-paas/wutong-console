@@ -8,16 +8,16 @@ from repository.base import BaseRepository
 
 class ComponentSourceRepository(BaseRepository[ComponentSourceInfo]):
 
-    def update_service_source(self, session: SessionClass, team_id, service_id, **data):
+    def update_service_source(self, session: SessionClass, env_id, service_id, **data):
         session.execute(update(ComponentSourceInfo).where(
-            ComponentSourceInfo.team_id == team_id,
+            ComponentSourceInfo.tenant_env_id == env_id,
             ComponentSourceInfo.service_id == service_id).values(**data))
 
-    def delete_service_source(self, session: SessionClass, team_id, service_id):
+    def delete_service_source(self, session: SessionClass, env_id, service_id):
         session.execute(
             delete(ComponentSourceInfo).where(
                 ComponentSourceInfo.service_id == service_id,
-                ComponentSourceInfo.team_id == team_id)
+                ComponentSourceInfo.tenant_env_id == env_id)
         )
 
     def save(self, session: SessionClass, new_service_source):
@@ -31,14 +31,14 @@ class ComponentSourceRepository(BaseRepository[ComponentSourceInfo]):
                 select(ComponentSourceInfo).where(ComponentSourceInfo.service_id.in_(service_ids)))
         ).scalars().all()
 
-    def get_service_source(self, session: SessionClass, team_id, service_id):
+    def get_service_source(self, session: SessionClass, env_id, service_id):
         return session.execute(select(ComponentSourceInfo).where(
-            ComponentSourceInfo.team_id == team_id,
+            ComponentSourceInfo.tenant_env_id == env_id,
             ComponentSourceInfo.service_id == service_id)).scalars().first()
 
-    def get_service_sources(self, session: SessionClass, team_id, service_ids):
+    def get_service_sources(self, session: SessionClass, env_id, service_ids):
         return session.execute(select(ComponentSourceInfo).where(
-            ComponentSourceInfo.team_id == team_id,
+            ComponentSourceInfo.tenant_env_id == env_id,
             ComponentSourceInfo.service_id.in_(service_ids))).scalars().all()
 
     def create_service_source(self, session: SessionClass, **params):

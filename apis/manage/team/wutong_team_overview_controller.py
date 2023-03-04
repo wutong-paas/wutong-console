@@ -71,8 +71,7 @@ async def get_app_state(request: Request,
             result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=total)
             return JSONResponse(result, status_code=code)
 
-        team_id = env.env_id
-        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
+        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, env_id=env_id,
                                                                                group_id=group_id)
         if group_count == 0:
             result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
@@ -121,7 +120,7 @@ async def overview_team_info(region_name: Optional[str] = None,
 
     overview_detail = dict()
     team_service_num = service_info_repo.get_team_service_num_by_team_id(
-        session=session, team_id=env.env_id, region_name=region_name)
+        session=session, env_id=env_id, region_name=region_name)
     source = common_services.get_current_region_used_resource(session=session, env=env, region_name=region_name)
 
     region = region_repo.get_region_by_region_name(session, region_name)
@@ -265,7 +264,7 @@ async def team_app_group(
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     services_list = base_service.get_fuzzy_services_list(session=session,
-                                                         team_id=env.env_id, region_name=region_name,
+                                                         env_id=env.env_id, region_name=region_name,
                                                          query_key=query_key, fields=fields, order=order)
     if services_list:
         try:

@@ -67,7 +67,7 @@ async def modify_build_source(request: Request,
             return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
 
         service_source_user = service_source_repo.get_service_source(
-            session=session, team_id=service.tenant_env_id, service_id=service.service_id)
+            session=session, env_id=service.tenant_env_id, service_id=service.service_id)
 
         if not service_source_user:
             service_source_info = {

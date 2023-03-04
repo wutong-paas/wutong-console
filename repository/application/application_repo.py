@@ -16,40 +16,40 @@ class ApplicationRepository(BaseRepository[Application]):
             Application.tenant_env_id.in_(tenant_env_ids)).order_by(
             Application.update_time.desc(), Application.order_index.desc())).scalars().all()
 
-    def get_tenant_region_groups(self, session, team_id, region, query="", app_type=""):
-        sql = select(Application).where(Application.tenant_env_id == team_id,
+    def get_tenant_region_groups(self, session, env_id, region, query="", app_type=""):
+        sql = select(Application).where(Application.tenant_env_id == env_id,
                                         Application.region_name == region,
                                         Application.group_name.contains(query)).order_by(
             Application.update_time.desc(), Application.order_index.desc())
         if app_type:
-            sql = select(Application).where(Application.tenant_env_id == team_id,
+            sql = select(Application).where(Application.tenant_env_id == env_id,
                                             Application.region_name == region,
                                             Application.app_type == app_type,
                                             Application.group_name.contains(query)).order_by(
                 Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
-    def get_hn_tenant_region_groups(self, session, team_id, query="", app_type=""):
-        sql = select(Application).where(Application.tenant_env_id == team_id,
+    def get_hn_tenant_region_groups(self, session, env_id, query="", app_type=""):
+        sql = select(Application).where(Application.tenant_env_id == env_id,
                                         Application.group_name.contains(query)).order_by(
             Application.update_time.desc(), Application.order_index.desc())
         if app_type:
-            sql = select(Application).where(Application.tenant_env_id == team_id,
+            sql = select(Application).where(Application.tenant_env_id == env_id,
                                             Application.app_type == app_type,
                                             Application.group_name.contains(query)).order_by(
                 Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
-    def get_tenant_region_groups_count(self, session, team_id, region):
-        sql = select(Application).where(Application.tenant_env_id == team_id,
+    def get_tenant_region_groups_count(self, session, env_id, region):
+        sql = select(Application).where(Application.tenant_env_id == env_id,
                                         Application.region_name == region)
         count = len((session.execute(sql)).scalars().all())
         return count
 
-    def get_apps_in_multi_team(self, session, team_ids, region_names):
+    def get_apps_in_multi_team(self, session, env_ids, region_names):
         return (
             session.execute(
-                select(Application).where(Application.tenant_env_id.in_(team_ids),
+                select(Application).where(Application.tenant_env_id.in_(env_ids),
                                           Application.region_name.in_(region_names)
                                           ).order_by(Application.update_time.desc(),
                                                      Application.order_index.desc())
@@ -72,9 +72,9 @@ class ApplicationRepository(BaseRepository[Application]):
     def delete_group_by_id(self, session, group_id):
         session.execute(delete(Application).where(Application.ID == group_id))
 
-    def get_group_count_by_team_id_and_group_id(self, session, team_id, group_id):
+    def get_group_count_by_team_id_and_group_id(self, session, env_id, group_id):
         service_group_info = session.execute(
-            select(Application).where(Application.tenant_env_id == team_id,
+            select(Application).where(Application.tenant_env_id == env_id,
                                       Application.ID == group_id)
         ).scalars().all()
         group_count = len(service_group_info)
@@ -106,7 +106,7 @@ class ApplicationRepository(BaseRepository[Application]):
             Application.tenant_env_id == tenant.tenant_env_id,
             Application.region_name == region_name)
 
-    def get_group_by_unique_key(self, session, tenant_env_id, env_id, region_name, group_name):
+    def get_group_by_unique_key(self, session, tenant_env_id, region_name, group_name):
         """
 
         :param tenant_env_id:
@@ -117,7 +117,6 @@ class ApplicationRepository(BaseRepository[Application]):
         group = (
             session.execute(
                 select(Application).where(Application.tenant_env_id == tenant_env_id,
-                                          Application.env_id == env_id,
                                           Application.region_name == region_name,
                                           Application.group_name == group_name))
         ).scalars().first()
@@ -131,21 +130,19 @@ class ApplicationRepository(BaseRepository[Application]):
         session.add(model)
         session.flush()
 
-    def is_k8s_app_duplicate(self, session, team_id, env_id, region_name, k8s_app, app_id=None):
+    def is_k8s_app_duplicate(self, session, env_id, region_name, k8s_app, app_id=None):
         if not k8s_app:
             return False
         if app_id:
             service_groups = session.execute(select(Application).where(
-                Application.tenant_env_id == team_id,
-                Application.env_id == env_id,
+                Application.tenant_env_id == env_id,
                 Application.region_name == region_name,
                 Application.k8s_app == k8s_app,
                 not_(Application.ID == app_id)
             )).scalars().all()
             return len(service_groups) > 0
         service_groups = session.execute(select(Application).where(
-            Application.tenant_env_id == team_id,
-            Application.env_id == env_id,
+            Application.tenant_env_id == env_id,
             Application.region_name == region_name,
             Application.k8s_app == k8s_app
         )).scalars().all()

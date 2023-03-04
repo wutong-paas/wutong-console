@@ -143,7 +143,7 @@ class GroupappsMigrateService(object):
                       backup_id,
                       migrate_type, event_id,
                       restore_id):
-        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant_env.env_id,
+        backup_record = backup_record_repo.get_record_by_backup_id(session=session, env_id=tenant_env.env_id,
                                                                    backup_id=backup_id)
         if not backup_record:
             raise ErrBackupRecordNotFound

@@ -17,10 +17,10 @@ class AppBackupRecordRepository(BaseRepository[GroupAppBackupRecord]):
             select(func.count(GroupAppBackupRecord.ID)).where(GroupAppBackupRecord.group_id == app_id)
         )).first()[0]
 
-    def get_group_backup_records(self, session, team_id, region_name, group_id):
+    def get_group_backup_records(self, session, env_id, region_name, group_id):
         return (session.execute(
             select(GroupAppBackupRecord).where(
-                GroupAppBackupRecord.team_id == team_id,
+                GroupAppBackupRecord.tenant_env_id == env_id,
                 GroupAppBackupRecord.region == region_name,
                 GroupAppBackupRecord.group_id == group_id).order_by(GroupAppBackupRecord.ID.desc())
         )).scalars().all()
@@ -41,21 +41,21 @@ class AppBackupRecordRepository(BaseRepository[GroupAppBackupRecord]):
         session.flush()
         return babr
 
-    def get_record_by_backup_id(self, session, team_id, backup_id):
-        if team_id:
+    def get_record_by_backup_id(self, session, env_id, backup_id):
+        if env_id:
             return (session.execute(
                 select(GroupAppBackupRecord).where(
-                    GroupAppBackupRecord.team_id == team_id,
+                    GroupAppBackupRecord.tenant_env_id == env_id,
                     GroupAppBackupRecord.backup_id == backup_id))).scalars().first()
         else:
             return (session.execute(
                 select(GroupAppBackupRecord).where(
                     GroupAppBackupRecord.backup_id == backup_id))).scalars().first()
 
-    def delete_record_by_backup_id(self, session, team_id, backup_id):
+    def delete_record_by_backup_id(self, session, env_id, backup_id):
         session.execute(
             delete(GroupAppBackupRecord).where(
-                GroupAppBackupRecord.team_id == team_id,
+                GroupAppBackupRecord.tenant_env_id == env_id,
                 GroupAppBackupRecord.backup_id == backup_id))
         
 
@@ -65,10 +65,10 @@ class AppBackupRecordRepository(BaseRepository[GroupAppBackupRecord]):
                 GroupAppBackupRecord.group_id == group_id,
                 GroupAppBackupRecord.backup_id == backup_id)).scalars().all()
 
-    def get_group_backup_records_by_team_id(self, session, team_id, region_name):
+    def get_group_backup_records_by_team_id(self, session, env_id, region_name):
         return session.execute(
             select(GroupAppBackupRecord).where(
-                GroupAppBackupRecord.team_id == team_id,
+                GroupAppBackupRecord.tenant_env_id == env_id,
                 GroupAppBackupRecord.region == region_name).order_by(
                 GroupAppBackupRecord.ID.desc())).scalars().all()
 

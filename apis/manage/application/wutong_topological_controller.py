@@ -39,8 +39,8 @@ async def get_topological(
             code = 400
             return JSONResponse(general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字"),
                                 status_code=code)
-        team_id = env.env_id
-        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
+        env_id = env.env_id
+        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, env_id=env_id,
                                                                                group_id=group_id)
         if group_count == 0:
             code = 202
@@ -162,8 +162,7 @@ async def get_topological_internet_info(
             code = 400
             result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
             return JSONResponse(result, status_code=code)
-        team_id = env.env_id
-        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
+        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, env_id=env_id,
                                                                                group_id=group_id)
         if group_count == 0:
             code = 202
@@ -208,7 +207,7 @@ async def get_topological_info(
     result = topological_service.get_group_topological_graph_details(
         session=session,
         tenant_env=env,
-        team_id=env.env_id,
+        env_id=env.env_id,
         team_name=team_name,
         service=service,
         region_name=service.service_region)

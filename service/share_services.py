@@ -297,8 +297,8 @@ class ShareService(object):
                         plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
-                            team_name=share_team.tenant_name,
-                            team_id=share_team.tenant_env_id,
+                            env_name=share_team.env_name,
+                            tenant_env_id=share_team.env_id,
                             plugin_id=plugin_info['plugin_id'],
                             plugin_name=plugin_info['plugin_alias'],
                             event_status='not_start',
@@ -351,7 +351,7 @@ class ShareService(object):
 
                         if service.get("need_share", None):
                             ssre = ServiceShareRecordEvent(
-                                team_id=share_team.tenant_env_id,
+                                tenant_env_id=share_team.env_id,
                                 service_key=service["service_key"],
                                 service_id=service["service_id"],
                                 service_name=service["service_cname"],

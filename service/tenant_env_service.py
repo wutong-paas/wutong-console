@@ -103,13 +103,13 @@ class TenantEnvService(object):
         return env_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=exception)
 
     def check_and_get_user_team_by_name_and_region(self, session, user_id, tenant_name, region_name):
-        tenant = env_repo.get_user_tenant_by_name(session, user_id, tenant_name)
-        if not tenant:
-            return tenant
-        if not env_repo.get_team_region_by_name(session, tenant.tenant_env_id, region_name):
+        tenant_env = env_repo.get_user_tenant_by_name(session, user_id, tenant_name)
+        if not tenant_env:
+            return tenant_env
+        if not env_repo.get_team_region_by_name(session, tenant_env.env_id, region_name):
             return None
         else:
-            return tenant
+            return tenant_env
 
 
 env_services = TenantEnvService()

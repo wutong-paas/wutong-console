@@ -311,7 +311,7 @@ class ComponentSourceInfo(Base):
     service_id = Column(String(255), comment="服务信息")
 
     ID = Column(Integer, primary_key=True)
-    team_id = Column(String(32), comment="服务所在团队ID")
+    tenant_env_id = Column(String(32), comment="服务所在环境ID")
     user_name = Column(String(255), nullable=True, comment="用户名")
     password = Column(String(255), nullable=True, comment="密码")
     group_key = Column(String(32), nullable=True, comment="group of service from market")

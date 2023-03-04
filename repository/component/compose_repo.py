@@ -39,12 +39,12 @@ class ComposeGroupRepository(BaseRepository[ComposeGroup]):
 
 class ComposeServiceRelationRepository(BaseRepository[ComposeServiceRelation]):
 
-    def bulk_create_compose_service_relation(self, session, service_ids, team_id, compose_id):
+    def bulk_create_compose_service_relation(self, session, service_ids, env_id, compose_id):
         csr_list = []
         for service_id in service_ids:
             csr = ComposeServiceRelation()
             csr.compose_id = compose_id
-            csr.team_id = team_id
+            csr.tenant_env_id = env_id
             csr.service_id = service_id
             csr_list.append(csr)
         session.add_all(csr_list)

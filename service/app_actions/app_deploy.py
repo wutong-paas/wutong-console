@@ -129,14 +129,14 @@ class MarketService(object):
     Define some methods for upgrading market services.
     """
 
-    def __init__(self, session, tenant, service, version, all_component_one_model=None, component_change_info=None,
+    def __init__(self, session, tenant_env, service, version, all_component_one_model=None, component_change_info=None,
                  app_version=None):
-        self.tenant = tenant
+        self.tenant_env = tenant_env
         self.service = service
         self.market_name = None
         # tenant service models
         self.all_component_one_model = all_component_one_model
-        self.service_source = service_source_repo.get_service_source(session, tenant.tenant_env_id, service.service_id)
+        self.service_source = service_source_repo.get_service_source(session, tenant_env.env_id, service.service_id)
         self.install_from_cloud = self.service_source.is_install_from_cloud()
         self.market_name = self.service_source.get_market_name()
         # If no version is specified, the default version is used.
@@ -163,7 +163,7 @@ class MarketService(object):
         self.restore_func = self._create_restore_funcs()
         self.async_build, self.async_update = self._create_async_action_tbl()
 
-        self.app_restore = AppRestore(tenant, service)
+        self.app_restore = AppRestore(tenant_env, service)
         self.auto_restore = True
         self.action_type = ActionType.NOTHING.value
 
@@ -297,10 +297,10 @@ class MarketService(object):
             pc = PropertiesChanges(
                 session,
                 self.service,
-                self.tenant,
+                self.tenant_env,
                 all_component_one_model=self.all_component_one_model,
                 install_from_cloud=self.install_from_cloud)
-            template = get_upgrade_app_template(session=session, tenant=self.tenant, version=self.version, pc=pc)
+            template = get_upgrade_app_template(session=session, tenant_env=self.tenant_env, version=self.version, pc=pc)
             self.template = template
             self.template_update_time = pc.template_updatetime
         if not self.changes and self.changes != {} and pc:
@@ -313,10 +313,10 @@ class MarketService(object):
         """create_backup
         Create a pre-service backup to prepare for deployment failure
         """
-        backup_data = groupapp_backup_service.get_service_details(session, self.tenant, self.service)
+        backup_data = groupapp_backup_service.get_service_details(session, self.tenant_env, self.service)
         backup = {
             "region_name": self.service.service_region,
-            "tenant_env_id": self.tenant.tenant_env_id,
+            "tenant_env_id": self.tenant_env.env_id,
             "service_id": self.service.service_id,
             "backup_id": make_uuid(),
             "backup_data": json.dumps(backup_data),
@@ -409,7 +409,7 @@ class MarketService(object):
             self.service.service_id, json.dumps(self.changed)))
         if backup is None:
             # use the latest backup
-            backup = service_backup_repo.get_newest_by_sid(session, self.tenant.tenant_env_id, self.service.service_id)
+            backup = service_backup_repo.get_newest_by_sid(session, self.tenant_env.env_id, self.service.service_id)
         if backup is None:
             raise ErrBackupNotFound(self.service.service_id)
 
@@ -474,7 +474,7 @@ class MarketService(object):
             "version": version,
         }
         logger.debug("service id: {}; data: {}; update service source.".format(self.service.service_id, data))
-        service_source_repo.update_service_source(session, self.tenant.tenant_env_id, self.service.service_id, **data)
+        service_source_repo.update_service_source(session, self.tenant_env.env_id, self.service.service_id, **data)
 
     def _update_deploy_version(self, dv):
         if not dv["is_change"]:
@@ -525,7 +525,7 @@ class MarketService(object):
         if not component_monitors:
             return
         add = component_monitors.get("add", [])
-        service_monitor_service.bulk_create_component_service_monitors(self.tenant, self.service, add)
+        service_monitor_service.bulk_create_component_service_monitors(self.tenant_env, self.service, add)
 
     def _sync_inner_envs(self, session, envs):
         self._sync_envs(session, envs, "inner")
@@ -547,7 +547,7 @@ class MarketService(object):
                 continue
             try:
                 remote_component_client.add_service_env(session,
-                                                        self.service.service_region, self.tenant.tenant_name,
+                                                        self.service.service_region, self.tenant_env,
                                                         self.service.service_alias,
                                                         body)
             except remote_component_client.CallApiError as e:
@@ -580,7 +580,7 @@ class MarketService(object):
             body["envs"].append(self._create_env_body(env, scope))
         try:
             remote_build_client.restore_properties(session,
-                                                   self.service.service_region, self.tenant.tenant_name,
+                                                   self.service.service_region, self.tenant_env,
                                                    self.service.service_alias,
                                                    "/app-restore/envs", body)
         except RegionApiBaseHttpClient.CallApiError as e:
@@ -606,8 +606,7 @@ class MarketService(object):
             "is_change": True,
             "scope": scope,
             "env_name": env["attr_name"],
-            "env_value": str(env.get("attr_value")),
-            "enterprise_id": self.tenant.enterprise_id
+            "env_value": str(env.get("attr_value"))
         }
         return result
 
@@ -634,12 +633,12 @@ class MarketService(object):
         k8s_service_name = port.get("k8s_service_name", self.service.service_alias + "-" + str(container_port))
         if k8s_service_name:
             try:
-                port_repo.get_by_k8s_service_name(self.tenant.tenant_env_id, k8s_service_name)
+                port_repo.get_by_k8s_service_name(self.tenant_env.env_id, k8s_service_name)
                 k8s_service_name += "-" + make_uuid()[-4:]
             except TeamComponentPort.DoesNotExist:
                 pass
             port["k8s_service_name"] = k8s_service_name
-        port["tenant_env_id"] = self.tenant.tenant_env_id
+        port["tenant_env_id"] = self.tenant_env.env_id
         port["service_id"] = self.service.service_id
         port["mapping_port"] = container_port
         port["port_alias"] = port_alias
@@ -680,14 +679,14 @@ class MarketService(object):
         upd = ports.get("upd", [])
         for port in upd:
             self.update_port_data(port)
-        add_body = {"port": add, "enterprise_id": self.tenant.enterprise_id}
+        add_body = {"port": add}
         remote_component_client.add_service_port(session,
-                                                 self.service.service_region, self.tenant.tenant_name,
+                                                 self.service.service_region, self.tenant_env,
                                                  self.service.service_alias,
                                                  add_body)
-        upd_body = {"port": upd, "enterprise_id": self.tenant.enterprise_id}
+        upd_body = {"port": upd}
         remote_component_client.update_service_port(session,
-                                                    self.service.service_region, self.tenant.tenant_name,
+                                                    self.service.service_region, self.tenant_env,
                                                     self.service.service_alias,
                                                     upd_body)
 
@@ -707,7 +706,7 @@ class MarketService(object):
         try:
             body = {"ports": service_ports}
             remote_component_client.restore_properties(session,
-                                                       self.service.service_region, self.tenant.tenant_name,
+                                                       self.service.service_region, self.tenant_env,
                                                        self.service.service_alias,
                                                        "/app-restore/ports", body)
         except RegionApiBaseHttpClient.CallApiError as e:
@@ -717,7 +716,7 @@ class MarketService(object):
     def _update_volumes(self, session, volumes):
         for volume in volumes.get("add"):
             volume["service_id"] = self.service.service_id
-            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(self.tenant.tenant_env_id, self.service.service_id,
+            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(self.tenant_env.env_id, self.service.service_id,
                                                                    volume["volume_path"])
             volume["host_path"] = host_path
             volume["category"] = "app_publish"
@@ -751,10 +750,9 @@ class MarketService(object):
         raise RegionApiBaseHttpClient.CallApiError
         """
         for volume in volumes.get("add"):
-            volume["enterprise_id"] = self.tenant.enterprise_id
             try:
                 remote_component_client.add_service_volumes(session,
-                                                            self.service.service_region, self.tenant.tenant_name,
+                                                            self.service.service_region, self.tenant_env,
                                                             self.service.service_alias,
                                                             volume)
             except RegionApiBaseHttpClient.CallApiError as e:
@@ -785,7 +783,7 @@ class MarketService(object):
             body["volumes"].append(item)
         try:
             remote_component_client.restore_properties(session,
-                                                       self.service.service_region, self.tenant.tenant_name,
+                                                       self.service.service_region, self.tenant_env,
                                                        self.service.service_alias,
                                                        "/app-restore/volumes", body)
         except RegionApiBaseHttpClient.CallApiError as e:
@@ -812,12 +810,12 @@ class MarketService(object):
         add = probe.get("add", None)
         if add:
             remote_component_client.add_service_probe(session,
-                                                      self.service.service_region, self.tenant.tenant_name,
+                                                      self.service.service_region, self.tenant_env,
                                                       self.service.service_alias, data)
         upd = probe.get("upd", None)
         if upd:
             remote_component_client.update_service_probec(session,
-                                                          self.service.service_region, self.tenant.tenant_name,
+                                                          self.service.service_region, self.tenant_env,
                                                           self.service.service_alias,
                                                           data)
 
@@ -838,7 +836,7 @@ class MarketService(object):
 
         try:
             remote_component_client.restore_properties(session,
-                                                       self.service.service_region, self.tenant.tenant_name,
+                                                       self.service.service_region, self.tenant_env,
                                                        self.service.service_alias,
                                                        "/app-restore/probe", probe)
         except RegionApiBaseHttpClient.CallApiError as e:
@@ -848,7 +846,7 @@ class MarketService(object):
     def _update_dep_services(self, dep_services):
         def create_dep_service(dep_service_id):
             try:
-                dependency_service.create_service_relation(self.tenant, self.service, dep_service_id)
+                dependency_service.create_service_relation(self.tenant_env, self.service, dep_service_id)
             except (ErrDepServiceNotFound, ServiceRelationAlreadyExist, InnerPortNotFound) as e:
                 logger.warning("failed to create service relation: {}".format(e))
 
@@ -864,11 +862,10 @@ class MarketService(object):
             dep_service = service_info_repo.get_service_by_service_id(session, dep_service_id)
             body = dict()
             body["dep_service_id"] = dep_service.service_id
-            body["tenant_env_id"] = self.tenant.tenant_env_id
+            body["tenant_env_id"] = self.tenant_env.env_id
             body["dep_service_type"] = dep_service.service_type
-            body["enterprise_id"] = self.tenant.enterprise_id
             remote_component_client.add_service_dependency(session,
-                                                           self.service.service_region, self.tenant.tenant_name,
+                                                           self.service.service_region, self.tenant_env,
                                                            self.service.service_alias,
                                                            body)
 
@@ -894,7 +891,7 @@ class MarketService(object):
             })
         try:
             remote_component_client.restore_properties(session,
-                                                       self.service.service_region, self.tenant.tenant_name,
+                                                       self.service.service_region, self.tenant_env,
                                                        self.service.service_alias,
                                                        "/app-restore/deps", body)
         except RegionApiBaseHttpClient.CallApiError as e:
@@ -909,7 +906,7 @@ class MarketService(object):
                 "path": dep_volume["mnt_dir"]
             }
             try:
-                mnt_service.create_service_volume(self.tenant, self.service, data)
+                mnt_service.create_service_volume(self.tenant_env, self.service, data)
             except (ErrInvalidVolume, ErrDepVolumeNotFound) as e:
                 logger.warning("failed to create dep volume: {}".format(e))
 
@@ -932,14 +929,13 @@ class MarketService(object):
                 "depend_service_id": dep_vol.service_id,
                 "volume_name": dep_vol.volume_name,
                 "volume_path": dep_vol_info['mnt_dir'].strip(),
-                "enterprise_id": self.tenant.enterprise_id,
                 "volume_type": dep_vol.volume_type
             }
             if dep_vol.volume_type == "config-file":
                 config_file = volume_repo.get_service_config_file(session, dep_vol)
                 data["file_content"] = config_file.file_content
             remote_component_client.add_service_dep_volumes(session,
-                                                            self.service.service_region, self.tenant.tenant_name,
+                                                            self.service.service_region, self.tenant_env,
                                                             self.service.service_alias,
                                                             data)
 
@@ -966,7 +962,7 @@ class MarketService(object):
             })
         try:
             remote_component_client.restore_properties(session,
-                                                       self.service.service_region, self.tenant.tenant_name,
+                                                       self.service.service_region, self.tenant_env,
                                                        self.service.service_alias,
                                                        "/app-restore/depvols", body)
         except RegionApiBaseHttpClient.CallApiError as e:
@@ -977,7 +973,7 @@ class MarketService(object):
         logger.debug("start updating plugins; plugin datas: {}".format(plugins))
         add = plugins.get("add", [])
         try:
-            app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant, self.service,
+            app_plugin_service.create_plugin_4marketsvc(self.service.service_region, self.tenant_env, self.service,
                                                         self.template["apps"], self.version, add)
         except ServiceHandleException as e:
             logger.exception(e)
@@ -994,22 +990,22 @@ class MarketService(object):
         logger.debug("start syncing plugins; plugin datas: {}".format(plugins))
         add = plugins.get("add", [])
         for plugin in add:
-            data = app_plugin_service.build_plugin_data_4marketsvc(self.tenant, self.service, plugin)
+            data = app_plugin_service.build_plugin_data_4marketsvc(self.tenant_env, self.service, plugin)
             if data:
                 remote_component_client.install_service_plugin(session,
-                                                               self.service.service_region, self.tenant.tenant_name,
+                                                               self.service.service_region, self.tenant_env,
                                                                self.service.service_alias, data)
 
         delete = plugins.get("delete", [])
         for plugin in delete:
             remote_component_client.uninstall_service_plugin(session,
-                                                             self.service.service_region, self.tenant.tenant_name,
+                                                             self.service.service_region, self.tenant_env,
                                                              plugin["plugin_id"],
                                                              self.service.service_alias)
 
     def _sync_component_monitors(self, session, component_monitors, tenant_env):
         logger.debug("start syncing component_monitors; component_monitors datas: {}".format(component_monitors))
-        monitors = port_repo.list_by_service_ids(self.tenant.tenant_env_id, [self.service.service_id])
+        monitors = port_repo.list_by_service_ids(self.tenant_env.env_id, [self.service.service_id])
         for monitor in monitors:
             req = {
                 "name": monitor.name,
@@ -1020,7 +1016,7 @@ class MarketService(object):
             }
             try:
                 remote_build_client.create_service_monitor(session,
-                                                           self.tenant.enterprise_id, self.service.service_region,
+                                                           self.service.service_region,
                                                            tenant_env, self.service.service_alias, req)
             except RegionApiBaseHttpClient.CallApiError as e:
                 logger.error("failed to create_component_monitor: {}".format(e))
@@ -1044,7 +1040,7 @@ class MarketService(object):
             })
         try:
             remote_build_client.restore_properties(session,
-                                                   self.service.service_region, self.tenant.tenant_name,
+                                                   self.service.service_region, self.tenant_env,
                                                    self.service.service_alias,
                                                    "/app-restore/plugins", body)
         except RegionApiBaseHttpClient.CallApiError as e:

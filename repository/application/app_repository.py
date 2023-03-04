@@ -70,24 +70,20 @@ class AppRepo(object):
                 CenterApp.ID == app_id))
         ).scalars().first()
 
-    def get_enterpirse_app_by_key_and_version(self, session, enterprise_id, group_key, group_version):
+    def get_enterpirse_app_by_key_and_version(self, session, group_key, group_version):
         app = (session.execute(select(CenterApp).where(
-            CenterApp.enterprise_id == enterprise_id,
             CenterApp.app_id == group_key))
         ).scalars().first()
         rcapps = (session.execute(select(CenterAppVersion).where(
             CenterAppVersion.version == group_version,
-            CenterAppVersion.app_id == group_key,
-            CenterAppVersion.enterprise_id.in_(["public", enterprise_id])).order_by(
+            CenterAppVersion.app_id == group_key).order_by(
             CenterAppVersion.update_time.desc()
         ))
         ).scalars().all()
         if rcapps and app:
             rcapp = (session.execute(select(CenterAppVersion).where(
                 CenterAppVersion.version == group_version,
-                CenterAppVersion.enterprise_id == enterprise_id,
-                CenterAppVersion.app_id == group_key,
-                CenterAppVersion.enterprise_id.in_(["public", enterprise_id])).order_by(
+                CenterAppVersion.app_id == group_key).order_by(
                 CenterAppVersion.update_time.desc()
             ))
             ).scalars().all()
@@ -104,7 +100,7 @@ class AppRepo(object):
                 rcapps[0].group_name = app.app_name
             return rcapps[0]
         logger.warning(
-            "Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
+            "Group Key: {0}; Version: {1}".format(group_key, group_version))
         return None
 
     def get_app_list(self, session, tenant_env_id, region, query=""):

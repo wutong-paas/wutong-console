@@ -37,7 +37,7 @@ from service.application_service import application_service
 
 class GroupAppBackupService(object):
     def get_group_back_up_info(self, session: SessionClass, tenant_env, region, group_id):
-        return backup_record_repo.get_group_backup_records(session=session, team_id=tenant_env.env_id,
+        return backup_record_repo.get_group_backup_records(session=session, env_id=tenant_env.env_id,
                                                            region_name=region, group_id=group_id)
 
     def check_backup_condition(self, session: SessionClass, tenant_env, region, group_id):
@@ -82,7 +82,7 @@ class GroupAppBackupService(object):
             return backup_record[0].group_uuid
         return make_uuid()
 
-    def get_service_details(self, session: SessionClass, tenant, service):
+    def get_service_details(self, session: SessionClass, tenant_env, service):
         service_base = jsonable_encoder(service)
         service_labels = service_label_repo.get_service_labels(session, service.service_id)
         service_domains = domain_repo.get_service_domains(session, service.service_id)
@@ -90,25 +90,26 @@ class GroupAppBackupService(object):
         service_tcpdomains = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
         service_probes = probe_repo.get_all_service_probe(session, service.service_id)
         service_source = service_source_repo.get_service_source(session,
-                                                                tenant.tenant_env_id,
+                                                                tenant_env.env_id,
                                                                 service.service_id)
         service_auths = auth_repo.get_service_auth(session, service.service_id)
         service_env_vars = env_var_repo.get_service_env_by_tenant_env_id_and_service_id(session=session,
-                                                                                    tenant_env_id=tenant.tenant_env_id,
-                                                                                    service_id=service.service_id)
+                                                                                        tenant_env_id=tenant_env.env_id,
+                                                                                        service_id=service.service_id)
         service_compile_env = compile_env_repo.get_service_compile_env(session, service.service_id)
         service_extend_method = extend_repo.get_extend_method_by_service(session, service)
         service_mnts = mnt_repo.get_service_mnts(session=session,
-                                                 tenant_env_id=tenant.tenant_env_id,
+                                                 tenant_env_id=tenant_env.env_id,
                                                  service_id=service.service_id)
         service_volumes = volume_repo.get_service_volumes_with_config_file(session, service.service_id)
         service_config_file = volume_repo.get_service_config_files(session, service.service_id)
-        service_ports = port_repo.get_service_ports(session=session, tenant_env_id=tenant.tenant_env_id,
+        service_ports = port_repo.get_service_ports(session=session, tenant_env_id=tenant_env.env_id,
                                                     service_id=service.service_id)
-        service_relation = dep_relation_repo.get_service_dependencies(session=session, tenant_env_id=tenant.tenant_env_id,
+        service_relation = dep_relation_repo.get_service_dependencies(session=session,
+                                                                      tenant_env_id=tenant_env.env_id,
                                                                       service_id=service.service_id)
         service_monitors = service_monitor_service.get_component_service_monitors(session=session,
-                                                                                  tenant_env_id=tenant.tenant_env_id,
+                                                                                  tenant_env_id=tenant_env.env_id,
                                                                                   service_id=service.service_id)
         component_graphs = component_graph_repo.list(session, service.service_id)
         # plugin
@@ -151,7 +152,7 @@ class GroupAppBackupService(object):
 
         return app_info, plugin_ids
 
-    def get_group_app_metadata(self, session: SessionClass, group_id, tenant, region_name):
+    def get_group_app_metadata(self, session: SessionClass, group_id, tenant_env, region_name):
         all_data = dict()
         compose_group_info = compose_repo.get_group_compose_by_group_id(session, group_id)
         compose_service_relation = None
@@ -177,7 +178,7 @@ class GroupAppBackupService(object):
                 continue
             if service.service_source != "third_party":
                 total_memory += service.min_memory * service.min_node
-            app_info, pids = self.get_service_details(session=session, tenant=tenant, service=service)
+            app_info, pids = self.get_service_details(session=session, tenant_env=tenant_env, service=service)
             plugin_ids.extend(pids)
             apps.append(app_info)
         all_data["apps"] = apps
@@ -188,11 +189,12 @@ class GroupAppBackupService(object):
         plugin_config_groups = []
         plugin_config_items = []
         for plugin_id in plugin_ids:
-            plugin = plugin_repo.get_plugin_by_plugin_id(session, tenant.tenant_env_id, plugin_id)
+            plugin = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
             if plugin is None:
                 continue
             plugins.append(jsonable_encoder(plugin))
-            bv = plugin_version_repo.get_last_ok_one(session=session, plugin_id=plugin_id, tenant_env_id=tenant.tenant_env_id)
+            bv = plugin_version_repo.get_last_ok_one(session=session, plugin_id=plugin_id,
+                                                     tenant_env_id=tenant_env.env_id)
             if bv is None:
                 continue
             plugin_build_versions.append(jsonable_encoder(bv))
@@ -219,11 +221,12 @@ class GroupAppBackupService(object):
         all_data["app_config_group_info"] = app_config_groups
         return total_memory, all_data
 
-    def backup_group_apps(self, session: SessionClass, tenant_env, user, region_name, group_id, mode, note, force=False):
+    def backup_group_apps(self, session: SessionClass, tenant_env, user, region_name, group_id, mode, note,
+                          force=False):
         services = application_service.get_group_services(session=session, group_id=group_id)
         event_id = make_uuid()
         group_uuid = self.get_backup_group_uuid(session=session, group_id=group_id)
-        total_memory, metadata = self.get_group_app_metadata(session=session, group_id=group_id, tenant=tenant_env,
+        total_memory, metadata = self.get_group_app_metadata(session=session, group_id=group_id, tenant_env=tenant_env,
                                                              region_name=region_name)
         version = current_time_str("%Y%m%d%H%M%S")
 
@@ -268,7 +271,7 @@ class GroupAppBackupService(object):
             raise ServiceHandleException(msg=e.message["body"].get("msg", "backup failed"), msg_show="备份失败")
 
     def get_groupapp_backup_status_by_backup_id(self, session: SessionClass, tenant_env, region, backup_id):
-        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant_env.env_id,
+        backup_record = backup_record_repo.get_record_by_backup_id(session=session, env_id=tenant_env.env_id,
                                                                    backup_id=backup_id)
         if not backup_record:
             return 404, "不存在该备份记录", None
@@ -283,7 +286,7 @@ class GroupAppBackupService(object):
         return 200, "success", backup_record
 
     def delete_group_backup_by_backup_id(self, session: SessionClass, tenant_env, region, backup_id):
-        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant_env.env_id,
+        backup_record = backup_record_repo.get_record_by_backup_id(session=session, env_id=tenant_env.env_id,
                                                                    backup_id=backup_id)
         if not backup_record:
             raise ErrBackupRecordNotFound
@@ -296,7 +299,7 @@ class GroupAppBackupService(object):
             if e.status != 404:
                 raise e
 
-        backup_record_repo.delete_record_by_backup_id(session=session, team_id=tenant_env.env_id, backup_id=backup_id)
+        backup_record_repo.delete_record_by_backup_id(session=session, env_id=tenant_env.env_id, backup_id=backup_id)
 
     def import_group_backup(self, session, tenant_env, region, group_id, upload_file):
         group = application_repo.get_group_by_id(session, group_id)

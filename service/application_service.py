@@ -297,7 +297,7 @@ class ApplicationService(object):
         return components
 
     @staticmethod
-    def check_app_name(session: SessionClass, team_id, env_id, region_name, group_name, app: Application = None,
+    def check_app_name(session: SessionClass, env_id, region_name, group_name, app: Application = None,
                        k8s_app=""):
         """
         检查应用名称
@@ -314,11 +314,10 @@ class ApplicationService(object):
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
         if not r.match(group_name):
             raise ServiceHandleException(msg="app_name illegal", msg_show="应用名称只支持中英文, 数字, 下划线, 中划线和点")
-        exist_app = application_repo.get_group_by_unique_key(session=session, tenant_env_id=team_id,
-                                                             env_id=env_id,
+        exist_app = application_repo.get_group_by_unique_key(session=session, tenant_env_id=env_id,
                                                              region_name=region_name, group_name=group_name)
         app_id = app.app_id if app else 0
-        if application_repo.is_k8s_app_duplicate(session, team_id, env_id, region_name, k8s_app, app_id):
+        if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
             raise ErrK8sAppExists
         if not exist_app:
             return
@@ -354,7 +353,7 @@ class ApplicationService(object):
         :param logo:
         :return:
         """
-        self.check_app_name(session, tenant_env.env_id, tenant_env.env_id, region_name, app_name, k8s_app=k8s_app)
+        self.check_app_name(session, tenant_env.env_id, region_name, app_name, k8s_app=k8s_app)
         # check parameter for helm app
         app_type = AppType.wutong.name
         if app_store_name or app_template_name or version:
@@ -641,7 +640,7 @@ class ApplicationService(object):
 
     def create_service_source_info(self, session: SessionClass, tenant_env, service, user_name, password):
         params = {
-            "team_id": tenant_env.env_id,
+            "tenant_env_id": tenant_env.env_id,
             "service_id": service.service_id,
             "user_name": user_name,
             "password": password,
@@ -678,7 +677,7 @@ class ApplicationService(object):
         body["source_type"] = self.__get_service_region_type(service_source=service.service_source)
         source_body = ""
         service_source = (
-            session.execute(select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == tenant_env.env_id,
+            session.execute(select(ComponentSourceInfo).where(ComponentSourceInfo.tenant_env_id == tenant_env.env_id,
                                                               ComponentSourceInfo.service_id == service.service_id))
         ).scalars().first()
 
@@ -740,7 +739,7 @@ class ApplicationService(object):
         }
 
     def create_third_party_service(self, session: SessionClass, tenant_env, service, user_name, is_inner_service=False):
-        data = self.__init_third_party_data(tenant=tenant_env, service=service, user_name=user_name)
+        data = self.__init_third_party_data(tenant_env=tenant_env, service=service, user_name=user_name)
         # env var
         envs_info = (
             session.execute(
@@ -807,9 +806,9 @@ class ApplicationService(object):
 
         return service
 
-    def __init_third_party_data(self, tenant, service, user_name):
+    def __init_third_party_data(self, tenant_env, service, user_name):
         data = dict()
-        data["tenant_env_id"] = tenant.tenant_env_id
+        data["tenant_env_id"] = tenant_env.env_id
         data["service_id"] = service.service_id
         data["service_alias"] = service.service_alias
         data["protocol"] = service.protocol
@@ -1750,7 +1749,7 @@ class ApplicationService(object):
 
         # check app name
         if app_name:
-            self.check_app_name(session, tenant_env.env_id, tenant_env.env_id, region_name, app_name, app,
+            self.check_app_name(session, tenant_env.env_id, region_name, app_name, app,
                                 k8s_app=k8s_app)
         if overrides:
             overrides = self._parse_overrides(overrides)
@@ -1770,19 +1769,16 @@ class ApplicationService(object):
         data["k8s_app"] = bean["k8s_app"]
         application_repo.update(session, app_id, **data)
 
-    def get_apps_by_plat(self, session, team_id, env_id, project_id, app_name):
+    def get_apps_by_plat(self, session, env_id, project_id, app_name):
         sql = "select ID, group_name, k8s_app, note, logo, tenant_name, env_name, project_name " \
               "from service_group where 1"
         params = {
-            "team_id": team_id,
             "env_id": env_id,
             "project_id": project_id,
             "app_name": app_name
         }
-        if team_id:
-            sql += " and tenant_env_id=:team_id"
         if env_id:
-            sql += " and env_id=:env_id"
+            sql += " and tenant_env_id=:env_id"
         if project_id:
             sql += " and project_id=:project_id"
         if app_name:

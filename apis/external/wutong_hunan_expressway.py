@@ -181,14 +181,14 @@ async def overview_tenant(
 
     for tenant_tuple in tenant_pods_info:
         pods_num = tenant_tuple[1]
-        tenant = env_services.get_team_by_team_id(session, tenant_tuple[0])
+        env = env_services.get_team_by_team_id(session, tenant_tuple[0])
 
         team_service_num = service_info_repo.get_hn_team_service_num_by_team_id(
-            session=session, team_id=tenant.tenant_env_id)
-        groups = application_repo.get_hn_tenant_region_groups(session, tenant.tenant_env_id)
+            session=session, env_id=env.env_id)
+        groups = application_repo.get_hn_tenant_region_groups(session, env.env_id)
 
         tenant_info.append({
-            "tenant_name": tenant.tenant_alias,
+            "tenant_name": env.tenant_name,
             "apps": len(groups),
             "services": team_service_num,
             "pods": pods_num

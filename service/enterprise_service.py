@@ -11,14 +11,14 @@ class EnterpriseServices(object):
     企业组件接口，提供以企业为中心的操作集合，企业在云帮体系中为最大业务隔离单元，企业下有团队（也就是tenant）
     """
 
-    def get_enterprise_runing_service(self, session: SessionClass, regions, team_ids):
+    def get_enterprise_runing_service(self, session: SessionClass, regions, tenant_env_ids):
 
         app_total_num = 0
         app_running_num = 0
         component_total_num = 0
         component_running_num = 0
 
-        if not team_ids:
+        if not tenant_env_ids:
             return {
                 "service_groups": {
                     "total": 0,
@@ -32,7 +32,7 @@ class EnterpriseServices(object):
                 }
             }
         region_names = [region.region_name for region in regions]
-        apps = application_repo.get_apps_in_multi_team(session, team_ids, region_names)
+        apps = application_repo.get_apps_in_multi_team(session, tenant_env_ids, region_names)
 
         app_total_num = len(apps)
 

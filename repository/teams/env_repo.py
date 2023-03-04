@@ -98,10 +98,10 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         session.add(ts)
         session.flush()
 
-    def get_team_region_by_name(self, session, team_id, region_name):
+    def get_team_region_by_name(self, session, env_id, region_name):
         return session.execute(select(EnvRegionInfo).where(
             EnvRegionInfo.region_name == region_name,
-            EnvRegionInfo.region_env_id == team_id)).scalars().all()
+            EnvRegionInfo.region_env_id == env_id)).scalars().all()
 
     def get_user_tenant_by_name(self, session, user_id, name):
         res = session.execute(select(PermRelTenant).where(

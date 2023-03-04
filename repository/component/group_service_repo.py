@@ -105,15 +105,15 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
                 select(TeamComponentInfo).where(TeamComponentInfo.service_alias == service_alias))
         ).scalars().first()
 
-    def get_team_service_num_by_team_id(self, session, team_id, region_name):
+    def get_team_service_num_by_team_id(self, session, env_id, region_name):
         count = (session.execute(select(ComponentApplicationRelation).where(
-            ComponentApplicationRelation.tenant_env_id == team_id,
+            ComponentApplicationRelation.tenant_env_id == env_id,
             ComponentApplicationRelation.region_name == region_name))).scalars().all()
         return len(count)
 
-    def get_hn_team_service_num_by_team_id(self, session, team_id):
+    def get_hn_team_service_num_by_team_id(self, session, env_id):
         count = (session.execute(select(ComponentApplicationRelation).where(
-            ComponentApplicationRelation.tenant_env_id == team_id))).scalars().all()
+            ComponentApplicationRelation.tenant_env_id == env_id))).scalars().all()
         return len(count)
 
     def get_services_in_multi_apps_with_app_info(self, session, group_ids):
@@ -194,15 +194,15 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
             result.append(service)
         return result
 
-    def get_services_by_team_and_region(self, session, team_id, region_name):
+    def get_services_by_team_and_region(self, session, env_id, region_name):
         return session.execute(select(TeamComponentInfo).where(
             TeamComponentInfo.service_region == region_name,
-            TeamComponentInfo.tenant_env_id == team_id)).scalars().all()
+            TeamComponentInfo.tenant_env_id == env_id)).scalars().all()
 
-    def delete_services_by_team_and_region(self, session, team_id, region_name):
+    def delete_services_by_team_and_region(self, session, env_id, region_name):
         session.execute(delete(TeamComponentInfo).where(
             TeamComponentInfo.service_region == region_name,
-            TeamComponentInfo.tenant_env_id == team_id))
+            TeamComponentInfo.tenant_env_id == env_id))
 
     def get_services_by_service_group_ids(self, session, component_ids, service_group_ids):
 

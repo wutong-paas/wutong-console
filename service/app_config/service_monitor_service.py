@@ -69,17 +69,17 @@ class ComponentServiceMonitor(object):
             ComponentMonitor.service_id == service_id,
             ComponentMonitor.tenant_env_id == tenant_env_id))).scalars().all()
 
-    def bulk_create_component_service_monitors(self, session: SessionClass, tenant, service, service_monitors):
+    def bulk_create_component_service_monitors(self, session: SessionClass, tenant_env, service, service_monitors):
         monitor_list = []
         for monitor in service_monitors:
             count = (session.execute(select(func.count(ComponentMonitor.ID)).where(
                 ComponentMonitor.name == monitor["name"],
-                ComponentMonitor.tenant_env_id == tenant.tenant_env_id))).first()[0]
+                ComponentMonitor.tenant_env_id == tenant_env.env_id))).first()[0]
             if count > 0:
                 monitor["name"] = "-".join([monitor["name"], make_uuid()[-4:]])
             data = ComponentMonitor(
                 name=monitor["name"],
-                tenant_env_id=tenant.tenant_env_id,
+                tenant_env_id=tenant_env.env_id,
                 service_id=service.service_id,
                 path=monitor["path"],
                 port=monitor["port"],

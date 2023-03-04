@@ -23,13 +23,14 @@ router = APIRouter()
 async def overview_app(
         request: Request,
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    team_ids = request.query_params.get("team_ids", None)
+    tenant_env_ids = request.query_params.get("tenant_env_ids", None)
     usable_regions = region_config_repo.list_by_model(session=session,
                                                       query_model=RegionConfig(status="1"))
     if not usable_regions:
         result = general_message(404, "no found regions", "查询成功")
         return JSONResponse(result, status_code=200)
-    data = enterprise_services.get_enterprise_runing_service(session=session, regions=usable_regions, team_ids=team_ids)
+    data = enterprise_services.get_enterprise_runing_service(session=session, regions=usable_regions,
+                                                             tenant_env_ids=tenant_env_ids)
     result = general_message("0", "success", "查询成功", bean=data)
     return JSONResponse(result, status_code=200)
 

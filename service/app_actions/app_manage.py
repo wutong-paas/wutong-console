@@ -217,7 +217,7 @@ class AppManageService(AppManageBase):
         create_step_repo.delete_create_step(session, service.service_id)
         event_service.delete_service_events(session, service)
         probe_repo.delete_service_probe(session, service.service_id)
-        service_source_repo.delete_service_source(session=session, team_id=tenant_env.env_id,
+        service_source_repo.delete_service_source(session=session, env_id=tenant_env.env_id,
                                                   service_id=service.service_id)
         compose_relation_repo.delete_relation_by_service_id(session, service.service_id)
         service_label_repo.delete_service_all_labels(session, service.service_id)
@@ -350,7 +350,7 @@ class AppManageService(AppManageBase):
         )
 
         session.execute(
-            delete(ComponentSourceInfo).where(ComponentSourceInfo.team_id == tenant.tenant_env_id,
+            delete(ComponentSourceInfo).where(ComponentSourceInfo.tenant_env_id == tenant.tenant_env_id,
                                               ComponentSourceInfo.service_id == service_id)
         )
 
@@ -569,7 +569,7 @@ class AppManageService(AppManageBase):
             service_dict["kind"] = kind
             service_source = (
                 session.execute(
-                    select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == service.tenant_env_id,
+                    select(ComponentSourceInfo).where(ComponentSourceInfo.tenant_env_id == service.tenant_env_id,
                                                       ComponentSourceInfo.service_id == service.service_id))
             ).scalars().first()
 
@@ -1135,7 +1135,7 @@ class AppManageService(AppManageBase):
             }
         service_source = (
             session.execute(
-                select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == service.tenant_env_id,
+                select(ComponentSourceInfo).where(ComponentSourceInfo.tenant_env_id == service.tenant_env_id,
                                                   ComponentSourceInfo.service_id == service.service_id))
         ).scalars().first()
 

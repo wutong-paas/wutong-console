@@ -77,10 +77,6 @@ async def get_app_state(
             result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
             return JSONResponse(result, status_code=code)
         # region_name = request.headers.get("X_REGION_NAME")
-        team = env_services.devops_get_tenant(tenant_name=team_code, session=session)
-        if not team:
-            result = general_message(400, "tenant not exist", "{}团队不存在".format(team_code))
-            return JSONResponse(result, status_code=400)
 
         if application_id == "-1":
             # query service which not belong to any app
@@ -97,8 +93,8 @@ async def get_app_state(
             result = general_message(code, "query success", "应用查询成功", list=pg.items, total=total)
             return JSONResponse(result, status_code=code)
 
-        team_id = team.tenant_env_id
-        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
+        env_id = env.env_id
+        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, env_id=env_id,
                                                                                group_id=application_id)
         if group_count == 0:
             result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})

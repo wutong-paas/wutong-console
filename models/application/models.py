@@ -148,7 +148,7 @@ class ServiceShareRecordEvent(Base):
     service_id = Column(String(32), comment="对应应用ID", nullable=False)
     service_alias = Column(String(64), comment="对应应用别名", nullable=False)
     service_name = Column(String(64), comment="对应应用名称", nullable=False)
-    team_id = Column(String(32), comment="对应所在团队ID", nullable=False)
+    tenant_env_id = Column(String(32), comment="对应所在环境ID", nullable=False)
     event_id = Column(String(32), comment="介质同步事件ID", nullable=False, default="")
     event_status = Column(String(32), comment="事件状态", nullable=False, default="not_start")
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
@@ -169,7 +169,7 @@ class GroupAppBackupRecord(Base):
     group_uuid = Column(String(32), comment="group UUID", nullable=True)
     version = Column(String(32), comment="备份版本", nullable=True)
     backup_id = Column(String(36), comment="备份ID", nullable=True)
-    team_id = Column(String(32), comment="团队ID", nullable=True)
+    tenant_env_id = Column(String(32), comment="环境ID", nullable=True)
     user = Column(String(64), comment="备份人", nullable=True)
     region = Column(String(64), comment="数据中心", nullable=True)
     status = Column(String(15), comment="时间请求状态", nullable=True)
@@ -321,7 +321,7 @@ class ComposeServiceRelation(Base):
     __tablename__ = "compose_service_relation"
 
     ID = Column(Integer, primary_key=True)
-    team_id = Column(String(32), comment="团队 id")
+    tenant_env_id = Column(String(32), comment="环境id")
     service_id = Column(String(32), comment="服务 id")
     compose_id = Column(String(32), comment="compose id")
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")

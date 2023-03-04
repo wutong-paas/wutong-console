@@ -447,13 +447,12 @@ async def app_share(request: Request,
             code = 400
             result = general_message(400, "group id error", "未分组应用不可分享")
             return JSONResponse(result, status_code=code)
-        team_id = env.env_id
-        region = team_region_repo.get_region_by_env_id(session, team_id)
+        region = team_region_repo.get_region_by_env_id(session, env_id)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
 
-        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
+        group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, env_id=env_id,
                                                                                group_id=group_id)
         if group_count == 0:
             code = 202

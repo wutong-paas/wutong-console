@@ -99,7 +99,7 @@ class DomainService(object):
     def get_time_now(self):
         return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    def __check_domain_name(self, session: SessionClass, team_id, region_id, domain_name, certificate_id=None):
+    def __check_domain_name(self, session: SessionClass, env_id, region_id, domain_name, certificate_id=None):
         if not domain_name:
             raise ServiceHandleException(status_code=400, error_code=400, msg="domain can not be empty",
                                          msg_show="域名不能为空")
@@ -582,7 +582,7 @@ class DomainService(object):
         domain_info.update(update_data)
 
         self.__check_domain_name(session=session,
-                                 team_id=tenant_env.env_id,
+                                 env_id=tenant_env.env_id,
                                  region_id=service_domain.region_id,
                                  domain_name=domain_info["domain_name"],
                                  certificate_id=domain_info["certificate_id"])

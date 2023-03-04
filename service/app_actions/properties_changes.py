@@ -27,10 +27,10 @@ from service.upgrade_service import upgrade_service
 
 class PropertiesChanges(object):
     # install_from_cloud do not need any more
-    def __init__(self, session, service, tenant, all_component_one_model=None, only_one_component=False,
+    def __init__(self, session, service, tenant_env, all_component_one_model=None, only_one_component=False,
                  install_from_cloud=False):
         self.service = service
-        self.tenant = tenant
+        self.tenant = tenant_env
         self.service_source = service_source_repo.get_service_source(session, service.tenant_env_id, service.service_id)
         self.current_version = self.service_source.version
         self.install_from_cloud = self.service_source.is_install_from_cloud()
@@ -450,14 +450,14 @@ def get_upgrade_app_version_template_app(session, tenant, version, pc):
     return app
 
 
-def get_upgrade_app_template(session, tenant, version, pc):
+def get_upgrade_app_template(session, tenant_env, version, pc):
     template = None
     if pc.install_from_cloud:
         # todo
         logger.info("cloud")
     else:
         data = app_repo.get_enterpirse_app_by_key_and_version(session,
-                                                              tenant.enterprise_id, pc.service_source.group_key,
+                                                              pc.service_source.group_key,
                                                               version)
         if not data:
             raise ServiceHandleException(msg="app version {} can not exist".format(version), msg_show="应用模版版本不存在")
