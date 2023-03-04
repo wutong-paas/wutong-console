@@ -21,9 +21,9 @@ class ComponentApplicationRelationRepository(BaseRepository[ComponentApplication
         session.execute(delete(ComponentApplicationRelation).where(
             ComponentApplicationRelation.group_id == group_id))
 
-    def add_service_group_relation(self, session, group_id, service_id, tenant_id, region_name):
+    def add_service_group_relation(self, session, group_id, service_id, tenant_env_id, region_name):
         sgr = ComponentApplicationRelation(
-            service_id=service_id, group_id=group_id, tenant_id=tenant_id, region_name=region_name)
+            service_id=service_id, group_id=group_id, tenant_env_id=tenant_env_id, region_name=region_name)
         session.add(sgr)
         session.flush()
         return sgr
@@ -49,11 +49,11 @@ class ComponentApplicationRelationRepository(BaseRepository[ComponentApplication
             select(func.count(ComponentApplicationRelation.ID)).where(ComponentApplicationRelation.group_id == app_id)
         )).first()[0]
 
-    def list_serivce_ids_by_app_id(self, session, tenant_id, region_name, app_id):
+    def list_serivce_ids_by_app_id(self, session, tenant_env_id, region_name, app_id):
         service_ids = (
             session.execute(
                 select(ComponentApplicationRelation.service_id).where(
-                    ComponentApplicationRelation.tenant_id == tenant_id,
+                    ComponentApplicationRelation.tenant_env_id == tenant_env_id,
                     ComponentApplicationRelation.region_name == region_name,
                     ComponentApplicationRelation.group_id == app_id))
         ).scalars().all()
@@ -99,11 +99,11 @@ class ComponentApplicationRelationRepository(BaseRepository[ComponentApplication
 
         return gsr
 
-    def get_services_by_tenant_id_and_group(self, session, tenant_id, response_region, group_id):
+    def get_services_by_tenant_env_id_and_group(self, session, tenant_env_id, response_region, group_id):
         return (
             session.execute(
                 select(Application).where(
-                    Application.tenant_id == tenant_id,
+                    Application.tenant_env_id == tenant_env_id,
                     Application.region_name == response_region,
                     Application.ID == group_id))
         ).scalars().first()

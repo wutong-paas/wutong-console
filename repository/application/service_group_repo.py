@@ -10,7 +10,7 @@ class ServiceGroupRepository(object):
                 service_group a,
                 tenant_info b
             WHERE
-                a.tenant_id = b.tenant_id
+                a.tenant_env_id = b.tenant_env_id
                 AND a.is_default = 0
             LIMIT 1
             """

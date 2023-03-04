@@ -47,7 +47,7 @@ async def get_version(request: Request,
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     page = int(request.query_params.get("page_num", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)

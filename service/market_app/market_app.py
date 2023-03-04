@@ -322,7 +322,7 @@ class MarketApp(object):
                                              body)
 
     def list_original_plugins(self, session):
-        plugins = plugin_repo.list_by_tenant_id(session, self.original_app.tenant_id, self.region_name)
+        plugins = plugin_repo.list_by_tenant_env_id(session, self.original_app.tenant_env_id, self.region_name)
         plugin_ids = [plugin.plugin_id for plugin in plugins]
         plugin_versions = self._list_plugin_versions(session, plugin_ids)
 

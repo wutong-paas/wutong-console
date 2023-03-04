@@ -35,7 +35,7 @@ async def get_env(serviceAlias: Optional[str] = None,
           paramType: path
 
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     bean = label_service.get_service_labels(session=session, service=service)
     result = general_message("0", "success", "查询成功", bean=jsonable_encoder(bean))
     return JSONResponse(result, status_code=200)
@@ -56,7 +56,7 @@ async def get_available_labels(
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     # 节点添加的标签和数据中心查询回来的标签才可被组件使用
     node_labels = node_label_repo.get_all_labels(session)
     labels_list = list()
@@ -120,7 +120,7 @@ async def set_available_labels(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     label_ids = data.get("label_ids", None)
     if not label_ids:
@@ -162,7 +162,7 @@ async def delete_available_labels(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     label_id = data.get("label_id", None)
     if not label_id:

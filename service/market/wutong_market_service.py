@@ -88,13 +88,13 @@ def install_cloud_market_app(session: SessionClass, user, market_id: str,
     # app_template["update_time"] = app_version.update_time
 
     # 查询团队
-    team_info = env_repo.get_one_by_model(session=session, query_model=TeamEnvInfo(tenant_id=application.tenant_id))
+    team_info = env_repo.get_one_by_model(session=session, query_model=TeamEnvInfo(tenant_env_id=application.tenant_env_id))
     # 查询region
     region = region_repo.get_one_by_model(session=session,
                                           query_model=RegionConfig(region_name=application.region_name))
 
     # 安装应用
-    component_group = create_tenant_service_group(session, application.region_name, application.tenant_id,
+    component_group = create_tenant_service_group(session, application.region_name, application.tenant_env_id,
                                                   application.ID,
                                                   params.market_app_id, app_version_detail.numbers,
                                                   params.market_app_name)
@@ -113,11 +113,11 @@ def install_cloud_market_app(session: SessionClass, user, market_id: str,
     app_upgrade.install(session)
 
 
-def create_tenant_service_group(session: SessionClass, region_name, tenant_id, group_id, app_key,
+def create_tenant_service_group(session: SessionClass, region_name, tenant_env_id, group_id, app_key,
                                 app_version, app_name):
     group_name = '_'.join(["wt", make_uuid()[-4:]])
     params = {
-        "tenant_id": tenant_id,
+        "tenant_env_id": tenant_env_id,
         "group_name": group_name,
         "group_alias": app_name,
         "group_key": app_key,

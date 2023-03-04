@@ -39,7 +39,7 @@ async def get_ports(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     tenant_service_ports = port_service.get_service_ports(session=session, service=service)
     port_list = []
     for port in tenant_service_ports:
@@ -148,7 +148,7 @@ async def update_ports(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     if service.service_source == "third_party" and ("outer" in action):
         msg, msg_show, code = port_service.check_domain_thirdpart(session=session, tenant_env=env, service=service)
@@ -227,7 +227,7 @@ async def add_ports(request: Request,
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     if not port:
         return JSONResponse(general_message(400, "params error", "缺少端口参数"), status_code=400)
@@ -283,7 +283,7 @@ async def delete_ports(serviceAlias: Optional[str] = None,
         env = env_repo.get_env_by_env_id(session, env_id)
         if not env:
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         container_port = port
         if not container_port:
             raise AbortRequest("container_port not specify", "端口变量名未指定")

@@ -13,7 +13,7 @@ class CertService(object):
         if team_opened_regions:
             tenant = env_repo.get_team_by_team_name(session, team_name)
             team_opened_regions = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.tenant_id == tenant.tenant_id,
+                EnvRegionInfo.region_env_id == tenant.tenant_env_id,
                 EnvRegionInfo.is_init == 1,
                 EnvRegionInfo.region_name.in_(region_names)
             )).scalars().all()

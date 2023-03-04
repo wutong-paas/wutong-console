@@ -107,13 +107,13 @@ class AppRepo(object):
             "Enterprise ID: {0}; Group Key: {1}; Version: {2}".format(enterprise_id, group_key, group_version))
         return None
 
-    def get_app_list(self, session, tenant_id, region, query=""):
+    def get_app_list(self, session, tenant_env_id, region, query=""):
         if query:
-            sql = select(TeamComponentInfo).where(TeamComponentInfo.tenant_id == tenant_id,
+            sql = select(TeamComponentInfo).where(TeamComponentInfo.tenant_env_id == tenant_env_id,
                                                   TeamComponentInfo.service_region == region,
                                                   TeamComponentInfo.service_cname.contains(query))
         else:
-            sql = select(TeamComponentInfo).where(TeamComponentInfo.tenant_id == tenant_id,
+            sql = select(TeamComponentInfo).where(TeamComponentInfo.tenant_env_id == tenant_env_id,
                                                   TeamComponentInfo.service_region == region)
         return session.execute(sql).scalars().all()
 
@@ -145,9 +145,9 @@ class TenantServiceWebhooks(object):
 
 class ServiceRecycleBinRepository(object):
 
-    def get_team_trash_services(self, session, tenant_id):
+    def get_team_trash_services(self, session, tenant_env_id):
         return (
-            session.execute(select(ComponentRecycleBin).where(ComponentRecycleBin.tenant_id == tenant_id))
+            session.execute(select(ComponentRecycleBin).where(ComponentRecycleBin.tenant_env_id == tenant_env_id))
         ).scalars().all()
 
     def create_trash_service(self, session, **params):

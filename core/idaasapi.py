@@ -69,9 +69,10 @@ class IDaaSApi:
         code = rst.get("code", None)
         if code == '0':
             data = rst.get("data", None)
-            records = data.get("records", None)
-            if records:
-                data = records
+            if isinstance(data, dict):
+                records = data.get("records", None)
+                if records:
+                    data = records
             return data, "", ""
         return None, rst["msg"], code
 
@@ -129,8 +130,6 @@ class IDaaSApi:
 
     def check_user_password(self, params):
         data, msg, code = self.__post(self.get_url("/user/check-password-MD5"), params=params)
-        if not data:
-            raise ServiceHandleException(msg_show=msg, msg="failed", status_code=code)
         return data
 
 

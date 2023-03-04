@@ -144,7 +144,7 @@ class AppVolumeService(object):
         volume_name = self.check_volume_name(session=session, service=service, volume_name=volume_name)
 
         self.check_volume_path(session=session, service=service, volume_path=volume_path)
-        host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_id, service.service_id, volume_path)
+        host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_env_id, service.service_id, volume_path)
 
         volume_data = {
             "service_id": service.service_id,

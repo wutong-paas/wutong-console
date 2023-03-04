@@ -9,7 +9,7 @@ class ServiceGroupRelationRepositry(BaseRepository[ComponentApplicationRelation]
     def get_group_id_by_service(self, session, svc):
         group = session.execute(select(ComponentApplicationRelation).where(
             ComponentApplicationRelation.service_id == svc.service_id,
-            ComponentApplicationRelation.tenant_id == svc.tenant_id,
+            ComponentApplicationRelation.tenant_env_id == svc.tenant_env_id,
             ComponentApplicationRelation.region_name == svc.service_region)).scalars().first()
         if group:
             return group.group_id

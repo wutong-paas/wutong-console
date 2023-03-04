@@ -447,8 +447,8 @@ async def app_share(request: Request,
             code = 400
             result = general_message(400, "group id error", "未分组应用不可分享")
             return JSONResponse(result, status_code=code)
-        team_id = env.tenant_id
-        region = team_region_repo.get_region_by_tenant_id(session, team_id)
+        team_id = env.env_id
+        region = team_region_repo.get_region_by_env_id(session, team_id)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
@@ -502,7 +502,7 @@ async def get_app_model(
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     group_id = int(group_id)
-    group = application_service.get_group_service(session=session, tenant_id=env.tenant_id,
+    group = application_service.get_group_service(session=session, tenant_env_id=env.env_id,
                                                   response_region=response_region, group_id=group_id)
     if not group:
         return JSONResponse(general_message(msg="Group does not exist", msg_show="应用不存在", code=400), status_code=400)
@@ -682,7 +682,7 @@ async def app_governance_mode(
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    res = application_service.list_kubernetes_services(session, env.tenant_id, region_name, app_id)
+    res = application_service.list_kubernetes_services(session, env.env_id, region_name, app_id)
     result = general_message("0", "success", "查询成功", list=res)
     return JSONResponse(result, status_code=200)
 

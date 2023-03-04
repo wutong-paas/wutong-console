@@ -89,7 +89,7 @@ class Component(object):
 
     def _create_port_env(self, port: TeamComponentPort, name, attr_name, attr_value):
         return ComponentEnvVar(
-            tenant_id=self.component.tenant_id,
+            tenant_env_id=self.component.tenant_env_id,
             service_id=self.component.component_id,
             container_port=port.container_port,
             name=name,
@@ -160,7 +160,7 @@ class Component(object):
                 continue
             self.envs.append(
                 ComponentEnvVar(
-                    tenant_id=self.component.tenant_id,
+                    tenant_env_id=self.component.tenant_env_id,
                     service_id=self.component.service_id,
                     container_port=container_port,
                     name=name,
@@ -223,7 +223,7 @@ class Component(object):
         for monitor in monitors:
             new_monitor = ComponentMonitor(**monitor)
             new_monitor.service_id = self.component.component_id
-            new_monitor.tenant_id = self.component.tenant_id
+            new_monitor.tenant_env_id = self.component.tenant_env_id
             self.monitors.append(new_monitor)
         self.update_action_type(ActionType.UPDATE.value)
 
@@ -237,7 +237,7 @@ class Component(object):
                 continue
             self.labels.append(
                 ComponentLabels(
-                    tenant_id=self.component.tenant_id,
+                    tenant_env_id=self.component.tenant_env_id,
                     service_id=self.component.component_id,
                     label_id=label.label_id,
                     region=self.component.service_region,
@@ -251,12 +251,12 @@ class Component(object):
         k8s_service_name = port.get("k8s_service_name", self.component.service_alias + "-" + str(container_port))
         if k8s_service_name:
             try:
-                port_repo.get_by_k8s_service_name(session, self.component.tenant_id, k8s_service_name)
+                port_repo.get_by_k8s_service_name(session, self.component.tenant_env_id, k8s_service_name)
                 k8s_service_name += "-" + make_uuid()[-4:]
             except TeamComponentPort.DoesNotExist:
                 pass
             port["k8s_service_name"] = k8s_service_name
-        port["tenant_id"] = self.component.tenant_id
+        port["tenant_env_id"] = self.component.tenant_env_id
         port["service_id"] = self.component.service_id
         port["mapping_port"] = container_port
         port["port_alias"] = port_alias
@@ -265,7 +265,7 @@ class Component(object):
         old_volumes = {volume.volume_name: volume for volume in self.volumes}
         for volume in volumes.get("add"):
             volume["service_id"] = self.component.service_id
-            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_id, self.component.service_id,
+            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(self.component.tenant_env_id, self.component.service_id,
                                                                    volume["volume_path"])
             volume["host_path"] = host_path
             file_content = volume.get("file_content")

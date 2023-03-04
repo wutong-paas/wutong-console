@@ -34,7 +34,7 @@ default_plugins = [
 class PluginService(object):
 
     def get_tenant_plugins(self, session: SessionClass, region, tenant_env):
-        return plugin_repo.get_tenant_plugins(session, tenant_env.tenant_id, region)
+        return plugin_repo.get_tenant_plugins(session, tenant_env.env_id, region)
 
     def create_tenant_plugin(self, session: SessionClass, plugin_params):
         plugin_id = make_uuid()
@@ -59,7 +59,7 @@ class PluginService(object):
         plugin_data["plugin_info"] = tenant_plugin.desc
         plugin_data["plugin_model"] = tenant_plugin.category
         plugin_data["plugin_name"] = tenant_plugin.plugin_name
-        plugin_data["tenant_id"] = tenant_env.tenant_id
+        plugin_data["tenant_env_id"] = tenant_env.env_id
         plugin_data["origin"] = tenant_plugin.origin
         remote_plugin_client.create_plugin(session, region, tenant_env, plugin_data)
         return 200, "success"
@@ -80,7 +80,7 @@ class PluginService(object):
         build_data["repo_url"] = plugin_version.code_version
         build_data["username"] = plugin.username  # git username
         build_data["password"] = plugin.password  # git password
-        build_data["tenant_id"] = tenant_env.tenant_id
+        build_data["tenant_env_id"] = tenant_env.env_id
         build_data["ImageInfo"] = image_info
         build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
         origin = plugin.origin
@@ -107,9 +107,9 @@ class PluginService(object):
                 if e.status != 404:
                     raise ServiceHandleException(msg="delete plugin form cluster failure", msg_show="从集群删除插件失败")
         app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(session=session, plugin_id=plugin_id)
-        plugin_version_repo.delete_build_version_by_plugin_id(session=session, tenant_id=tenant_env.tenant_id,
+        plugin_version_repo.delete_build_version_by_plugin_id(session=session, tenant_env_id=tenant_env.env_id,
                                                               plugin_id=plugin_id)
-        plugin_repo.delete_by_plugin_id(session=session, tenant_id=tenant_env.tenant_id, plugin_id=plugin_id)
+        plugin_repo.delete_by_plugin_id(session=session, tenant_env_id=tenant_env.env_id, plugin_id=plugin_id)
         config_item_repo.delete_config_items_by_plugin_id(session=session, plugin_id=plugin_id)
         config_group_repo.delete_config_group_by_plugin_id(session=session, plugin_id=plugin_id)
 
@@ -139,7 +139,7 @@ class PluginService(object):
                 else:
                     image = ref[0]
             plugin_params = {
-                "tenant_id": "-",
+                "tenant_env_id": "-",
                 "region": region,
                 "create_user": user.user_id,
                 "desc": needed_plugin_config["desc"],
@@ -170,7 +170,7 @@ class PluginService(object):
             plugin_build_version = plugin_version_service.create_build_version(session=session,
                                                                                region=region,
                                                                                plugin_id=plugin_base_info.plugin_id,
-                                                                               tenant_id=tenant_env.tenant_id,
+                                                                               tenant_env_id=tenant_env.env_id,
                                                                                user_id=user.user_id, update_info="",
                                                                                build_status="unbuild",
                                                                                min_memory=min_memory,
@@ -231,14 +231,14 @@ class PluginService(object):
 
     def get_default_plugin(self, session: SessionClass, region, tenant_env):
         # 兼容3.5版本升级
-        plugins = plugin_repo.get_def_tenant_plugins(session, tenant_env.tenant_id,
+        plugins = plugin_repo.get_def_tenant_plugins(session, tenant_env.env_id,
                                                      region, [plugin for plugin in default_plugins])
         if plugins:
             return plugins
         else:
             DEF_IMAGE_REPO = "goodrain.me"
             IMAGE_REPO = os.getenv("IMAGE_REPO", DEF_IMAGE_REPO)
-            return plugin_repo.get_default_tenant_plugins(session, tenant_env.tenant_id, region, PluginImage, IMAGE_REPO)
+            return plugin_repo.get_default_tenant_plugins(session, tenant_env.env_id, region, PluginImage, IMAGE_REPO)
 
     def get_default_plugin_from_cache(self, session: SessionClass, region, tenant_env):
         if not self.all_default_config:
@@ -266,8 +266,8 @@ class PluginService(object):
 
         return default_plugin_list
 
-    def delete_console_tenant_plugin(self, session, tenant_id, plugin_id):
-        plugin_repo.delete_by_plugin_id(session, tenant_id, plugin_id)
+    def delete_console_tenant_plugin(self, session, tenant_env_id, plugin_id):
+        plugin_repo.delete_by_plugin_id(session, tenant_env_id, plugin_id)
 
     def update_region_plugin_info(self, session, region, tenant_env, tenant_plugin, plugin_build_version):
         data = dict()
@@ -290,12 +290,12 @@ class PluginService(object):
         body = remote_plugin_client.get_plugin_event_log(session, region, tenant_env, data)
         return body["list"]
 
-    def get_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):
+    def get_by_plugin_id(self, session: SessionClass, tenant_env_id, plugin_id):
         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
         return plugin
 
-    def get_by_share_plugins(self, session: SessionClass, tenant_id, origin):
-        plugins = plugin_repo.get_by_share_plugins(session, tenant_id, origin)
+    def get_by_share_plugins(self, session: SessionClass, tenant_env_id, origin):
+        plugins = plugin_repo.get_by_share_plugins(session, tenant_env_id, origin)
         return plugins
 
     def get_by_type_plugins(self, session: SessionClass, plugin_type, origin, service_region):

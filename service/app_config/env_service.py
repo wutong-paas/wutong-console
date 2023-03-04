@@ -5,11 +5,11 @@ from repository.component.env_var_repo import env_var_repo
 
 class AppEnvVarService(object):
     def get_env_by_container_port(self, session: SessionClass, tenant, service, container_port):
-        return env_var_repo.get_service_env_by_port(tenant.tenant_id, service.service_id, container_port)
+        return env_var_repo.get_service_env_by_port(tenant.tenant_env_id, service.service_id, container_port)
 
     def get_self_define_env(self, session: SessionClass, service, scopes, is_change, attr_names):
         if service:
-            return env_var_repo.get_service_env(session, service.tenant_id, service.service_id,
+            return env_var_repo.get_service_env(session, service.tenant_env_id, service.service_id,
                                                 scopes, is_change, attr_names, 1, "outer")
 
 

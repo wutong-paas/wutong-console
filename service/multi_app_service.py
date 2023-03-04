@@ -12,7 +12,7 @@ from service.component_service import component_check_service
 class MultiAppService(object):
 
     def save_multi_services(self, session, region_name, tenant_env, group_id, service, user, service_infos):
-        service_source = service_source_repo.get_service_source(session, tenant_env.tenant_id, service.service_id)
+        service_source = service_source_repo.get_service_source(session, tenant_env.env_id, service.service_id)
         service_ids = []
         for service_info in service_infos:
             code, msg_show, new_service = application_service \
@@ -54,7 +54,7 @@ class MultiAppService(object):
 
     def create_services(self, session, region_name, tenant_env, user, service_alias, service_infos):
         # get temporary service
-        temporary_service = service_info_repo.get_service_by_tenant_and_alias(session, tenant_env.tenant_id,
+        temporary_service = service_info_repo.get_service_by_tenant_and_alias(session, tenant_env.env_id,
                                                                               service_alias)
         if not temporary_service:
             raise AbortRequest("service not found", "组件不存在", status_code=404, error_code=11005)

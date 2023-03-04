@@ -8,40 +8,40 @@ from repository.base import BaseRepository
 
 class TeamServiceEnvVarRepository(BaseRepository[ComponentEnvVar]):
 
-    def get_service_env_by_attr_name(self, session, tenant_id, service_id, attr_name):
+    def get_service_env_by_attr_name(self, session, tenant_env_id, service_id, attr_name):
         return session.execute(select(ComponentEnvVar).where(
-            ComponentEnvVar.tenant_id == tenant_id,
+            ComponentEnvVar.tenant_env_id == tenant_env_id,
             ComponentEnvVar.service_id == service_id,
             ComponentEnvVar.attr_name == attr_name
         )).scalars().first()
 
-    def get_service_env_by_port(self, session: SessionClass, tenant_id, service_id, port):
+    def get_service_env_by_port(self, session: SessionClass, tenant_env_id, service_id, port):
         return (
-            session.execute(select(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_id,
+            session.execute(select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env_id,
                                                           ComponentEnvVar.service_id == service_id,
                                                           ComponentEnvVar.container_port == port))
         ).scalars().all()
 
-    def get_service_env(self, session, tenant_id, service_id):
+    def get_service_env(self, session, tenant_env_id, service_id):
         return session.execute(select(ComponentEnvVar).where(
-            ComponentEnvVar.tenant_id == tenant_id,
+            ComponentEnvVar.tenant_env_id == tenant_env_id,
             ComponentEnvVar.service_id == service_id)).scalars().all()
 
-    def delete_service_env_by_port(self, session: SessionClass, tenant_id, service_id, container_port):
-        session.execute(delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_id,
+    def delete_service_env_by_port(self, session: SessionClass, tenant_env_id, service_id, container_port):
+        session.execute(delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env_id,
                                                       ComponentEnvVar.service_id == service_id,
                                                       ComponentEnvVar.container_port == container_port
                                                       ))
 
-    def get_service_env_by_scope(self, session: SessionClass, tenant_id, service_id, scope):
+    def get_service_env_by_scope(self, session: SessionClass, tenant_env_id, service_id, scope):
         return (
-            session.execute(select(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_id,
+            session.execute(select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env_id,
                                                           ComponentEnvVar.service_id == service_id,
                                                           ComponentEnvVar.scope == scope
                                                           ))).scalars().all()
 
-    def delete_service_env_by_attr_name(self, session: SessionClass, tenant_id, service_id, attr_name):
-        session.execute(delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_id,
+    def delete_service_env_by_attr_name(self, session: SessionClass, tenant_env_id, service_id, attr_name):
+        session.execute(delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env_id,
                                                       ComponentEnvVar.service_id == service_id,
                                                       ComponentEnvVar.attr_name == attr_name
                                                       ))

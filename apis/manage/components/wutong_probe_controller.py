@@ -38,7 +38,7 @@ async def get_probe(request: Request,
           type: string
           paramType: query
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if service.service_source == "third_party":
         code, msg, probe = probe_service.get_service_probe(session=session, service=service)
         if code != 200:
@@ -77,7 +77,7 @@ async def add_probe(request: Request,
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
 
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     params = jsonable_encoder(data)
     code, msg, probe = probe_service.add_service_probe(session=session, tenant_env=env, service=service, data=params)
@@ -101,7 +101,7 @@ async def modify_probe(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     data = await request.json()
 

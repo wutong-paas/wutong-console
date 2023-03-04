@@ -12,7 +12,7 @@ from service.plugin.app_plugin_service import app_plugin_service
 
 class AppServiceRelationService(object):
     def __get_dep_service_ids(self, session: SessionClass, tenant_env, service):
-        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant_env.tenant_id, service.service_id)
+        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id, service.service_id)
         return [service_dep.dep_service_id for service_dep in service_dependencies]
 
     def get_service_dependencies(self, session: SessionClass, tenant_env, service):
@@ -25,7 +25,7 @@ class AppServiceRelationService(object):
         for dep_id in deps:
             task = {}
             task["dep_service_id"] = dep_id
-            task["tenant_id"] = tenant_env.tenant_id
+            task["tenant_env_id"] = tenant_env.env_id
             task["dep_service_type"] = "v"
             try:
                 remote_component_client.delete_service_dependency(session,
@@ -38,14 +38,14 @@ class AppServiceRelationService(object):
 
         # 打开对内端口才能被依赖
         services = service_info_repo.get_tenant_region_services_by_service_id(session=session, region=service.service_region,
-                                                                              tenant_id=tenant_env.tenant_id,
+                                                                              tenant_env_id=tenant_env.env_id,
                                                                               service_id=service.service_id)
         not_dependencies = []
-        dep_services = dep_relation_repo.get_service_dependencies(session, tenant_env.tenant_id, service.service_id)
+        dep_services = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id, service.service_id)
         dep_service_ids = [dep.dep_service_id for dep in dep_services]
         for s in services:
             # 查找打开内部访问的组件
-            open_inner_services = port_repo.get_service_ports_by_is_inner_service(session, tenant_env.tenant_id,
+            open_inner_services = port_repo.get_service_ports_by_is_inner_service(session, tenant_env.env_id,
                                                                                   s.service_id)
             if open_inner_services:
                 if s.service_id not in dep_service_ids:
@@ -56,11 +56,11 @@ class AppServiceRelationService(object):
 
         # 打开对内端口才能被依赖
         services = service_info_repo.devops_get_tenant_region_services_by_service_id(session=session,
-                                                                                     tenant_id=tenant.tenant_id)
+                                                                                     tenant_env_id=tenant.tenant_env_id)
         dependencies = []
         for s in services:
             # 查找打开内部访问的组件
-            open_inner_services = port_repo.get_service_ports_by_is_inner_service(session, tenant.tenant_id,
+            open_inner_services = port_repo.get_service_ports_by_is_inner_service(session, tenant.tenant_env_id,
                                                                                   s.service_id)
             if open_inner_services:
                 dependencies.append(s)
@@ -104,9 +104,9 @@ class AppServiceRelationService(object):
 
     def __is_env_duplicate(self, session: SessionClass, tenant, service, dep_service):
         dep_ids = self.__get_dep_service_ids(session=session, tenant=tenant, service=service)
-        service_envs = env_var_repo.get_service_env_by_scope(session, tenant.tenant_id, dep_service.service_id)
+        service_envs = env_var_repo.get_service_env_by_scope(session, tenant.tenant_env_id, dep_service.service_id)
         attr_names = [service_env.attr_name for service_env in service_envs]
-        envs = env_var_repo.get_env_by_ids_and_attr_names(session, dep_service.tenant_id, dep_ids, attr_names)
+        envs = env_var_repo.get_env_by_ids_and_attr_names(session, dep_service.tenant_env_id, dep_ids, attr_names)
         if envs:
             return True
         return False
@@ -115,11 +115,11 @@ class AppServiceRelationService(object):
                                container_port=None,
                                user_name=''):
         dep_service_relation = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(
-            session, tenant_env.tenant_id, service.service_id, dep_service_id)
+            session, tenant_env.env_id, service.service_id, dep_service_id)
         if dep_service_relation:
             return 212, "当前组件已被关联", None
 
-        dep_service = service_info_repo.get_service_by_tenant_and_id(session=session, tenant_id=tenant_env.tenant_id,
+        dep_service = service_info_repo.get_service_by_tenant_and_id(session=session, tenant_env_id=tenant_env.env_id,
                                                                      service_id=dep_service_id)
         # 开启对内端口
         if open_inner:
@@ -127,10 +127,10 @@ class AppServiceRelationService(object):
         else:
             # 校验要依赖的组件是否开启了对内端口
             open_inner_services = port_repo.get_service_ports_by_is_inner_service(session,
-                                                                                  tenant_env.tenant_id,
+                                                                                  tenant_env.env_id,
                                                                                   dep_service.service_id)
             if not open_inner_services:
-                service_ports = port_repo.get_service_ports(session, tenant_env.tenant_id, dep_service.service_id)
+                service_ports = port_repo.get_service_ports(session, tenant_env.env_id, dep_service.service_id)
                 port_list = [service_port.container_port for service_port in service_ports]
                 return 201, "要关联的组件暂未开启对内端口，是否打开", port_list
 
@@ -140,14 +140,14 @@ class AppServiceRelationService(object):
         if service.create_status == "complete":
             task = dict()
             task["dep_service_id"] = dep_service_id
-            task["tenant_id"] = tenant_env.tenant_id
+            task["tenant_env_id"] = tenant_env.env_id
             task["dep_service_type"] = dep_service.service_type
             task["operator"] = user_name
             remote_component_client.add_service_dependency(session,
                                                            service.service_region, tenant_env,
                                                            service.service_alias, task)
         tenant_service_relation = {
-            "tenant_id": tenant_env.tenant_id,
+            "tenant_env_id": tenant_env.env_id,
             "service_id": service.service_id,
             "dep_service_id": dep_service_id,
             "dep_service_type": dep_service.service_type,
@@ -161,7 +161,7 @@ class AppServiceRelationService(object):
 
     def patch_add_dependency(self, session: SessionClass, tenant_env, service, dep_service_ids, user_name=''):
         dep_service_relations = dep_relation_repo.get_dependency_by_dep_service_ids(session,
-                                                                                    tenant_env.tenant_id,
+                                                                                    tenant_env.env_id,
                                                                                     service.service_id,
                                                                                     dep_service_ids)
         dep_ids = [dep.dep_service_id for dep in dep_service_relations]
@@ -178,7 +178,7 @@ class AppServiceRelationService(object):
 
     def delete_service_dependency(self, session: SessionClass, tenant_env, service, dep_service_id, user_name=''):
         dependency = dep_relation_repo.get_depency_by_serivce_id_and_dep_service_id(session,
-                                                                                    tenant_env.tenant_id,
+                                                                                    tenant_env.env_id,
                                                                                     service.service_id,
                                                                                     dep_service_id)
         if not dependency:
@@ -186,7 +186,7 @@ class AppServiceRelationService(object):
         if service.create_status == "complete":
             task = dict()
             task["dep_service_id"] = dep_service_id
-            task["tenant_id"] = tenant_env.tenant_id
+            task["tenant_env_id"] = tenant_env.env_id
             task["dep_service_type"] = "v"
             task["operator"] = user_name
 

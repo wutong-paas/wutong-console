@@ -16,8 +16,7 @@ class Application(Base):
     __tablename__ = 'service_group'
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="团队id", nullable=False)
-    env_id = Column(String(32), comment="环境id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     project_id = Column(String(32), comment="项目id", nullable=True)
     tenant_name = Column(String(32), comment="团队名", nullable=False)
     env_name = Column(String(32), comment="环境名", nullable=False)
@@ -60,7 +59,7 @@ class ComponentApplicationRelation(Base):
     ID = Column(Integer, primary_key=True)
     service_id = Column(String(32), comment="组件id", nullable=False)
     group_id = Column(Integer, nullable=False)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     region_name = Column(String(64), comment="区域中心名称", nullable=False)
 
 
@@ -227,7 +226,7 @@ class ApplicationUpgradeRecord(Base):
     __tablename__ = "app_upgrade_record"
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(33), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(33), comment="环境id", nullable=False)
     group_id = Column(Integer, comment="应用组id", nullable=False)
     group_key = Column(String(32), comment="应用包", nullable=False)
     group_name = Column(String(64), comment="应用包名", nullable=False)
@@ -290,7 +289,7 @@ class ApplicationUpgradeSnapshot(Base):
     ID = Column(Integer, primary_key=True)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
     update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     upgrade_group_id = Column(Integer, comment="升级组件组id", nullable=False, default=0)
     snapshot_id = Column(String(32), comment="快照id", nullable=False)
     snapshot = Column(LONGTEXT, comment="快照", nullable=False)

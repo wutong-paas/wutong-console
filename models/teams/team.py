@@ -6,7 +6,7 @@ from core.utils.crypt import make_env_id, make_uuid
 from database.session import Base
 from core.setting import settings
 
-tenant_identity = (("拥有者", "owner"), ("管理员", "admin"), ("开发者", "developer"), ("观察者", "viewer"), ("访问", "access"))
+tenant_env_identity = (("拥有者", "owner"), ("管理员", "admin"), ("开发者", "developer"), ("观察者", "viewer"), ("访问", "access"))
 
 
 class TeamEnvInfo(Base):
@@ -19,14 +19,14 @@ class TeamEnvInfo(Base):
     ID = Column(Integer, primary_key=True)
     env_id = Column(String(33), comment="环境id", nullable=False, unique=True, default=make_env_id)
     region_name = Column(String(33), comment="集群名", nullable=False)
-    env_name = Column(String(32), comment="环境名称", nullable=False)
-    tenant_id = Column(String(33), comment="团队id", nullable=False)
-    tenant_name = Column(String(64), comment="环境名称", nullable=False)
+    env_name = Column(String(31), comment="环境名称", nullable=False)
+    tenant_env_id = Column(String(33), comment="环境id", nullable=False)
+    tenant_name = Column(String(31), comment="团队名称", nullable=False)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     creater = Column(String(32), nullable=False, default=0, comment="租户创建者")
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
     update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
-    env_alias = Column(String(64), comment="环境别名", nullable=True, default='')
+    env_alias = Column(String(64), comment="环境别名", nullable=False)
     namespace = Column(String(33), comment="环境的命名空间", nullable=False)
     desc = Column(String(255), comment="描述", nullable=True)
 
@@ -42,7 +42,7 @@ class ServiceDomain(Base):
     ID = Column(Integer, primary_key=True)
     http_rule_id = Column(String(128), comment="规则id", nullable=False, unique=True)
     region_id = Column(String(36), comment="区域id", nullable=False)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
     service_name = Column(String(64), comment="组件名", nullable=False)
     domain_name = Column(String(128), comment="域名", nullable=False)
@@ -88,7 +88,7 @@ class ServiceTcpDomain(Base):
     ID = Column(Integer, primary_key=True)
     tcp_rule_id = Column(String(128), comment="规则id", nullable=False, unique=True)
     region_id = Column(String(36), comment="区域id", nullable=False)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
     service_name = Column(String(64), comment="组件名", nullable=False)
     end_point = Column(String(256), comment="ip+port", nullable=False)
@@ -128,7 +128,7 @@ class ServiceDomainCertificate(Base):
     __tablename__ = 'service_domain_certificate'
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     certificate_id = Column(String(50), comment="证书的唯一uuid", nullable=False)
     private_key = Column(Text, comment="证书key", nullable=False, default='')
     certificate = Column(Text, comment="证书", nullable=False, default='')
@@ -150,8 +150,8 @@ class PermRelTenant(Base):
 
     ID = Column(Integer, primary_key=True)
     user_id = Column(Integer, nullable=False, comment="关联用户")
-    tenant_id = Column(Integer, nullable=False, comment="团队id")
-    identity = Column(String(15), ChoiceType(tenant_identity), comment="租户身份", nullable=True)
+    tenant_env_id = Column(Integer, nullable=False, comment="环境id")
+    identity = Column(String(15), ChoiceType(tenant_env_identity), comment="租户身份", nullable=True)
     role_id = Column(Integer, nullable=True, comment="角色")
 
 

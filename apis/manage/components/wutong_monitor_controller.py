@@ -62,7 +62,7 @@ async def get_monitor_info(request: Request,
         if not env:
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         query = request.query_params.get("query", "")
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         if "service_id" not in query:
             query = promql_service.add_or_update_label(service.service_id, query)
         sufix = "?" + get_sufix_path(request, query)
@@ -102,7 +102,7 @@ async def get_monitor_info(request: Request,
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         query = request.query_params.get("query", "")
         disable_auto_label = request.query_params.get("disable_auto_label", "false")
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         if "service_id" not in query and disable_auto_label == "false":
             query = promql_service.add_or_update_label(service.service_id, query)
         sufix = "?" + get_sufix_path(request, query)

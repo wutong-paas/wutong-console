@@ -87,7 +87,7 @@ async def get_app_state(
             no_group_service_list = service_info_repo.get_no_group_service_status_by_group_id(
                 session=session,
                 tenant_env=env,
-                team_id=team.tenant_id,
+                tenant_env_id=env.env_id,
                 region_name=region_name)
             if page_size == "-1" or page_size == "" or page_size == "0":
                 page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
@@ -97,7 +97,7 @@ async def get_app_state(
             result = general_message(code, "query success", "应用查询成功", list=pg.items, total=total)
             return JSONResponse(result, status_code=code)
 
-        team_id = team.tenant_id
+        team_id = team.tenant_env_id
         group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
                                                                                group_id=application_id)
         if group_count == 0:
@@ -108,7 +108,6 @@ async def get_app_state(
             session=session,
             group_id=application_id,
             region_name=region_name,
-            team_id=team.tenant_id,
             tenant_env=env)
         params = Params(page=page, size=page_size)
         pg = paginate(group_service_list, params)
@@ -192,7 +191,7 @@ async def deploy_business_component(
         if not params.docker_image:
             return JSONResponse(general_message(400, "docker_cmd cannot be null", "参数错误"), status_code=400)
         application = application_repo.get_by_primary_key(session=session, primary_key=application_id)
-        if application and application.tenant_id != env.tenant_id:
+        if application and application.tenant_env_id != env.env_id:
             return JSONResponse(general_message(400, "not found app at team", "应用不属于该团队"), status_code=400)
 
         code, msg_show, new_service = application_service.create_docker_run_app(session=session,
@@ -283,7 +282,7 @@ async def deploy_component(
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         result = general_message("0", "success", "成功")
         tenant = env_services.devops_get_tenant(tenant_name=team_code, session=session)
-        service = service_info_repo.get_service(session, params.component_code, tenant.tenant_id)
+        service = service_info_repo.get_service(session, params.component_code, env.env_id)
         oauth_instance, _ = None, None
         if params.docker_image is not None:
             devops_repo.modify_source(session, service, params.docker_image,
@@ -394,7 +393,7 @@ async def get_team_regions(
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     region_info_map = []
-    region_name_list = env_repo.get_team_region_names(session, env.tenant_id)
+    region_name_list = env_repo.get_team_region_names(session, env.env_id)
     if region_name_list:
         region_infos = region_repo.get_region_by_region_names(session, region_name_list)
         if region_infos:
@@ -417,7 +416,7 @@ async def check_resource(
     app = hunan_expressway_repo.get_app_by_app_id(session, application_code)
     if not app:
         is_app = False
-    service = service_info_repo.get_service_by_tenant_and_alias(session, env.tenant_id, component_code)
+    service = service_info_repo.get_service_by_tenant_and_alias(session, env.env_id, component_code)
     if not service:
         is_component = False
     data = {

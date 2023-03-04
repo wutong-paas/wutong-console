@@ -64,10 +64,10 @@ class RegionRepo(BaseRepository[RegionConfig]):
             return None
         if not is_init:
             results = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.tenant_id == tenant.tenant_id))
+                EnvRegionInfo.region_env_id == tenant.tenant_env_id))
         else:
             results = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.tenant_id == tenant.tenant_id,
+                EnvRegionInfo.region_env_id == tenant.tenant_env_id,
                 EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 
@@ -78,19 +78,19 @@ class RegionRepo(BaseRepository[RegionConfig]):
             return None
         if not is_init:
             results = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.tenant_id == tenant.tenant_id,
+                EnvRegionInfo.region_env_id == tenant.tenant_env_id,
                 EnvRegionInfo.region_name.in_(region_names),
                 EnvRegionInfo.is_init == 1))
         else:
             results = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.tenant_id == tenant.tenant_id,
+                EnvRegionInfo.region_env_id == tenant.tenant_env_id,
                 EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 
     def get_region_by_tenant_name(self, session: SessionClass, tenant_name):
         tenant = env_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=True)
         results = session.execute(select(EnvRegionInfo).where(
-            EnvRegionInfo.tenant_id == tenant.tenant_id))
+            EnvRegionInfo.region_env_id == tenant.tenant_env_id))
         return results.scalars().all()
 
     def get_region_desc_by_region_name(self, session: SessionClass, region_name):
@@ -109,12 +109,12 @@ class RegionRepo(BaseRepository[RegionConfig]):
 
     def get_env_region_by_env_and_region(self, session: SessionClass, env_id, region):
         return session.execute(select(EnvRegionInfo).where(
-            EnvRegionInfo.env_id == env_id,
+            EnvRegionInfo.region_env_id == env_id,
             EnvRegionInfo.region_name == region)).scalars().first()
 
-    def delete_team_region_by_tenant_and_region(self, session: SessionClass, tenant_id, region):
+    def delete_team_region_by_tenant_and_region(self, session: SessionClass, tenant_env_id, region):
         session.execute(delete(EnvRegionInfo).where(
-            EnvRegionInfo.tenant_id == tenant_id,
+            EnvRegionInfo.region_env_id == tenant_env_id,
             EnvRegionInfo.region_name == region))
         session.flush()
 
@@ -126,7 +126,7 @@ class RegionRepo(BaseRepository[RegionConfig]):
 
     def get_env_regions_by_envid(self, session: SessionClass, env_id):
         return session.execute(select(EnvRegionInfo).where(
-            EnvRegionInfo.tenant_id == env_id)).scalars().all()
+            EnvRegionInfo.region_env_id == env_id)).scalars().all()
 
     def get_usable_regions(self, session: SessionClass, enterprise_id, opened_regions_name):
         """获取可使用的数据中心"""

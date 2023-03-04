@@ -41,7 +41,7 @@ class DevopsRepository:
         删除组件的某个环境变量
         """
         env = session.execute(select(ComponentEnvVar).where(
-            ComponentEnvVar.tenant_id == tenant_env.tenant_id,
+            ComponentEnvVar.tenant_env_id == tenant_env.env_id,
             ComponentEnvVar.service_id == service.service_id,
             ComponentEnvVar.attr_name == key
         )).scalars().first()
@@ -58,7 +58,7 @@ class DevopsRepository:
         修改组件环境变量
         """
         env = session.execute(select(ComponentEnvVar).where(
-            ComponentEnvVar.tenant_id == tenant_env.tenant_id,
+            ComponentEnvVar.tenant_env_id == tenant_env.env_id,
             ComponentEnvVar.service_id == service.service_id,
             ComponentEnvVar.attr_name == key
         )).scalars().first()
@@ -141,12 +141,12 @@ class DevopsRepository:
         try:
             cmd = None
             service_source_user = service_source_repo.get_service_source(
-                session=session, team_id=service.tenant_id, service_id=service.service_id)
+                session=session, team_id=service.tenant_env_id, service_id=service.service_id)
 
             if not service_source_user:
                 service_source_info = {
                     "service_id": service.service_id,
-                    "team_id": service.tenant_id,
+                    "team_id": service.tenant_env_id,
                     "user_name": user_name,
                     "password": password,
                     "create_time": datetime.datetime.now().strftime('%Y%m%d%H%M%S')

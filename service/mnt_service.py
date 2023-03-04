@@ -40,7 +40,7 @@ class AppMntService(object):
         return 200, "success"
 
     def get_service_mnt_details(self, session: SessionClass, tenant_env, service, volume_types, page=1, page_size=20):
-        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(session, tenant_env.tenant_id, service.service_id,
+        all_mnt_relations = mnt_repo.get_service_mnts_filter_volume_type(session, tenant_env.env_id, service.service_id,
                                                                          volume_types)
         total = len(all_mnt_relations)
         params = Params(page=page, size=page_size)
@@ -91,7 +91,7 @@ class AppMntService(object):
 
         current_tenant_services_id = service_ids
         # 已挂载的组件路径
-        mounted = mnt_repo.get_service_mnts(session, tenant_env.tenant_id, service.service_id)
+        mounted = mnt_repo.get_service_mnts(session, tenant_env.env_id, service.service_id)
         mounted_ids = [mnt.volume_id for mnt in mounted]
         # 当前未被挂载的共享路径
         service_volumes = []
@@ -133,7 +133,7 @@ class AppMntService(object):
         return un_mount_dependencies, total
 
     def get_volume_dependent(self, session: SessionClass, tenant, service):
-        mnts = mnt_repo.get_by_dep_service_id(session, tenant.tenant_id, service.service_id)
+        mnts = mnt_repo.get_by_dep_service_id(session, tenant.tenant_env_id, service.service_id)
         if not mnts:
             return None
 

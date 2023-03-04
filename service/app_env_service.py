@@ -26,7 +26,7 @@ class AppEnvVarService(object):
         if len(str(attr_value)) > 65532:
             attr_value = str(attr_value)[:65532]
         tenantServiceEnvVar = {}
-        tenantServiceEnvVar["tenant_id"] = service.tenant_id
+        tenantServiceEnvVar["tenant_env_id"] = service.tenant_env_id
         tenantServiceEnvVar["service_id"] = service.service_id
         tenantServiceEnvVar['container_port'] = container_port
         tenantServiceEnvVar["name"] = name
@@ -40,7 +40,7 @@ class AppEnvVarService(object):
         return tse
 
     def check_env(self, session, component, attr_name, attr_value):
-        if env_var_repo.get_service_env_by_attr_name(session, component.tenant_id, component.service_id, attr_name):
+        if env_var_repo.get_service_env_by_attr_name(session, component.tenant_env_id, component.service_id, attr_name):
             raise EnvAlreadyExist()
         attr_name = str(attr_name).strip()
         attr_value = str(attr_value).strip()
@@ -49,12 +49,12 @@ class AppEnvVarService(object):
             raise InvalidEnvName(msg)
 
     def get_env_by_container_port(self, session: SessionClass, tenant_env, service, container_port):
-        data = env_var_repo.get_service_env_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
+        data = env_var_repo.get_service_env_by_port(session, tenant_env.env_id, service.service_id, container_port)
         return data
 
     def get_self_define_env(self, session: SessionClass, service):
         if service:
-            envs = env_var_repo.get_service_env(session, service.tenant_id, service.service_id)
+            envs = env_var_repo.get_service_env(session, service.tenant_env_id, service.service_id)
             # todo exclude
             # data = envs.exclude(container_port=-1, scope="outer")
             # return data
@@ -77,11 +77,11 @@ class AppEnvVarService(object):
             return 400, msg, None
         if len(str(attr_value)) > 65532:
             attr_value = str(attr_value)[:65532]
-        tenant_service_env_var = {"tenant_id": service.tenant_id, "service_id": service.service_id,
+        tenant_service_env_var = {"tenant_env_id": service.tenant_env_id, "service_id": service.service_id,
                                   'container_port': container_port, "name": name, "attr_name": attr_name,
                                   "attr_value": attr_value, "is_change": is_change, "scope": scope}
         env = (session.execute(
-            select(ComponentEnvVar).where(ComponentEnvVar.tenant_id == service.tenant_id,
+            select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == service.tenant_env_id,
                                           ComponentEnvVar.service_id == service.service_id,
                                           ComponentEnvVar.attr_name == attr_name))
         ).scalars().first()
@@ -92,7 +92,7 @@ class AppEnvVarService(object):
         if service.create_status == "complete":
             attr = {
                 "container_port": container_port,
-                "tenant_id": service.tenant_id,
+                "tenant_env_id": service.tenant_env_id,
                 "service_id": service.service_id,
                 "name": name,
                 "attr_name": attr_name,
@@ -120,18 +120,18 @@ class AppEnvVarService(object):
         return True, "success"
 
     def delete_env_by_container_port(self, session: SessionClass, tenant_env, service, container_port, user_name=''):
-        envs = env_var_repo.get_service_env_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
+        envs = env_var_repo.get_service_env_by_port(session, tenant_env.env_id, service.service_id, container_port)
         if service.create_status == "complete":
             for env in envs:
                 data = {"env_name": env.attr_name, "operator": user_name}
                 remote_component_client.delete_service_env(session,
                                                            service.service_region, tenant_env,
                                                            service.service_alias, data)
-        env_var_repo.delete_service_env_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
+        env_var_repo.delete_service_env_by_port(session, tenant_env.env_id, service.service_id, container_port)
 
     def get_service_build_envs(self, session: SessionClass, service):
         if service:
-            return env_var_repo.get_service_env_by_scope(session, service.tenant_id, service.service_id, "build")
+            return env_var_repo.get_service_env_by_scope(session, service.tenant_env_id, service.service_id, "build")
 
     def add_service_build_env_var(self, session: SessionClass, service, container_port, name, attr_name, attr_value,
                                   is_change,
@@ -145,7 +145,7 @@ class AppEnvVarService(object):
             attr_value = str(attr_value)[:65532]
 
         tenant_service_env_var = dict()
-        tenant_service_env_var["tenant_id"] = service.tenant_id
+        tenant_service_env_var["tenant_env_id"] = service.tenant_env_id
         tenant_service_env_var["service_id"] = service.service_id
         tenant_service_env_var['container_port'] = container_port
         tenant_service_env_var["name"] = name
@@ -161,7 +161,7 @@ class AppEnvVarService(object):
 
     def delete_region_env(self, session: SessionClass, tenant_env, service):
         if service:
-            envs = env_var_repo.get_service_env(session, service.tenant_id, service.service_id)
+            envs = env_var_repo.get_service_env(session, service.tenant_env_id, service.service_id)
             for env in envs:
                 data = {"env_name": env.attr_name}
                 try:
@@ -174,7 +174,7 @@ class AppEnvVarService(object):
     def delete_env_by_env_id(self, session: SessionClass, tenant_env, service, env_id, user_name=''):
         env = env_var_repo.get_by_primary_key(session=session, primary_key=env_id)
         if env:
-            env_var_repo.delete_service_env_by_attr_name(session, tenant_env.tenant_id, service.service_id, env.attr_name)
+            env_var_repo.delete_service_env_by_attr_name(session, tenant_env.env_id, service.service_id, env.attr_name)
             if service.create_status == "complete":
                 remote_component_client.delete_service_env(session,
                                                            service.service_region,
@@ -207,7 +207,7 @@ class AppEnvVarService(object):
         if not env:
             return 404, "环境变量不存在", None
         update_params = {"ID": env.ID, "name": name, "attr_value": attr_value,
-                         "tenant_id": tenant_env.tenant_id, "service_id": service.service_id,
+                         "tenant_env_id": tenant_env.env_id, "service_id": service.service_id,
                          "attr_name": env.attr_name}
         if service.create_status == "complete":
             body = {"env_name": env.attr_name, "env_value": attr_value, "scope": env.scope, "operator": user_name}
@@ -221,7 +221,7 @@ class AppEnvVarService(object):
 
     def create_port_env(self, port: TeamComponentPort, name, attr_name_suffix, attr_value):
         return ComponentEnvVar(
-            tenant_id=port.tenant_id,
+            tenant_env_id=port.tenant_env_id,
             service_id=port.service_id,
             container_port=port.container_port,
             name=name,

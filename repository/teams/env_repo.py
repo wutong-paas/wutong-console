@@ -32,7 +32,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         )).scalars().all()
 
     # 返回该团队下的所有管理员
-    def get_tenant_admin_by_tenant_id(self, tenant):
+    def get_tenant_admin_by_tenant_env_id(self, tenant):
         return idaas_api.get_user_info(tenant.creater)
 
     def get_tenant_by_tenant_name(self, session: SessionClass, env_name, exception=True):
@@ -48,15 +48,15 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             return None
         return tenant
 
-    def get_tenant_by_tenant_id(self, session: SessionClass, tenant_id):
+    def get_tenant_by_tenant_env_id(self, session: SessionClass, tenant_env_id):
         """
-        get_tenant_by_tenant_id
+        get_tenant_by_tenant_env_id
 
-        :param tenant_id:
+        :param tenant_env_id:
         :return:
         """
-        logger.info("get_tenant_by_tenant_id,param:{}", tenant_id)
-        sql = select(TeamEnvInfo).where(TeamEnvInfo.tenant_id == tenant_id)
+        logger.info("get_tenant_by_tenant_env_id,param:{}", tenant_env_id)
+        sql = select(TeamEnvInfo).where(TeamEnvInfo.tenant_env_id == tenant_env_id)
         results = session.execute(sql)
         data = results.scalars().first()
         return data
@@ -65,26 +65,9 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.tenant_name.in_(team_names))).scalars().all()
 
-    def get_tenants_by_user_id(self, session, user_id, name=None):
-        tenants = session.execute(select(PermRelTenant).where(
-            PermRelTenant.user_id == user_id)).scalars().all()
-        tenant_ids = [tenant.tenant_id for tenant in tenants]
-        if name:
-            tenants = session.execute(select(TeamEnvInfo).where(
-                TeamEnvInfo.ID.in_(tenant_ids),
-                TeamEnvInfo.tenant_alias.contains(name)).order_by(
-                TeamEnvInfo.create_time.desc()
-            )).scalars().all()
-        else:
-            tenants = session.execute(select(TeamEnvInfo).where(
-                TeamEnvInfo.ID.in_(tenant_ids)).order_by(
-                TeamEnvInfo.create_time.desc()
-            )).scalars().all()
-        return tenants
-
     def get_team_by_team_id(self, session, team_id):
         tenant = session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.tenant_id == team_id))
+            select(TeamEnvInfo).where(TeamEnvInfo.tenant_env_id == team_id))
         return tenant.scalars().first()
 
     def get_env_by_env_id(self, session, env_id):
@@ -118,14 +101,14 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     def get_team_region_by_name(self, session, team_id, region_name):
         return session.execute(select(EnvRegionInfo).where(
             EnvRegionInfo.region_name == region_name,
-            EnvRegionInfo.tenant_id == team_id)).scalars().all()
+            EnvRegionInfo.region_env_id == team_id)).scalars().all()
 
     def get_user_tenant_by_name(self, session, user_id, name):
         res = session.execute(select(PermRelTenant).where(
             PermRelTenant.user_id == user_id)).scalars().all()
-        tenant_ids = [r.tenant_id for r in res]
+        tenant_env_ids = [r.tenant_env_id for r in res]
         tenant = session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.ID.in_(tenant_ids),
+            TeamEnvInfo.ID.in_(tenant_env_ids),
             TeamEnvInfo.tenant_name == name)).scalars().first()
         return tenant
 
@@ -170,12 +153,12 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     def env_is_exists_by_env_name(self, session, team_id, env_alias):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_alias == env_alias,
-            TeamEnvInfo.tenant_id == team_id)).scalars().first()
+            TeamEnvInfo.tenant_env_id == team_id)).scalars().first()
 
-    def env_is_exists_by_namespace(self, session, tenant_id, env_name):
+    def env_is_exists_by_namespace(self, session, tenant_env_id, env_name):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_name == env_name,
-            TeamEnvInfo.tenant_id == tenant_id)).scalars().first()
+            TeamEnvInfo.tenant_env_id == tenant_env_id)).scalars().first()
 
     def create_env(self, session, user, region_name, env_name, env_alias, team_id, team_name, namespace="",
                    desc=""):
@@ -188,7 +171,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             "env_alias": env_alias,
             "limit_memory": 0,
             "namespace": namespace,
-            "tenant_id": team_id,
+            "tenant_env_id": team_id,
             "tenant_name": team_name,
             "desc": desc
         }
@@ -199,29 +182,12 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
 
     def get_team_region_names(self, session, env_id):
         result_region_names = session.execute(
-            select(EnvRegionInfo.region_name).where(EnvRegionInfo.env_id == env_id))
+            select(EnvRegionInfo.region_name).where(EnvRegionInfo.region_env_id == env_id))
         region_names = result_region_names.scalars().all()
         result_regions = session.execute(
             select(RegionConfig.region_name).where(RegionConfig.region_name.in_(region_names)))
         regions = result_regions.scalars().all()
         return regions
-
-    def get_tenant_users_by_tenant_ID(self, session, tenant_ID):
-        """
-        返回一个团队中所有用户对象
-        :param tenant_ID:
-        :return:
-        """
-        user_id_list = []
-        res = session.execute(select(PermRelTenant).where(
-            PermRelTenant.tenant_id == tenant_ID)).scalars().all()
-        for rw in res:
-            user_id_list.append(rw.user_id)
-
-        if not user_id_list:
-            return []
-        user_list = idaas_api.get_user_infos("/user/find-list-by-user-id-list", params={"userIdList": user_id_list})
-        return user_list
 
     def get_team_by_team_name(self, session, team_name):
         return session.execute(select(TeamEnvInfo).where(

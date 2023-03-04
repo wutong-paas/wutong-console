@@ -21,7 +21,7 @@ from service.market_app.component import Component
 class OriginalApp(object):
     def __init__(self, session, tenant, region: RegionConfig, app: Application, upgrade_group_id, support_labels=None):
         self.tenant = tenant
-        self.tenant_id = tenant.tenant_id
+        self.tenant_env_id = tenant.tenant_env_id
         self.region = region
         self.region_name = region.region_name
         self.app_id = app.app_id
@@ -36,7 +36,7 @@ class OriginalApp(object):
 
         # dependency
         component_deps = dep_relation_repo.list_by_component_ids(session,
-                                                                 self.tenant_id,
+                                                                 self.tenant_env_id,
                                                                  [cpt.component.component_id for cpt in
                                                                   self._components])
         self.component_deps = list(component_deps) if component_deps else []
@@ -71,13 +71,13 @@ class OriginalApp(object):
 
         result = []
         for cpt in components:
-            component_source = service_source_repo.get_service_source(session, cpt.tenant_id, cpt.service_id)
-            envs = env_var_repo.get_service_env(session, cpt.tenant_id, cpt.service_id)
-            ports = port_repo.get_service_ports(session, cpt.tenant_id, cpt.service_id)
+            component_source = service_source_repo.get_service_source(session, cpt.tenant_env_id, cpt.service_id)
+            envs = env_var_repo.get_service_env(session, cpt.tenant_env_id, cpt.service_id)
+            ports = port_repo.get_service_ports(session, cpt.tenant_env_id, cpt.service_id)
             volumes = volume_repo.get_service_volumes_with_config_file(session, cpt.service_id)
             config_files = volume_repo.get_service_config_files(session, cpt.service_id)
             probes = probe_repo.list_probes(session, cpt.service_id)
-            monitors = service_monitor_service.list_by_service_ids(session, cpt.tenant_id, [cpt.service_id])
+            monitors = service_monitor_service.list_by_service_ids(session, cpt.tenant_env_id, [cpt.service_id])
             graphs = component_graph_repo.list(session, cpt.service_id)
             plugin_deps = app_plugin_relation_repo.list_by_component_ids(session, [cpt.service_id])
             component = Component(
@@ -120,7 +120,7 @@ class OriginalApp(object):
 
     def _volume_deps(self, session):
         component_ids = [cpt.component.component_id for cpt in self._components]
-        return list(mnt_repo.list_mnt_relations_by_service_ids(session, self.tenant_id, component_ids))
+        return list(mnt_repo.list_mnt_relations_by_service_ids(session, self.tenant_env_id, component_ids))
 
     def _config_groups(self, session):
         return list(app_config_group_repo.list(session, self.region_name, self.app_id))

@@ -171,7 +171,7 @@ class MarketAppService(object):
 
     def check_market_service_info(self, session, tenant_env, service):
         app_not_found = MarketAppLost("当前云市应用已删除")
-        service_source = service_source_repo.get_service_source(session, tenant_env.tenant_id, service.service_id)
+        service_source = service_source_repo.get_service_source(session, tenant_env.env_id, service.service_id)
         if not service_source:
             logger.info("app has been delete on market:{0}".format(service.service_cname))
             raise app_not_found
@@ -314,28 +314,12 @@ class MarketAppService(object):
                           page=1,
                           page_size=10,
                           need_install="false"):
-        if scope == "team":
-            # prepare teams
-            is_admin = None
-            if is_admin:
-                teams = None
-            else:
-                teams = env_repo.get_tenants_by_user_id(session, user.user_id)
-            if teams:
-                teams = [team.tenant_name for team in teams]
-            apps = center_app_repo.get_wutong_app_in_teams_by_querey(session, scope, teams, app_name,
-                                                                     tag_names, page,
-                                                                     page_size, need_install)
-            count = center_app_repo.get_wutong_app_total_count(session, scope, teams, app_name, tag_names,
-                                                               need_install)
-        else:
-            # default scope is enterprise
-            apps = center_app_repo.get_wutong_app_in_enterprise_by_query(session, scope, app_name, tag_names,
-                                                                         page,
-                                                                         page_size,
-                                                                         need_install)
-            count = center_app_repo.get_wutong_app_total_count(session, scope, None, app_name, tag_names,
-                                                               need_install)
+        apps = center_app_repo.get_wutong_app_in_enterprise_by_query(session, scope, app_name, tag_names,
+                                                                     page,
+                                                                     page_size,
+                                                                     need_install)
+        count = center_app_repo.get_wutong_app_total_count(session, scope, None, app_name, tag_names,
+                                                           need_install)
         if not apps:
             return [], count
 
@@ -565,7 +549,7 @@ class MarketAppService(object):
         app_template = json.loads(app_version.app_template)
         app_template["update_time"] = app_version.update_time
 
-        component_group = self._create_tenant_service_group(session, region.region_name, tenant_env.tenant_id,
+        component_group = self._create_tenant_service_group(session, region.region_name, tenant_env.env_id,
                                                             app.app_id,
                                                             market_app.app_id, version, market_app.app_name)
         app_upgrade = AppUpgrade(
@@ -610,7 +594,7 @@ class MarketAppService(object):
         app_template.update({"apps": helm_apps})
         region = get_env_region_info(tenant.tenant_name, region_name, session)
 
-        component_group = self._create_tenant_service_group(session, region_name, tenant.tenant_id,
+        component_group = self._create_tenant_service_group(session, region_name, tenant.tenant_env_id,
                                                             app.app_id,
                                                             "12345678", version, "test")
         app_upgrade = AppUpgrade(
@@ -628,11 +612,11 @@ class MarketAppService(object):
         app_upgrade.install(session)
         return ""
 
-    def _create_tenant_service_group(self, session: SessionClass, region_name, tenant_id, group_id, app_key,
+    def _create_tenant_service_group(self, session: SessionClass, region_name, tenant_env_id, group_id, app_key,
                                      app_version, app_name):
         group_name = '_'.join(["wt", make_uuid()[-4:]])
         params = {
-            "tenant_id": tenant_id,
+            "tenant_env_id": tenant_env_id,
             "group_name": group_name,
             "group_alias": app_name,
             "group_key": app_key,
@@ -728,10 +712,10 @@ class MarketAppService(object):
             return app_info_list
         return []
 
-    def get_app_not_upgrade_record(self, session: SessionClass, tenant_id, group_id, group_key):
+    def get_app_not_upgrade_record(self, session: SessionClass, tenant_env_id, group_id, group_key):
         """获取未完成升级记录"""
         result = upgrade_repo.get_app_not_upgrade_record(session=session,
-                                                         tenant_id=tenant_id,
+                                                         tenant_env_id=tenant_env_id,
                                                          group_id=int(group_id),
                                                          group_key=group_key)
         if not result:
@@ -769,7 +753,7 @@ class MarketAppService(object):
                 'is_official': app_model.is_official,
                 'details': app_model.details
             }
-            not_upgrade_record = self.get_app_not_upgrade_record(session=session, tenant_id=tenant.tenant_id,
+            not_upgrade_record = self.get_app_not_upgrade_record(session=session, tenant_env_id=tenant.tenant_env_id,
                                                                  group_id=app_id,
                                                                  group_key=app_model_key)
             versions = self.__get_upgradeable_versions(session,
@@ -1048,7 +1032,7 @@ class MarketAppService(object):
         return Dict(app_model)
 
     def list_upgradeable_versions(self, session, tenant_env, service):
-        component_source = service_source_repo.get_service_source(session, service.tenant_id, service.service_id)
+        component_source = service_source_repo.get_service_source(session, service.tenant_env_id, service.service_id)
         if component_source:
             market_name = component_source.get_market_name()
             market = None

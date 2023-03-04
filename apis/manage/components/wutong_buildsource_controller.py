@@ -29,7 +29,7 @@ async def get_build_source(serviceAlias: Optional[str] = None,
     查询构建源信息
     ---
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     service_ids = [service.service_id]
     build_infos = base_service.get_build_infos(session=session, tenant_env=env, service_ids=service_ids)
     bean = build_infos.get(service.service_id, None)
@@ -47,7 +47,7 @@ async def modify_build_source(request: Request,
     修改构建源
     ---
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     try:
         data = await request.json()
         image = data.get("image", None)
@@ -67,12 +67,12 @@ async def modify_build_source(request: Request,
             return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
 
         service_source_user = service_source_repo.get_service_source(
-            session=session, team_id=service.tenant_id, service_id=service.service_id)
+            session=session, team_id=service.tenant_env_id, service_id=service.service_id)
 
         if not service_source_user:
             service_source_info = {
                 "service_id": service.service_id,
-                "team_id": service.tenant_id,
+                "tenant_env_id": service.tenant_env_id,
                 "user_name": user_name,
                 "password": password,
                 "create_time": datetime.datetime.now().strftime('%Y%m%d%H%M%S')

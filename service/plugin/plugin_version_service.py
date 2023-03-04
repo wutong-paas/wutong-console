@@ -18,7 +18,7 @@ class PluginBuildVersionService(object):
     def create_build_version(self, session: SessionClass,
                              region,
                              plugin_id,
-                             tenant_id,
+                             tenant_env_id,
                              user_id,
                              update_info,
                              build_status,
@@ -36,7 +36,7 @@ class PluginBuildVersionService(object):
 
         build_version_params = {
             "plugin_id": plugin_id,
-            "tenant_id": tenant_id,
+            "tenant_env_id": tenant_env_id,
             "region": region,
             "user_id": user_id,
             "update_info": update_info,
@@ -50,20 +50,20 @@ class PluginBuildVersionService(object):
         }
         return plugin_version_repo.create_plugin_build_version(session, **build_version_params)
 
-    def get_newest_usable_plugin_version(self, session: SessionClass, tenant_id, plugin_id):
+    def get_newest_usable_plugin_version(self, session: SessionClass, tenant_env_id, plugin_id):
         pbvs = plugin_version_repo.get_plugin_versions(session,
                                                        plugin_id)  # .filter(build_status="build_success")
         if pbvs:
             return pbvs[0]
         return None
 
-    def get_by_id_and_version(self, session: SessionClass, tenant_id, plugin_id, plugin_version):
+    def get_by_id_and_version(self, session: SessionClass, tenant_env_id, plugin_id, plugin_version):
         return plugin_version_repo.get_by_id_and_version(session, plugin_id, plugin_version)
 
-    def get_plugin_version_by_id(self, session: SessionClass, tenant_id, plugin_id):
-        return plugin_version_repo.get_plugin_version_by_id(session, tenant_id, plugin_id)
+    def get_plugin_version_by_id(self, session: SessionClass, tenant_env_id, plugin_id):
+        return plugin_version_repo.get_plugin_version_by_id(session, tenant_env_id, plugin_id)
 
-    def delete_build_version_by_id_and_version(self, session, tenant_id, plugin_id, build_version, force=False):
+    def delete_build_version_by_id_and_version(self, session, tenant_env_id, plugin_id, build_version, force=False):
         plugin_build_version = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
         if not plugin_build_version:
             return 404, "插件不存在"
@@ -72,7 +72,7 @@ class PluginBuildVersionService(object):
                                                                        plugin_id=plugin_id).count()
             if count_of_version == 1:
                 return 409, "至少保留插件的一个版本"
-        plugin_version_repo.delete_build_version(session, tenant_id, plugin_id, build_version)
+        plugin_version_repo.delete_build_version(session, tenant_env_id, plugin_id, build_version)
         return 200, "删除成功"
 
     def get_region_plugin_build_status(self, session, region, tenant_env, plugin_id, build_version):
@@ -90,7 +90,7 @@ class PluginBuildVersionService(object):
     def update_plugin_build_status(self, session, region, tenant_env):
         logger.debug("start thread to update build status")
         pbvs = plugin_version_repo.get_plugin_build_version_by_tenant_and_region(
-            session, tenant_env.tenant_id, region)
+            session, tenant_env.env_id, region)
         if pbvs:
             for pbv in pbvs:
                 status = self.get_region_plugin_build_status(session, region, tenant_env, pbv.plugin_id,

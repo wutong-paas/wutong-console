@@ -106,7 +106,7 @@ class GroupappsMigrateService(object):
             bean = body["bean"]
             params = jsonable_encoder(origin_backup_record)
             params.pop("ID")
-            params["team_id"] = migrate_team.tenant_id
+            params["team_id"] = migrate_team.tenant_env_id
             params["event_id"] = new_event_id
             params["group_id"] = new_group.ID
             params["group_uuid"] = new_group_uuid
@@ -143,7 +143,7 @@ class GroupappsMigrateService(object):
                       backup_id,
                       migrate_type, event_id,
                       restore_id):
-        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant_env.tenant_id,
+        backup_record = backup_record_repo.get_record_by_backup_id(session=session, team_id=tenant_env.env_id,
                                                                    backup_id=backup_id)
         if not backup_record:
             raise ErrBackupRecordNotFound
@@ -172,7 +172,7 @@ class GroupappsMigrateService(object):
             "event_id": make_uuid(),
             "backup_id": new_backup_record.backup_id,
             "restore_mode": restore_mode,
-            "tenant_id": migrate_team.tenant_id
+            "tenant_env_id": migrate_team.tenant_env_id
         }
         body = remote_migrate_client_api.star_apps_migrate_task(session, migrate_region, tenant_env,
                                                                 new_backup_record.backup_id,
@@ -211,13 +211,13 @@ class GroupappsMigrateService(object):
         service_base_info.pop("ID")
         ts = TeamComponentInfo(**service_base_info)
         if service_base_info["service_source"] == "third_party":
-            new_service_id = make_uuid(tenant.tenant_id)
+            new_service_id = make_uuid(tenant.tenant_env_id)
             new_servie_alias = application_service.create_service_alias(session=session, service_id=new_service_id)
         ts.service_id = new_service_id
         ts.service_alias = new_servie_alias
         ts.service_region = region
         ts.creater = user.user_id
-        ts.tenant_id = tenant.tenant_id
+        ts.tenant_env_id = tenant.tenant_env_id
         ts.create_status = "creating"
         ts.service_cname = ts.service_cname + "-copy"
         ts.k8s_component_name = "{}-{}".format(
@@ -254,7 +254,7 @@ class GroupappsMigrateService(object):
             k8s_service_name = port.get("k8s_service_name", "")
             if k8s_service_name:
                 try:
-                    port_repo.get_by_k8s_service_name(session, tenant_env.tenant_id, k8s_service_name)
+                    port_repo.get_by_k8s_service_name(session, tenant_env.env_id, k8s_service_name)
                     k8s_service_name = service.service_alias + "-" + str(port["container_port"])
                     # update port if k8s_service_name has changed.
                     body = port
@@ -267,7 +267,7 @@ class GroupappsMigrateService(object):
                     pass
             new_port = TeamComponentPort(**port)
             new_port.service_id = service.service_id
-            new_port.tenant_id = tenant_env.tenant_id
+            new_port.tenant_env_id = tenant_env.env_id
             new_port.k8s_service_name = port.get("k8s_service_name")
             new_port.port_alias = (service.service_alias + str(port["container_port"])).upper()
             port_list.append(new_port)
@@ -314,19 +314,19 @@ class GroupappsMigrateService(object):
                             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             protocol = "http"
                             http_rule_id = make_uuid(domain_name)
-                            tenant_id = tenant_env.tenant_id
+                            tenant_env_id = tenant_env.env_id
                             service_alias = service.service_cname
                             region_id = region.region_id
                             domain_repo.create_service_domains(session,
                                                                service_id, service_name, domain_name, create_time,
-                                                               container_port, protocol, http_rule_id, tenant_id,
+                                                               container_port, protocol, http_rule_id, tenant_env_id,
                                                                service_alias,
                                                                region_id)
                             # 给数据中心发请求添加默认域名
                             data = dict()
                             data["domain"] = domain_name
                             data["service_id"] = service.service_id
-                            data["tenant_id"] = tenant_env.tenant_id
+                            data["tenant_env_id"] = tenant_env.env_id
                             data["tenant_name"] = tenant_env.tenant_name
                             data["protocol"] = protocol
                             data["container_port"] = int(container_port)
@@ -360,21 +360,21 @@ class GroupappsMigrateService(object):
                             protocol = port.protocol
                             service_alias = service.service_cname
                             tcp_rule_id = make_uuid(end_point)
-                            tenant_id = tenant_env.tenant_id
+                            tenant_env_id = tenant_env.env_id
                             region_id = region.region_id
                             tcp_domain_repo.create_service_tcp_domains(session,
                                                                        service_id, service_name, end_point,
                                                                        create_time,
                                                                        container_port, protocol, service_alias,
                                                                        tcp_rule_id,
-                                                                       tenant_id, region_id)
+                                                                       tenant_env_id, region_id)
 
     def __save_env(self, session: SessionClass, tenant, service, tenant_service_env_vars):
         env_list = []
         for env in tenant_service_env_vars:
             env.pop("ID")
             new_env = ComponentEnvVar(**env)
-            new_env.tenant_id = tenant.tenant_id
+            new_env.env_id = tenant.tenant_env_id
             new_env.service_id = service.service_id
             env_list.append(new_env)
         if env_list:
@@ -412,7 +412,7 @@ class GroupappsMigrateService(object):
                 volume["volume_type"] = settings["volume_type"]
             new_volume = TeamComponentVolume(**volume)
             new_volume.service_id = service.service_id
-            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(tenant_env.tenant_id, service.service_id,
+            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(tenant_env.env_id, service.service_id,
                                                                    new_volume.volume_path)
             new_volume.host_path = host_path
             volume_list.append(new_volume)
@@ -446,7 +446,7 @@ class GroupappsMigrateService(object):
         for service_label in service_labels:
             service_label.pop("ID")
             new_service_label = ComponentLabels(**service_label)
-            new_service_label.tenant_id = tenant.tenant_id
+            new_service_label.tenant_env_id = tenant.tenant_env_id
             new_service_label.service_id = service.service_id
             new_service_label.region = region
             service_label_list.append(new_service_label)
@@ -470,7 +470,7 @@ class GroupappsMigrateService(object):
                 service_source["service_id"] = service_source.pop("service")
             new_service_source = ComponentSourceInfo(**service_source)
             new_service_source.service_id = service.service_id
-            new_service_source.team_id = tenant.tenant_id
+            new_service_source.team_id = tenant.tenant_env_id
             service_source_repo.save(session=session, new_service_source=new_service_source)
 
     def __save_service_auth(self, session: SessionClass, service, service_auth):
@@ -487,7 +487,7 @@ class GroupappsMigrateService(object):
         service_endpoint_list = []
         for service_endpoint in service_endpoints:
             endpoint = {
-                "tenant_id": service.tenant_id,
+                "tenant_env_id": service.tenant_env_id,
                 "service_id": service.service_id,
                 "service_cname": service.service_cname,
                 "endpoints_info": service_endpoint["endpoints_info"],
@@ -513,7 +513,7 @@ class GroupappsMigrateService(object):
         create_plugins = []
         for plugin in plugins:
             plugin.pop("ID")
-            plugin["tenant_id"] = tenant.tenant_id
+            plugin["tenant_env_id"] = tenant.tenant_env_id
             plugin["region"] = region_name
             plugin = plugin_repo.create_if_not_exist(session, **plugin)
             if plugin:
@@ -540,7 +540,7 @@ class GroupappsMigrateService(object):
         create_version_list = []
         for version in plugin_build_versions:
             version.pop("ID")
-            version["tenant_id"] = tenant.tenant_id
+            version["tenant_env_id"] = tenant.tenant_env_id
             create_version = plugin_version_repo.create_if_not_exist(session, **version)
             create_version_list.append(create_version)
         return create_version_list
@@ -607,7 +607,7 @@ class GroupappsMigrateService(object):
             for relation in service_relations_list:
                 relation.pop("ID")
                 new_service_relation = TeamComponentRelation(**relation)
-                new_service_relation.tenant_id = tenant.tenant_id
+                new_service_relation.tenant_env_id = tenant.tenant_env_id
                 new_service_relation.service_id = old_new_service_id_map[relation["service_id"]]
                 if old_new_service_id_map.get(relation["dep_service_id"]):
                     new_service_relation.dep_service_id = old_new_service_id_map[relation["dep_service_id"]]
@@ -627,7 +627,7 @@ class GroupappsMigrateService(object):
             for mnt in service_mnt_relation_list:
                 mnt.pop("ID")
                 new_service_mnt = TeamComponentMountRelation(**mnt)
-                new_service_mnt.tenant_id = tenant.tenant_id
+                new_service_mnt.tenant_env_id = tenant.tenant_env_id
                 new_service_mnt.service_id = old_new_service_id_map[mnt["service_id"]]
                 if old_new_service_id_map.get(mnt["dep_service_id"]):
                     new_service_mnt.dep_service_id = old_new_service_id_map[mnt["dep_service_id"]]

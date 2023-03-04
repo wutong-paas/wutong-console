@@ -14,9 +14,9 @@ from repository.teams.env_repo import env_repo
 
 class BaseService:
 
-    def get_group_services_list(self, session: SessionClass, team_id, region_name, group_id, query=""):
+    def get_group_services_list(self, session: SessionClass, env_id, region_name, group_id, query=""):
         parms = {
-            "team_id": team_id,
+            "env_id": env_id,
             "region_name": region_name,
             "group_id": group_id,
             "service_cname": query
@@ -39,7 +39,7 @@ class BaseService:
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
-                t.tenant_id = :team_id
+                t.tenant_env_id = :env_id
                 AND t.service_region = :region_name
                 AND r.group_id = :group_id
                 AND t.service_cname like '%' :service_cname '%'
@@ -72,7 +72,7 @@ class BaseService:
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
-                t.tenant_id = "{team_id}"
+                t.tenant_env_id = "{team_id}"
                 AND t.service_region = "{region_name}"
                 AND t.service_cname LIKE "%{query_key}%"
             ORDER BY
@@ -90,7 +90,7 @@ class BaseService:
         except Exception as e:
             return []
 
-    def get_no_group_services_list(self, session: SessionClass, team_id, region_name):
+    def get_no_group_services_list(self, session: SessionClass, tenant_env_id, region_name):
         query_sql = '''
             SELECT
                 t.service_id,
@@ -108,13 +108,13 @@ class BaseService:
                 LEFT JOIN service_group_relation r ON t.service_id = r.service_id
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
-                t.tenant_id = "{team_id}"
+                t.tenant_env_id = "{tenant_env_id}"
                 AND t.service_region = "{region_name}"
                 AND r.group_id IS NULL
             ORDER BY
                 t.update_time DESC;
         '''.format(
-            team_id=team_id, region_name=region_name)
+            tenant_env_id=tenant_env_id, region_name=region_name)
         services = (session.execute(query_sql)).fetchall()
         return services
 
@@ -123,7 +123,7 @@ class BaseService:
         markets = dict()
         build_infos = dict()
         services = env_repo.list_by_component_ids(session=session, service_ids=service_ids)
-        svc_sources = service_source_repo.get_service_sources(session=session, team_id=tenant_env.tenant_id,
+        svc_sources = service_source_repo.get_service_sources(session=session, team_id=tenant_env.env_id,
                                                               service_ids=service_ids)
         service_sources = {svc_ss.service_id: svc_ss for svc_ss in svc_sources}
 

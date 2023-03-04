@@ -37,7 +37,7 @@ async def deploy_component(request: Request,
 
     """
     try:
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         oauth_instance, _ = None, None
 
         data = await request.json()

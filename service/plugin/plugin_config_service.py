@@ -59,7 +59,7 @@ class PluginConfigService(object):
                                                                service_meta_type=service_meta_type)
 
     def __get_dep_service_ids(self, session: SessionClass, tenant_env, service):
-        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant_env.tenant_id, service.service_id)
+        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id, service.service_id)
         return [service_dep.dep_service_id for service_dep in service_dependencies]
 
     def get_service_dependencies(self, session: SessionClass, tenant_env, service):

@@ -28,7 +28,7 @@ class TenantEnvService(object):
         team_maps = {}
         if teams:
             for team in teams:
-                team_maps[team.tenant_id] = team
+                team_maps[team.tenant_env_id] = team
         res, body = remote_build_client.list_tenant_envs(session, region_id, page, page_size)
         tenant_list = []
         total = 0
@@ -39,7 +39,7 @@ class TenantEnvService(object):
                 for tenant in tenants:
                     tenant_alias = team_maps.get(tenant["UUID"]).tenant_alias if team_maps.get(tenant["UUID"]) else ''
                     tenant_list.append({
-                        "tenant_id": tenant["UUID"],
+                        "tenant_env_id": tenant["UUID"],
                         "team_name": tenant_alias,
                         "tenant_name": tenant["Name"],
                         "memory_request": tenant["memory_request"],
@@ -73,10 +73,10 @@ class TenantEnvService(object):
             select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_name)).scalars().all()
         return envs
 
-    def get_envs_by_tenant_id(self, session, tenant_id):
+    def get_envs_by_tenant_env_id(self, session, tenant_env_id):
         envs = session.execute(
             select(TeamEnvInfo).where(
-                TeamEnvInfo.tenant_id == tenant_id)).scalars().all()
+                TeamEnvInfo.tenant_env_id == tenant_env_id)).scalars().all()
         return envs
 
     def get_all_envs(self, session: SessionClass):
@@ -106,7 +106,7 @@ class TenantEnvService(object):
         tenant = env_repo.get_user_tenant_by_name(session, user_id, tenant_name)
         if not tenant:
             return tenant
-        if not env_repo.get_team_region_by_name(session, tenant.tenant_id, region_name):
+        if not env_repo.get_team_region_by_name(session, tenant.tenant_env_id, region_name):
             return None
         else:
             return tenant

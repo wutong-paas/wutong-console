@@ -40,7 +40,7 @@ class AppPortService:
     @staticmethod
     def _create_port_env(component, port, name, attr_name, attr_value):
         return ComponentEnvVar(
-            tenant_id=component.tenant_id,
+            tenant_env_id=component.tenant_env_id,
             service_id=component.component_id,
             container_port=port.container_port,
             name=name,
@@ -68,7 +68,7 @@ class AppPortService:
 
     def change_port_alias(self, session: SessionClass, tenant_env, service, deal_port, new_port_alias, k8s_service_name,
                           user_name=''):
-        app = application_repo.get_by_service_id(session=session, tenant_id=tenant_env.tenant_id,
+        app = application_repo.get_by_service_id(session=session, env_id=tenant_env.env_id,
                                                  service_id=service.service_id)
 
         old_port_alias = deal_port.port_alias
@@ -106,7 +106,7 @@ class AppPortService:
                                                         service.service_alias, add_env)
 
         if k8s_service_name:
-            self.check_k8s_service_name(session, tenant_env.tenant_id, k8s_service_name, deal_port.service_id,
+            self.check_k8s_service_name(session, tenant_env.env_id, k8s_service_name, deal_port.service_id,
                                         deal_port.container_port)
             deal_port.k8s_service_name = k8s_service_name
 
@@ -170,7 +170,7 @@ class AppPortService:
         env_prefix = deal_port.port_alias.upper() if bool(deal_port.port_alias) else service.service_key.upper()
 
         # 添加环境变量
-        app = application_repo.get_by_service_id(session=session, tenant_id=tenant_env.tenant_id,
+        app = application_repo.get_by_service_id(session=session, env_id=tenant_env.env_id,
                                                  service_id=service.service_id)
         if app.governance_mode in GovernanceModeEnum.use_k8s_service_name_governance_modes():
             host_value = deal_port.k8s_service_name if deal_port.k8s_service_name else service.service_alias + "-" + str(
@@ -293,18 +293,18 @@ class AppPortService:
                 create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 protocol = "http"
                 http_rule_id = make_uuid(domain_name)
-                tenant_id = tenant_env.tenant_id
+                tenant_env_id = tenant_env.env_id
                 service_alias = service.service_cname
                 region_id = region.region_id
                 domain_repo.create_service_domains(session, service_id, service_name, domain_name, create_time,
                                                    container_port, protocol,
-                                                   http_rule_id, tenant_id, service_alias, region_id)
+                                                   http_rule_id, tenant_env_id, service_alias, region_id)
                 if service.create_status == "complete":
                     # 给数据中心发请求添加默认域名
                     data = dict()
                     data["domain"] = domain_name
                     data["service_id"] = service.service_id
-                    data["tenant_id"] = tenant_env.tenant_id
+                    data["tenant_env_id"] = tenant_env.env_id
                     data["tenant_name"] = tenant_env.tenant_name
                     data["protocol"] = protocol
                     data["container_port"] = int(container_port)
@@ -338,12 +338,12 @@ class AppPortService:
                 protocol = deal_port.protocol
                 service_alias = service.service_cname
                 tcp_rule_id = make_uuid(end_point)
-                tenant_id = tenant_env.tenant_id
+                tenant_env_id = tenant_env.env_id
                 region_id = region.region_id
                 tcp_domain_repo.create_service_tcp_domains(session,
                                                            service_id, service_name, end_point, create_time,
                                                            container_port,
-                                                           protocol, service_alias, tcp_rule_id, tenant_id, region_id)
+                                                           protocol, service_alias, tcp_rule_id, tenant_env_id, region_id)
                 if service.create_status == "complete":
                     port = end_point.split(":")[1]
                     data = dict()
@@ -434,7 +434,7 @@ class AppPortService:
         accesses = dict()
         svc_ports = dict()
         service_ids = [service.service_id for service in services]
-        service_ports = port_repo.list_by_service_ids(session, tenant.tenant_id, service_ids)
+        service_ports = port_repo.list_by_service_ids(session, tenant.tenant_env_id, service_ids)
         for svc_port in service_ports:
             if not svc_ports.get(svc_port.service_id):
                 svc_ports[svc_port.service_id] = {
@@ -486,11 +486,11 @@ class AppPortService:
 
     def get_service_port_by_port(self, session: SessionClass, service, port):
         if service:
-            return port_repo.get_service_port_by_port(session, service.tenant_id, service.service_id, port)
+            return port_repo.get_service_port_by_port(session, service.tenant_env_id, service.service_id, port)
 
     def get_access_info(self, session: SessionClass, tenant_env, service):
         data = []
-        service_ports = port_repo.get_service_ports(session, tenant_env.tenant_id, service.service_id)
+        service_ports = port_repo.get_service_ports(session, tenant_env.env_id, service.service_id)
         # ①是否有端口
         if not service_ports:
             access_type = ServicePortConstants.NO_PORT
@@ -607,7 +607,7 @@ class AppPortService:
         region = region_repo.get_region_by_region_name(session, service.service_region)
         if region:
             service_tcp_domain = tcp_domain_repo.get_service_tcpdomain(session,
-                                                                       tenant.tenant_id, region.region_id,
+                                                                       tenant.tenant_env_id, region.region_id,
                                                                        service.service_id,
                                                                        port.container_port)
 
@@ -636,9 +636,9 @@ class AppPortService:
 
     def get_service_ports(self, session: SessionClass, service):
         if service:
-            return port_repo.get_service_ports(session, service.tenant_id, service.service_id)
+            return port_repo.get_service_ports(session, service.tenant_env_id, service.service_id)
 
-    def check_k8s_service_name(self, session: SessionClass, tenant_id, k8s_service_name, component_id="",
+    def check_k8s_service_name(self, session: SessionClass, tenant_env_id, k8s_service_name, component_id="",
                                container_port=None):
         if len(k8s_service_name) > 63:
             raise AbortRequest("k8s_service_name must be no more than 63 characters")
@@ -647,7 +647,7 @@ class AppPortService:
 
         # make k8s_service_name unique
         port = (
-            session.execute(select(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_id,
+            session.execute(select(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant_env_id,
                                                             TeamComponentPort.k8s_service_name == k8s_service_name))
         ).scalars().first()
 
@@ -659,7 +659,7 @@ class AppPortService:
 
     def get_port_by_container_port(self, session, service, container_port):
         return session.execute(
-            select(TeamComponentPort).where(TeamComponentPort.tenant_id == service.tenant_id,
+            select(TeamComponentPort).where(TeamComponentPort.tenant_env_id == service.tenant_env_id,
                                             TeamComponentPort.service_id == service.service_id,
                                             TeamComponentPort.container_port == container_port)).scalars().first()
 
@@ -691,7 +691,7 @@ class AppPortService:
                          user_name=''):
         k8s_service_name = k8s_service_name if k8s_service_name else service.service_alias + "-" + str(container_port)
         try:
-            self.check_k8s_service_name(session=session, tenant_id=tenant_env.tenant_id,
+            self.check_k8s_service_name(session=session, tenant_env_id=tenant_env.env_id,
                                         k8s_service_name=k8s_service_name)
         except ErrK8sServiceNameExists:
             k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
@@ -708,7 +708,7 @@ class AppPortService:
             return code, msg, None
         env_prefix = port_alias.upper() if bool(port_alias) else service.service_key.upper()
 
-        app = application_repo.get_by_service_id(session=session, tenant_id=tenant_env.tenant_id,
+        app = application_repo.get_by_service_id(session=session, env_id=tenant_env.env_id,
                                                  service_id=service.service_id)
 
         mapping_port = container_port
@@ -742,7 +742,7 @@ class AppPortService:
                     return code, msg, None
 
         service_port = {
-            "tenant_id": tenant_env.tenant_id,
+            "tenant_env_id": tenant_env.env_id,
             "service_id": service.service_id,
             "container_port": container_port,
             "mapping_port": container_port,
@@ -862,7 +862,7 @@ class AppPortService:
 
         # Compatible with methods that do not return code, such as __change_port_alias
         code = 200
-        deal_port = port_repo.get_service_port_by_port(session, tenant_env.tenant_id, service.service_id,
+        deal_port = port_repo.get_service_port_by_port(session, tenant_env.env_id, service.service_id,
                                                        container_port)
         if not deal_port:
             raise ServiceHandleException(msg="component port does not exist", msg_show="组件端口不存在", status_code=404)
@@ -890,7 +890,7 @@ class AppPortService:
                                    new_port_alias=port_alias, k8s_service_name=k8s_service_name, user_name=user_name)
 
         session.flush()
-        new_port = port_repo.get_service_port_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
+        new_port = port_repo.get_service_port_by_port(session, tenant_env.env_id, service.service_id, container_port)
         if code != 200:
             return code, msg, None
         return 200, "操作成功", new_port
@@ -908,7 +908,7 @@ class AppPortService:
         if len(service_domain) > 1 or len(service_domain) == 1 and service_domain[0].type != 0:
             raise AbortRequest("contains custom domains", "该端口有自定义域名，请先解绑域名", 412)
 
-        port = port_repo.get_service_port_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
+        port = port_repo.get_service_port_by_port(session, tenant_env.env_id, service.service_id, container_port)
         if not port:
             raise AbortRequest("port not found", "端口{0}不存在".format(container_port), 404)
         if port.is_inner_service:
@@ -929,7 +929,7 @@ class AppPortService:
         env_var_service.delete_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
                                                      container_port=container_port, user_name=user_name)
         # 删除端口
-        port_repo.delete_serivce_port_by_port(session, tenant_env.tenant_id, service.service_id, container_port)
+        port_repo.delete_serivce_port_by_port(session, tenant_env.env_id, service.service_id, container_port)
         # 删除端口绑定的域名
         domain_service.delete_by_port(session=session, component_id=service.service_id, port=container_port)
         return port
@@ -941,7 +941,7 @@ class AppPortService:
                 user_name=user_name)
         except ErrComponentPortExists:
             # make sure port is internal
-            port = port_repo.get_service_port_by_port(session, tenant_env.tenant_id, component.service_id,
+            port = port_repo.get_service_port_by_port(session, tenant_env.env_id, component.service_id,
                                                       container_port)
             code, msg = self.__open_inner(session=session, tenant_env=tenant_env, service=component, deal_port=port,
                                           user_name=user_name)
@@ -961,7 +961,7 @@ class AppPortService:
                 except Exception as e:
                     logger.exception(e)
 
-    def check_k8s_service_names(self, session, tenant_id, k8s_services):
+    def check_k8s_service_names(self, session, tenant_env_id, k8s_services):
         k8s_service_names = [k8s_service.get("k8s_service_name") for k8s_service in k8s_services]
         for k8s_service_name in k8s_service_names:
             if len(k8s_service_name) > 63:
@@ -973,7 +973,7 @@ class AppPortService:
         new_k8s_services = {k8s_service.get("k8s_service_name"): k8s_service for k8s_service in k8s_services}
         if len(new_k8s_services) != len(k8s_services):
             raise ErrK8sServiceNameExists
-        ports = port_repo.list_by_k8s_service_names(session, tenant_id, k8s_service_names)
+        ports = port_repo.list_by_k8s_service_names(session, tenant_env_id, k8s_service_names)
         for port in ports:
             k8s_service = new_k8s_services.get(port.k8s_service_name)
             if not k8s_service:
@@ -1020,10 +1020,10 @@ class AppPortService:
         When updating a port, we also need to update the port environment variables
         """
         component_ids = [k8s_service["service_id"] for k8s_service in k8s_services]
-        ports = port_repo.list_by_service_ids(session, tenant_env.tenant_id, component_ids)
+        ports = port_repo.list_by_service_ids(session, tenant_env.env_id, component_ids)
 
         # list envs exclude port envs.
-        envs = env_var_repo.list_envs_by_component_ids(session, tenant_env.tenant_id, component_ids)
+        envs = env_var_repo.list_envs_by_component_ids(session, tenant_env.env_id, component_ids)
         new_envs = [env for env in envs if not env.is_port_env()]
 
         # make a map of k8s_services

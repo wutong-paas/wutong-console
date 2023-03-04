@@ -14,10 +14,10 @@ from repository.base import BaseRepository
 
 class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
 
-    def list_inner_ports(self, session, tenant_id, service_id):
+    def list_inner_ports(self, session, tenant_env_id, service_id):
         return session.execute(select(TeamComponentPort).where(
             TeamComponentPort.service_id == service_id,
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.is_inner_service == True)).scalars().all()
 
     def get_service_port_by_alias(self, session, service_id, alias):
@@ -32,56 +32,56 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
             session.merge(port)
         session.flush()
 
-    def list_by_k8s_service_names(self, session, tenant_id, k8s_service_names):
+    def list_by_k8s_service_names(self, session, tenant_env_id, k8s_service_names):
         return session.execute(select(TeamComponentPort).where(
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.k8s_service_name.in_(k8s_service_names))).scalars().all()
 
-    def list_inner_ports_by_service_ids(self, session, tenant_id, service_ids):
+    def list_inner_ports_by_service_ids(self, session, tenant_env_id, service_ids):
         if not service_ids:
             return []
         return session.execute(select(TeamComponentPort).where(
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.service_id.in_(service_ids),
             TeamComponentPort.is_inner_service == 1)).scalars().all()
 
-    def delete_service_port(self, session, tenant_id, service_id):
+    def delete_service_port(self, session, tenant_env_id, service_id):
         session.execute(
             delete(TeamComponentPort).where(
                 TeamComponentPort.service_id == service_id,
-                TeamComponentPort.tenant_id == tenant_id)
+                TeamComponentPort.tenant_env_id == tenant_env_id)
         )
 
     def bulk_all(self, session, port_list):
         session.add_all(port_list)
         session.flush()
 
-    def get_by_k8s_service_name(self, session, tenant_id, k8s_service_name):
+    def get_by_k8s_service_name(self, session, tenant_env_id, k8s_service_name):
         if not k8s_service_name:
             return
         return (session.execute(select(TeamComponentPort).where(
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.k8s_service_name == k8s_service_name))).scalars().all()
 
-    def list_by_service_ids(self, session, tenant_id, service_ids):
+    def list_by_service_ids(self, session, tenant_env_id, service_ids):
         return (session.execute(select(TeamComponentPort).where(
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.service_id.in_(service_ids)))).scalars().all()
 
-    def get_service_port_by_port(self, session, tenant_id, service_id, container_port):
+    def get_service_port_by_port(self, session, tenant_env_id, service_id, container_port):
         return session.execute(select(TeamComponentPort).where(
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.service_id == service_id,
             TeamComponentPort.container_port == container_port)).scalars().first()
 
-    def get_service_ports(self, session, tenant_id, service_id):
+    def get_service_ports(self, session, tenant_env_id, service_id):
         return session.execute(select(TeamComponentPort).where(
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.service_id == service_id)).scalars().all()
 
-    def get_service_ports_is_outer_service(self, session, tenant_id, service_id):
+    def get_service_ports_is_outer_service(self, session, tenant_env_id, service_id):
         return session.execute(select(TeamComponentPort).where(
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.service_id == service_id,
             TeamComponentPort.is_outer_service == 1)).scalars().all()
 
@@ -90,9 +90,9 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
             TeamComponentPort.container_port == port,
             TeamComponentPort.service_id == service_id)).scalars().first()
 
-    def get_service_ports_by_is_inner_service(self, session, tenant_id, service_id):
+    def get_service_ports_by_is_inner_service(self, session, tenant_env_id, service_id):
         return (
-            session.execute(select(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_id,
+            session.execute(select(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant_env_id,
                                                             TeamComponentPort.service_id == service_id,
                                                             TeamComponentPort.is_inner_service == 1))
         ).scalars().all()
@@ -103,8 +103,8 @@ class TenantServicePortRepository(BaseRepository[TeamComponentPort]):
         session.flush()
         return service_port
 
-    def delete_serivce_port_by_port(self, session, tenant_id, service_id, container_port):
-        session.execute(delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_id,
+    def delete_serivce_port_by_port(self, session, tenant_env_id, service_id, container_port):
+        session.execute(delete(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant_env_id,
                                                         TeamComponentPort.service_id == service_id,
                                                         TeamComponentPort.container_port == container_port))
 
@@ -225,7 +225,7 @@ class TenantServiceEndpoints(BaseRepository[ThirdPartyComponentEndpoints]):
             endpoints.endpoints_info = json.dumps(service_endpoints)
         else:
             data = {
-                "tenant_id": tenant.tenant_id,
+                "tenant_env_id": tenant.tenant_env_id,
                 "service_id": service.service_id,
                 "service_cname": service.service_cname,
                 "endpoints_info": json.dumps(service_endpoints),
@@ -248,9 +248,9 @@ class TenantServiceEndpoints(BaseRepository[ThirdPartyComponentEndpoints]):
         return (session.execute(select(ThirdPartyComponentEndpoints).where(
             ThirdPartyComponentEndpoints.service_id == service_id))).scalars().all()
 
-    def get_service_ports(self, session, tenant_id, service_id):
+    def get_service_ports(self, session, tenant_env_id, service_id):
         return (session.execute(select(TeamComponentPort).where(
-            TeamComponentPort.tenant_id == tenant_id,
+            TeamComponentPort.tenant_env_id == tenant_env_id,
             TeamComponentPort.service_id == service_id))).scalars().all()
 
 
@@ -280,9 +280,9 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
         ))
         session.add_all(volume_deps)
 
-    def list_mnt_relations_by_service_ids(self, session, tenant_id, service_ids):
+    def list_mnt_relations_by_service_ids(self, session, tenant_env_id, service_ids):
         return session.execute(select(TeamComponentMountRelation).where(
-            TeamComponentMountRelation.tenant_id == tenant_id,
+            TeamComponentMountRelation.tenant_env_id == tenant_env_id,
             TeamComponentMountRelation.service_id.in_(service_ids)
         )).scalars().all()
 
@@ -296,8 +296,8 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
         session.execute(delete(TeamComponentMountRelation).where(
             TeamComponentMountRelation.service_id == service_id))
 
-    def get_service_mnts_filter_volume_type(self, session, tenant_id, service_id, volume_types=None):
-        query = "mnt.tenant_id = '%s' and mnt.service_id = '%s'" % (tenant_id, service_id)
+    def get_service_mnts_filter_volume_type(self, session, tenant_env_id, service_id, volume_types=None):
+        query = "mnt.tenant_env_id = '%s' and mnt.service_id = '%s'" % (tenant_env_id, service_id)
         # if volume_types:
         #     vol_type_sql = " and volume.volume_type in ({})".format(','.join(["'%s'"] * len(volume_types)))
         #     query += vol_type_sql % tuple(volume_types)
@@ -307,7 +307,7 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
             mnt.mnt_dir,
             mnt.dep_service_id,
             mnt.service_id,
-            mnt.tenant_id,
+            mnt.tenant_env_id,
             volume.volume_type,
             volume.ID as volume_id
         from tenant_service_mnt_relation as mnt
@@ -319,7 +319,7 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
         dep_mnts = []
         for real_dep_mnt in result:
             mnt = TeamComponentMountRelation(
-                tenant_id=real_dep_mnt.tenant_id,
+                tenant_env_id=real_dep_mnt.tenant_env_id,
                 service_id=real_dep_mnt.service_id,
                 dep_service_id=real_dep_mnt.dep_service_id,
                 mnt_name=real_dep_mnt.mnt_name,
@@ -329,15 +329,15 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
             dep_mnts.append(mnt)
         return dep_mnts
 
-    def get_by_dep_service_id(self, session, tenant_id, dep_service_id):
+    def get_by_dep_service_id(self, session, tenant_env_id, dep_service_id):
         return (session.execute(select(TeamComponentMountRelation).where(
-            TeamComponentMountRelation.tenant_id == tenant_id,
+            TeamComponentMountRelation.tenant_env_id == tenant_env_id,
             TeamComponentMountRelation.dep_service_id == dep_service_id))).scalars().all()
 
-    def get_mount_current_service(self, session, tenant_id, service_id):
+    def get_mount_current_service(self, session, tenant_env_id, service_id):
         """查询挂载当前组件的信息"""
         return (session.execute(select(TeamComponentMountRelation).where(
-            TeamComponentMountRelation.tenant_id == tenant_id,
+            TeamComponentMountRelation.tenant_env_id == tenant_env_id,
             TeamComponentMountRelation.dep_service_id == service_id))).scalars().all()
 
     def get_mnt_by_dep_id_and_mntname(self, session, dep_service_id, mnt_name):
@@ -345,12 +345,12 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
             TeamComponentMountRelation.dep_service_id == dep_service_id,
             TeamComponentMountRelation.mnt_name == mnt_name))).scalars().first()
 
-    def get_service_mnts(self, session, tenant_id, service_id):
-        return self.get_service_mnts_filter_volume_type(session=session, tenant_id=tenant_id, service_id=service_id)
+    def get_service_mnts(self, session, tenant_env_id, service_id):
+        return self.get_service_mnts_filter_volume_type(session=session, tenant_env_id=tenant_env_id, service_id=service_id)
 
-    def add_service_mnt_relation(self, session, tenant_id, service_id, dep_service_id, mnt_name, mnt_dir):
+    def add_service_mnt_relation(self, session, tenant_env_id, service_id, dep_service_id, mnt_name, mnt_dir):
         tsr = TeamComponentMountRelation(
-            tenant_id=tenant_id,
+            tenant_env_id=tenant_env_id,
             service_id=service_id,
             dep_service_id=dep_service_id,
             mnt_name=mnt_name,
@@ -463,9 +463,9 @@ class TenantServiceVolumnRepository(BaseRepository[TeamComponentVolume]):
 class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
 
     @staticmethod
-    def list_by_component_ids(session, tenant_id, component_ids):
+    def list_by_component_ids(session, tenant_env_id, component_ids):
         return session.execute(select(TeamComponentRelation).where(
-            TeamComponentRelation.tenant_id == tenant_id,
+            TeamComponentRelation.tenant_env_id == tenant_env_id,
             TeamComponentRelation.service_id.in_(component_ids)
         )).scalars().all()
 
@@ -490,7 +490,7 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
                 tenant_info c,
                 tenant_service d
             WHERE
-                b.tenant_id = c.tenant_id
+                b.tenant_env_id = c.tenant_env_id
                 AND a.service_id = d.service_id
                 AND a.dep_service_id = b.service_id
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
@@ -510,7 +510,7 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
                 service_source e,
                 service_source f
             WHERE
-                b.tenant_id = c.tenant_id
+                b.tenant_env_id = c.tenant_env_id
                 AND a.service_id = d.service_id
                 AND a.dep_service_id = b.service_id
                 AND ( b.image LIKE "%mysql%" OR b.image LIKE "%postgres%" OR b.image LIKE "%mariadb%" )
@@ -522,35 +522,35 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
         result2 = session.execute(sql2).fetchall()
         return True if len(result2) > 0 else False
 
-    def delete_service_relation(self, session, tenant_id, service_id):
+    def delete_service_relation(self, session, tenant_env_id, service_id):
         session.execute(delete(TeamComponentRelation).where(
             TeamComponentRelation.service_id == service_id,
-            TeamComponentRelation.tenant_id == tenant_id))
+            TeamComponentRelation.tenant_env_id == tenant_env_id))
 
-    def get_service_dependencies(self, session, tenant_id, service_id):
+    def get_service_dependencies(self, session, tenant_env_id, service_id):
         return session.execute(select(TeamComponentRelation).where(
-            TeamComponentRelation.tenant_id == tenant_id,
+            TeamComponentRelation.tenant_env_id == tenant_env_id,
             TeamComponentRelation.service_id == service_id)).scalars().all()
 
-    def get_dependency_by_dep_id(self, session, tenant_id, dep_service_id):
+    def get_dependency_by_dep_id(self, session, env_id, dep_service_id):
         return (session.execute(select(TeamComponentRelation).where(
-            TeamComponentRelation.tenant_id == tenant_id,
+            TeamComponentRelation.tenant_env_id == env_id,
             TeamComponentRelation.dep_service_id == dep_service_id))).scalars().all()
 
-    def delete_dependency_by_dep_id(self, session, tenant_id, dep_service_id):
+    def delete_dependency_by_dep_id(self, session, tenant_env_id, dep_service_id):
         return session.execute(delete(TeamComponentRelation).where(
-            TeamComponentRelation.tenant_id == tenant_id,
+            TeamComponentRelation.tenant_env_id == tenant_env_id,
             TeamComponentRelation.dep_service_id == dep_service_id))
 
-    def get_dependency_by_dep_service_ids(self, session, tenant_id, service_id, dep_service_ids):
+    def get_dependency_by_dep_service_ids(self, session, tenant_env_id, service_id, dep_service_ids):
         return (session.execute(select(TeamComponentRelation).where(
-            TeamComponentRelation.tenant_id == tenant_id,
+            TeamComponentRelation.tenant_env_id == tenant_env_id,
             TeamComponentRelation.service_id == service_id,
             TeamComponentRelation.dep_service_id.in_(dep_service_ids)))).scalars().all()
 
-    def get_depency_by_serivce_id_and_dep_service_id(self, session, tenant_id, service_id, dep_service_id):
+    def get_depency_by_serivce_id_and_dep_service_id(self, session, tenant_env_id, service_id, dep_service_id):
         return (session.execute(select(TeamComponentRelation).where(
-            TeamComponentRelation.tenant_id == tenant_id,
+            TeamComponentRelation.tenant_env_id == tenant_env_id,
             TeamComponentRelation.service_id == service_id,
             TeamComponentRelation.dep_service_id == dep_service_id))).scalars().first()
 

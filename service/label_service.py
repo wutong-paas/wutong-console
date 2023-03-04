@@ -89,7 +89,7 @@ class LabelService(object):
         service_labels = list()
         for label_id in label_ids:
             service_label = ComponentLabels(
-                tenant_id=tenant_env.tenant_id, service_id=service.service_id, label_id=label_id,
+                tenant_env_id=tenant_env.env_id, service_id=service.service_id, label_id=label_id,
                 region=service.service_region)
             service_labels.append(service_label)
 
@@ -142,25 +142,25 @@ class LabelService(object):
         service_tcpdomains = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
         service_probes = probe_repo.get_all_service_probe(session, service.service_id)
         service_source = service_source_repo.get_service_source(session,
-                                                                tenant.tenant_id,
+                                                                tenant.tenant_env_id,
                                                                 service.service_id)
         service_auths = auth_repo.get_service_auth(session, service.service_id)
-        service_env_vars = env_var_repo.get_service_env_by_tenant_id_and_service_id(session=session,
-                                                                                    tenant_id=tenant.tenant_id,
+        service_env_vars = env_var_repo.get_service_env_by_tenant_env_id_and_service_id(session=session,
+                                                                                    tenant_env_id=tenant.tenant_env_id,
                                                                                     service_id=service.service_id)
         service_compile_env = compile_env_repo.get_service_compile_env(session, service.service_id)
         service_extend_method = extend_repo.get_extend_method_by_service(session, service)
         service_mnts = mnt_repo.get_service_mnts(session=session,
-                                                 tenant_id=tenant.tenant_id,
+                                                 tenant_env_id=tenant.tenant_env_id,
                                                  service_id=service.service_id)
         service_volumes = volume_repo.get_service_volumes_with_config_file(session, service.service_id)
         service_config_file = volume_repo.get_service_config_files(session, service.service_id)
-        service_ports = port_repo.get_service_ports(session=session, tenant_id=tenant.tenant_id,
+        service_ports = port_repo.get_service_ports(session=session, tenant_env_id=tenant.tenant_env_id,
                                                     service_id=service.service_id)
-        service_relation = dep_relation_repo.get_service_dependencies(session=session, tenant_id=tenant.tenant_id,
+        service_relation = dep_relation_repo.get_service_dependencies(session=session, tenant_env_id=tenant.tenant_env_id,
                                                                       service_id=service.service_id)
         service_monitors = service_monitor_service.get_component_service_monitors(session=session,
-                                                                                  tenant_id=tenant.tenant_id,
+                                                                                  tenant_env_id=tenant.tenant_env_id,
                                                                                   service_id=service.service_id)
         component_graphs = component_graph_repo.list(session, service.service_id)
         # plugin

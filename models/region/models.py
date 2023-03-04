@@ -9,7 +9,6 @@ class EnvRegionInfo(Base):
     """租户集群"""
 
     __tablename__ = 'tenant_env_region'
-    unique_together = (('env_id', 'region_name'),)
 
     ID = Column(Integer, primary_key=True)
     region_name = Column(String(64), comment="集群ID", nullable=False)

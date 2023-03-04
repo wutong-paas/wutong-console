@@ -13,8 +13,8 @@ class EnterpriseRepository:
         services = service_info_repo.list_by_component_ids(session, service_ids)
         return services[(page - 1) * page_size:page * page_size], len(services)
 
-    def get_enterprise_app_list(self, session, tenant_ids, page=1, page_size=10):
-        enterprise_apps = application_repo.get_groups_by_tenant_ids(session, tenant_ids)
+    def get_enterprise_app_list(self, session, tenant_env_ids, page=1, page_size=10):
+        enterprise_apps = application_repo.get_groups_by_tenant_env_ids(session, tenant_env_ids)
         if not enterprise_apps:
             return [], 0
         return enterprise_apps[(page - 1) * page_size:page * page_size], len(enterprise_apps)

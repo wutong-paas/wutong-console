@@ -41,7 +41,7 @@ class NewApp(object):
                  user=None):
         self.user = user
         self.tenant = tenant
-        self.tenant_id = tenant.tenant_id
+        self.tenant_env_id = tenant.tenant_env_id
         self.region_name = region_name
         self.app_id = app.app_id
         self.app = app
@@ -248,7 +248,7 @@ class NewApp(object):
     def _existing_volume_deps(self, session):
         components = self._components()
         volume_deps = mnt_repo.list_mnt_relations_by_service_ids(session,
-                                                                 self.tenant_id,
+                                                                 self.tenant_env_id,
                                                                  [cpt.component.component_id for cpt in components])
         return {dep.key(): dep for dep in volume_deps}
 

@@ -46,7 +46,7 @@ async def get_dependency_component(request: Request,
            type: string
            paramType: query
      """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     page_num = int(request.query_params.get("page", 1))
     if page_num < 1:
         page_num = 1
@@ -115,7 +115,7 @@ async def add_dependency_component(request: Request,
           paramType: form
 
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     dep_service_ids = data.get("dep_service_ids", None)
     if not dep_service_ids:
@@ -162,7 +162,7 @@ async def delete_dependency_component(
           paramType: path
 
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not dep_service_id:
         return JSONResponse(general_message(400, "attr_name not specify", "未指定需要删除的依赖组件"), status_code=400)
     code, msg, dependency = dependency_service.delete_service_dependency(session=session, tenant_env=env,
@@ -211,7 +211,7 @@ async def add_dependency_component_post(request: Request,
     dep_service_id = data.get("dep_service_id", None)
     open_inner = data.get("open_inner", False)
     container_port = data.get("container_port", None)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not dep_service_id:
         return JSONResponse(general_message(400, "dependency service not specify", "请指明需要依赖的组件"), status_code=400)
     if service.is_third_party():

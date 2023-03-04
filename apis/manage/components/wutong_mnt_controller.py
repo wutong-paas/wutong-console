@@ -60,7 +60,7 @@ async def get_mnt(request: Request,
     volume_types = parse_argument(request, 'volume_types', value_type=list)
     is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
 
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     if query == "undefined":
         query = ""
@@ -71,7 +71,7 @@ async def get_mnt(request: Request,
         mnt_list, total = mnt_service.get_service_mnt_details(session=session, tenant_env=env, service=service,
                                                               volume_types='share-file')
     elif query_type == "unmnt":
-        services = app_repo.get_app_list(session, env.tenant_id, service.service_region, query)
+        services = app_repo.get_app_list(session, env.env_id, service.service_region, query)
         services_ids = [s.service_id for s in services]
         mnt_list, total = mnt_service.get_service_unmount_volume_list(session=session, tenant=env, service=service,
                                                                       service_ids=services_ids, page=page,
@@ -112,7 +112,7 @@ async def set_mnt(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     dep_vol_data = data["body"]
     dep_vol_data = json.loads(dep_vol_data)
@@ -133,7 +133,7 @@ async def delete_mnt(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     code, msg = mnt_service.delete_service_mnt_relation(session, env, service, dep_vol_id, user.nick_name)
 
     if code != 200:

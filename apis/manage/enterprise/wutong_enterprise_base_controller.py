@@ -20,11 +20,11 @@ async def get_app_views(request: Request,
     data = []
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    tenant_ids = request.query_params.get("tenant_ids")
-    enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(session, tenant_ids, page, page_size)
+    tenant_env_ids = request.query_params.get("tenant_env_ids")
+    enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(session, tenant_env_ids, page, page_size)
     if enterprise_apps:
         for app in enterprise_apps:
-            tenant = env_services.get_team_by_team_id(session, app.tenant_id)
+            tenant = env_services.get_team_by_team_id(session, app.tenant_env_id)
             if not tenant:
                 tenant_name = None
             else:
@@ -32,7 +32,7 @@ async def get_app_views(request: Request,
             data.append({
                 "ID": app.ID,
                 "group_name": app.group_name,
-                "tenant_id": app.tenant_id,
+                "tenant_env_id": app.tenant_env_id,
                 "tenant_name": tenant_name,
                 "region_name": app.region_name
             })
@@ -57,7 +57,7 @@ async def get_components_views(request: Request,
                 data.append({
                     "service_alias": service.service_alias,
                     "service_id": service.service_id,
-                    "tenant_id": app.tenant_id,
+                    "tenant_env_id": app.tenant_env_id,
                     "region_name": service.service_region,
                     "service_cname": service.service_cname,
                     "service_key": service.service_key,

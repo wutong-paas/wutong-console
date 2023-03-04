@@ -16,9 +16,9 @@ class HunanExpresswayRepository(object):
             Application.ID == app_id
         )).scalars().first()
 
-    def get_tenant_by_tenant_id(self, session, tenant_id):
+    def get_tenant_by_tenant_env_id(self, session, tenant_env_id):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.tenant_id == tenant_id
+            TeamEnvInfo.tenant_env_id == tenant_env_id
         )).scalars().first()
 
     def get_groups_by_service_id(self, session, service_ids):
@@ -26,9 +26,9 @@ class HunanExpresswayRepository(object):
             ComponentApplicationRelation.service_id.in_(service_ids)
         )).scalars().all()
 
-    def get_services_by_tenant_id(self, session, tenant_id):
+    def get_services_by_tenant_env_id(self, session, tenant_env_id):
         return session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.tenant_id == tenant_id
+            TeamComponentInfo.tenant_env_id == tenant_env_id
         )).scalars().all()
 
 

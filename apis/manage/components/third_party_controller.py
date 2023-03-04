@@ -91,7 +91,7 @@ async def third_party(request: Request,
 
         if not endpoints:
             data = {
-                "tenant_id": env.tenant_id,
+                "tenant_env_id": env.env_id,
                 "service_id": new_service.service_id,
                 "service_cname": new_service.service_cname,
                 "endpoints_info": "",

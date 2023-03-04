@@ -110,7 +110,7 @@ async def get_check_uuid(service_alias: Optional[str] = None,
     check_uuid = (
         session.execute(
             select(TeamComponentInfo.check_uuid).where(TeamComponentInfo.service_alias == service_alias,
-                                                       TeamComponentInfo.tenant_id == env.tenant_id))
+                                                       TeamComponentInfo.tenant_env_id == env.env_id))
     ).scalars().first()
 
     return JSONResponse(general_message("0", "success", "获取成功", bean={"check_uuid": check_uuid}), status_code=200)
@@ -149,7 +149,7 @@ async def get_check_detail(check_uuid: Optional[str] = None,
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                 tenant_id=env.tenant_id))
+                                                                                 tenant_env_id=env.env_id))
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     code, msg, data = component_check_service.get_service_check_info(session=session, tenant_env=env,
@@ -212,7 +212,7 @@ async def check(
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                 tenant_id=env.tenant_id))
+                                                                                 tenant_env_id=env.env_id))
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     code, msg, service_info = application_service.check_service(session=session, tenant_env=env, service=service,
@@ -251,7 +251,7 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                 tenant_id=env.tenant_id))
+                                                                                 tenant_env_id=env.env_id))
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     try:
@@ -315,7 +315,7 @@ async def pod_detail(
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         service = team_component_repo.get_one_by_model(session=session,
                                                        query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                     tenant_id=env.tenant_id))
+                                                                                     tenant_env_id=env.env_id))
         if not service:
             return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
         data = remote_component_client.pod_detail(session,
@@ -344,7 +344,7 @@ async def component_vertical(request: Request,
         new_gpu_type = data.get("new_gpu_type", None)
         new_gpu = data.get("new_gpu", None)
         new_cpu = data.get("new_cpu", None)
-        service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+        service = service_info_repo.get_service(session, service_alias, env.env_id)
         code, msg = app_manage_service.vertical_upgrade(
             session,
             env,
@@ -381,7 +381,7 @@ async def component_horizontal(request: Request,
         if not new_node:
             return JSONResponse(general_message(400, "node is null", "请选择节点个数"), status_code=400)
 
-        service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+        service = service_info_repo.get_service(session, service_alias, env.env_id)
         oauth_instance, _ = None, None
         app_manage_service.horizontal_upgrade(
             session, env, service, user, int(new_node), oauth_instance=oauth_instance)
@@ -401,7 +401,7 @@ async def component_horizontal(request: Request,
 async def component_graphs(service_alias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
                            env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     graphs = component_graph_service.list_component_graphs(session, service.service_id)
     result = general_message("0", "success", "查询成功", list=graphs)
     return JSONResponse(result, status_code=200)
@@ -421,7 +421,7 @@ async def import_component_graphs(request: Request,
                                   env=Depends(deps.get_current_team_env)
                                   ) -> Any:
     graph_name = await parse_item(request, "graph_name", required=True)
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     component_graph_service.create_internal_graphs(session, service.service_id, graph_name)
     result = general_message("0", "success", "导入成功")
     return JSONResponse(result, status_code=200)
@@ -431,8 +431,8 @@ async def import_component_graphs(request: Request,
 async def component_monitor(service_alias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
-    sms = service_monitor_service.get_component_service_monitors(session, env.tenant_id, service.service_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
+    sms = service_monitor_service.get_component_service_monitors(session, env.env_id, service.service_id)
     return JSONResponse(general_data(list=[jsonable_encoder(p) for p in sms]), status_code=200)
 
 
@@ -458,7 +458,7 @@ async def add_component_monitor(request: Request,
     if not path.startswith("/"):
         return JSONResponse(general_message(400, "path must start with /", "参数错误"), status_code=400)
 
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     sm = service_monitor_service.create_component_service_monitor(session, env, service, name, path, port,
                                                                   service_show_name, interval, user)
     return JSONResponse(general_data(bean=jsonable_encoder(sm)), status_code=200)
@@ -470,7 +470,7 @@ async def component_metrics(
         service_alias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -486,7 +486,7 @@ async def add_component_graphs(request: Request,
                                session: SessionClass = Depends(deps.get_session),
                                env=Depends(deps.get_current_team_env)) -> Any:
     data = await request.json()
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     try:
         graph = component_graph_service.create_component_graph(session, service.service_id, data['title'],
                                                                data['promql'])
@@ -502,7 +502,7 @@ async def delete_component_graphs(request: Request,
                                   session: SessionClass = Depends(deps.get_session),
                                   env=Depends(deps.get_current_team_env)) -> Any:
     graph_ids = await parse_item(request, "graph_ids", required=True)
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     component_graph_service.batch_delete(session, service.service_id, graph_ids)
     result = general_message("0", "success", "删除成功")
     return JSONResponse(result, status_code=200)
@@ -531,7 +531,7 @@ async def modify_component_monitor(request: Request,
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     sm = service_monitor_service.update_component_service_monitor(session, env, service, user, name, path,
                                                                   port,
                                                                   service_show_name, interval)
@@ -549,7 +549,7 @@ async def delete_component_monitor(
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     sm = service_monitor_service.delete_component_service_monitor(session, env, service, user, name)
     return JSONResponse(general_data(bean=jsonable_encoder(sm)), status_code=200)
 
@@ -563,7 +563,7 @@ async def get_history_log(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     code, msg, file_list = log_service.get_history_log(session, env, service)
     log_domain_url = ws_service.get_log_domain(session, request, service.service_region)
     if code != 200 or file_list is None:
@@ -581,7 +581,7 @@ async def delete_component_graphs(
         graph_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     graph = component_graph_repo.get_graph(session, service.service_id, graph_id)
     graphs = component_graph_service.delete_component_graph(session, graph)
     result = general_message("0", "success", "删除成功", list=graphs)
@@ -596,7 +596,7 @@ async def modify_component_graphs(
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
     data = await request.json()
-    service = service_info_repo.get_service(session, service_alias, env.tenant_id)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
     graph = component_graph_repo.get_graph(session, service.service_id, graph_id)
     graphs = component_graph_service.update_component_graph(session, graph, data["title"], data["promql"],
                                                             data["sequence"])

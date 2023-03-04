@@ -29,7 +29,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         build_data["repo_url"] = plugin_version.code_version
         build_data["username"] = plugin.username  # git username
         build_data["password"] = plugin.password  # git password
-        build_data["tenant_id"] = tenant_env.tenant_id
+        build_data["tenant_env_id"] = tenant_env.env_id
         build_data["ImageInfo"] = image_info
         if len(plugin.image.split(':')) > 1:
             build_data["build_image"] = plugin.image
@@ -53,18 +53,18 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
             PluginBuildVersion.build_version == version
         )).scalars().first()
 
-    def list_by_tenant_id(self, session: SessionClass, tenant_id, region_name):
+    def list_by_tenant_env_id(self, session: SessionClass, tenant_env_id, region_name):
         """
         查询插件列表
 
-        :param tenant_id:
+        :param tenant_env_id:
         :param region_name:
         :return:
         """
-        sql = select(TeamPlugin).where(TeamPlugin.tenant_id == tenant_id, TeamPlugin.region == region_name)
+        sql = select(TeamPlugin).where(TeamPlugin.tenant_env_id == tenant_env_id, TeamPlugin.region == region_name)
         results = session.execute(sql)
         data = results.scalars().all()
-        logger.info("list tenant plugin list by tenant id and region,param-tenant_id:{},param-region:{}", tenant_id,
+        logger.info("list tenant plugin list by tenant id and region,param-tenant_env_id:{},param-region:{}", tenant_env_id,
                     region_name)
         return data
 
@@ -80,10 +80,10 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         data = results.scalars().first()
         return data
 
-    def get_plugin_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):
+    def get_plugin_by_plugin_id(self, session: SessionClass, tenant_env_id, plugin_id):
         """
         根据租户和插件id查询插件元信息
-        :param tenant_id: 租户信息
+        :param tenant_env_id: 租户信息
         :param plugin_id: 插件ID列表
         :return: 插件信息
         """
@@ -91,10 +91,10 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         if plugin.origin == 'sys' or plugin.origin == 'shared':
             sql = select(TeamPlugin).where(TeamPlugin.plugin_id == plugin_id)
         else:
-            sql = select(TeamPlugin).where(TeamPlugin.tenant_id == tenant_id, TeamPlugin.plugin_id == plugin_id)
+            sql = select(TeamPlugin).where(TeamPlugin.tenant_env_id == tenant_env_id, TeamPlugin.plugin_id == plugin_id)
         results = session.execute(sql)
         data = results.scalars().first()
-        logger.info("get plugin detail by tenant id and plugin id,param-tenant_id:{},param-plugin_id:{}", tenant_id,
+        logger.info("get plugin detail by tenant id and plugin id,param-tenant_env_id:{},param-plugin_id:{}", tenant_env_id,
                     plugin_id)
         return data
 
@@ -161,14 +161,14 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         session.flush()
         return add_plugin
 
-    def delete_by_plugin_id(self, session: SessionClass, tenant_id, plugin_id):
+    def delete_by_plugin_id(self, session: SessionClass, tenant_env_id, plugin_id):
         """
         删除插件
-        :param tenant_id:
+        :param tenant_env_id:
         :param plugin_id:
         """
         session.execute(
-            delete(TeamPlugin).where(TeamPlugin.tenant_id == tenant_id, TeamPlugin.plugin_id == plugin_id))
+            delete(TeamPlugin).where(TeamPlugin.tenant_env_id == tenant_env_id, TeamPlugin.plugin_id == plugin_id))
 
     def get_plugin_by_origin_share_id(self, session: SessionClass, origin_share_id):
         return session.execute(select(TeamPlugin).where(
@@ -180,7 +180,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
 
         :param plugin:
         """
-        sql = select(TeamPlugin).where(TeamPlugin.tenant_id == plugin["tenant_id"],
+        sql = select(TeamPlugin).where(TeamPlugin.tenant_env_id == plugin["tenant_env_id"],
                                        TeamPlugin.plugin_id == plugin["plugin_id"],
                                        TeamPlugin.region == plugin["region"])
         results = session.execute(sql)
@@ -191,7 +191,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
             session.flush()
             return add_plugin
         if len(data) > 1:
-            session.execute(delete(TeamPlugin).where(TeamPlugin.tenant_id == plugin["tenant_id"],
+            session.execute(delete(TeamPlugin).where(TeamPlugin.tenant_env_id == plugin["tenant_env_id"],
                                                      TeamPlugin.plugin_id == plugin["plugin_id"],
                                                      TeamPlugin.region == plugin["region"]))
             add_plugin = TeamPlugin(**plugin)
@@ -227,45 +227,45 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         """
         plugin_build_version = session.execute(select(PluginBuildVersion).where(
             PluginBuildVersion.region == region_name,
-            PluginBuildVersion.tenant_id == tenant.tenant_id,
+            PluginBuildVersion.tenant_env_id == tenant.tenant_env_id,
             PluginBuildVersion.plugin_id == plugin_id,
             PluginBuildVersion.build_status == "build_success").order_by(PluginBuildVersion.ID.desc())).all()
 
         return plugin_build_version
 
-    def get_tenant_plugins(self, session: SessionClass, tenant_id, region):
+    def get_tenant_plugins(self, session: SessionClass, tenant_env_id, region):
         return session.execute(select(TeamPlugin).where(
-            TeamPlugin.tenant_id == tenant_id,
+            TeamPlugin.tenant_env_id == tenant_env_id,
             TeamPlugin.region == region,
             TeamPlugin.origin == "tenant")).scalars().all()
 
-    def get_def_tenant_plugins(self, session: SessionClass, tenant_id, region, origin_share_ids):
+    def get_def_tenant_plugins(self, session: SessionClass, tenant_env_id, region, origin_share_ids):
         return session.execute(select(TeamPlugin).where(
-            TeamPlugin.tenant_id == tenant_id,
+            TeamPlugin.tenant_env_id == tenant_env_id,
             TeamPlugin.region == region,
             TeamPlugin.origin_share_id.in_(origin_share_ids))).scalars().all()
 
-    def get_default_tenant_plugins(self, session: SessionClass, tenant_id, region, pluginImage, IMAGE_REPO):
+    def get_default_tenant_plugins(self, session: SessionClass, tenant_env_id, region, pluginImage, IMAGE_REPO):
         return session.execute(select(TeamPlugin).where(
-            TeamPlugin.tenant_id == tenant_id,
+            TeamPlugin.tenant_env_id == tenant_env_id,
             TeamPlugin.region == region,
             or_(and_(TeamPlugin.category == "analyst-plugin:perf",
                      TeamPlugin.image == pluginImage.RUNNER),
                 (and_(TeamPlugin.category == "analyst-plugin:perf",
                       TeamPlugin.image == IMAGE_REPO))))).scalars().first()
 
-    def get_sys_plugin_by_origin_share_id(self, session: SessionClass, tenant_id, origin_share_id):
+    def get_sys_plugin_by_origin_share_id(self, session: SessionClass, tenant_env_id, origin_share_id):
         return session.execute(select(TeamPlugin).where(
-            TeamPlugin.tenant_id == tenant_id,
+            TeamPlugin.tenant_env_id == tenant_env_id,
             TeamPlugin.origin_share_id == origin_share_id)).scalars().first()
 
     def get_by_plugin_id(self, session: SessionClass, plugin_id):
         return (session.execute(select(TeamPlugin).where(
             TeamPlugin.plugin_id == plugin_id))).scalars().first()
 
-    def get_by_share_plugins(self, session: SessionClass, tenant_id, origin):
+    def get_by_share_plugins(self, session: SessionClass, tenant_env_id, origin):
         return session.execute(select(TeamPlugin).where(
-            TeamPlugin.tenant_id == tenant_id,
+            TeamPlugin.tenant_env_id == tenant_env_id,
             TeamPlugin.origin == origin)).scalars().all()
 
     def get_by_type_plugins(self, session: SessionClass, plugin_type, origin, service_region):

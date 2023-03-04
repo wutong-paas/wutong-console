@@ -23,7 +23,7 @@ async def market_plugins(page: int = 1,
     :param plugin_name:
     :return:
     """
-    # todo tenant_id
+    # todo tenant_env_id
     total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, page=page,
                                        limit=limit,
                                        order_by='is_complete', source='market', scope='goodrain', tenant=None)
@@ -45,7 +45,7 @@ async def internal_market_plugins(page: int = 1,
     :param scope:
     :return:
     """
-    # todo tenant_id
+    # todo tenant_env_id
     total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, scope=scope,
                                        tenant=None,
                                        page=page, limit=limit)
@@ -65,12 +65,12 @@ async def installable_internal_plugins(page: int = 1,
     :param plugin_name:
     :return:
     """
-    # todo tenant_id
+    # todo tenant_env_id
     total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, tenant=None,
                                        page=page,
                                        limit=limit)
-    # todo tenant_id  region
-    installed = plugin_repo.list_by_tenant_id(None, None).filter(origin__in=['sys', 'market'])
+    # todo tenant_env_id  region
+    installed = plugin_repo.list_by_tenant_env_id(None, None).filter(origin__in=['sys', 'market'])
     for plugin in plugins:
         if installed.filter(origin_share_id=plugin["plugin_key"]).exists():
             plugin["is_installed"] = True

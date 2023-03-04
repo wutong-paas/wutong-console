@@ -32,14 +32,14 @@ async def get_topological(
     code = 200
     if group_id == "-1":
         no_service_list = service_info_repo.get_no_group_service_status_by_group_id(
-            session=session, tenant_env=env, region_name=region_name)
+            session=session, tenant_env=env, region_name=region_name, tenant_env_id=env.env_id)
         return JSONResponse(general_message(200, "query success", "应用查询成功", list=no_service_list), status_code=200)
     else:
         if group_id is None or not group_id.isdigit():
             code = 400
             return JSONResponse(general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字"),
                                 status_code=code)
-        team_id = env.tenant_id
+        team_id = env.env_id
         group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
                                                                                group_id=group_id)
         if group_count == 0:
@@ -74,7 +74,7 @@ async def open_topological_port(
     open_outer = data.get("open_outer", False)
     close_outer = data.get("close_outer", False)
     container_port = data.get("container_port", None)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -106,7 +106,7 @@ async def open_topological_port(
 
     # 校验要依赖的组件是否开启了对外端口
     open_outer_services = port_repo.get_service_ports_is_outer_service(session,
-                                                                       env.tenant_id,
+                                                                       env.env_id,
                                                                        service.service_id)
     if not open_outer_services:
         if service.service_source == "third_party":
@@ -114,7 +114,7 @@ async def open_topological_port(
             if code != 200:
                 logger.exception(msg, msg_show)
                 return JSONResponse(general_message(code, msg, msg_show), status_code=code)
-        service_ports = port_repo.get_service_ports(session, env.tenant_id, service.service_id)
+        service_ports = port_repo.get_service_ports(session, env.env_id, service.service_id)
         port_list = [service_port.container_port for service_port in service_ports]
         if len(port_list) == 1:
             # 一个端口直接开启
@@ -154,7 +154,7 @@ async def get_topological_internet_info(
     if group_id == "-1":
         code = 200
         no_service_list = service_info_repo.get_no_group_service_status_by_group_id(
-            session=session, tenant_env=env, region_name=response_region)
+            session=session, tenant_env=env, region_name=response_region, tenant_env_id=env.env_id)
         result = general_message(200, "query success", "应用获取成功", list=no_service_list)
     else:
         code = 200
@@ -162,7 +162,7 @@ async def get_topological_internet_info(
             code = 400
             result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
             return JSONResponse(result, status_code=code)
-        team_id = env.tenant_id
+        team_id = env.env_id
         group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
                                                                                group_id=group_id)
         if group_count == 0:
@@ -202,13 +202,13 @@ async def get_topological_info(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not service:
         return JSONResponse(general_message(400, "service not found", "参数错误"), status_code=400)
     result = topological_service.get_group_topological_graph_details(
         session=session,
         tenant_env=env,
-        team_id=env.tenant_id,
+        team_id=env.env_id,
         team_name=team_name,
         service=service,
         region_name=service.service_region)

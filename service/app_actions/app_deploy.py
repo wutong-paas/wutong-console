@@ -136,7 +136,7 @@ class MarketService(object):
         self.market_name = None
         # tenant service models
         self.all_component_one_model = all_component_one_model
-        self.service_source = service_source_repo.get_service_source(session, tenant.tenant_id, service.service_id)
+        self.service_source = service_source_repo.get_service_source(session, tenant.tenant_env_id, service.service_id)
         self.install_from_cloud = self.service_source.is_install_from_cloud()
         self.market_name = self.service_source.get_market_name()
         # If no version is specified, the default version is used.
@@ -316,7 +316,7 @@ class MarketService(object):
         backup_data = groupapp_backup_service.get_service_details(session, self.tenant, self.service)
         backup = {
             "region_name": self.service.service_region,
-            "tenant_id": self.tenant.tenant_id,
+            "tenant_env_id": self.tenant.tenant_env_id,
             "service_id": self.service.service_id,
             "backup_id": make_uuid(),
             "backup_data": json.dumps(backup_data),
@@ -409,7 +409,7 @@ class MarketService(object):
             self.service.service_id, json.dumps(self.changed)))
         if backup is None:
             # use the latest backup
-            backup = service_backup_repo.get_newest_by_sid(session, self.tenant.tenant_id, self.service.service_id)
+            backup = service_backup_repo.get_newest_by_sid(session, self.tenant.tenant_env_id, self.service.service_id)
         if backup is None:
             raise ErrBackupNotFound(self.service.service_id)
 
@@ -474,7 +474,7 @@ class MarketService(object):
             "version": version,
         }
         logger.debug("service id: {}; data: {}; update service source.".format(self.service.service_id, data))
-        service_source_repo.update_service_source(session, self.tenant.tenant_id, self.service.service_id, **data)
+        service_source_repo.update_service_source(session, self.tenant.tenant_env_id, self.service.service_id, **data)
 
     def _update_deploy_version(self, dv):
         if not dv["is_change"]:
@@ -598,7 +598,7 @@ class MarketService(object):
             env["attr_value"] = self.service.service_id[:8]
         result = {
             "container_port": container_port,
-            "tenant_id": self.service.tenant_id,
+            "tenant_env_id": self.service.tenant_env_id,
             "service_id": self.service.service_id,
             "name": env.get("name"),
             "attr_name": env["attr_name"],
@@ -634,12 +634,12 @@ class MarketService(object):
         k8s_service_name = port.get("k8s_service_name", self.service.service_alias + "-" + str(container_port))
         if k8s_service_name:
             try:
-                port_repo.get_by_k8s_service_name(self.tenant.tenant_id, k8s_service_name)
+                port_repo.get_by_k8s_service_name(self.tenant.tenant_env_id, k8s_service_name)
                 k8s_service_name += "-" + make_uuid()[-4:]
             except TeamComponentPort.DoesNotExist:
                 pass
             port["k8s_service_name"] = k8s_service_name
-        port["tenant_id"] = self.tenant.tenant_id
+        port["tenant_env_id"] = self.tenant.tenant_env_id
         port["service_id"] = self.service.service_id
         port["mapping_port"] = container_port
         port["port_alias"] = port_alias
@@ -717,7 +717,7 @@ class MarketService(object):
     def _update_volumes(self, session, volumes):
         for volume in volumes.get("add"):
             volume["service_id"] = self.service.service_id
-            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(self.tenant.tenant_id, self.service.service_id,
+            host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(self.tenant.tenant_env_id, self.service.service_id,
                                                                    volume["volume_path"])
             volume["host_path"] = host_path
             volume["category"] = "app_publish"
@@ -864,7 +864,7 @@ class MarketService(object):
             dep_service = service_info_repo.get_service_by_service_id(session, dep_service_id)
             body = dict()
             body["dep_service_id"] = dep_service.service_id
-            body["tenant_id"] = self.tenant.tenant_id
+            body["tenant_env_id"] = self.tenant.tenant_env_id
             body["dep_service_type"] = dep_service.service_type
             body["enterprise_id"] = self.tenant.enterprise_id
             remote_component_client.add_service_dependency(session,
@@ -1009,7 +1009,7 @@ class MarketService(object):
 
     def _sync_component_monitors(self, session, component_monitors, tenant_env):
         logger.debug("start syncing component_monitors; component_monitors datas: {}".format(component_monitors))
-        monitors = port_repo.list_by_service_ids(self.tenant.tenant_id, [self.service.service_id])
+        monitors = port_repo.list_by_service_ids(self.tenant.tenant_env_id, [self.service.service_id])
         for monitor in monitors:
             req = {
                 "name": monitor.name,

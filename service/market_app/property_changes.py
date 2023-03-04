@@ -147,7 +147,7 @@ class PropertyChanges(object):
         if component_graphs:
             result["component_graphs"] = component_graphs
 
-        monitors = self._monitors(session, component.component.tenant_id, component.monitors, component_tmpl.get(
+        monitors = self._monitors(session, component.component.tenant_env_id, component.monitors, component_tmpl.get(
             "component_monitors", []))
         if monitors:
             result["component_monitors"] = monitors
@@ -328,7 +328,7 @@ class PropertyChanges(object):
         }
 
     @staticmethod
-    def _monitors(session, tenant_id, old_monitors, monitors):
+    def _monitors(session, tenant_env_id, old_monitors, monitors):
         """
         Support adding and updating
         """
@@ -344,7 +344,7 @@ class PropertyChanges(object):
                 if monitor["service_show_name"] in old_show_names:
                     continue
             # Optimization: do not check monitor name iteratively
-            tenant_monitor = service_monitor_service.get_tenant_service_monitor(session, tenant_id, monitor["name"])
+            tenant_monitor = service_monitor_service.get_tenant_service_monitor(session, tenant_env_id, monitor["name"])
             if tenant_monitor:
                 monitor["name"] += "-" + make_uuid()[:4]
             add.append(monitor)

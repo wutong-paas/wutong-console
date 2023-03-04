@@ -41,7 +41,7 @@ async def get_domain_query(request: Request,
     if search_conditions:
         # 获取总数
         parms = {
-            "tenant_id": env.tenant_id,
+            "tenant_env_id": env.env_id,
             "region_id": region.region_id,
             "search_conditions": search_conditions
         }
@@ -49,7 +49,7 @@ async def get_domain_query(request: Request,
             from service_domain sd \
                 left join service_group_relation sgr on sd.service_id = sgr.service_id \
                 left join service_group sg on sgr.group_id = sg.id  \
-            where sd.tenant_id=:tenant_id and sd.region_id=:region_id \
+            where sd.tenant_env_id=:tenant_env_id and sd.region_id=:region_id \
                 and (sd.domain_name like '%' :search_conditions '%' \
                     or sd.service_alias like '%' :search_conditions '%' \
                     or sg.group_name like '%' :search_conditions '%');"
@@ -66,7 +66,7 @@ async def get_domain_query(request: Request,
             tenant_tuples = []
         else:
             parms = {
-                "tenant_id": env.tenant_id,
+                "tenant_env_id": env.env_id,
                 "region_id": region.region_id,
                 "search_conditions": search_conditions,
                 "start": start,
@@ -79,7 +79,7 @@ async def get_domain_query(request: Request,
                 from service_domain sd \
                     left join service_group_relation sgr on sd.service_id = sgr.service_id \
                     left join service_group sg on sgr.group_id = sg.id \
-                where sd.tenant_id=:tenant_id \
+                where sd.tenant_env_id=:tenant_env_id \
                     and sd.region_id=:region_id \
                     and (sd.domain_name like '%' :search_conditions '%' \
                         or sd.service_alias like '%' :search_conditions '%' \
@@ -89,7 +89,7 @@ async def get_domain_query(request: Request,
     else:
         # 获取总数
         domain_count = (session.execute(
-            select(func.count(ServiceDomain.ID)).where(ServiceDomain.tenant_id == env.tenant_id,
+            select(func.count(ServiceDomain.ID)).where(ServiceDomain.tenant_env_id == env.env_id,
                                                        ServiceDomain.region_id == region.region_id))).first()
 
         total = domain_count[0]
@@ -103,8 +103,8 @@ async def get_domain_query(request: Request,
         else:
             tenant_tuples = (session.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                 service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
-                domain_heander, the_weight, is_outer_service, path_rewrite, rewrites from service_domain where tenant_id='{0}'
-                and region_id='{1}' order by type desc LIMIT {2},{3};""".format(env.tenant_id, region.region_id,
+                domain_heander, the_weight, is_outer_service, path_rewrite, rewrites from service_domain where tenant_env_id='{0}'
+                and region_id='{1}' order by type desc LIMIT {2},{3};""".format(env.env_id, region.region_id,
                                                                                 start,
                                                                                 end))).fetchall()
     # 拼接展示数据
@@ -271,14 +271,14 @@ async def get_domain_query(request: Request,
         if search_conditions:
             # 获取总数
             parms = {
-                "tenant_id": env.tenant_id,
+                "tenant_env_id": env.env_id,
                 "region_id": region.region_id,
                 "search_conditions": search_conditions
             }
             sql = "select count(1) from service_tcp_domain std \
                             left join service_group_relation sgr on std.service_id = sgr.service_id \
                             left join service_group sg on sgr.group_id = sg.id  \
-                        where std.tenant_id=:tenant_id and std.region_id=:region_id \
+                        where std.tenant_env_id=:tenant_env_id and std.region_id=:region_id \
                             and (std.end_point like '%' :search_conditions '%' \
                                 or std.service_alias like '%' :search_conditions '%' \
                                 or sg.group_name like '%' :search_conditions '%');"
@@ -298,7 +298,7 @@ async def get_domain_query(request: Request,
                         from service_tcp_domain std \
                             left join service_group_relation sgr on std.service_id = sgr.service_id \
                             left join service_group sg on sgr.group_id = sg.id  \
-                        where std.tenant_id=:tenant_id and std.region_id=:region_id \
+                        where std.tenant_env_id=:tenant_env_id and std.region_id=:region_id \
                             and (std.end_point like '%' :search_conditions '%' \
                                 or std.service_alias like '%' :search_conditions '%' \
                                 or sg.group_name like '%' :search_conditions '%') \
@@ -307,7 +307,7 @@ async def get_domain_query(request: Request,
         else:
             # 获取总数
             domain_count = (session.execute(
-                select(func.count(ServiceTcpDomain.ID)).where(ServiceTcpDomain.tenant_id == env.tenant_id,
+                select(func.count(ServiceTcpDomain.ID)).where(ServiceTcpDomain.tenant_env_id == env.env_id,
                                                               ServiceTcpDomain.region_id == region.region_id))).first()
 
             total = domain_count[0]
@@ -324,9 +324,9 @@ async def get_domain_query(request: Request,
                             tcp_rule_id, service_id,
                             is_outer_service
                             from service_tcp_domain
-                            where tenant_id='{0}' and region_id='{1}' order by type desc
+                            where tenant_env_id='{0}' and region_id='{1}' order by type desc
                             LIMIT {2},{3};
-                        """.format(env.tenant_id, region.region_id, start, end))).fetchall()
+                        """.format(env.env_id, region.region_id, start, end))).fetchall()
     except Exception as e:
         logger.exception(e)
         return JSONResponse(general_message(405, "faild", "查询数据库失败"), status_code=405)

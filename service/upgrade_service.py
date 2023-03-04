@@ -167,7 +167,7 @@ class UpgradeService(object):
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
         component = components[0]
-        component_source = service_source_repo.get_service_source(session, component.tenant_id, component.service_id)
+        component_source = service_source_repo.get_service_source(session, component.tenant_env_id, component.service_id)
         return component_source
 
     def get_property_changes(self, session, tenant_env, region, user, app, upgrade_group_id, version):
@@ -241,7 +241,7 @@ class UpgradeService(object):
 
     def upgrade_component(self, session, tenant_env, region, user, app, component, version):
         component_group = tenant_service_group_repo.get_component_group(session, component.upgrade_group_id)
-        app_template_source = service_source_repo.get_service_source(session, component.tenant_id,
+        app_template_source = service_source_repo.get_service_source(session, component.tenant_env_id,
                                                                      component.component_id)
         app_template = self._app_template(session, component_group.group_key, version,
                                           app_template_source)
@@ -266,7 +266,7 @@ class UpgradeService(object):
         component_group = tenant_service_group_repo.get_component_group(session, upgrade_group_id)
 
         # If there are unfinished record, it is not allowed to create new record
-        last_record = upgrade_repo.get_last_upgrade_record(session, tenant_env.tenant_id, app.ID, upgrade_group_id)
+        last_record = upgrade_repo.get_last_upgrade_record(session, tenant_env.env_id, app.ID, upgrade_group_id)
         if last_record and not last_record.is_finished():
             raise ErrLastRecordUnfinished
 
@@ -275,7 +275,7 @@ class UpgradeService(object):
 
         # create new record
         record = {
-            "tenant_id": tenant_env.tenant_id,
+            "tenant_env_id": tenant_env.env_id,
             "group_id": app.app_id,
             "group_key": component_group.app_model_key,
             "group_name": app.app_name,
@@ -291,10 +291,10 @@ class UpgradeService(object):
         session.flush()
         return jsonable_encoder(record)
 
-    def get_app_not_upgrade_record(self, session: SessionClass, tenant_id, group_id, group_key):
+    def get_app_not_upgrade_record(self, session: SessionClass, tenant_env_id, group_id, group_key):
         """获取未完成升级记录"""
         result = upgrade_repo.get_app_not_upgrade_record(session=session,
-                                                         tenant_id=tenant_id,
+                                                         tenant_env_id=tenant_env_id,
                                                          group_id=int(group_id),
                                                          group_key=group_key)
         if not result:
@@ -405,7 +405,7 @@ class UpgradeService(object):
         if upgrade_group_id:
             # check upgrade_group_id
             tenant_service_group_repo.get_component_group(session=session, service_group_id=upgrade_group_id)
-        record = upgrade_repo.get_last_upgrade_record(session, tenant_env.tenant_id, app.app_id, upgrade_group_id,
+        record = upgrade_repo.get_last_upgrade_record(session, tenant_env.env_id, app.app_id, upgrade_group_id,
                                                       record_type)
         return jsonable_encoder(record) if record else None
 

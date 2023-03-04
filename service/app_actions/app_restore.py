@@ -32,7 +32,7 @@ class AppRestore(object):
             logger.warning("service id: {}; service source data not found while \
                 restoring service source".format(self.service.service_id))
             return
-        service_source_repo.delete_service_source(session=session, team_id=self.tenant.tenant_id,
+        service_source_repo.delete_service_source(session=session, team_id=self.tenant.tenant_env_id,
                                                   service_id=self.service.service_id)
         service_source.pop("ID")
         if "service" in service_source:
@@ -41,7 +41,7 @@ class AppRestore(object):
         service_source_repo.create_service_source(session, **service_source)
 
     def envs(self, session, service_env_vars):
-        env_var_repo.delete_service_env(session, self.tenant.tenant_id, self.service.service_id)
+        env_var_repo.delete_service_env(session, self.tenant.tenant_env_id, self.service.service_id)
         if service_env_vars:
             envs = []
             for item in service_env_vars:
@@ -50,7 +50,7 @@ class AppRestore(object):
             env_var_repo.bulk_create(envs)
 
     def ports(self, session, service_ports):
-        port_repo.delete_service_port(session, self.tenant.tenant_id, self.service.service_id)
+        port_repo.delete_service_port(session, self.tenant.tenant_env_id, self.service.service_id)
         if service_ports:
             ports = []
             for item in service_ports:
@@ -87,7 +87,7 @@ class AppRestore(object):
         probe_repo.add_service_probe(**probe)
 
     def dep_services(self, session, service_relation):
-        dep_relation_repo.delete_service_relation(session, self.tenant.tenant_id, self.service.service_id)
+        dep_relation_repo.delete_service_relation(session, self.tenant.tenant_env_id, self.service.service_id)
         if not service_relation:
             return
         relations = []

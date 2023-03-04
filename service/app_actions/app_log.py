@@ -129,7 +129,7 @@ class AppEventService:
             start_time = str_to_time(start_time_str, fmt="%Y-%m-%d %H:%M")
             start_time_str = time_to_str(start_time + datetime.timedelta(minutes=1))
 
-        events = event_repo.get_events_before_specify_time(tenant_env.tenant_id, service.service_id, start_time_str)
+        events = event_repo.get_events_before_specify_time(tenant_env.env_id, service.service_id, start_time_str)
         params = Params(page=page, size=page_size)
         event_paginator = paginate(events, params)
         total = event_paginator.total

@@ -19,9 +19,9 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         return session.execute(select(ServiceDomain).where(
             ServiceDomain.certificate_id == certificate_id)).scalars().all()
 
-    def add_certificate(self, session, tenant_id, alias, certificate_id, certificate, private_key, certificate_type):
+    def add_certificate(self, session, tenant_env_id, alias, certificate_id, certificate, private_key, certificate_type):
         service_domain_certificate = dict()
-        service_domain_certificate["tenant_id"] = tenant_id
+        service_domain_certificate["tenant_env_id"] = tenant_env_id
         service_domain_certificate["certificate_id"] = certificate_id
         service_domain_certificate["certificate"] = certificate
         service_domain_certificate["private_key"] = private_key
@@ -32,9 +32,9 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         session.add(certificate_info)
         return certificate_info
 
-    def get_certificate_by_alias(self, session, tenant_id, alias):
+    def get_certificate_by_alias(self, session, tenant_env_id, alias):
         return session.execute(select(ServiceDomainCertificate).where(
-            ServiceDomainCertificate.tenant_id == tenant_id,
+            ServiceDomainCertificate.tenant_env_id == tenant_env_id,
             ServiceDomainCertificate.alias == alias)).scalars().first()
 
     def check_custom_rule(self, session):
@@ -48,7 +48,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                 service_domain a,
                 tenant_info b
             WHERE
-                a.tenant_id = b.tenant_id
+                a.tenant_env_id = b.tenant_env_id
                 AND (
                     a.certificate_id <> 0
                     OR ( a.domain_path <> '/' AND a.domain_path <> '' )
@@ -87,10 +87,10 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         session.execute(delete(ServiceDomainCertificate).where(
             ServiceDomainCertificate.ID == pk))
 
-    def get_tenant_certificate_page(self, session, tenant_id, start, end):
+    def get_tenant_certificate_page(self, session, tenant_env_id, start, end):
         """提供指定位置和数量的数据"""
         cert = (session.execute(select(ServiceDomainCertificate).where(
-            ServiceDomainCertificate.tenant_id == tenant_id))).scalars().all()
+            ServiceDomainCertificate.tenant_env_id == tenant_env_id))).scalars().all()
         nums = len(cert)  # 证书数量
         # if end > nums - 1:
         #     end =nums - 1
@@ -139,7 +139,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
     def create_service_domains(self, session, service_id, service_name, domain_name, create_time, container_port,
                                protocol,
                                http_rule_id,
-                               tenant_id, service_alias, region_id):
+                               tenant_env_id, service_alias, region_id):
         service_domain = ServiceDomain(
             service_id=service_id,
             service_name=service_name,
@@ -148,7 +148,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             container_port=container_port,
             protocol=protocol,
             http_rule_id=http_rule_id,
-            tenant_id=tenant_id,
+            tenant_env_id=tenant_env_id,
             service_alias=service_alias,
             region_id=region_id,
             domain_path="",
@@ -179,24 +179,24 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             ServiceDomain.service_id == service_id,
             ServiceDomain.container_port == container_port))
 
-    def get_domain_count_search_conditions(self, session, tenant_id, region_id, search_conditions, app_id):
+    def get_domain_count_search_conditions(self, session, tenant_env_id, region_id, search_conditions, app_id):
 
         sql = """
         select count(sd.domain_name) 
         from service_domain sd 
             left join service_group_relation sgr on sd.service_id = sgr.service_id 
             left join service_group sg on sgr.group_id = sg.id  
-        where sd.tenant_id=:tenant_id and sd.region_id=:region_id and  sgr.group_id=:group_id
+        where sd.tenant_env_id=:tenant_env_id and sd.region_id=:region_id and  sgr.group_id=:group_id
             and (sd.domain_name like :search_conditions 
                 or sd.service_alias like :search_conditions 
                 or sg.group_name like :search_conditions)
         """
-        sql = text(sql).bindparams(tenant_id=tenant_id, region_id=region_id, group_id=app_id,
+        sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id,
                                    search_conditions="%" + search_conditions + "%")
         result = session.execute(sql).fetchall()
         return result
 
-    def get_tenant_tuples_search_conditions(self, session, tenant_id, region_id, search_conditions, start, end, app_id):
+    def get_tenant_tuples_search_conditions(self, session, tenant_env_id, region_id, search_conditions, start, end, app_id):
 
         sql = """
         select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, 
@@ -208,7 +208,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                 on sd.service_id = sgr.service_id 
             left join service_group sg 
                 on sgr.group_id = sg.id 
-        where sd.tenant_id=:tenant_id 
+        where sd.tenant_env_id=:tenant_env_id 
             and sd.region_id=:region_id 
             and sgr.group_id=:group_id 
             and (sd.domain_name like :search_conditions 
@@ -216,12 +216,12 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                 or sg.group_name like :search_conditions) 
         order by type desc LIMIT :start,:end
         """
-        sql = text(sql).bindparams(tenant_id=tenant_id, region_id=region_id, group_id=app_id,
+        sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id,
                                    search_conditions="%" + search_conditions + "%", start=start, end=end)
         result = session.execute(sql).fetchall()
         return result
 
-    def get_tenant_tuples(self, session, tenant_id, region_id, app_id):
+    def get_tenant_tuples(self, session, tenant_env_id, region_id, app_id):
 
         sql = """
         select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, 
@@ -233,16 +233,16 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                 on sd.service_id = sgr.service_id 
             left join service_group sg 
                 on sgr.group_id = sg.id 
-        where sd.tenant_id=:tenant_id 
+        where sd.tenant_env_id=:tenant_env_id 
             and sd.region_id=:region_id 
             and sgr.group_id=:group_id 
         order by type desc
         """
-        sql = text(sql).bindparams(tenant_id=tenant_id, region_id=region_id, group_id=app_id)
+        sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id)
         result = session.execute(sql).fetchall()
         return result
 
-    def get_domain_count(self, session, tenant_id, region_id, app_id):
+    def get_domain_count(self, session, tenant_env_id, region_id, app_id):
 
         sql = """
         select count(sd.domain_name) 
@@ -251,11 +251,11 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
                 on sd.service_id = sgr.service_id 
             left join service_group sg 
                 on sgr.group_id = sg.id  
-        where sd.tenant_id=:tenant_id 
+        where sd.tenant_env_id=:tenant_env_id 
             and sd.region_id=:region_id 
             and sgr.group_id=:group_id
         """
-        sql = text(sql).bindparams(tenant_id=tenant_id, region_id=region_id, group_id=app_id)
+        sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id)
         result = session.execute(sql).fetchall()
         return result
 

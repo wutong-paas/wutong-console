@@ -56,7 +56,7 @@ async def get_assembly_state(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     bean = dict()
@@ -91,7 +91,7 @@ async def get_app_detail(request: Request,
     bean = dict()
     time.sleep(0.5)
     session.flush()
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     namespace = env.namespace
@@ -117,7 +117,7 @@ async def get_app_detail(request: Request,
     event_websocket_url = ws_service.get_event_log_ws(session=session, request=request, region=service.service_region)
     bean.update({"event_websocket_url": event_websocket_url})
     if service.service_source == "market":
-        service_source = service_source_repo.get_service_source(session, env.tenant_id, service.service_id)
+        service_source = service_source_repo.get_service_source(session, env.env_id, service.service_id)
         if not service_source:
             result = general_message("0", "success", "查询成功", bean=bean)
             return JSONResponse(result, status_code=200)
@@ -134,7 +134,7 @@ async def get_app_detail(request: Request,
             if wutong_app_version:
                 apps_template = json.loads(wutong_app_version.app_template)
                 apps_list = apps_template.get("apps")
-                service_source = service_source_repo.get_service_source(session, service.tenant_id, service.service_id)
+                service_source = service_source_repo.get_service_source(session, service.tenant_env_id, service.service_id)
                 if service_source and service_source.extend_info:
                     extend_info = json.loads(service_source.extend_info)
                     if extend_info:
@@ -218,7 +218,7 @@ async def get_events_info(request: Request,
         targetAlias = env.tenant_name
     if target == "service":
         service = team_component_repo.get_one_by_model(session=session,
-                                                       query_model=TeamComponentInfo(tenant_id=env.tenant_id,
+                                                       query_model=TeamComponentInfo(tenant_env_id=env.env_id,
                                                                                      service_alias=targetAlias))
         if service:
             target_id = service.service_id
@@ -231,7 +231,7 @@ async def get_events_info(request: Request,
         else:
             result = general_message("0", "success", "查询成功", list=[], total=0, has_next=False)
     elif target == "team":
-        target_id = env.tenant_id
+        target_id = env.env_id
         region = response_region
         events, total, has_next = event_service.get_target_events(session=session, target=target,
                                                                   target_id=target_id,

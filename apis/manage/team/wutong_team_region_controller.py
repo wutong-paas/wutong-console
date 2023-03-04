@@ -70,7 +70,7 @@ async def get_sort_domain_query(request: Request,
         domain_list = []
         query = "?query=sort_desc(sum(%20ceil(increase(" \
                 + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(host))"
-        sufix = query.format(env.tenant_id)
+        sufix = query.format(env.env_id)
         start = (page - 1) * page_size
         end = page * page_size
         try:
@@ -90,7 +90,7 @@ async def get_sort_domain_query(request: Request,
         end = request.query_params.get("end", None)
         body = {}
         sufix = "?query=ceil(sum(increase(gateway_requests%7B" \
-                + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(env.tenant_id, start,
+                + "namespace%3D%22{0}%22%7D%5B1h%5D)))&start={1}&end={2}&step=60".format(env.env_id, start,
                                                                                          end)
         try:
             res, body = remote_build_client.get_query_range_data(session, region_name, env, sufix)
@@ -118,11 +118,11 @@ async def get_sort_service_query(region_name: Optional[str] = None,
             """
     sufix_outer = "?query=sort_desc(sum(%20ceil(increase(" \
                   + "gateway_requests%7Bnamespace%3D%22{0}%22%7D%5B1h%5D)))%20by%20(service))".format(
-        env.tenant_id)
+        env.env_id)
 
     sufix_inner = "?query=sort_desc(sum(ceil(increase(app_request%7B" \
-                  + "tenant_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(
-        env.tenant_id)
+                  + "tenant_env_id%3D%22{0}%22%2Cmethod%3D%22total%22%7D%5B1h%5D)))by%20(service_id))".format(
+        env.env_id)
     # 对外组件访问量
     try:
         res, body = remote_build_client.get_query_service_access(session, region_name, env, sufix_outer)

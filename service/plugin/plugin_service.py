@@ -62,7 +62,7 @@ class PluginService(object):
                     "config_group_name": config_group.config_name,
                 })
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
-                ports = port_repo.get_service_ports(service.tenant_id, service.service_id)
+                ports = port_repo.get_service_ports(service.tenant_env_id, service.service_id)
                 for port in ports:
                     upstream_envs = service_plugin_vars.filter(
                         service_meta_type=PluginMetaType.UPSTREAM_PORT, container_port=port.container_port)
@@ -99,7 +99,7 @@ class PluginService(object):
                 dep_services = plugin_config_service.get_service_dependencies(session=session, tenant=tenant,
                                                                               service=service)
                 for dep_service in dep_services:
-                    ports = port_repo.list_inner_ports(dep_service.tenant_id, dep_service.service_id)
+                    ports = port_repo.list_inner_ports(dep_service.tenant_env_id, dep_service.service_id)
                     for port in ports:
                         downstream_envs = service_plugin_vars.filter(
                             service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
@@ -156,7 +156,7 @@ class PluginService(object):
         for plugin in plugins:
             if PluginCategoryConstants.INPUT_NET == plugin.category:
                 pbv = plugin_version_service.get_newest_usable_plugin_version(session=session,
-                                                                              tenant_id=tenant_env.tenant_id,
+                                                                              tenant_env_id=tenant_env.env_id,
                                                                               plugin_id=plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(session=session, tenant=tenant_env, service=service,
@@ -268,7 +268,7 @@ class PluginService(object):
         complex_envs["base_services"] = base_services
         complex_envs["base_normal"] = base_normal
         config_envs["complex_envs"] = complex_envs
-        region_env_config["tenant_id"] = service.tenant_id
+        region_env_config["tenant_env_id"] = service.tenant_env_id
         region_env_config["config_envs"] = config_envs
         region_env_config["service_id"] = service.service_id
         region_env_config["operator"] = user.nick_name if user else None
@@ -291,7 +291,7 @@ class PluginService(object):
                                                           region_config)
 
     def __get_dep_service_ids(self, session: SessionClass, tenant, service):
-        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant.tenant_id, service.service_id)
+        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant.tenant_env_id, service.service_id)
         return [service_dep.dep_service_id for service_dep in service_dependencies]
 
     def get_service_dependencies(self, session: SessionClass, tenant, service):

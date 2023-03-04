@@ -38,11 +38,11 @@ async def get_auto_url(request: Request,
         if not deployment_way:
             result = general_message(400, "Parameter cannot be empty", "缺少参数")
             return JSONResponse(result, status_code=400)
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
-        tenant_id = env.tenant_id
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+        tenant_env_id = env.env_id
         service_alias = service.service_alias
         service_obj = team_component_repo.get_one_by_model(session=session,
-                                                           query_model=TeamComponentInfo(tenant_id=tenant_id,
+                                                           query_model=TeamComponentInfo(tenant_env_id=env.env_id,
                                                                                          service_alias=service_alias))
         if service_obj.service_source == AppConstants.MARKET:
             result = general_message(200, "failed", "该组件不符合要求", bean={"display": False})
@@ -143,7 +143,7 @@ async def run_or_stop_auto(request: Request,
         data = await request.json()
         action = data.get("action", None)
         deployment_way = data.get("deployment_way", None)
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         if not action or not deployment_way:
             result = general_message(400, "Parameter cannot be empty", "缺少参数")
             return JSONResponse(result, status_code=400)
@@ -179,11 +179,11 @@ async def update_key(request: Request,
             code = 400
             result = general_message(code, "no secret_key", "请输入密钥")
             return JSONResponse(result, status_code=code)
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
-        tenant_id = env.tenant_id
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+        tenant_env_id = env.env_id
         service_alias = service.service_alias
         service_obj = team_component_repo.get_one_by_model(session=session,
-                                                           query_model=TeamComponentInfo(tenant_id=tenant_id,
+                                                           query_model=TeamComponentInfo(tenant_env_id=env.env_id,
                                                                                          service_alias=service_alias))
         deploy_obj = deploy_repo.get_one_by_model(session=session,
                                                   query_model=DeployRelation(service_id=service_obj.service_id))
@@ -211,7 +211,7 @@ async def update_deploy_mode(
     """镜像更新自动部署触发条件"""
     try:
         data = await request.json()
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         service_webhook = service_webhooks_repo.get_or_create_service_webhook(session, service.service_id,
                                                                               "image_webhooks")
         trigger = data.get("trigger")
@@ -251,7 +251,7 @@ async def update_deploy_mode(
         if not service_obj:
             result = general_message(400, "failed", "组件不存在")
             return JSONResponse(result, status_code=400)
-        tenant_obj = env_services.get_team_by_team_id(session, service_obj.tenant_id)
+        tenant_obj = env_services.get_team_by_team_id(session, service_obj.tenant_env_id)
         service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
             session, service_obj.service_id, "image_webhooks")
         if not service_webhook.state:

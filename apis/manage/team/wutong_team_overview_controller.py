@@ -61,7 +61,7 @@ async def get_app_state(request: Request,
             no_group_service_list = service_info_repo.get_no_group_service_status_by_group_id(
                 session=session,
                 tenant_env=env,
-                team_id=env.tenant_id,
+                tenant_env_id=env.env_id,
                 region_name=region_name)
             if page_size == "-1" or page_size == "" or page_size == "0":
                 page_size = len(no_group_service_list) if len(no_group_service_list) > 0 else 10
@@ -71,7 +71,7 @@ async def get_app_state(request: Request,
             result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=total)
             return JSONResponse(result, status_code=code)
 
-        team_id = env.tenant_id
+        team_id = env.env_id
         group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, team_id=team_id,
                                                                                group_id=group_id)
         if group_count == 0:
@@ -82,7 +82,6 @@ async def get_app_state(request: Request,
             session=session,
             group_id=group_id,
             region_name=region_name,
-            team_id=env.tenant_id,
             tenant_env=env,
             query=query)
         if page_size == -1 or str(page_size) == "" or page_size == 0:
@@ -122,7 +121,7 @@ async def overview_team_info(region_name: Optional[str] = None,
 
     overview_detail = dict()
     team_service_num = service_info_repo.get_team_service_num_by_team_id(
-        session=session, team_id=env.tenant_id, region_name=region_name)
+        session=session, team_id=env.env_id, region_name=region_name)
     source = common_services.get_current_region_used_resource(session=session, env=env, region_name=region_name)
 
     region = region_repo.get_region_by_region_name(session, region_name)
@@ -131,7 +130,7 @@ async def overview_team_info(region_name: Optional[str] = None,
         return general_message("0", "success", "查询成功", bean=overview_detail)
 
     # 同步应用到集群
-    groups = application_repo.get_tenant_region_groups(session, env.tenant_id, region.region_name)
+    groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name)
     batch_create_app_body = []
     region_app_ids = []
     if groups:
@@ -143,7 +142,7 @@ async def overview_team_info(region_name: Optional[str] = None,
                 region_app_ids.append(app_id_rels[group.ID])
                 continue
             create_app_body = dict()
-            group_services = base_service.get_group_services_list(session=session, team_id=env.tenant_id,
+            group_services = base_service.get_group_services_list(session=session, env_id=env.env_id,
                                                                   region_name=region.region_name, group_id=group.ID)
             service_ids = []
             if group_services:
@@ -181,7 +180,7 @@ async def overview_team_info(region_name: Optional[str] = None,
                 running_app_num += 1
     except Exception as e:
         logger.exception(e)
-    team_app_num = application_repo.get_tenant_region_groups_count(session, env.tenant_id, region_name)
+    team_app_num = application_repo.get_tenant_region_groups_count(session, env.env_id, region_name)
     overview_detail["team_app_num"] = team_app_num
     overview_detail["team_service_num"] = team_service_num
     overview_detail["team_service_memory_count"] = 0
@@ -266,7 +265,7 @@ async def team_app_group(
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     services_list = base_service.get_fuzzy_services_list(session=session,
-                                                         team_id=env.tenant_id, region_name=region_name,
+                                                         team_id=env.env_id, region_name=region_name,
                                                          query_key=query_key, fields=fields, order=order)
     if services_list:
         try:

@@ -59,7 +59,7 @@ async def get_app_visit_info(serviceAlias: Optional[str] = None,
           type: string
           paramType: path
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     bean = dict()
     access_type, data = port_service.get_access_info(session=session, tenant_env=env, service=service)
     bean["access_type"] = access_type
@@ -91,7 +91,7 @@ async def get_pods_info(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     data = remote_component_client.get_service_pods(session,
@@ -167,7 +167,7 @@ async def get_resource(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = {"service_ids": [service.service_id]}
     body = remote_build_client.get_service_resources(session, env, service.service_region, data)
     bean = body["bean"]
@@ -200,7 +200,7 @@ async def get_brief(serviceAlias: Optional[str] = None,
            paramType: path
      """
     msg = "查询成功"
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if service.service_source == "market":
         try:
             market_app_service.check_market_service_info(session=session, tenant_env=env, service=service)
@@ -224,7 +224,7 @@ async def modify_components_name(
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     service_cname = data.get("service_cname", None)
     k8s_component_name = data.get("k8s_component_name", "")
     app = application_service.get_service_group_info(session, service.service_id)
@@ -261,7 +261,7 @@ async def get_analyze_plugins(serviceAlias: Optional[str] = None,
            type: string
            paramType: path
      """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     service_abled_plugins = app_plugin_service.get_service_abled_plugin(session=session, service=service)
     analyze_plugins = []
     for plugin in service_abled_plugins:
@@ -286,7 +286,7 @@ async def get_volume_opts_list(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     volume_types = volume_service.get_service_support_volume_options(session=session, tenant_env=env, service=service)
     result = general_message("0", "success", "查询成功", list=volume_types)
     return JSONResponse(result, status_code=200)
@@ -296,7 +296,7 @@ async def get_volume_opts_list(
 async def get_build_envs(serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
                          env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     # 获取组件构建时环境变量
     build_env_dict = dict()
     build_envs = env_var_service.get_service_build_envs(session=session, service=service)
@@ -322,7 +322,7 @@ async def set_is_upgrade(request: Request,
     data = await request.json()
     build_upgrade = data.get("build_upgrade", True)
 
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     service.build_upgrade = build_upgrade
     result = general_message("0", "success", "操作成功", bean={"build_upgrade": service.build_upgrade})
@@ -334,7 +334,7 @@ async def restart_component(serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             user=Depends(deps.get_current_user),
                             env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     oauth_instance, _ = None, None
     code, msg = app_manage_service.restart(session=session, tenant_env=env, service=service, user=user)
     bean = {}
@@ -349,7 +349,7 @@ async def stop_component(serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user),
                          env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     app_manage_service.stop(session=session, tenant_env=env, service=service, user=user)
     result = general_message("0", "success", "操作成功", bean={})
@@ -361,7 +361,7 @@ async def start_component(serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
                           user=Depends(deps.get_current_user),
                           env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     oauth_instance, _ = None, None
     try:
         code, msg = app_manage_service.start(session=session, tenant_env=env, service=service, user=user)
@@ -385,7 +385,7 @@ async def upgrade_component(serviceAlias: Optional[str] = None,
     """
     更新
     """
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     oauth_instance, _ = None, None
     try:
         code, msg, _ = app_manage_service.upgrade(session=session, tenant_env=env, service=service, user=user)
@@ -406,7 +406,7 @@ async def group_component(request: Request,
                           serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
                           env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     group_id = data.get("group_id", None)
     if group_id is None:
@@ -432,7 +432,7 @@ async def delete_component(request: Request,
                            session: SessionClass = Depends(deps.get_session),
                            user=Depends(deps.get_current_user),
                            env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     is_force = data.get("is_force", False)
 
@@ -453,7 +453,7 @@ async def get_un_dependency(request: Request,
     page_size = int(request.query_params.get("page_size", 25))
     search_key = request.query_params.get("search_key", None)
     condition = request.query_params.get("condition", None)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     un_dependencies = dependency_service.get_undependencies(session=session, tenant_env=env, service=service)
     service_ids = [s.service_id for s in un_dependencies]
     service_group_map = application_service.get_services_group_name(session=session, service_ids=service_ids)
@@ -501,7 +501,7 @@ async def modify_deploy_type(request: Request,
         env = env_repo.get_env_by_env_id(session, env_id)
         if not env:
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         data = await request.json()
         extend_method = data.get("extend_method", None)
         if not extend_method:
@@ -524,7 +524,7 @@ async def modify_deploy_type(request: Request,
 async def get_market_service_upgrade(serviceAlias: Optional[str] = None,
                                      session: SessionClass = Depends(deps.get_session),
                                      env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     versions = []
     try:
         versions = market_app_service.list_upgradeable_versions(session, env, service)
@@ -545,14 +545,14 @@ async def market_service_upgrade(
         env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
     version = await parse_item(request, "group_version", required=True)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     # get app
-    app = application_repo.get_by_service_id(session, env.tenant_id, service.service_id)
+    app = application_repo.get_by_service_id(session, env.env_id, service.service_id)
 
     upgrade_service.upgrade_component(session, env, region, user, app, service, version)
     return JSONResponse(general_message("0", "success", "升级成功"), status_code=200)
@@ -610,7 +610,7 @@ async def get_app_visit_info(
     serializer: TenantServiceUpdateSerilizer
     """
     data = await request.json()
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     code, msg = application_service.update_check_app(session, env, service, data)
     if code != 200:
         return JSONResponse(general_message(code, "update service info error", msg), status_code=code)
@@ -726,7 +726,7 @@ async def update_keyword(
     if not keyword:
         return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
 
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     is_pass, msg = application_service.check_service_cname(keyword)
     if not is_pass:
         return JSONResponse(general_message(400, "param error", msg), status_code=400)
@@ -748,7 +748,7 @@ async def update_build_envs(
         env=Depends(deps.get_current_team_env)) -> Any:
     data = await request.json()
     build_env_dict = data.get("build_env_dict", None)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     build_envs = env_var_service.get_service_build_envs(session, service)
     # 传入为空，清除
     if not build_env_dict:
@@ -818,7 +818,7 @@ async def components_rollback(
         env = env_repo.get_env_by_env_id(session, env_id)
         if not env:
             return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
-        service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+        service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         code, msg = app_manage_service.roll_back(session,
                                                  env, service, user, deploy_version,
                                                  upgrade_or_rollback)
@@ -868,7 +868,7 @@ async def delete_components_version(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     region = await region_services.get_region_by_request(session, request)
     if not region:

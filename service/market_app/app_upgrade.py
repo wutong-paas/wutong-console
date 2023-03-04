@@ -55,7 +55,7 @@ class AppUpgrade(MarketApp):
         components_keys: component keys that the user select.
         """
         self.tenant_env = tenant_env
-        self.tenant_id = tenant_env.tenant_id
+        self.tenant_env_id = tenant_env.env_id
         self.region = region
         self.region_name = region.region_name
         self.user = user
@@ -252,7 +252,7 @@ class AppUpgrade(MarketApp):
                 "repo_url": plugin.build_version.code_version,
                 "username": plugin.plugin.username,  # git username
                 "password": plugin.plugin.password,  # git password
-                "tenant_id": self.tenant_id,
+                "tenant_env_id": self.tenant_env_id,
                 "ImageInfo": plugin.plugin_image,
                 "build_image": "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag),
                 "plugin_from": plugin_from,
@@ -310,7 +310,7 @@ class AppUpgrade(MarketApp):
         # new components
         new_components = NewComponents(
             session,
-            self.tenant,
+            self.tenant_env,
             self.region,
             self.user,
             self.original_app,
@@ -406,7 +406,7 @@ class AppUpgrade(MarketApp):
                     continue
 
                 dep = TeamComponentRelation(
-                    tenant_id=component.tenant_id,
+                    tenant_env_id=component.tenant_env_id,
                     service_id=component.service_id,
                     dep_service_id=dep_component.service_id,
                     dep_service_type="application",
@@ -451,7 +451,7 @@ class AppUpgrade(MarketApp):
                     continue
 
                 dep = TeamComponentMountRelation(
-                    tenant_id=component.tenant_id,
+                    tenant_env_id=component.tenant_env_id,
                     service_id=component.service_id,
                     dep_service_id=dep_component.service_id,
                     mnt_name=dep["mnt_name"],
@@ -516,7 +516,7 @@ class AppUpgrade(MarketApp):
         snapshot = app_snapshot_repo.create(
             session,
             ApplicationUpgradeSnapshot(
-                tenant_id=self.tenant_id,
+                tenant_env_id=self.tenant_env_id,
                 upgrade_group_id=self.upgrade_group_id,
                 snapshot_id=make_uuid(),
                 snapshot=json.dumps({
@@ -709,7 +709,7 @@ class AppUpgrade(MarketApp):
                 passwd = plugin_tmpl["plugin_image"]["hub_password"]
 
             plugin = TeamPlugin(
-                tenant_id=self.tenant.tenant_id,
+                tenant_env_id=self.tenant.tenant_env_id,
                 region=self.region_name,
                 plugin_id=make_uuid(),
                 create_user=self.user.user_id,
@@ -747,7 +747,7 @@ class AppUpgrade(MarketApp):
 
         return PluginBuildVersion(
             plugin_id=plugin_id,
-            tenant_id=self.tenant.tenant_id,
+            tenant_env_id=self.tenant.tenant_env_id,
             region=self.region_name,
             user_id=self.user.user_id,
             event_id=make_uuid(),

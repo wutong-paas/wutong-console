@@ -117,7 +117,7 @@ class ComponentCheckService(object):
         if envs:
             # 删除原有的build类型环境变量
             session.execute(
-                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant.tenant_id,
+                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant.tenant_env_id,
                                               ComponentEnvVar.service_id == service.service_id,
                                               ComponentEnvVar.scope == "build")
             )
@@ -270,12 +270,12 @@ class ComponentCheckService(object):
         if envs:
             # 删除原有env
             session.execute(
-                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_env.tenant_id,
+                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env.env_id,
                                               ComponentEnvVar.service_id == service.service_id))
 
             # 删除原有的build类型环境变量
             session.execute(
-                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_env.tenant_id,
+                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env.env_id,
                                               ComponentEnvVar.service_id == service.service_id,
                                               ComponentEnvVar.scope == "build"))
 
@@ -311,7 +311,7 @@ class ComponentCheckService(object):
         if ports:
             # delete ports before add
             session.execute(
-                delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_env.tenant_id,
+                delete(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant_env.env_id,
                                                 TeamComponentPort.service_id == service.service_id))
 
             for port in ports:
@@ -324,7 +324,7 @@ class ComponentCheckService(object):
         else:
             if service.service_source == AppConstants.SOURCE_CODE:
                 session.execute(
-                    delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_env.tenant_id,
+                    delete(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant_env.env_id,
                                                     TeamComponentPort.service_id == service.service_id))
 
                 _, _, t_port = port_service.add_service_port(session=session, tenant=tenant_env, service=service,

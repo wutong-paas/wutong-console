@@ -184,8 +184,8 @@ async def overview_tenant(
         tenant = env_services.get_team_by_team_id(session, tenant_tuple[0])
 
         team_service_num = service_info_repo.get_hn_team_service_num_by_team_id(
-            session=session, team_id=tenant.tenant_id)
-        groups = application_repo.get_hn_tenant_region_groups(session, tenant.tenant_id)
+            session=session, team_id=tenant.tenant_env_id)
+        groups = application_repo.get_hn_tenant_region_groups(session, tenant.tenant_env_id)
 
         tenant_info.append({
             "tenant_name": tenant.tenant_alias,

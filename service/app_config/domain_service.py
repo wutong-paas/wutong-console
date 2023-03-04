@@ -78,20 +78,20 @@ class DomainService(object):
         data["alias"] = certificate.alias
         data["certificate_type"] = certificate.certificate_type
         data["id"] = certificate.ID
-        data["tenant_id"] = certificate.tenant_id
+        data["tenant_env_id"] = certificate.tenant_env_id
         data["certificate"] = base64.b64decode(certificate.certificate).decode()
         data["private_key"] = certificate.private_key
         return 200, "success", data
 
     def __check_certificate_alias(self, session, tenant_env, alias):
-        if domain_repo.get_certificate_by_alias(session, tenant_env.tenant_id, alias):
+        if domain_repo.get_certificate_by_alias(session, tenant_env.env_id, alias):
             raise ServiceHandleException("certificate name already exists", "证书别名已存在", 412, 412)
 
     def add_certificate(self, session, tenant_env, alias, certificate_id, certificate, private_key, certificate_type):
         self.__check_certificate_alias(session, tenant_env, alias)
         cert_is_effective(certificate, private_key)
         certificate = base64.b64encode(bytes(certificate, 'utf-8'))
-        certificate = domain_repo.add_certificate(session, tenant_env.tenant_id, alias, certificate_id, certificate,
+        certificate = domain_repo.add_certificate(session, tenant_env.env_id, alias, certificate_id, certificate,
                                                   private_key,
                                                   certificate_type)
         return certificate
@@ -110,7 +110,7 @@ class DomainService(object):
                 status_code=400, error_code=400, msg="domain can not be include chinese", msg_show="域名不能包含中文")
         # a租户绑定了域名manage.com,b租户就不可以在绑定该域名，只有a租户下可以绑定
         # s_domain = domain_repo.get_domain_by_domain_name(session, domain_name)
-        # if s_domain and s_domain.tenant_id != team_id and s_domain.region_id == region_id:
+        # if s_domain and s_domain.tenant_env_id != team_id and s_domain.region_id == region_id:
         #     raise ServiceHandleException(
         #         status_code=400, error_code=400, msg="domain be used other team", msg_show="域名已经被其他团队使用")
         if len(domain_name) > 256:
@@ -163,7 +163,7 @@ class DomainService(object):
         domain_info["service_alias"] = service.service_cname
         domain_info["create_time"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         domain_info["container_port"] = int(container_port)
-        domain_info["tenant_id"] = tenant_env.tenant_id
+        domain_info["tenant_env_id"] = tenant_env.env_id
         domain_info["protocol"] = protocol
         domain_info["end_point"] = end_point
         domain_info["type"] = type
@@ -184,7 +184,7 @@ class DomainService(object):
     def get_certificate(self, session: SessionClass, tenant_env, page, page_size):
         end = page_size * page - 1  # 一页数据的开始索引
         start = end - page_size + 1  # 一页数据的结束索引
-        certificate, nums = domain_repo.get_tenant_certificate_page(session, tenant_env.tenant_id, start, end)
+        certificate, nums = domain_repo.get_tenant_certificate_page(session, tenant_env.env_id, start, end)
         c_list = []
         for c in certificate:
             cert = base64.b64decode(c.certificate)
@@ -208,7 +208,7 @@ class DomainService(object):
                     domain_type,
                     rule_extensions):
         region = region_repo.get_region_by_region_name(session, service.service_region)
-        self.__check_domain_name(session, tenant_env.tenant_id, region.region_id, domain_name, certificate_id)
+        self.__check_domain_name(session, tenant_env.env_id, region.region_id, domain_name, certificate_id)
         certificate_info = None
         http_rule_id = make_uuid(domain_name)
         if certificate_id:
@@ -216,7 +216,7 @@ class DomainService(object):
         data = dict()
         data["domain"] = domain_name
         data["service_id"] = service.service_id
-        data["tenant_id"] = tenant_env.tenant_id
+        data["tenant_env_id"] = tenant_env.env_id
         data["container_port"] = int(container_port)
         data["protocol"] = protocol
         data["http_rule_id"] = http_rule_id
@@ -249,7 +249,7 @@ class DomainService(object):
         domain_info["http_rule_id"] = http_rule_id
         domain_info["type"] = 1
         domain_info["service_alias"] = service.service_cname
-        domain_info["tenant_id"] = tenant_env.tenant_id
+        domain_info["tenant_env_id"] = tenant_env.env_id
         domain_info["region_id"] = region.region_id
         domain_info["domain_path"] = ""
         domain_info["domain_cookie"] = ""
@@ -311,13 +311,13 @@ class DomainService(object):
             create_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             protocol = "http"
             http_rule_id = make_uuid(domain_name)
-            tenant_id = tenant_env.tenant_id
+            tenant_env_id = tenant_env.env_id
             service_alias = service.service_cname
             region_id = region_info.region_id
             domain_repo.create_service_domains(session,
                                                service_id, service_name, domain_name, create_time, container_port,
                                                protocol,
-                                               http_rule_id, tenant_id, service_alias, region_id)
+                                               http_rule_id, tenant_env_id, service_alias, region_id)
             logger.debug("create default gateway http rule for component {0} port {1}".format(
                 service.service_alias, port.container_port))
         else:
@@ -334,13 +334,13 @@ class DomainService(object):
             protocol = port.protocol
             service_alias = service.service_cname
             tcp_rule_id = make_uuid(end_point)
-            tenant_id = tenant_env.tenant_id
+            tenant_env_id = tenant_env.env_id
             region_id = region_info.region_id
             tcp_domain_repo.create_service_tcp_domains(session,
                                                        service_id, service_name, end_point, create_time,
                                                        container_port,
                                                        protocol,
-                                                       service_alias, tcp_rule_id, tenant_id, region_id)
+                                                       service_alias, tcp_rule_id, tenant_env_id, region_id)
             logger.debug("create default gateway stream rule for component {0} port {1}, endpoint {2}".format(
                 service.service_alias, port.container_port, end_point))
 
@@ -353,7 +353,7 @@ class DomainService(object):
                 search_conditions = search_conditions.decode('utf-8')
             # 获取总数
             domain_count = domain_repo.get_domain_count_search_conditions(session,
-                                                                          tenant_env.tenant_id, region.region_id,
+                                                                          tenant_env.env_id, region.region_id,
                                                                           search_conditions, app_id)
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -362,13 +362,13 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
             tenant_tuples = domain_repo.get_tenant_tuples_search_conditions(session,
-                                                                            tenant_env.tenant_id, region.region_id,
+                                                                            tenant_env.env_id, region.region_id,
                                                                             search_conditions, start, end, app_id)
         else:
             # 获取总数
-            domain_count = domain_repo.get_domain_count(session, tenant_env.tenant_id, region.region_id, app_id)
+            domain_count = domain_repo.get_domain_count(session, tenant_env.env_id, region.region_id, app_id)
             total = domain_count[0][0]
-            tenant_tuples = domain_repo.get_tenant_tuples(session, tenant_env.tenant_id, region.region_id, app_id)
+            tenant_tuples = domain_repo.get_tenant_tuples(session, tenant_env.env_id, region.region_id, app_id)
 
         return tenant_tuples, total
 
@@ -381,7 +381,7 @@ class DomainService(object):
             if isinstance(search_conditions, bytes):
                 search_conditions = search_conditions.decode('utf-8')
             # 获取总数
-            domain_count = tcp_domain_repo.get_domain_count_search_conditions(session, tenant_env.tenant_id,
+            domain_count = tcp_domain_repo.get_domain_count_search_conditions(session, tenant_env.env_id,
                                                                               region.region_id,
                                                                               search_conditions, app_id)
 
@@ -392,14 +392,14 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
 
-            tenant_tuples = tcp_domain_repo.get_tenant_tuples_search_conditions(session, tenant_env.tenant_id,
+            tenant_tuples = tcp_domain_repo.get_tenant_tuples_search_conditions(session, tenant_env.env_id,
                                                                                 region.region_id,
                                                                                 search_conditions, start,
                                                                                 end,
                                                                                 app_id)
         else:
             # 获取总数
-            domain_count = tcp_domain_repo.get_domain_count(session, tenant_env.tenant_id, region.region_id, app_id)
+            domain_count = tcp_domain_repo.get_domain_count(session, tenant_env.env_id, region.region_id, app_id)
 
             total = domain_count[0][0]
             start = (page - 1) * page_size
@@ -408,7 +408,7 @@ class DomainService(object):
             if remaining_num < page_size:
                 end = remaining_num
 
-            tenant_tuples = tcp_domain_repo.get_tenant_tuples(session, tenant_env.tenant_id, region.region_id, start, end,
+            tenant_tuples = tcp_domain_repo.get_tenant_tuples(session, tenant_env.env_id, region.region_id, start, end,
                                                               app_id)
         return tenant_tuples, total
 
@@ -427,7 +427,7 @@ class DomainService(object):
         rewrites = httpdomain["rewrites"]
         region = region_repo.get_region_by_region_name(session, service.service_region)
         # 校验域名格式
-        self.__check_domain_name(session, tenant_env.tenant_id, region.region_id, domain_name, certificate_id)
+        self.__check_domain_name(session, tenant_env.env_id, region.region_id, domain_name, certificate_id)
         http_rule_id = make_uuid(domain_name)
         domain_info = dict()
         certificate_info = None
@@ -437,7 +437,7 @@ class DomainService(object):
         data["uuid"] = make_uuid(domain_name)
         data["domain"] = domain_name
         data["service_id"] = service.service_id
-        data["tenant_id"] = tenant_env.tenant_id
+        data["tenant_env_id"] = tenant_env.env_id
         data["tenant_name"] = tenant_env.tenant_name
         data["protocol"] = protocol
         data["container_port"] = int(httpdomain["container_port"])
@@ -490,7 +490,7 @@ class DomainService(object):
         domain_info["domain_cookie"] = domain_cookie if domain_cookie else ""
         domain_info["domain_heander"] = domain_heander if domain_heander else ""
         domain_info["the_weight"] = int(httpdomain.get("the_weight", 100))
-        domain_info["tenant_id"] = tenant_env.tenant_id
+        domain_info["tenant_env_id"] = tenant_env.env_id
         domain_info["auto_ssl"] = auto_ssl
         domain_info["auto_ssl_config"] = auto_ssl_config
 
@@ -582,7 +582,7 @@ class DomainService(object):
         domain_info.update(update_data)
 
         self.__check_domain_name(session=session,
-                                 team_id=tenant_env.tenant_id,
+                                 team_id=tenant_env.env_id,
                                  region_id=service_domain.region_id,
                                  domain_name=domain_info["domain_name"],
                                  certificate_id=domain_info["certificate_id"])
@@ -594,7 +594,7 @@ class DomainService(object):
         data = dict()
         data["domain"] = domain_info["domain_name"]
         data["service_id"] = service.service_id
-        data["tenant_id"] = tenant_env.tenant_id
+        data["tenant_env_id"] = tenant_env.env_id
         data["tenant_name"] = tenant_env.tenant_name
         data["container_port"] = int(domain_info["container_port"])
         data["http_rule_id"] = http_rule_id
@@ -707,9 +707,9 @@ class DomainService(object):
         domain_info["service_alias"] = service.service_cname
         domain_info["create_time"] = self.get_time_now()
         domain_info["container_port"] = int(container_port)
-        domain_info["tenant_id"] = tenant_env.tenant_id
+        domain_info["tenant_env_id"] = tenant_env.env_id
         # 查询端口协议
-        tenant_service_port = port_repo.get_service_port_by_port(session, service.tenant_id, service.service_id,
+        tenant_service_port = port_repo.get_service_port_by_port(session, service.tenant_env_id, service.service_id,
                                                                  container_port)
         if tenant_service_port:
             protocol = tenant_service_port.protocol

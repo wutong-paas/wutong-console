@@ -32,7 +32,7 @@ class GroupAppCopyService(object):
             return True
 
     def get_group_services_with_build_source(self, session, tenant_env, region_name, group_id):
-        group_services = base_service.get_group_services_list(session, tenant_env.tenant_id, region_name, group_id)
+        group_services = base_service.get_group_services_list(session, tenant_env.env_id, region_name, group_id)
         if not group_services:
             return []
         service_ids = [group_service["service_id"] for group_service in group_services]
@@ -56,7 +56,7 @@ class GroupAppCopyService(object):
         group = application_repo.get_group_by_id(session, group_id)
         if not group:
             raise ServiceHandleException(msg="no found group app", msg_show="目标应用不存在", status_code=404)
-        if group.tenant_id != team.tenant_id:
+        if group.tenant_env_id != team.tenant_env_id:
             raise ServiceHandleException(msg="group app and team relation no found", msg_show="目标应用不属于目标团队",
                                          status_code=400)
         return team, group
@@ -82,7 +82,7 @@ class GroupAppCopyService(object):
                               service_ids,
                               change_service_map=None):
         same_team_and_region_copy = False
-        if old_team.tenant_id == tar_team.tenant_id and old_region_name == tar_region_name:
+        if old_team.tenant_env_id == tar_team.tenant_env_id and old_region_name == tar_region_name:
             same_team_and_region_copy = True
         if not remove_service_ids:
             for service in metadata["apps"]:
@@ -223,7 +223,7 @@ class GroupAppCopyService(object):
                                   same_team, same_region)
 
     def build_services(self, session, user, tenant_env, region_name, group_id, change_services_map):
-        group_services = base_service.get_group_services_list(session, tenant_env.tenant_id, region_name, group_id)
+        group_services = base_service.get_group_services_list(session, tenant_env.env_id, region_name, group_id)
         change_service_ids = [change_service["ServiceID"] for change_service in list(change_services_map.values())]
         if not group_services:
             return []

@@ -201,23 +201,23 @@ class AppManageService(AppManageBase):
         except Exception as e:
             logger.exception(e)
             pass
-        env_var_repo.delete_service_env(session, tenant_env.tenant_id, service.service_id)
+        env_var_repo.delete_service_env(session, tenant_env.env_id, service.service_id)
         auth_repo.delete_service_auth(session, service.service_id)
         domain_repo.delete_service_domain(session, service.service_id)
         tcp_domain_repo.delete_service_tcp_domain(session, service.service_id)
-        dep_relation_repo.delete_service_relation(session, tenant_env.tenant_id, service.service_id)
-        relations = dep_relation_repo.get_dependency_by_dep_id(session, tenant_env.tenant_id, service.service_id)
+        dep_relation_repo.delete_service_relation(session, tenant_env.env_id, service.service_id)
+        relations = dep_relation_repo.get_dependency_by_dep_id(session, tenant_env.env_id, service.service_id)
         if relations:
-            dep_relation_repo.delete_dependency_by_dep_id(session, tenant_env.tenant_id, service.service_id)
+            dep_relation_repo.delete_dependency_by_dep_id(session, tenant_env.env_id, service.service_id)
         mnt_repo.delete_mnt(session, service.service_id)
-        port_repo.delete_service_port(session, tenant_env.tenant_id, service.service_id)
+        port_repo.delete_service_port(session, tenant_env.env_id, service.service_id)
         volume_repo.delete_service_volumes(session, service.service_id)
         app_component_relation_repo.delete_relation_by_service_id(session, service.service_id)
         service_attach_repo.delete_service_attach(session, service.service_id)
         create_step_repo.delete_create_step(session, service.service_id)
         event_service.delete_service_events(session, service)
         probe_repo.delete_service_probe(session, service.service_id)
-        service_source_repo.delete_service_source(session=session, team_id=tenant_env.tenant_id,
+        service_source_repo.delete_service_source(session=session, team_id=tenant_env.env_id,
                                                   service_id=service.service_id)
         compose_relation_repo.delete_relation_by_service_id(session, service.service_id)
         service_label_repo.delete_service_all_labels(session, service.service_id)
@@ -295,7 +295,7 @@ class AppManageService(AppManageBase):
         service_id = service.service_id
 
         session.execute(
-            delete(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant.tenant_id,
+            delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant.tenant_env_id,
                                           ComponentEnvVar.service_id == service_id)
         )
 
@@ -312,7 +312,7 @@ class AppManageService(AppManageBase):
         )
 
         session.execute(
-            delete(TeamComponentRelation).where(TeamComponentRelation.tenant_id == tenant.tenant_id,
+            delete(TeamComponentRelation).where(TeamComponentRelation.tenant_env_id == tenant.tenant_env_id,
                                                 TeamComponentRelation.service_id == service_id)
         )
 
@@ -321,7 +321,7 @@ class AppManageService(AppManageBase):
         )
 
         session.execute(
-            delete(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant.tenant_id,
+            delete(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant.tenant_env_id,
                                             TeamComponentPort.service_id == service_id)
         )
 
@@ -350,7 +350,7 @@ class AppManageService(AppManageBase):
         )
 
         session.execute(
-            delete(ComponentSourceInfo).where(ComponentSourceInfo.team_id == tenant.tenant_id,
+            delete(ComponentSourceInfo).where(ComponentSourceInfo.team_id == tenant.tenant_env_id,
                                               ComponentSourceInfo.service_id == service_id)
         )
 
@@ -363,7 +363,7 @@ class AppManageService(AppManageBase):
         )
 
         session.execute(
-            delete(TeamServiceBackup).where(TeamServiceBackup.tenant_id == service.tenant_id,
+            delete(TeamServiceBackup).where(TeamServiceBackup.tenant_env_id == service.tenant_env_id,
                                             TeamServiceBackup.service_id == service_id)
         )
 
@@ -406,7 +406,7 @@ class AppManageService(AppManageBase):
             event_info = {
                 "event_id": make_uuid(),
                 "service_id": service.service_id,
-                "tenant_id": tenant.tenant_id,
+                "tenant_env_id": tenant.tenant_env_id,
                 "type": "truncate",
                 "old_deploy_version": "",
                 "user_name": user.nick_name,
@@ -499,11 +499,11 @@ class AppManageService(AppManageBase):
                 upgrade_infos_list.append(service_dict)
         return 200, body
 
-    def get_build_envs(self, session: SessionClass, tenant_id, service_id):
+    def get_build_envs(self, session: SessionClass, tenant_env_id, service_id):
         envs = {}
         build_envs = (
             session.execute(
-                select(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_id,
+                select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env_id,
                                               ComponentEnvVar.service_id == service_id,
                                               or_(ComponentEnvVar.scope == "build",
                                                   ComponentEnvVar.attr_name.in_(
@@ -563,13 +563,13 @@ class AppManageService(AppManageBase):
             service_dict["action"] = 'deploy'
             if service.build_upgrade:
                 service_dict["action"] = 'upgrade'
-            envs = self.get_build_envs(session=session, tenant_id=tenant_env.tenant_id, service_id=service.service_id)
+            envs = self.get_build_envs(session=session, tenant_env_id=tenant_env.env_id, service_id=service.service_id)
             service_dict["envs"] = envs
             kind = self.__get_service_kind(session=session, service=service)
             service_dict["kind"] = kind
             service_source = (
                 session.execute(
-                    select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == service.tenant_id,
+                    select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == service.tenant_env_id,
                                                       ComponentSourceInfo.service_id == service.service_id))
             ).scalars().first()
 
@@ -705,7 +705,7 @@ class AppManageService(AppManageBase):
         for env in inner_envs:
             exist = (
                 session.execute(
-                    select(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant_env.tenant_id,
+                    select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env.env_id,
                                                   ComponentEnvVar.service_id == service.service_id,
                                                   ComponentEnvVar.attr_name == env["attr_name"],
                                                   ComponentEnvVar.scope == "inner"))
@@ -726,7 +726,7 @@ class AppManageService(AppManageBase):
         for env in outer_envs:
             exist = (
                 session.execute(
-                    select(ComponentEnvVar).where(ComponentEnvVar.tenant_id == tenant.tenant_id,
+                    select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant.tenant_env_id,
                                                   ComponentEnvVar.service_id == service.service_id,
                                                   ComponentEnvVar.attr_name == env["attr_name"],
                                                   ComponentEnvVar.scope == "outer"))
@@ -757,7 +757,7 @@ class AppManageService(AppManageBase):
             env_prefix = port["port_alias"].upper() if bool(port["port_alias"]) else service.service_key.upper()
             service_port = (
                 session.execute(
-                    select(TeamComponentPort).where(TeamComponentPort.tenant_id == tenant_env.tenant_id,
+                    select(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant_env.env_id,
                                                     TeamComponentPort.service_id == service.service_id,
                                                     TeamComponentPort.container_port == int(port["container_port"])))
             ).scalars().first()
@@ -950,12 +950,12 @@ class AppManageService(AppManageBase):
                 return False
         return False
 
-    def __is_service_related_by_other_app_service(self, session: SessionClass, tenant, service):
-        tsrs = dep_relation_repo.get_dependency_by_dep_id(session, tenant.tenant_id, service.service_id)
+    def __is_service_related_by_other_app_service(self, session: SessionClass, tenant_env, service):
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(session, tenant_env.env_id, service.service_id)
         if tsrs:
             sids = list(set([tsr.service_id for tsr in tsrs]))
-            service_group = application_repo.get_service_group(session, service.service_id, tenant.tenant_id)
-            groups = application_repo.get_groups(session, sids, tenant.tenant_id)
+            service_group = application_repo.get_service_group(session, service.service_id, tenant_env.env_id)
+            groups = application_repo.get_groups(session, sids, tenant_env.env_id)
             group_ids = set([group.group_id for group in groups])
             if group_ids and service_group.group_id in group_ids:
                 group_ids.remove(service_group.group_id)
@@ -964,8 +964,8 @@ class AppManageService(AppManageBase):
             return True
         return False
 
-    def __is_service_related(self, session: SessionClass, tenant, service):
-        tsrs = dep_relation_repo.get_dependency_by_dep_id(session, tenant.tenant_id, service.service_id)
+    def __is_service_related(self, session: SessionClass, tenant_env, service):
+        tsrs = dep_relation_repo.get_dependency_by_dep_id(session, tenant_env.env_id, service.service_id)
         if tsrs:
             sids = [tsr.service_id for tsr in tsrs]
             service_ids = service_info_repo.get_services_by_service_ids(session, sids)
@@ -977,7 +977,7 @@ class AppManageService(AppManageBase):
         return False, ""
 
     def __is_service_mnt_related(self, session: SessionClass, tenant, service):
-        sms = mnt_repo.get_mount_current_service(session, tenant.tenant_id, service.service_id)
+        sms = mnt_repo.get_mount_current_service(session, tenant.tenant_env_id, service.service_id)
         if sms:
             sids = [sm.service_id for sm in sms]
             service_ids = service_info_repo.get_services_by_service_ids(session, sids)
@@ -1005,7 +1005,7 @@ class AppManageService(AppManageBase):
 
     def move_service_relation_info_recycle_bin(self, session: SessionClass, tenant_env, service):
         # 1.如果组件依赖其他组件，将组件对应的关系放入回收站
-        relations = dep_relation_repo.get_service_dependencies(session, tenant_env.tenant_id, service.service_id)
+        relations = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id, service.service_id)
         if relations:
             for r in relations:
                 r_data = r.__dict__
@@ -1013,7 +1013,7 @@ class AppManageService(AppManageBase):
                 relation_recycle_bin_repo.create_trash_service_relation(**r_data)
                 r.delete()
         # 如果组件被其他应用下的组件依赖，将组件对应的关系删除
-        relations = dep_relation_repo.get_dependency_by_dep_id(tenant_env.tenant_id, service.service_id)
+        relations = dep_relation_repo.get_dependency_by_dep_id(tenant_env.env_id, service.service_id)
         if relations:
             relations.delete()
         # 如果组件关系回收站有被此组件依赖的组件，将信息及其对应的数据中心的依赖关系删除
@@ -1022,7 +1022,7 @@ class AppManageService(AppManageBase):
             for recycle_relation in recycle_relations:
                 task = dict()
                 task["dep_service_id"] = recycle_relation.dep_service_id
-                task["tenant_id"] = tenant_env.tenant_id
+                task["tenant_env_id"] = tenant_env.env_id
                 task["dep_service_type"] = "v"
                 task["enterprise_id"] = tenant_env.enterprise_id
                 try:
@@ -1040,7 +1040,7 @@ class AppManageService(AppManageBase):
             msg = "组件可能处于运行状态,请先关闭组件"
             return 409, msg
         # 判断组件是否被依赖
-        is_related, msg = self.__is_service_related(session=session, tenant=tenant_env, service=service)
+        is_related, msg = self.__is_service_related(session=session, tenant_env=tenant_env, service=service)
         if is_related:
             return 412, "组件被{0}依赖，不可删除".format(msg)
         # 判断组件是否被其他组件挂载
@@ -1112,7 +1112,7 @@ class AppManageService(AppManageBase):
         body["action"] = "deploy"
         if service.build_upgrade:
             body["action"] = "upgrade"
-        body["envs"] = self.get_build_envs(session=session, tenant_id=tenant_env.tenant_id,
+        body["envs"] = self.get_build_envs(session=session, tenant_env_id=tenant_env.env_id,
                                            service_id=service.service_id)
         kind = self.__get_service_kind(session=session, service=service)
         body["kind"] = kind
@@ -1135,7 +1135,7 @@ class AppManageService(AppManageBase):
             }
         service_source = (
             session.execute(
-                select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == service.tenant_id,
+                select(ComponentSourceInfo).where(ComponentSourceInfo.team_id == service.tenant_env_id,
                                                   ComponentSourceInfo.service_id == service.service_id))
         ).scalars().first()
 
@@ -1203,12 +1203,12 @@ class AppManageService(AppManageBase):
         # 再新建该组件新的关联数据
         add_model: ComponentApplicationRelation = ComponentApplicationRelation(service_id=service.service_id,
                                                                                group_id=move_group_id,
-                                                                               tenant_id=service.tenant_id,
+                                                                               tenant_env_id=service.tenant_env_id,
                                                                                region_name=service.service_region)
         session.add(add_model)
 
         team = (
-            session.execute(select(TeamEnvInfo).where(TeamEnvInfo.tenant_id == service.tenant_id))
+            session.execute(select(TeamEnvInfo).where(TeamEnvInfo.tenant_env_id == service.tenant_env_id))
         ).scalars().first()
         if not team:
             raise TenantNotExistError
@@ -1268,7 +1268,7 @@ class AppManageService(AppManageBase):
             msg = "当前组件安装了插件， 您确定要删除吗？"
             return code, msg
         # 判断是否被其他应用下的组件依赖
-        if self.__is_service_related_by_other_app_service(session=session, tenant=tenant_env, service=service):
+        if self.__is_service_related_by_other_app_service(session=session, tenant_env=tenant_env, service=service):
             code = 412
             msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
             return code, msg
@@ -1331,7 +1331,7 @@ class AppManageService(AppManageBase):
     def close_all_component_in_tenant(self, session: SessionClass, tenant_env, region_name, user):
         try:
             # list components
-            components = service_info_repo.get_services_by_team_and_region(session, tenant_env.tenant_id, region_name)
+            components = service_info_repo.get_services_by_team_and_region(session, tenant_env.env_id, region_name)
             component_ids = [cpt.service_id for cpt in components]
             self.batch_operations(session=session, tenant_env=tenant_env, region_name=region_name, user=user,
                                   action="stop",
@@ -1341,19 +1341,19 @@ class AppManageService(AppManageBase):
 
     def close_all_component_in_team(self, session: SessionClass, tenant_env, user):
         # close all component in define team
-        tenant_regions = self.list_by_tenant_id(session=session, tenant_id=tenant_env.tenant_id)
+        tenant_regions = self.list_by_tenant_env_id(session=session, tenant_env_id=tenant_env.env_id)
         tenant_regions = tenant_regions if tenant_regions else []
         for region in tenant_regions:
             self.close_all_component_in_tenant(session=session, tenant_env=tenant_env, region_name=region.region_name,
                                                user=user)
 
-    def list_by_tenant_id(self, session: SessionClass, tenant_id):
+    def list_by_tenant_env_id(self, session: SessionClass, tenant_env_id):
         where = """
         WHERE
-            ti.tenant_id = tr.tenant_id
+            ti.tenant_env_id = tr.tenant_env_id
             AND ri.region_name = tr.region_name
-            AND ti.tenant_id = "{tenant_id}"
-        """.format(tenant_id=tenant_id)
+            AND ti.tenant_env_id = "{tenant_env_id}"
+        """.format(tenant_env_id=tenant_env_id)
         sql = """
         SELECT
             ri.*, ti.tenant_name
@@ -1393,9 +1393,9 @@ class AppManageService(AppManageBase):
         if not is_pass:
             raise ServiceHandleException(msg=msg, msg_show="组件名称不合法", status_code=400, error_code=400)
         component = self.__init_third_party_app(region_name)
-        component.tenant_id = tenant_env.tenant_id
+        component.tenant_env_id = tenant_env.env_id
         component.service_cname = service_cname
-        service_id = make_uuid(tenant_env.tenant_id)
+        service_id = make_uuid(tenant_env.env_id)
         service_alias = self.create_service_alias(session, service_id)
         component.service_id = service_id
         component.service_alias = service_alias
@@ -1493,7 +1493,7 @@ class AppManageService(AppManageBase):
 
             relation = ComponentApplicationRelation(
                 group_id=app.app_id,
-                tenant_id=component.tenant_id,
+                tenant_env_id=component.tenant_env_id,
                 service_id=component.component_id,
                 region_name=region_name,
             )
@@ -1502,7 +1502,7 @@ class AppManageService(AppManageBase):
             # endpoints
             endpoints.append(
                 ThirdPartyComponentEndpoints(
-                    tenant_id=component.tenant_id,
+                    tenant_env_id=component.tenant_env_id,
                     service_id=component.service_id,
                     service_cname=component_cname,
                     endpoints_type="kubernetes",
@@ -1524,7 +1524,7 @@ class AppManageService(AppManageBase):
                 continue
             for port in ports:
                 new_port = TeamComponentPort(
-                    tenant_id=component.tenant_id,
+                    tenant_env_id=component.tenant_env_id,
                     service_id=component.service_id,
                     container_port=port["port"],
                     mapping_port=port["port"],

@@ -22,7 +22,7 @@ class TeamPlugin(Base):
 
     ID = Column(Integer, primary_key=True)
     plugin_id = Column(String(32), comment="插件ID", nullable=False)
-    tenant_id = Column(String(32), comment="租户ID", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     region = Column(String(64), comment="数据中心", nullable=False)
     create_user = Column(Integer, nullable=False, comment="创建插件的用户id")
     desc = Column(String(256), comment="描述", nullable=False, default="")
@@ -46,7 +46,7 @@ class PluginBuildVersion(Base):
 
     ID = Column(Integer, primary_key=True)
     plugin_id = Column(String(32), comment="插件ID", nullable=False)
-    tenant_id = Column(String(32), comment="租户ID", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     region = Column(String(64), comment="数据中心", nullable=False)
     user_id = Column(Integer, nullable=False, comment="构建此版本的用户id")
     update_info = Column(String(256), comment="插件更新说明", nullable=False)
@@ -139,7 +139,7 @@ class TeamPluginShareInfo(Base):
     share_id = Column(String(32), comment="分享的插件ID", nullable=False)
     share_version = Column(String(32), comment="分享的构建版本", nullable=False)
     origin_plugin_id = Column(String(32), comment="插件原始的ID", nullable=False)
-    tenant_id = Column(String(32), comment="租户ID", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     user_id = Column(Integer, comment="分享插件的用户id", nullable=False)
     desc = Column(String(256), comment="描述", nullable=False, default="")
     plugin_name = Column(String(32), comment="插件名称", nullable=False)

@@ -14,11 +14,11 @@ class TeamComponentInfo(Base):
     """组件管理"""
 
     __tablename__ = 'tenant_service'
-    unique_together = ('tenant_id', 'service_alias')
+    unique_together = ('tenant_env_id', 'service_alias')
 
     ID = Column(Integer, primary_key=True)
     service_id = Column(String(32), comment="组件id", nullable=False, unique=True)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_key = Column(String(32), comment="组件key", nullable=False)
     service_alias = Column(String(100), comment="组件别名", nullable=False)
     service_cname = Column(String(100), comment="组件名", nullable=False, default='')
@@ -142,11 +142,11 @@ class ComponentMonitor(Base):
     """组件业务监控"""
 
     __tablename__ = "tenant_service_monitor"
-    unique_together = ('name', 'tenant_id')
+    unique_together = ('name', 'tenant_env_id')
 
     ID = Column(Integer, primary_key=True)
     name = Column(String(64), comment="名称", nullable=False)
-    tenant_id = Column(String(32), comment="团队ID", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_id = Column(String(32), comment="组件ID", nullable=False)
     path = Column(String(255), comment="监控路径", nullable=False)
     port = Column(Integer, nullable=False, comment="端口号")
@@ -163,7 +163,7 @@ class TeamComponentLog(Base):
     user_id = Column(Integer, nullable=False, comment="用户id")
     user_name = Column(String(40), comment="用户名", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     action = Column(String(15), comment="分类", nullable=False)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
 
@@ -230,7 +230,7 @@ class TeamComponentMountRelation(Base):
     unique_together = ('service_id', 'dep_service_id', 'mnt_name')
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
     dep_service_id = Column(String(32), comment="依赖组件id", nullable=False)
     mnt_name = Column(String(100), comment="mnt name", nullable=False)
@@ -251,7 +251,7 @@ class ComponentEnvVar(Base):
         INNER = "inner"
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
     container_port = Column(Integer, comment="端口", nullable=False, default=0)
     name = Column(String(1024), comment="名称", nullable=True)
@@ -275,7 +275,7 @@ class TeamComponentPort(Base):
     unique_together = ('service_id', 'container_port')
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="租户id", nullable=True)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=True)
     service_id = Column(String(32), comment="组件id", nullable=False)
     container_port = Column(Integer, comment="容器端口", nullable=False, default=0)
     mapping_port = Column(Integer, comment="映射端口", nullable=False, default=0)
@@ -292,7 +292,7 @@ class TeamApplication(Base):
 
     __tablename__ = 'tenant_service_group'
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="租户id")
+    tenant_env_id = Column(String(32), comment="环境id")
     group_name = Column(String(64), comment="组件组名")
     group_alias = Column(String(64), comment="组件别名")
     group_key = Column(String(32), comment="组件组id")
@@ -347,7 +347,7 @@ class ThirdPartyComponentEndpoints(Base):
     __tablename__ = 'third_party_service_endpoints'
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
     service_cname = Column(String(128), comment="组件名", nullable=False)
     endpoints_info = Column(Text, comment="endpoints信息", nullable=False)
@@ -369,7 +369,7 @@ class ComponentEvent(Base):
 
     ID = Column(Integer, primary_key=True)
     event_id = Column(String(32), comment="操作id", nullable=False)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
     user_name = Column(String(64), comment="操作用户", nullable=False)
     start_time = Column(DateTime(), default=datetime.now, comment="操作开始时间", nullable=False)
@@ -401,7 +401,7 @@ class TeamServiceBackup(Base):
 
     ID = Column(Integer, primary_key=True)
     region_name = Column(String(64), comment="数据中心名称")
-    tenant_id = Column(String(32))
+    tenant_env_id = Column(String(32))
     service_id = Column(String(32))
     backup_id = Column(String(32), unique=True)
     backup_data = Column(Text, comment="内容")
@@ -413,7 +413,7 @@ class ComponentLabels(Base):
     __tablename__ = "service_labels"
     ID = Column(Integer, primary_key=True)
 
-    tenant_id = Column(String(32), comment="租户id")
+    tenant_env_id = Column(String(32), comment="环境id")
     service_id = Column(String(32), comment="服务id")
     label_id = Column(String(32), comment="标签id")
     region = Column(String(30), comment="区域中心")
@@ -444,7 +444,7 @@ class ComponentCreateStep(Base):
     __tablename__ = 'service_create_step'
     ID = Column(Integer, primary_key=True)
 
-    tenant_id = Column(String(32), comment="租户id")
+    tenant_env_id = Column(String(32), comment="环境id")
     service_id = Column(String(32), comment="组件id")
     app_step = Column(Integer, default=1, comment="创建组件的步数")
 
@@ -458,7 +458,7 @@ class ComponentAttachInfo(Base):
     __tablename__ = 'service_attach_info'
     ID = Column(Integer, primary_key=True)
 
-    tenant_id = Column(String(32), comment="租户id")
+    tenant_env_id = Column(String(32), comment="环境id")
     service_id = Column(String(32), comment="组件id")
     # , ChoiceType=pay_method todo
     memory_pay_method = Column(String(32))
@@ -490,7 +490,7 @@ class TeamComponentInfoDelete(Base):
     ID = Column(Integer, primary_key=True)
 
     service_id = Column(String(32), unique=True, comment="组件id")
-    tenant_id = Column(String(32), comment="租户id")
+    tenant_env_id = Column(String(32), comment="环境id")
     service_key = Column(String(32), comment="组件key")
     service_alias = Column(String(100), comment="组件别名")
     service_cname = Column(String(100), default='', comment="组件名")
@@ -614,11 +614,11 @@ class ComponentWebhooks(Base):
 
 class ComponentRecycleBin(Base):
     __tablename__ = 'tenant_service_recycle_bin'
-    # unique_together = ('tenant_id', 'service_alias')
+    # unique_together = ('tenant_env_id', 'service_alias')
 
     ID = Column(Integer, primary_key=True)
     service_id = Column(String(32), unique=True, comment="服务id")
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_key = Column(String(32), comment="服务key", nullable=False)
     service_alias = Column(String(100), comment="服务别名", nullable=False)
     service_cname = Column(String(100), default='', comment="服务名", nullable=False)
@@ -676,7 +676,7 @@ class ComponentRelationRecycleBin(Base):
     # unique_together = ('service_id', 'dep_service_id')
 
     ID = Column(Integer, primary_key=True)
-    tenant_id = Column(String(32), comment="租户id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     service_id = Column(String(32), comment="服务id", nullable=False)
     dep_service_id = Column(String(32), comment="依赖服务id", nullable=False)
     dep_service_type = Column(String(50), nullable=True, comment="服务类型:web,mysql,redis,mongodb,phpadmin")

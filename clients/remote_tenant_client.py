@@ -43,10 +43,11 @@ class RemoteTenantClient(ApiBaseHttpClient):
     def create_env(self, session, region, team_id, team_name, env_name, env_id, namespace):
         """创建环境"""
         url, token = get_region_access_info(env_name, region, session)
-        data = {"tenant_id": team_id, "tenant_name": team_name, "tenant_env_id": env_id, "tenant_env_name": env_name,
+        data = {"tenant_env_id": team_id, "tenant_name": team_name, "tenant_env_id": env_id, "tenant_env_name": env_name,
                 "namespace": namespace}
         url += "/v2/tenants/{0}/envs".format(team_name)
 
+        print("data = ", data)
         self._set_headers(token)
         logger.debug("create env url :{0}".format(url))
         try:

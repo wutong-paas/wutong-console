@@ -41,7 +41,7 @@ class AppPluginService(object):
         for plugin in plugins:
             if PluginCategoryConstants.OUTPUT_NET == plugin.category or \
                     PluginCategoryConstants.OUTPUT_INPUT_NET == plugin.category:
-                pbv = plugin_version_service.get_newest_usable_plugin_version(session, tenant_env.tenant_id,
+                pbv = plugin_version_service.get_newest_usable_plugin_version(session, tenant_env.env_id,
                                                                               plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(session, tenant_env, service, plugin.plugin_id,
@@ -99,7 +99,7 @@ class AppPluginService(object):
                     "config_group_name": config_group.config_name,
                 })
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
-                ports = port_repo.get_service_ports(session, service.tenant_id, service.service_id)
+                ports = port_repo.get_service_ports(session, service.tenant_env_id, service.service_id)
                 for port in ports:
                     upstream_envs = []
                     for service_plugin_var in service_plugin_vars:
@@ -139,7 +139,7 @@ class AppPluginService(object):
                 dep_services = plugin_config_service.get_service_dependencies(session=session, tenant_env=tenant_env,
                                                                               service=service)
                 for dep_service in dep_services:
-                    ports = port_repo.list_inner_ports(session, dep_service.tenant_id, dep_service.service_id)
+                    ports = port_repo.list_inner_ports(session, dep_service.tenant_env_id, dep_service.service_id)
                     for port in ports:
                         downstream_envs = service_plugin_config_repo.get_service_plugin_downstream_envs(
                             session=session,
@@ -201,7 +201,7 @@ class AppPluginService(object):
         for plugin in plugins:
             if PluginCategoryConstants.INPUT_NET == plugin.category:
                 pbv = plugin_version_service.get_newest_usable_plugin_version(session=session,
-                                                                              tenant_id=tenant_env.tenant_id,
+                                                                              tenant_env_id=tenant_env.env_id,
                                                                               plugin_id=plugin.plugin_id)
                 if pbv:
                     configs = self.get_service_plugin_config(session=session, tenant=tenant_env, service=service,
@@ -218,7 +218,7 @@ class AppPluginService(object):
 
     def delete_filemanage_service_plugin_port(self, session: SessionClass, tenant_env, service, response_region, user,
                                               container_port, plugin_id):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin" or plugin_info.origin_share_id == "redis_dbgate_plugin" \
                     or plugin_info.origin_share_id == "mysql_dbgate_plugin":
@@ -239,7 +239,7 @@ class AppPluginService(object):
                                                            user_name=user.nick_name)
 
     def update_java_agent_plugin_env(self, session: SessionClass, tenant_env, service, plugin_id, user):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
                 env_name = "JAVA_TOOL_OPTIONS"
@@ -364,7 +364,7 @@ class AppPluginService(object):
         complex_envs["base_services"] = base_services
         complex_envs["base_normal"] = base_normal
         config_envs["complex_envs"] = complex_envs
-        region_env_config["tenant_id"] = service.tenant_id
+        region_env_config["tenant_env_id"] = service.tenant_env_id
         region_env_config["config_envs"] = config_envs
         region_env_config["service_id"] = service.service_id
         region_env_config["operator"] = user.nick_name if user else None
@@ -386,7 +386,7 @@ class AppPluginService(object):
                                                           service.service_alias, plugin_id,
                                                           region_config)
 
-    def check_the_same_plugin(self, session: SessionClass, plugin_id, tenant_id, service_id):
+    def check_the_same_plugin(self, session: SessionClass, plugin_id, tenant_env_id, service_id):
         plugin_ids = []
         categories = []
         service_plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(session,
@@ -402,7 +402,7 @@ class AppPluginService(object):
             categories.append(i.category)
 
         # the trend to install plugin
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env_id, plugin_id)
 
         category_info = plugin_info.category.split(":")
         if category_info[0] == "net-plugin":
@@ -447,7 +447,7 @@ class AppPluginService(object):
                         protocol=""))
 
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
-                ports = port_repo.get_service_ports(session, service.tenant_id, service.service_id)
+                ports = port_repo.get_service_ports(session, service.tenant_env_id, service.service_id)
                 if not self.__check_ports_for_config_items(session=session, ports=ports, items=items):
                     raise ServiceHandleException(msg="do not support protocol", status_code=409,
                                                  msg_show="插件支持的协议与组件端口协议不一致")
@@ -476,7 +476,7 @@ class AppPluginService(object):
                     raise ServiceHandleException(msg="can't use this plugin", status_code=409,
                                                  msg_show="组件没有依赖其他组件，不能安装此插件")
                 for dep_service in dep_services:
-                    ports = port_repo.get_service_ports(session, dep_service.tenant_id, dep_service.service_id)
+                    ports = port_repo.get_service_ports(session, dep_service.tenant_env_id, dep_service.service_id)
                     if not self.__check_ports_for_config_items(session=session, ports=ports, items=items):
                         raise ServiceHandleException(
                             msg="do not support protocol", status_code=409, msg_show="该组件依赖的组件的端口协议与插件支持的协议不一致")
@@ -542,7 +542,7 @@ class AppPluginService(object):
         self.__create_component_graphs(session=session, component_id=service.service_id, plugin_name=plugin_name)
 
     def create_service_plugin_relation(self, session: SessionClass,
-                                       tenant_id,
+                                       tenant_env_id,
                                        service_id,
                                        plugin_id,
                                        build_version,
@@ -570,7 +570,7 @@ class AppPluginService(object):
                            user=None):
         if not plugin_version:
             plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
-                                                                                     tenant_id=tenant_env.tenant_id,
+                                                                                     tenant_env_id=tenant_env.env_id,
                                                                                      plugin_id=plugin_id)
             plugin_version = plugin_version.build_version
         logger.debug("start install plugin ! plugin_id {0}  plugin_version {1}".format(plugin_id, plugin_version))
@@ -590,7 +590,7 @@ class AppPluginService(object):
         data["version_id"] = plugin_version
         data["operator"] = user.nick_name if user else None
         data.update(region_config)
-        plugin_rel = self.create_service_plugin_relation(session=session, tenant_id=tenant_env.tenant_id,
+        plugin_rel = self.create_service_plugin_relation(session=session, tenant_env_id=tenant_env.env_id,
                                                          service_id=service.service_id, plugin_id=plugin_id,
                                                          build_version=plugin_version)
         data["plugin_cpu"] = plugin_rel.min_cpu
@@ -604,7 +604,7 @@ class AppPluginService(object):
                 raise ServiceHandleException(msg="install plugin fail", msg_show="相同类插件已开通不能重复安装", status_code=409)
 
     def add_filemanage_port(self, session: SessionClass, tenant_env, service, plugin_id, container_port, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
 
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin" \
@@ -629,7 +629,7 @@ class AppPluginService(object):
                                               user_name=user.nick_name)
 
     def add_filemanage_mount(self, session: SessionClass, tenant_env, service, plugin_id, plugin_version, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
@@ -665,7 +665,7 @@ class AppPluginService(object):
                     mode=None)
 
     def add_init_agent_mount(self, session: SessionClass, tenant_env, service, plugin_id, plugin_version, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
@@ -696,7 +696,7 @@ class AppPluginService(object):
 
     def modify_init_agent_env(self, session: SessionClass, tenant_env, service, plugin_id, user=None):
 
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.tenant_id, plugin_id)
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
                 env_name = "JAVA_TOOL_OPTIONS"
@@ -732,11 +732,11 @@ class AppPluginService(object):
                                                               plugin_id=plugin_id, is_active=is_active, cpu=cpu,
                                                               memory=memory)
 
-    def get_plugin_used_services(self, session, plugin_id, tenant_id, page, page_size):
+    def get_plugin_used_services(self, session, plugin_id, tenant_env_id, page, page_size):
         aprr = app_plugin_relation_repo.get_used_plugin_services(session=session, plugin_id=plugin_id)
         service_ids = [r.service_id for r in aprr]
         service_plugin_version_map = {r.service_id: r.build_version for r in aprr}
-        services = service_info_repo.get_services_by_service_ids_tenant_id(session, service_ids, tenant_id)
+        services = service_info_repo.get_services_by_service_ids_tenant_env_id(session, service_ids, tenant_env_id)
         params = Params(page=page, size=page_size)
         paginator = paginate(services, params)
         show_apps = paginator.items

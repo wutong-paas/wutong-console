@@ -20,14 +20,14 @@ class HunanExpresswayService(object):
 
     def get_tenant_by_app_id(self, session, app_id):
         app = hunan_expressway_repo.get_app_by_app_id(session, app_id)
-        tenant_id = app.tenant_id
-        return hunan_expressway_repo.get_tenant_by_tenant_id(session, tenant_id)
+        tenant_env_id = app.tenant_env_id
+        return hunan_expressway_repo.get_tenant_by_tenant_env_id(session, tenant_env_id)
 
     def get_groups_by_service_id(self, session, service_ids):
         return hunan_expressway_repo.get_groups_by_service_id(session, service_ids)
 
-    def get_services_by_tenant_id(self, session, tenant_id):
-        return hunan_expressway_repo.get_services_by_tenant_id(session, tenant_id)
+    def get_services_by_tenant_env_id(self, session, tenant_env_id):
+        return hunan_expressway_repo.get_services_by_tenant_env_id(session, tenant_env_id)
 
 
 hunan_expressway_service = HunanExpresswayService()

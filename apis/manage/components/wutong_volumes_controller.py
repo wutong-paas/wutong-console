@@ -51,7 +51,7 @@ async def get_volume_dir(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
     volumes = volume_service.get_service_volumes(session=session, tenant_env=env, service=service,
                                                  is_config_file=is_config)
@@ -119,7 +119,7 @@ async def add_volume(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     volume_name = data.get("volume_name", None)
     r = re.compile('(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$')
@@ -206,7 +206,7 @@ async def modify_volume(request: Request,
         if new_volume_path == volume.volume_path:
             return JSONResponse(general_message(400, "no change", "没有变化，不需要修改"), status_code=400)
 
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = {
         "volume_name": volume.volume_name,
         "volume_path": new_volume_path,
@@ -264,7 +264,7 @@ async def delete_volume(
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if not volume_id:
         return JSONResponse(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status_code=400)
-    service = service_info_repo.get_service(session, serviceAlias, env.tenant_id)
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env, service=service,
                                                                    volume_id=int(volume_id),
                                                                    user_name=user.nick_name)

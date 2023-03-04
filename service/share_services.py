@@ -141,7 +141,7 @@ class ShareService(object):
         configs = configuration_repo.list_by_rule_ids(session, [sd.http_rule_id for sd in service_domains])
         configs = {cfg.rule_id: json.loads(cfg.value) for cfg in configs}
 
-        ports = port_repo.list_by_service_ids(session, tenant.tenant_id, component_keys.keys())
+        ports = port_repo.list_by_service_ids(session, tenant.tenant_env_id, component_keys.keys())
         ports = {port.container_port: port for port in ports}
 
         ingress_http_routes = []
@@ -298,7 +298,7 @@ class ShareService(object):
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
                             team_name=share_team.tenant_name,
-                            team_id=share_team.tenant_id,
+                            team_id=share_team.tenant_env_id,
                             plugin_id=plugin_info['plugin_id'],
                             plugin_name=plugin_info['plugin_alias'],
                             event_status='not_start',
@@ -351,7 +351,7 @@ class ShareService(object):
 
                         if service.get("need_share", None):
                             ssre = ServiceShareRecordEvent(
-                                team_id=share_team.tenant_id,
+                                team_id=share_team.tenant_env_id,
                                 service_key=service["service_key"],
                                 service_id=service["service_id"],
                                 service_name=service["service_cname"],
@@ -633,12 +633,12 @@ class ShareService(object):
             # 查询组件持久化信息
             service_volume_map = self.get_service_volume_by_ids(array_ids, session)
             # dependent volume
-            dep_mnt_map = self.get_dep_mnts_by_ids(tenant_env.tenant_id, array_ids, session)
+            dep_mnt_map = self.get_dep_mnts_by_ids(tenant_env.env_id, array_ids, session)
             # 获取组件的健康检测设置
             probe_map = self.get_service_probes(array_ids, session)
 
             # service monitor
-            sid_2_monitors = self.list_service_monitors(tenant_env.tenant_id, array_ids, session)
+            sid_2_monitors = self.list_service_monitors(tenant_env.env_id, array_ids, session)
             # component graphs
             sid_2_graphs = self.list_component_graphs(array_ids, session)
             all_data_map = dict()
@@ -650,7 +650,7 @@ class ShareService(object):
                     continue
                 data = dict()
                 data['service_id'] = service.service_id
-                data['tenant_id'] = service.tenant_id
+                data['tenant_env_id'] = service.tenant_env_id
                 data['service_cname'] = service.service_cname
                 # The component is redistributed without the key from the installation source, which would cause duplication.
                 # service_id  can be thought of as following a component lifecycle.
@@ -694,7 +694,7 @@ class ShareService(object):
                         p = dict()
                         # 写需要返回的port数据
                         p['protocol'] = port.protocol
-                        p['tenant_id'] = port.tenant_id
+                        p['tenant_env_id'] = port.tenant_env_id
                         p['port_alias'] = port.port_alias
                         p['container_port'] = port.container_port
                         p['is_inner_service'] = port.is_inner_service
@@ -857,7 +857,7 @@ class ShareService(object):
                 dep_service_info = (
                     session.execute(
                         select(TeamComponentInfo).where(TeamComponentInfo.service_id == dep_service.dep_service_id,
-                                                        TeamComponentInfo.tenant_id == dep_service.tenant_id))
+                                                        TeamComponentInfo.tenant_env_id == dep_service.tenant_env_id))
                 ).scalars().first()
 
                 if dep_service_info is None:
@@ -915,9 +915,9 @@ class ShareService(object):
         else:
             return {}
 
-    def get_dep_mnts_by_ids(self, tenant_id, service_ids, session: SessionClass):
+    def get_dep_mnts_by_ids(self, tenant_env_id, service_ids, session: SessionClass):
         mnt_relations = (
-            session.execute(select(TeamComponentMountRelation).where(TeamComponentMountRelation.tenant_id == tenant_id,
+            session.execute(select(TeamComponentMountRelation).where(TeamComponentMountRelation.tenant_env_id == tenant_env_id,
                                                                      TeamComponentMountRelation.service_id.in_(
                                                                          service_ids)))
         ).scalars().all()
@@ -958,9 +958,9 @@ class ShareService(object):
             return {}
 
     @staticmethod
-    def list_service_monitors(tenant_id, service_ids, session: SessionClass):
+    def list_service_monitors(tenant_env_id, service_ids, session: SessionClass):
         monitors = (
-            session.execute(select(ComponentMonitor).where(ComponentMonitor.tenant_id == tenant_id,
+            session.execute(select(ComponentMonitor).where(ComponentMonitor.tenant_env_id == tenant_env_id,
                                                            ComponentMonitor.service_id.in_(service_ids)))
         ).scalars().all()
 
@@ -1023,7 +1023,7 @@ class ShareService(object):
         event = ComponentEvent(
             event_id=make_uuid(),
             service_id=record_event.service_id,
-            tenant_id=record_event.team_id,
+            tenant_env_id=record_event.team_id,
             type=event_type,
             user_name=user_name,
             start_time=datetime.datetime.now(),

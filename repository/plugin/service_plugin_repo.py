@@ -40,7 +40,7 @@ class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
                 tenant_service c,
                 tenant_info b
             WHERE
-                c.tenant_id = b.tenant_id
+                c.tenant_env_id = b.tenant_env_id
                 AND a.service_id = c.service_id
                 AND c.service_source <> 'market'
                 LIMIT 1"""
@@ -187,7 +187,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         plugin_build_version = plugin_version_service.create_build_version(session=session,
                                                                            region=region,
                                                                            plugin_id=plugin.plugin_id,
-                                                                           tenant_id=tenant.tenant_id,
+                                                                           tenant_env_id=tenant.tenant_env_id,
                                                                            user_id=user.user_id, update_info="",
                                                                            build_status="unbuild",
                                                                            min_memory=min_memory,
@@ -250,11 +250,11 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             LEFT JOIN plugin_build_version pbv ON tsp.plugin_id = pbv.plugin_id
             AND tsp.build_version = pbv.build_version
             JOIN tenant_plugin tp ON tp.plugin_id = tsp.plugin_id
-            AND tp.tenant_id = pbv.tenant_id
+            AND tp.tenant_env_id = pbv.tenant_env_id
         WHERE
             tsp.service_id = "{0}"
             AND tp.region = "{1}"
-            AND tp.tenant_id = "{2}" """.format(service_id, region, tenant_env.tenant_id)
+            AND tp.tenant_env_id = "{2}" """.format(service_id, region, tenant_env.env_id)
 
         QUERI_UNINSTALLED_SQL = """
             SELECT
@@ -266,13 +266,13 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             FROM
                 tenant_plugin AS tp
                 JOIN plugin_build_version AS pbv ON tp.plugin_id = pbv.plugin_id
-                AND tp.tenant_id = pbv.tenant_id
+                AND tp.tenant_env_id = pbv.tenant_env_id
             WHERE
                 pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation WHERE service_id = "{0}" )
-                AND tp.tenant_id = "{1}"
+                AND tp.tenant_env_id = "{1}"
                 AND tp.region = "{2}"
                 AND pbv.build_status = "{3}"
-        """.format(service_id, tenant_env.tenant_id, region, "build_success")
+        """.format(service_id, tenant_env.env_id, region, "build_success")
 
         SHARED_QUERI_UNINSTALLED_SQL = """
             SELECT
@@ -284,7 +284,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             FROM
                 tenant_plugin AS tp
                 JOIN plugin_build_version AS pbv ON tp.plugin_id = pbv.plugin_id
-                AND tp.tenant_id = pbv.tenant_id
+                AND tp.tenant_env_id = pbv.tenant_env_id
             WHERE
                 pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation WHERE service_id = "{0}")
                 AND tp.region = "{1}"
@@ -306,7 +306,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             LEFT JOIN plugin_build_version pbv ON tsp.plugin_id = pbv.plugin_id
             AND tsp.build_version = pbv.build_version
             JOIN tenant_plugin tp ON tp.plugin_id = tsp.plugin_id
-            AND tp.tenant_id = pbv.tenant_id
+            AND tp.tenant_env_id = pbv.tenant_env_id
         WHERE
             tsp.service_id = "{0}"
             AND tp.region = "{1}" """.format(service_id, region)

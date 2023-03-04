@@ -86,7 +86,7 @@ async def overview_team_app_info(request: Request,
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
-    groups = application_repo.get_tenant_region_groups(session, env.tenant_id, region_name, query)
+    groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query)
     total = len(groups)
     app_num_dict = {"total": total}
     start = (page - 1) * page_size
@@ -127,7 +127,7 @@ async def env_services_event(
         for region in region_list:
             try:
                 events, event_count, has_next = event_service.get_target_events(session=session, target="tenant",
-                                                                                target_id=env.tenant_id,
+                                                                                target_id=env.env_id,
                                                                                 tenant_env=env,
                                                                                 region=region.region_name,
                                                                                 page=int(page),

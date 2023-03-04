@@ -35,7 +35,7 @@ def get_region_list_by_team_name(session: SessionClass, team_name):
                     "is_active": region.is_active,
                     "region_status": region_config.status,
                     "team_region_alias": region_config.region_alias,
-                    "region_tenant_id": region.region_tenant_id,
+                    "region_tenant_env_id": region.region_tenant_env_id,
                     "team_region_name": region.region_name,
                     "region_scope": region_config.scope,
                     "region_create_time": region_config.create_time,
@@ -76,7 +76,7 @@ class RegionService(object):
     def get_public_key(self, session, tenant_env, region):
         try:
             res, body = remote_build_client.get_region_publickey(session, tenant_env, region,
-                                                                 tenant_env.tenant_id)
+                                                                 tenant_env.env_id)
             if body and "bean" in body:
                 return body["bean"]
             return {}
@@ -259,7 +259,7 @@ class RegionService(object):
                     "is_init": region.is_init,
                     "region_scope": region.region_scope,
                     "region_alisa": env_repo.get_region_alias(session, region.region_name),
-                    "region.region_tenant_id": region.region_tenant_id,
+                    "region.region_tenant_env_id": region.region_tenant_env_id,
                     "create_time": region.create_time,
                     "desc": region_desc
                 })

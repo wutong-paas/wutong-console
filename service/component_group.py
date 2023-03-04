@@ -21,7 +21,7 @@ class ComponentGroup(object):
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
         component = components[0]
-        component_source = service_source_repo.get_service_source(session, component.tenant_id, component.service_id)
+        component_source = service_source_repo.get_service_source(session, component.tenant_env_id, component.service_id)
         return component_source
 
     def is_install_from_cloud(self, session):

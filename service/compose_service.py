@@ -105,7 +105,7 @@ class ComposeService(object):
         初始化docker compose创建的组件默认数据
         """
         tenant_service = TeamComponentInfo()
-        tenant_service.tenant_id = tenant.tenant_id
+        tenant_service.tenant_env_id = tenant.tenant_env_id
         tenant_service.service_id = make_uuid()
         tenant_service.service_cname = service_cname
         tenant_service.service_alias = "wt" + tenant_service.service_id[-6:]
@@ -132,7 +132,7 @@ class ComposeService(object):
         tenant_service.service_type = "application"
         tenant_service.total_memory = 0
         tenant_service.volume_mount_path = ""
-        tenant_service.host_path = "/wtdata/tenant/" + tenant.tenant_id + "/service/" + tenant_service.service_id
+        tenant_service.host_path = "/wtdata/tenant/" + tenant.tenant_env_id + "/service/" + tenant_service.service_id
         tenant_service.code_from = "image_manual"
         tenant_service.language = "docker-compose"
         tenant_service.service_source = AppConstants.DOCKER_COMPOSE
@@ -200,7 +200,7 @@ class ComposeService(object):
                             service_dep_map[service_cname] = dependencies
 
                     # 保存compose-relation
-                    self.__save_compose_relation(session, service_list, tenant_env.tenant_id, group_compose.compose_id)
+                    self.__save_compose_relation(session, service_list, tenant_env.env_id, group_compose.compose_id)
                     # 保存依赖关系
                     self.__save_service_dep_relation(session, tenant_env, service_dep_map, name_service_map)
                 group_compose.create_status = "checked"
@@ -214,7 +214,7 @@ class ComposeService(object):
         if not group_compose:
             return 404, "未找到对应的compose内容", None
         body = dict()
-        body["tenant_id"] = tenant_env.tenant_id
+        body["tenant_env_id"] = tenant_env.env_id
         body["source_type"] = "docker-compose"
         body["source_body"] = group_compose.compose_content
         body["username"] = group_compose.hub_user
@@ -242,7 +242,7 @@ class ComposeService(object):
             "hub_user": hub_user,
             "hub_pass": hub_pass,
             "group_id": group_id,
-            "team_id": tenant_env.tenant_id,
+            "team_id": tenant_env.env_id,
             "region": region,
             "compose_content": compose_content,
             "compose_id": make_uuid(),

@@ -9,7 +9,7 @@ class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
     def create_if_not_exist(self, session, **plugin_build_version):
         result = session.execute(select(PluginBuildVersion).where(
             PluginBuildVersion.plugin_id == plugin_build_version["plugin_id"],
-            PluginBuildVersion.tenant_id == plugin_build_version["tenant_id"]
+            PluginBuildVersion.tenant_env_id == plugin_build_version["tenant_env_id"]
         )).scalars().first()
         if not result:
             pbv = PluginBuildVersion(**plugin_build_version)
@@ -29,9 +29,9 @@ class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
         session.flush()
         return add_plugin
 
-    def delete_build_version_by_plugin_id(self, session, tenant_id, plugin_id):
+    def delete_build_version_by_plugin_id(self, session, tenant_env_id, plugin_id):
         session.execute(delete(PluginBuildVersion).where(
-            PluginBuildVersion.tenant_id == tenant_id,
+            PluginBuildVersion.tenant_env_id == tenant_env_id,
             PluginBuildVersion.plugin_id == plugin_id))
 
     def get_plugin_versions(self, session, plugin_id):
@@ -43,33 +43,33 @@ class PluginVersionRepository(BaseRepository[PluginBuildVersion]):
         return session.execute(select(PluginBuildVersion).where(
             PluginBuildVersion.plugin_id == plugin_id)).scalars().first()
 
-    def get_plugin_version_by_id(self, session, tenant_id, plugin_id):
+    def get_plugin_version_by_id(self, session, tenant_env_id, plugin_id):
         return session.execute(select(PluginBuildVersion).where(
-            PluginBuildVersion.tenant_id == tenant_id,
+            PluginBuildVersion.tenant_env_id == tenant_env_id,
             PluginBuildVersion.plugin_id == plugin_id)).scalars().first()
 
-    def get_last_ok_one(self, session, plugin_id, tenant_id):
+    def get_last_ok_one(self, session, plugin_id, tenant_env_id):
         return (session.execute(select(PluginBuildVersion).where(
-            PluginBuildVersion.tenant_id == tenant_id,
+            PluginBuildVersion.tenant_env_id == tenant_env_id,
             PluginBuildVersion.plugin_id == plugin_id,
             PluginBuildVersion.build_status == "build_success").order_by(
             PluginBuildVersion.build_time.desc()))).scalars().first()
 
-    def delete_build_version(self, session, tenant_id, plugin_id, build_version):
+    def delete_build_version(self, session, tenant_env_id, plugin_id, build_version):
         session.execute(delete(PluginBuildVersion).where(
-            PluginBuildVersion.tenant_id == tenant_id,
+            PluginBuildVersion.tenant_env_id == tenant_env_id,
             PluginBuildVersion.plugin_id == plugin_id,
             PluginBuildVersion.build_version == build_version))
 
-    def get_plugin_build_version_by_tenant_and_region(self, session, tenant_id, region):
+    def get_plugin_build_version_by_tenant_and_region(self, session, tenant_env_id, region):
         return session.execute(select(PluginBuildVersion).where(
-            PluginBuildVersion.tenant_id == tenant_id,
+            PluginBuildVersion.tenant_env_id == tenant_env_id,
             PluginBuildVersion.region == region,
             PluginBuildVersion.build_status.in_(["building", "timeout", "time_out"]))).scalars().all()
 
-    def get_plugin_build_version(self, session, plugin_id, tenant_id):
+    def get_plugin_build_version(self, session, plugin_id, tenant_env_id):
         return session.execute(select(PluginBuildVersion.build_version).where(
-            PluginBuildVersion.tenant_id == tenant_id,
+            PluginBuildVersion.tenant_env_id == tenant_env_id,
             PluginBuildVersion.plugin_id == plugin_id)).scalars().first()
 
     def delete_version_by_id(self, session, plugin_id):

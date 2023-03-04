@@ -15,9 +15,9 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
         session.execute(delete(ServiceTcpDomain).where(
             ServiceTcpDomain.service_id == service_id))
 
-    def get_service_tcpdomain(self, session, tenant_id, region_id, service_id, container_port):
+    def get_service_tcpdomain(self, session, tenant_env_id, region_id, service_id, container_port):
         return (
-            session.execute(select(ServiceTcpDomain).where(ServiceTcpDomain.tenant_id == tenant_id,
+            session.execute(select(ServiceTcpDomain).where(ServiceTcpDomain.tenant_env_id == tenant_env_id,
                                                            ServiceTcpDomain.region_id == region_id,
                                                            ServiceTcpDomain.service_id == service_id,
                                                            ServiceTcpDomain.container_port == container_port))
@@ -72,7 +72,7 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
 
     def create_service_tcp_domains(self, session, service_id, service_name, end_point, create_time, container_port,
                                    protocol,
-                                   service_alias, tcp_rule_id, tenant_id, region_id):
+                                   service_alias, tcp_rule_id, tenant_env_id, region_id):
         service_tcp_domain = ServiceTcpDomain(
             service_id=service_id,
             service_name=service_name,
@@ -82,7 +82,7 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
             container_port=container_port,
             protocol=protocol,
             tcp_rule_id=tcp_rule_id,
-            tenant_id=tenant_id,
+            tenant_env_id=tenant_env_id,
             region_id=region_id)
         session.add(service_tcp_domain)
         session.flush()
@@ -96,7 +96,7 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
             ServiceTcpDomain.service_id == component_id,
             ServiceTcpDomain.container_port == port))
 
-    def get_domain_count_search_conditions(self, session, tenant_id, region_id, search_conditions, app_id):
+    def get_domain_count_search_conditions(self, session, tenant_env_id, region_id, search_conditions, app_id):
 
         sql = """
         select count(1) 
@@ -105,19 +105,19 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
             on std.service_id = sgr.service_id 
         left join service_group sg 
             on sgr.group_id = sg.id 
-        where std.tenant_id=:tenant_id 
+        where std.tenant_env_id=:tenant_env_id 
             and std.region_id=:region_id 
             and sgr.group_id=:group_id 
             and (std.end_point like :search_conditions 
                 or std.service_alias like :search_conditions 
                 or sg.group_name like :search_conditions)
         """
-        sql = text(sql).bindparams(tenant_id=tenant_id, region_id=region_id, group_id=app_id,
+        sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id,
                                    search_conditions="%" + search_conditions + "%")
         result = session.execute(sql).fetchall()
         return result
 
-    def get_tenant_tuples_search_conditions(self, session, tenant_id, region_id, search_conditions, start, end, app_id):
+    def get_tenant_tuples_search_conditions(self, session, tenant_env_id, region_id, search_conditions, start, end, app_id):
 
         sql = """
         select  std.end_point, 
@@ -134,7 +134,7 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
             on std.service_id = sgr.service_id 
         left join service_group sg 
             on sgr.group_id = sg.id  
-        where std.tenant_id=:tenant_id 
+        where std.tenant_env_id=:tenant_env_id 
             and std.region_id=:region_id 
             and sgr.group_id=:group_id 
             and (std.end_point like :search_conditions 
@@ -142,12 +142,12 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
                 or sg.group_name like :search_conditions) 
         order by type desc limit :start,:end
         """
-        sql = text(sql).bindparams(tenant_id=tenant_id, region_id=region_id, group_id=app_id,
+        sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id,
                                    search_conditions=search_conditions, start=start, end=end)
         result = session.execute(sql).fetchall()
         return result
 
-    def get_tenant_tuples(self, session, tenant_id, region_id, start, end, app_id):
+    def get_tenant_tuples(self, session, tenant_env_id, region_id, start, end, app_id):
 
         sql = """
         select  std.end_point, 
@@ -164,16 +164,16 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
             on std.service_id = sgr.service_id 
         left join service_group sg 
             on sgr.group_id = sg.id  
-        where std.tenant_id=:tenant_id 
+        where std.tenant_env_id=:tenant_env_id 
             and std.region_id=:region_id 
             and sgr.group_id=:group_id 
         order by type desc limit :start,:end
         """
-        sql = text(sql).bindparams(tenant_id=tenant_id, region_id=region_id, group_id=app_id, start=start, end=end)
+        sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id, start=start, end=end)
         result = session.execute(sql).fetchall()
         return result
 
-    def get_domain_count(self, session, tenant_id, region_id, app_id):
+    def get_domain_count(self, session, tenant_env_id, region_id, app_id):
 
         sql = """
         select count(1) 
@@ -182,11 +182,11 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
             on std.service_id = sgr.service_id 
         left join service_group sg 
             on sgr.group_id = sg.id  
-        where std.tenant_id=:tenant_id 
+        where std.tenant_env_id=:tenant_env_id 
             and std.region_id=:region_id 
             and sgr.group_id=:group_id
         """
-        sql = text(sql).bindparams(tenant_id=tenant_id, region_id=region_id, group_id=app_id)
+        sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id)
         result = session.execute(sql).fetchall()
         return result
 

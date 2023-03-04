@@ -28,7 +28,7 @@ class ComponentServiceMonitor(object):
                                          service_show_name, interval,
                                          user=None):
         sm_count = session.execute(select(func.count(ComponentMonitor.ID)).where(
-            ComponentMonitor.tenant_id == tenant_env.tenant_id,
+            ComponentMonitor.tenant_env_id == tenant_env.env_id,
             ComponentMonitor.name == name
         )).first()[0]
         sm_port_count = session.execute(select(func.count(ComponentMonitor.ID)).where(
@@ -51,7 +51,7 @@ class ComponentServiceMonitor(object):
                                                        service.service_alias, req)
         req.pop("operator")
         req["service_id"] = service.service_id
-        req["tenant_id"] = tenant_env.tenant_id
+        req["tenant_env_id"] = tenant_env.env_id
         try:
             sm = ComponentMonitor(**req)
             session.add(sm)
@@ -64,22 +64,22 @@ class ComponentServiceMonitor(object):
                                                            service.service_alias, name, None)
             raise e
 
-    def get_component_service_monitors(self, session: SessionClass, tenant_id, service_id):
+    def get_component_service_monitors(self, session: SessionClass, tenant_env_id, service_id):
         return (session.execute(select(ComponentMonitor).where(
             ComponentMonitor.service_id == service_id,
-            ComponentMonitor.tenant_id == tenant_id))).scalars().all()
+            ComponentMonitor.tenant_env_id == tenant_env_id))).scalars().all()
 
     def bulk_create_component_service_monitors(self, session: SessionClass, tenant, service, service_monitors):
         monitor_list = []
         for monitor in service_monitors:
             count = (session.execute(select(func.count(ComponentMonitor.ID)).where(
                 ComponentMonitor.name == monitor["name"],
-                ComponentMonitor.tenant_id == tenant.tenant_id))).first()[0]
+                ComponentMonitor.tenant_env_id == tenant.tenant_env_id))).first()[0]
             if count > 0:
                 monitor["name"] = "-".join([monitor["name"], make_uuid()[-4:]])
             data = ComponentMonitor(
                 name=monitor["name"],
-                tenant_id=tenant.tenant_id,
+                tenant_env_id=tenant.tenant_env_id,
                 service_id=service.service_id,
                 path=monitor["path"],
                 port=monitor["port"],
@@ -88,26 +88,26 @@ class ComponentServiceMonitor(object):
             monitor_list.append(data)
         port_repo.bulk_all(session, monitor_list)
 
-    def list_by_service_ids(self, session, tenant_id, service_ids):
+    def list_by_service_ids(self, session, tenant_env_id, service_ids):
         return (session.execute(select(ComponentMonitor).where(
             ComponentMonitor.service_id.in_(service_ids),
-            ComponentMonitor.tenant_id == tenant_id))).scalars().all()
+            ComponentMonitor.tenant_env_id == tenant_env_id))).scalars().all()
 
-    def get_tenant_service_monitor(self, session, tenant_id, name):
+    def get_tenant_service_monitor(self, session, tenant_env_id, name):
         return (session.execute(select(ComponentMonitor).where(
             ComponentMonitor.name == name,
-            ComponentMonitor.tenant_id == tenant_id))).scalars().all()
+            ComponentMonitor.tenant_env_id == tenant_env_id))).scalars().all()
 
-    def get_component_service_monitor(self, session, tenant_id, service_id, name):
+    def get_component_service_monitor(self, session, tenant_env_id, service_id, name):
         return session.execute(select(ComponentMonitor).where(
-            ComponentMonitor.tenant_id == tenant_id,
+            ComponentMonitor.tenant_env_id == tenant_env_id,
             ComponentMonitor.service_id == service_id,
             ComponentMonitor.name == name
         )).scalars().first()
 
     def update_component_service_monitor(self, session, tenant_env, service, user, name, path, port, service_show_name,
                                          interval):
-        sm = self.get_component_service_monitor(session, tenant_env.tenant_id, service.service_id, name)
+        sm = self.get_component_service_monitor(session, tenant_env.env_id, service.service_id, name)
         if not sm:
             raise ServiceHandleException(msg="service monitor is not found", msg_show="配置不存在", status_code=404)
         sm_count = session.execute(select(func.count(ComponentMonitor.ID)).where(
@@ -128,14 +128,14 @@ class ComponentServiceMonitor(object):
                                                    service.service_alias, name, req)
         req.pop("operator")
         session.execute(update(ComponentMonitor).where(
-            ComponentMonitor.tenant_id == tenant_env.tenant_id,
+            ComponentMonitor.tenant_env_id == tenant_env.env_id,
             ComponentMonitor.service_id == service.service_id,
             ComponentMonitor.name == name
         ).values(**req))
-        return self.get_component_service_monitor(session, tenant_env.tenant_id, service.service_id, name)
+        return self.get_component_service_monitor(session, tenant_env.env_id, service.service_id, name)
 
     def delete_component_service_monitor(self, session, tenant_env, service, user, name):
-        sm = self.get_component_service_monitor(session, tenant_env.tenant_id, service.service_id, name)
+        sm = self.get_component_service_monitor(session, tenant_env.env_id, service.service_id, name)
         if not sm:
             raise ServiceHandleException(msg="service monitor is not found", msg_show="配置不存在", status_code=404)
         body = {
@@ -149,7 +149,7 @@ class ComponentServiceMonitor(object):
             if e.error_code != 10101:
                 raise e
         session.execute(delete(ComponentMonitor).where(
-            ComponentMonitor.tenant_id == tenant_env.tenant_id,
+            ComponentMonitor.tenant_env_id == tenant_env.env_id,
             ComponentMonitor.service_id == service.service_id,
             ComponentMonitor.name == name
         ))

@@ -18,7 +18,7 @@ class TopologicalService(object):
     def get_group_topological_graph_details(self, session, tenant_env, team_id, team_name, service, region_name):
         result = dict()
         # 组件信息
-        result['tenant_id'] = team_id
+        result['tenant_env_id'] = team_id
         result['service_alias'] = service.service_alias
         result['service_cname'] = service.service_cname
         result['service_region'] = service.service_region
@@ -105,7 +105,7 @@ class TopologicalService(object):
 
         # 依赖组件信息
         relation_list = session.execute(select(TeamComponentRelation).where(
-            TeamComponentRelation.tenant_id == team_id,
+            TeamComponentRelation.tenant_env_id == team_id,
             TeamComponentRelation.service_id == service.service_id
         )).scalars().all()
         relation_id_list = set([x.dep_service_id for x in relation_list])

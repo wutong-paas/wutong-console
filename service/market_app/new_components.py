@@ -29,7 +29,7 @@ from service.probe_service import probe_service
 class NewComponents(object):
     def __init__(self,
                  session,
-                 tenant,
+                 tenant_env,
                  region: RegionConfig,
                  user,
                  original_app,
@@ -44,7 +44,7 @@ class NewComponents(object):
         """
         components_keys: component keys that the user select.
         """
-        self.tenant = tenant
+        self.tenant_env = tenant_env
         self.region = region
         self.region_name = region.region_name
         self.user = user
@@ -70,7 +70,7 @@ class NewComponents(object):
         templates = self.app_template.component_templates()
         new_component_tmpls = self._get_new_component_templates(exist_components, templates)
 
-        components = [self._template_to_component(self.tenant.tenant_id, template) for template in new_component_tmpls]
+        components = [self._template_to_component(self.tenant_env.env_id, template) for template in new_component_tmpls]
         if self.components_keys:
             components = [cpt for cpt in components if cpt.service_key in self.components_keys]
 
@@ -103,7 +103,7 @@ class NewComponents(object):
             service_group_rel = ComponentApplicationRelation(
                 service_id=cpt.component_id,
                 group_id=self.original_app.app_id,
-                tenant_id=self.tenant.tenant_id,
+                tenant_env_id=self.tenant_env.env_id,
                 region_name=self.region_name,
             )
             # ingress
@@ -146,9 +146,9 @@ class NewComponents(object):
                 return True
         return False
 
-    def _template_to_component(self, tenant_id, template):
+    def _template_to_component(self, env_id, template):
         component = TeamComponentInfo()
-        component.tenant_id = tenant_id
+        component.tenant_env_id = env_id
         component.service_id = make_uuid()
         component.service_cname = template.get("service_cname", "default-name")
         component.service_alias = "wt" + component.service_id[-6:]
@@ -216,7 +216,7 @@ class NewComponents(object):
             extend_info["market"] = "default"
             extend_info["market_name"] = self.market_name
         return ComponentSourceInfo(
-            team_id=component.tenant_id,
+            team_id=component.tenant_env_id,
             service_id=component.service_id,
             extend_info=json.dumps(extend_info),
             group_key=self.app_model_key,
@@ -234,7 +234,7 @@ class NewComponents(object):
                 continue
             envs.append(
                 ComponentEnvVar(
-                    tenant_id=component.tenant_id,
+                    tenant_env_id=component.tenant_env_id,
                     service_id=component.service_id,
                     container_port=0,
                     name=env.get("name"),
@@ -250,7 +250,7 @@ class NewComponents(object):
                 env["attr_value"] = make_uuid()[:8]
             envs.append(
                 ComponentEnvVar(
-                    tenant_id=component.tenant_id,
+                    tenant_env_id=component.tenant_env_id,
                     service_id=component.service_id,
                     container_port=container_port,
                     name=env.get("name"),
@@ -269,14 +269,14 @@ class NewComponents(object):
             component_port = port["container_port"]
             k8s_service_name = component.service_alias + "-" + str(component_port)
             try:
-                port_service.check_k8s_service_name(session, component.tenant_id, k8s_service_name)
+                port_service.check_k8s_service_name(session, component.tenant_env_id, k8s_service_name)
             except ErrK8sServiceNameExists:
                 k8s_service_name = k8s_service_name + "-" + make_uuid()[:4]
             except AbortRequest:
                 k8s_service_name = component.service_alias + "-" + str(component_port)
             port_alias = component.service_alias.upper() + str(component_port)
             port = TeamComponentPort(
-                tenant_id=component.tenant_id,
+                tenant_env_id=component.tenant_env_id,
                 service_id=component.service_id,
                 container_port=int(component_port),
                 mapping_port=int(component_port),
@@ -293,7 +293,7 @@ class NewComponents(object):
     @staticmethod
     def _create_port_env(component: TeamComponentInfo, port: TeamComponentPort, name, attr_name, attr_value):
         return ComponentEnvVar(
-            tenant_id=component.tenant_id,
+            tenant_env_id=component.tenant_env_id,
             service_id=component.component_id,
             container_port=port.container_port,
             name=name,
@@ -314,7 +314,7 @@ class NewComponents(object):
             container_port=port.container_port,
             protocol="http",
             http_rule_id=make_uuid(domain_name),
-            tenant_id=self.tenant.tenant_id,
+            tenant_env_id=self.tenant_env.env_id,
             service_alias=component.service_cname,
             region_id=self.region.region_id,
             domain_path="/",
@@ -411,14 +411,14 @@ class NewComponents(object):
         for monitor in service_monitors:
             # Optimization: check all monitor names at once
             sm = session.execute(select(ComponentMonitor).where(
-                ComponentMonitor.tenant_id == component.tenant_id,
+                ComponentMonitor.tenant_env_id == component.tenant_env_id,
                 ComponentMonitor.name == monitor["name"]
             )).scalars().all()
             if len(sm) > 0:
                 monitor["name"] = "-".join([monitor["name"], make_uuid()[-4:]])
             data = ComponentMonitor(
                 name=monitor["name"],
-                tenant_id=component.tenant_id,
+                tenant_env_id=component.tenant_env_id,
                 service_id=component.service_id,
                 path=monitor["path"],
                 port=monitor["port"],
@@ -462,7 +462,7 @@ class NewComponents(object):
             service_domain = ServiceDomain(
                 http_rule_id=make_uuid(),
                 region_id=self.region.region_id,
-                tenant_id=self.tenant.tenant_id,
+                tenant_env_id=self.tenant_env.env_id,
                 service_id=component.component_id,
                 service_name=component.service_alias,
                 create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -532,7 +532,7 @@ class NewComponents(object):
         return False
 
     def _create_default_domain(self, service_alias: str, port: int):
-        return str(port) + "." + service_alias + "." + self.tenant.tenant_name + "." + self.region.httpdomain
+        return str(port) + "." + service_alias + "." + self.tenant_env.env_name + "." + self.region.httpdomain
 
     @staticmethod
     def _domain_cookie_or_header(items):
@@ -584,7 +584,7 @@ class NewComponents(object):
                 continue
             new_labels.append(
                 ComponentLabels(
-                    tenant_id=component.tenant_id,
+                    tenant_env_id=component.tenant_env_id,
                     service_id=component.service_id,
                     label_id=lab.label_id,
                     region=self.region_name,

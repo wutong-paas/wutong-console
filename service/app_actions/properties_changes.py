@@ -31,7 +31,7 @@ class PropertiesChanges(object):
                  install_from_cloud=False):
         self.service = service
         self.tenant = tenant
-        self.service_source = service_source_repo.get_service_source(session, service.tenant_id, service.service_id)
+        self.service_source = service_source_repo.get_service_source(session, service.tenant_env_id, service.service_id)
         self.current_version = self.service_source.version
         self.install_from_cloud = self.service_source.is_install_from_cloud()
         self.market_name = self.service_source.get_market_name()
@@ -167,11 +167,11 @@ class PropertiesChanges(object):
         if not service_monitors:
             return None
         add = []
-        old_monitors = service_monitor_service.list_by_service_ids(session, self.tenant.tenant_id,
+        old_monitors = service_monitor_service.list_by_service_ids(session, self.tenant.tenant_env_id,
                                                                    [self.service.service_id])
         old_monitor_names = [monitor.name for monitor in old_monitors if old_monitors]
         for monitor in service_monitors:
-            tenant_monitor = service_monitor_service.get_tenant_service_monitor(session, self.tenant.tenant_id,
+            tenant_monitor = service_monitor_service.get_tenant_service_monitor(session, self.tenant.tenant_env_id,
                                                                                 monitor["name"])
             if not tenant_monitor and monitor["name"] not in old_monitor_names:
                 add.append(monitor)
@@ -186,7 +186,7 @@ class PropertiesChanges(object):
         update and delete. Compare existing environment variables and input
         environment variables to find out which ones need to be added.
         """
-        exist_envs = env_var_repo.get_service_envs(session, self.service.tenant_id, self.service.service_id)
+        exist_envs = env_var_repo.get_service_envs(session, self.service.tenant_env_id, self.service.service_id)
         exist_envs_dict = {env.attr_name: env for env in exist_envs}
         add_env = [env for env in envs if exist_envs_dict.get(env["attr_name"], None) is None]
         if not add_env:
@@ -233,7 +233,7 @@ class PropertiesChanges(object):
         find out the dependencies that need to be created and
         the dependencies that need to be removed
         """
-        dep_relations = dep_relation_repo.get_service_dependencies(session, self.service.tenant_id, self.service.service_id)
+        dep_relations = dep_relation_repo.get_service_dependencies(session, self.service.tenant_env_id, self.service.service_id)
         service_ids = [item.dep_service_id for item in dep_relations]
 
         # get service_share_uuid by service_id
@@ -281,7 +281,7 @@ class PropertiesChanges(object):
         """port can only be created, cannot be updated and deleted"""
         if not new_ports:
             return
-        old_ports = port_repo.get_service_ports(session, self.service.tenant_id, self.service.service_id)
+        old_ports = port_repo.get_service_ports(session, self.service.tenant_env_id, self.service.service_id)
         old_container_ports = {port.container_port: port for port in old_ports}
         create_ports = [port for port in new_ports if port["container_port"] not in old_container_ports]
         update_ports = []
@@ -341,7 +341,7 @@ class PropertiesChanges(object):
             return None
         old_plugins, _ = app_plugin_service.get_plugins_by_service_id(session=session,
                                                                       region=self.service.service_region,
-                                                                      tenant_id=self.service.tenant_id,
+                                                                      tenant_env_id=self.service.tenant_env_id,
                                                                       service_id=self.service.service_id, category="")
         old_plugin_keys = {}
         if old_plugins:
@@ -384,7 +384,7 @@ class PropertiesChanges(object):
 
         if not new_dep_volumes:
             return
-        old_dep_volumes = mnt_repo.get_service_mnts(self.service.tenant_id, self.service.service_id)
+        old_dep_volumes = mnt_repo.get_service_mnts(self.service.tenant_env_id, self.service.service_id)
         olds = {key(item.dep_service_id, item.mnt_name): item for item in old_dep_volumes}
 
         tenant_service_volumes = volume_repo.get_service_volumes(session, self.service.service_id)

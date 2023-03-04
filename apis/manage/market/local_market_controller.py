@@ -40,12 +40,12 @@ async def create_app_teams(
         return JSONResponse(general_message(400, "not found user", "用户不存在"), status_code=400)
     teams = list()
     tenants = []
-    tenant_ids = (
-        session.execute(select(PermRelTenant.tenant_id).where(PermRelTenant.user_id == user.user_id))
+    tenant_env_ids = (
+        session.execute(select(PermRelTenant.tenant_env_id).where(PermRelTenant.user_id == user.user_id))
     ).scalars().all()
-    tenant_ids = set(tenant_ids)
-    for tenant_id in tenant_ids:
-        tn = env_repo.get_by_primary_key(session=session, primary_key=tenant_id)
+    tenant_env_ids = set(tenant_env_ids)
+    for tenant_env_id in tenant_env_ids:
+        tn = env_repo.get_by_primary_key(session=session, primary_key=tenant_env_id)
         if tn:
             tenants.append(tn)
 

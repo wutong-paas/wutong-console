@@ -38,7 +38,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        body["tenant_id"] = tenant_region.region_tenant_id
+        body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/services/" + service_alias + "/domains"
 
@@ -74,7 +74,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        body["tenant_id"] = tenant_region.region_tenant_id
+        body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/http-rule"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
@@ -90,7 +90,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        body["tenant_id"] = tenant_region.region_tenant_id
+        body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/http-rule"
 
         self._set_headers(token)
@@ -122,7 +122,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        body["tenant_id"] = tenant_region.region_tenant_id
+        body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/tcp-rule"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(body), region=region)
@@ -138,7 +138,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(tenant_env.env_name, region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        body["tenant_id"] = tenant_region.region_tenant_id
+        body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/tcp-rule"
 
         self._set_headers(token)
