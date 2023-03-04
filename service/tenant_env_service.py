@@ -76,7 +76,7 @@ class TenantEnvService(object):
     def get_envs_by_tenant_env_id(self, session, tenant_env_id):
         envs = session.execute(
             select(TeamEnvInfo).where(
-                TeamEnvInfo.tenant_env_id == tenant_env_id)).scalars().all()
+                TeamEnvInfo.env_id == tenant_env_id)).scalars().all()
         return envs
 
     def get_all_envs(self, session: SessionClass):

@@ -20,7 +20,7 @@ class TeamEnvInfo(Base):
     env_id = Column(String(33), comment="环境id", nullable=False, unique=True, default=make_env_id)
     region_name = Column(String(33), comment="集群名", nullable=False)
     env_name = Column(String(31), comment="环境名称", nullable=False)
-    tenant_env_id = Column(String(33), comment="环境id", nullable=False)
+    tenant_id = Column(String(33), comment="团队id", nullable=False)
     tenant_name = Column(String(31), comment="团队名称", nullable=False)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     creater = Column(String(32), nullable=False, default=0, comment="租户创建者")

@@ -1208,7 +1208,7 @@ class AppManageService(AppManageBase):
         session.add(add_model)
 
         team = (
-            session.execute(select(TeamEnvInfo).where(TeamEnvInfo.tenant_env_id == service.tenant_env_id))
+            session.execute(select(TeamEnvInfo).where(TeamEnvInfo.env_id == service.tenant_env_id))
         ).scalars().first()
         if not team:
             raise TenantNotExistError

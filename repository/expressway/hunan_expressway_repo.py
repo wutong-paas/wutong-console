@@ -18,7 +18,7 @@ class HunanExpresswayRepository(object):
 
     def get_tenant_by_tenant_env_id(self, session, tenant_env_id):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.tenant_env_id == tenant_env_id
+            TeamEnvInfo.env_id == tenant_env_id
         )).scalars().first()
 
     def get_groups_by_service_id(self, session, service_ids):

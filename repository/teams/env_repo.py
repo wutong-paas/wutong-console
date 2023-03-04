@@ -56,7 +56,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         :return:
         """
         logger.info("get_tenant_by_tenant_env_id,param:{}", tenant_env_id)
-        sql = select(TeamEnvInfo).where(TeamEnvInfo.tenant_env_id == tenant_env_id)
+        sql = select(TeamEnvInfo).where(TeamEnvInfo.env_id == tenant_env_id)
         results = session.execute(sql)
         data = results.scalars().first()
         return data
@@ -65,9 +65,9 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.tenant_name.in_(team_names))).scalars().all()
 
-    def get_team_by_team_id(self, session, team_id):
+    def get_team_by_team_id(self, session, env_id):
         tenant = session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.tenant_env_id == team_id))
+            select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id))
         return tenant.scalars().first()
 
     def get_env_by_env_id(self, session, env_id):
@@ -150,15 +150,15 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return tenant_name
 
-    def env_is_exists_by_env_name(self, session, team_id, env_alias):
+    def env_is_exists_by_env_name(self, session, env_id, env_alias):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_alias == env_alias,
-            TeamEnvInfo.tenant_env_id == team_id)).scalars().first()
+            TeamEnvInfo.env_id == env_id)).scalars().first()
 
     def env_is_exists_by_namespace(self, session, tenant_env_id, env_name):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_name == env_name,
-            TeamEnvInfo.tenant_env_id == tenant_env_id)).scalars().first()
+            TeamEnvInfo.env_id == tenant_env_id)).scalars().first()
 
     def create_env(self, session, user, region_name, env_name, env_alias, team_id, team_name, namespace="",
                    desc=""):
