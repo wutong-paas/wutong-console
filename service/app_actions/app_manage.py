@@ -1,16 +1,13 @@
 import datetime
 import json
-
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from sqlalchemy import select, delete, func, or_
 from starlette.responses import JSONResponse
-
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core.enum.component_enum import ComponentType, is_state, is_singleton
-from core.setting import settings
 from core.utils import slug_util
 from core.utils.constants import AppConstants
 from core.utils.crypt import make_uuid
@@ -74,50 +71,14 @@ class AppManageBase(object):
         self.HORIZONTAL_UPGRADE = "HorizontalUpgrade"
         self.TRUNCATE = "truncate"
 
-    def isOwnedMoney(self, tenant):
-        if self.MODULES["Owned_Fee"]:
-            if tenant.balance < 0 and tenant.pay_type == "payed":
-                return True
-        return False
-
-    def isExpired(self, tenant, service):
-        if service.expired_time is not None:
-            if tenant.pay_type == "free" and service.expired_time < datetime.datetime.now():
-                if self.MODULES["Owned_Fee"]:
-                    return True
-        else:
-            # 将原有免费用户的组件设置为7天后
-            service.expired_time = datetime.datetime.now() + datetime.timedelta(days=7)
-        return False
-
-    def cur_service_memory(self, session: SessionClass, tenant_env, cur_service):
-        """查询当前组件占用的内存"""
-        memory = 0
-        try:
-            body = remote_component_client.check_service_status(session,
-                                                                cur_service.service_region, tenant_env,
-                                                                cur_service.service_alias,
-                                                                tenant_env.enterprise_id)
-            status = body["bean"]["cur_status"]
-            # 占用内存的状态
-            occupy_memory_status = (
-                "starting",
-                "running",
-            )
-            if status not in occupy_memory_status:
-                memory = cur_service.min_node * cur_service.min_memory
-        except Exception:
-            pass
-        return memory
-
 
 class AppManageService(AppManageBase):
     def __init__(self):
         super().__init__()
 
-    def deploy_service(self, session, tenant_obj, service_obj, user, committer_name=None, oauth_instance=None):
+    def deploy_service(self, session, tenant_env, service_obj, user, committer_name=None, oauth_instance=None):
         """重新构建"""
-        code, msg, event_id = self.deploy(session, tenant_obj, service_obj, user)
+        code, msg, event_id = self.deploy(session, tenant_env, service_obj, user)
         bean = {}
         if code != 200:
             return JSONResponse(general_message(code, "deploy app error", msg, bean=bean), status_code=code)
@@ -726,7 +687,7 @@ class AppManageService(AppManageBase):
         for env in outer_envs:
             exist = (
                 session.execute(
-                    select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant.tenant_env_id,
+                    select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env.env_id,
                                                   ComponentEnvVar.service_id == service.service_id,
                                                   ComponentEnvVar.attr_name == env["attr_name"],
                                                   ComponentEnvVar.scope == "outer"))

@@ -17,12 +17,11 @@ router = APIRouter()
 async def get_plat_apps(
         current: int = Query(default=1, ge=1, le=9999),
         size: int = Query(default=10, ge=-1, le=999),
-        tenant_env_id: Optional[str] = None,
         env_id: Optional[str] = None,
         project_id: Optional[str] = None,
         app_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    apps = application_service.get_apps_by_plat(session, tenant_env_id, env_id, project_id, app_name)
+    apps = application_service.get_apps_by_plat(session, env_id, project_id, app_name)
     start = (current - 1) * size
     end = current * size
     if start >= len(apps):
