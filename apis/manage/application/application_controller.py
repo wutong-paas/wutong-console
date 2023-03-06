@@ -124,12 +124,19 @@ async def get_app_detail(
     app = application_service.get_app_detail(session=session, tenant_env=env, region_name=region_name, app_id=app_id)
 
     # 访问记录
-    visit_info = {
-        "user_id": user.user_id,
-        "app_id": app_id,
-        "tenant_env_id": env.env_id
-    }
-    application_visit_service.create_app_visit_record(session, **visit_info)
+    visit_app = application_visit_service.get_app_visit_record_by_user_app(session, user.user_id, app_id)
+    if visit_app:
+        application_visit_service.update_app_visit_record_by_user_app(session, user.user_id, app_id)
+    else:
+        visit_info = {
+            "user_id": user.user_id,
+            "app_id": app_id,
+            "app_alias": app.app_name,
+            "app_name": app.k8s_app,
+            "tenant_env_id": env.env_id,
+            "tenant_env_alias": env.env_alias
+        }
+        application_visit_service.create_app_visit_record(session, **visit_info)
 
     result = general_message("0", "success", "success", bean=jsonable_encoder(app))
     return JSONResponse(result, status_code=200)

@@ -7,7 +7,7 @@ import string
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
@@ -1796,10 +1796,22 @@ class ApplicationVisitService(object):
         session.add(app_visit_record)
         session.flush()
 
+    def update_app_visit_record_by_user_app(self, session, user_id, app_id):
+        session.execute(update(ApplicationVisitRecord).where(
+            ApplicationVisitRecord.user_id == user_id,
+            ApplicationVisitRecord.app_id == app_id
+        ))
+
     def get_app_visit_record_by_user(self, session, user_id):
-        session.execute(select(ApplicationVisitRecord).where(
+        return session.execute(select(ApplicationVisitRecord).where(
             ApplicationVisitRecord.user_id == user_id
         ).order_by(ApplicationVisitRecord.visit_time.asc()).limit(5)).scalars().all()
+
+    def get_app_visit_record_by_user_app(self, session, user_id, app_id):
+        return session.execute(select(ApplicationVisitRecord).where(
+            ApplicationVisitRecord.user_id == user_id,
+            ApplicationVisitRecord.app_id == app_id
+        )).scalars().first()
 
 
 application_service = ApplicationService()
