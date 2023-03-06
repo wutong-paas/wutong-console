@@ -123,21 +123,6 @@ class CenterPlugin(Base):
     details = Column(Text, nullable=True, comment="插件详细信息")
 
 
-class HelmMarket(Base):
-    """Helm应用商店"""
-
-    __tablename__ = "adaptor_app_stores"
-
-    id = Column(BIGINT, primary_key=True, comment="主键")
-    created_at = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
-    updated_at = Column(DateTime(), nullable=True, default=datetime.now, comment="更新时间")
-    name = Column(String(32), comment="商店标识", nullable=True)
-    url = Column(Text, comment="地址", nullable=True)
-    branch = Column(Text, comment="分支", nullable=True)
-    username = Column(Text, comment="用户名", nullable=True)
-    password = Column(Text, comment="密码", nullable=True)
-
-
 class AppImportRecord(Base):
     __tablename__ = 'app_import_record'
 
