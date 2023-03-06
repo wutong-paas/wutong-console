@@ -377,3 +377,15 @@ class ApplicationExportRecord(Base):
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
     region_name = Column(String(32), nullable=True, comment="执行导出的集群ID")
     is_export_image = Column(Boolean, nullable=True, comment="是否导出镜像", default=False)
+
+
+class ApplicationVisitRecord(Base):
+    """应用访问记录"""
+
+    __tablename__ = 'app_visit_record'
+
+    ID = Column(Integer, primary_key=True)
+    app_id = Column(Integer, comment="应用id", nullable=False)
+    tenant_env_id = Column(String(32), comment="环境id", nullable=False)
+    user_id = Column(String(32), nullable=False, comment="用户id")
+    visit_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="访问时间")

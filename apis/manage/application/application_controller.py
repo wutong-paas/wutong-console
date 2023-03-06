@@ -29,7 +29,7 @@ from schemas.wutong_application import CommonOperation
 from schemas.wutong_team_app import TeamAppCreateRequest
 from service.app_actions.app_manage import app_manage_service
 from service.app_config_group import app_config_group_service
-from service.application_service import application_service
+from service.application_service import application_service, application_visit_service
 from service.component_service import component_check_service
 from service.compose_service import compose_service
 from service.helm_app_service import helm_app_service
@@ -111,6 +111,7 @@ async def get_app_detail(
         request: Request,
         env_id: Optional[int] = None,
         app_id: Optional[int] = None,
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
@@ -121,6 +122,15 @@ async def get_app_detail(
         raise ServiceHandleException(msg="not found region", msg_show="数据中心不存在", status_code=400)
     region_name = region.region_name
     app = application_service.get_app_detail(session=session, tenant_env=env, region_name=region_name, app_id=app_id)
+
+    # 访问记录
+    visit_info = {
+        "user_id": user.user_id,
+        "app_id": app_id,
+        "tenant_env_id": env.env_id
+    }
+    application_visit_service.create_app_visit_record(session, **visit_info)
+
     result = general_message("0", "success", "success", bean=jsonable_encoder(app))
     return JSONResponse(result, status_code=200)
 
@@ -714,7 +724,8 @@ async def set_governance_mode(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}/helmapp-components", response_model=Response, name="获取服务实例")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}/helmapp-components", response_model=Response,
+            name="获取服务实例")
 async def get_helm_app_components(
         request: Request,
         app_id: Optional[str] = None,
@@ -748,7 +759,8 @@ async def get_app_releases(
     return JSONResponse(general_message("0", "success", "查询成功", list=releases), status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/get_check_uuid", response_model=Response, name="获取应用检测uuid")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/get_check_uuid", response_model=Response,
+            name="获取应用检测uuid")
 async def get_check_uuid(
         request: Request,
         session: SessionClass = Depends(deps.get_session),
@@ -869,7 +881,8 @@ async def delete_compose_create(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/compose/{compose_id}/content", response_model=Response, name="获取compose文件内容")
+@router.get("/teams/{team_name}/env/{env_id}/compose/{compose_id}/content", response_model=Response,
+            name="获取compose文件内容")
 async def get_compose_info(
         compose_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -878,7 +891,8 @@ async def get_compose_info(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/compose/{compose_id}/services", response_model=Response, name="获取compose组下的组件")
+@router.get("/teams/{team_name}/env/{env_id}/compose/{compose_id}/services", response_model=Response,
+            name="获取compose组下的组件")
 async def get_compose_services(
         compose_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -923,4 +937,13 @@ async def get_pod_view(
     region_name = region.region_name
     pod = application_service.get_pod(session, env, region_name, pod_name)
     result = general_message("0", "success", "查询成功", bean=pod)
+    return JSONResponse(result, status_code=200)
+
+
+@router.get("/visit/apps", response_model=Response, name="查询应用访问记录")
+async def get_apps_vist(
+        user=Depends(deps.get_current_user),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    apps = application_visit_service.get_app_visit_record_by_user(session, user.user_id)
+    result = general_message("0", "success", "查询成功", list=jsonable_encoder(apps))
     return JSONResponse(result, status_code=200)

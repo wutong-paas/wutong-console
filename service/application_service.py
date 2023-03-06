@@ -7,7 +7,7 @@ import string
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from sqlalchemy import select, delete, or_
+from sqlalchemy import select, delete
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
@@ -23,7 +23,7 @@ from database.session import SessionClass
 from exceptions.bcode import ErrUserNotFound, ErrK8sAppExists, ErrApplicationNotFound
 from exceptions.main import ServiceHandleException, AbortRequest
 from models.application.models import Application, ComponentApplicationRelation, ApplicationUpgradeRecord, \
-    GroupAppMigrateRecord
+    GroupAppMigrateRecord, ApplicationVisitRecord
 from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoints, TeamComponentInfo, \
     DeployRelation, ComponentSourceInfo, ComponentEnvVar, TeamComponentMountRelation
 from models.region.models import RegionApp
@@ -1790,4 +1790,17 @@ class ApplicationService(object):
         return apps
 
 
+class ApplicationVisitService(object):
+    def create_app_visit_record(self, session, **params):
+        app_visit_record = ApplicationVisitRecord(**params)
+        session.add(app_visit_record)
+        session.flush()
+
+    def get_app_visit_record_by_user(self, session, user_id):
+        session.execute(select(ApplicationVisitRecord).where(
+            ApplicationVisitRecord.user_id == user_id
+        ).order_by(ApplicationVisitRecord.visit_time.asc()).limit(5)).scalars().all()
+
+
 application_service = ApplicationService()
+application_visit_service = ApplicationVisitService()

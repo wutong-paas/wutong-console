@@ -60,7 +60,7 @@ class CenterAppVersion(Base):
     is_ingerit = Column(Boolean(), default=True, comment="是否可被继承", nullable=False)
     is_complete = Column(Boolean(), default=False, comment="代码或镜像是否同步完成", nullable=False)
     template_type = Column(String(32), nullable=True, default=None, comment="模板类型（ram、oam）")
-    release_user_id = Column(Integer, nullable=True, default=None, comment="版本release操作人id")
+    release_user_id = Column(String(32), nullable=True, default=None, comment="版本release操作人id")
     # region_name is not null,This means that the version can only be installed on that cluster.
     region_name = Column(String(64), nullable=True, default=None, comment="数据中心名称")
 

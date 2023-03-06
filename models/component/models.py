@@ -152,7 +152,7 @@ class TeamComponentLog(Base):
     __tablename__ = 'tenant_service_log'
 
     ID = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False, comment="用户id")
+    user_id = Column(String(32), nullable=False, comment="用户id")
     user_name = Column(String(40), comment="用户名", nullable=False)
     service_id = Column(String(32), comment="组件id", nullable=False)
     tenant_env_id = Column(String(32), comment="环境id", nullable=False)
