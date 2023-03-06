@@ -60,7 +60,7 @@ class DomainService(object):
             "certificate": base64.b64decode(cert.certificate).decode(),
             "private_key": cert.private_key,
         }
-        team_regions = cert_service.get_team_usable_regions(session, tenant_env.tenant_name)
+        team_regions = cert_service.get_team_usable_regions(session, tenant_env.env_name)
         for team_region in team_regions:
             try:
                 remote_build_client.update_ingresses_by_certificate(session, team_region.region_name,

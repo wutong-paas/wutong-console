@@ -101,9 +101,9 @@ class ApplicationRepository(BaseRepository[Application]):
 
         return group
 
-    def list_tenant_group_on_region(self, session, tenant, region_name):
+    def list_tenant_group_on_region(self, session, tenant_env, region_name):
         return session.query(Application).filter(
-            Application.tenant_env_id == tenant.tenant_env_id,
+            Application.tenant_env_id == tenant_env.env_id,
             Application.region_name == region_name)
 
     def get_group_by_unique_key(self, session, tenant_env_id, region_name, group_name):

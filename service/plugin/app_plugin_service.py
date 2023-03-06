@@ -204,7 +204,7 @@ class AppPluginService(object):
                                                                               tenant_env_id=tenant_env.env_id,
                                                                               plugin_id=plugin.plugin_id)
                 if pbv:
-                    configs = self.get_service_plugin_config(session=session, tenant=tenant_env, service=service,
+                    configs = self.get_service_plugin_config(session=session, tenant_env=tenant_env, service=service,
                                                              plugin_id=plugin.plugin_id,
                                                              build_version=pbv.build_version)
                     self.update_service_plugin_config(session=session, tenant_env=tenant_env, service=service,
@@ -422,7 +422,7 @@ class AppPluginService(object):
                         return True
         return False
 
-    def save_default_plugin_config(self, session: SessionClass, tenant, service, plugin_id, build_version):
+    def save_default_plugin_config(self, session: SessionClass, tenant_env, service, plugin_id, build_version):
         """console层保存默认的数据"""
         config_groups = plugin_config_service.get_config_group(session=session, plugin_id=plugin_id,
                                                                build_version=build_version)
@@ -470,7 +470,7 @@ class AppPluginService(object):
                             protocol=port.protocol))
 
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
-                dep_services = plugin_service.get_service_dependencies(session=session, tenant=tenant, service=service)
+                dep_services = plugin_service.get_service_dependencies(session=session, tenant_env=tenant_env, service=service)
                 if not dep_services:
                     session.rollback()
                     raise ServiceHandleException(msg="can't use this plugin", status_code=409,
@@ -575,7 +575,7 @@ class AppPluginService(object):
             plugin_version = plugin_version.build_version
         logger.debug("start install plugin ! plugin_id {0}  plugin_version {1}".format(plugin_id, plugin_version))
         # 1.生成console数据，存储
-        self.save_default_plugin_config(session=session, tenant=tenant_env, service=service, plugin_id=plugin_id,
+        self.save_default_plugin_config(session=session, tenant_env=tenant_env, service=service, plugin_id=plugin_id,
                                         build_version=plugin_version)
         # 2.从console数据库取数据生成region数据
         region_config = self.get_region_config_from_db(session, service, plugin_id, plugin_version, user)
@@ -633,7 +633,7 @@ class AppPluginService(object):
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
-                result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=tenant_env,
+                result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant_env=tenant_env,
                                                                            service=service,
                                                                            plugin_id=plugin_id,
                                                                            build_version=plugin_version)

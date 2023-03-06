@@ -217,7 +217,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
             select(PluginBuildVersion).where(PluginBuildVersion.plugin_id.in_(plugin_ids))).all()
         return data
 
-    def get_tenant_plugin_newest_versions(self, session: SessionClass, region_name, tenant, plugin_id):
+    def get_tenant_plugin_newest_versions(self, session: SessionClass, region_name, tenant_env, plugin_id):
         """
         获取指定租户的指定插件的最新版本信息
         :param region_name: region
@@ -227,7 +227,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         """
         plugin_build_version = session.execute(select(PluginBuildVersion).where(
             PluginBuildVersion.region == region_name,
-            PluginBuildVersion.tenant_env_id == tenant.tenant_env_id,
+            PluginBuildVersion.tenant_env_id == tenant_env.env_id,
             PluginBuildVersion.plugin_id == plugin_id,
             PluginBuildVersion.build_status == "build_success").order_by(PluginBuildVersion.ID.desc())).all()
 

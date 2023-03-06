@@ -161,7 +161,7 @@ class AppRestore(MarketApp):
 
         return NewApp(
             session=session,
-            tenant=self.tenant,
+            tenant_env=self.tenant_env,
             region_name=self.region_name,
             app=self.app,
             component_group=self._create_component_group(),

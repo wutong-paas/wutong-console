@@ -26,16 +26,10 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             TeamEnvInfo.tenant_name == team_name
         )).scalars().first()
 
-    def get_team_by_enterprise_id(self, session, enterprise_id):
-        return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.enterprise_id == enterprise_id
-        )).scalars().all()
+    def get_all_envs(self, session):
+        return session.execute(select(TeamEnvInfo)).scalars().all()
 
-    # 返回该团队下的所有管理员
-    def get_tenant_admin_by_tenant_env_id(self, tenant):
-        return idaas_api.get_user_info(tenant.creater)
-
-    def get_tenant_by_tenant_name(self, session: SessionClass, env_name, exception=True):
+    def get_tenant_by_env_name(self, session: SessionClass, env_name, exception=True):
         """
         get_tenant_by_tenant_name
 
@@ -189,9 +183,9 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         regions = result_regions.scalars().all()
         return regions
 
-    def get_team_by_team_name(self, session, team_name):
+    def get_team_by_env_name(self, session, env_name):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.tenant_name == team_name)).scalars().first()
+            TeamEnvInfo.env_name == env_name)).scalars().first()
 
     def get_region_alias(self, session, region_name):
         try:

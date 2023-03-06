@@ -38,10 +38,10 @@ class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
                                                             ServiceShareRecord.status.in_([0, 1, 2]))
         )).first()[0]
 
-    def get_service_share_records_by_groupid(self, session, team_name, group_id, page=1, page_size=10):
+    def get_service_share_records_by_groupid(self, session, env_name, group_id, page=1, page_size=10):
         query = session.execute(select(ServiceShareRecord).where(
             ServiceShareRecord.group_id == group_id,
-            ServiceShareRecord.team_name == team_name,
+            ServiceShareRecord.env_name == env_name,
             ServiceShareRecord.status.in_([0, 1, 2])
         ).order_by(ServiceShareRecord.create_time.desc())).scalars().all()
         params = Params(page=page, size=page_size)
@@ -71,18 +71,18 @@ class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
         session.flush()
         return service_share_record
 
-    def get_service_share_record_by_ID(self, session, ID, team_name):
+    def get_service_share_record_by_ID(self, session, ID, env_name):
         return session.execute(
             select(ServiceShareRecord).where(
                 ServiceShareRecord.ID == ID,
-                ServiceShareRecord.team_name == team_name)
+                ServiceShareRecord.env_name == env_name)
         ).scalars().first()
 
-    def delete_record(self, session, ID, team_name):
+    def delete_record(self, session, ID, env_name):
         session.execute(
             delete(ServiceShareRecord).where(
                 ServiceShareRecord.ID == ID,
-                ServiceShareRecord.team_name == team_name))
+                ServiceShareRecord.env_name == env_name))
 
     def get_app_by_key(self, session, key):
         return session.execute(

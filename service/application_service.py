@@ -341,7 +341,7 @@ class ApplicationService(object):
                    k8s_app=""):
         """
         创建团队应用
-        :param tenant:
+        :param tenant_env:
         :param region_name:
         :param app_name:
         :param note:
@@ -473,7 +473,8 @@ class ApplicationService(object):
 
     def count_ingress_by_app_id(self, session: SessionClass, tenant_env_id, region_name, app_id):
         # list service_ids
-        service_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session, tenant_env_id, region_name, app_id)
+        service_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session, tenant_env_id, region_name,
+                                                                             app_id)
         if not service_ids:
             return 0
 
@@ -819,9 +820,9 @@ class ApplicationService(object):
         data["port_type"] = service.port_type
         return data
 
-    def __init_create_data(self, tenant, service, user_name, do_deploy, dep_sids):
+    def __init_create_data(self, tenant_env, service, user_name, do_deploy, dep_sids):
         data = dict()
-        data["tenant_env_id"] = tenant.tenant_env_id
+        data["tenant_env_id"] = tenant_env.env_id
         data["service_id"] = service.service_id
         data["service_key"] = service.service_key
         data["comment"] = service.desc
@@ -839,7 +840,7 @@ class ApplicationService(object):
         data["container_cmd"] = service.cmd
         data["node_label"] = ""
         data["deploy_version"] = service.deploy_version if do_deploy else None
-        data["domain"] = tenant.tenant_name
+        data["domain"] = tenant_env.env_name
         data["category"] = service.category
         data["operator"] = user_name
         data["service_type"] = service.service_type
@@ -854,8 +855,9 @@ class ApplicationService(object):
         data["service_name"] = service.service_name
         return data
 
-    def create_region_service(self, session: SessionClass, tenant_env, service, user_name, do_deploy=True, dep_sids=None):
-        data = self.__init_create_data(tenant=tenant_env, service=service, user_name=user_name, do_deploy=do_deploy,
+    def create_region_service(self, session: SessionClass, tenant_env, service, user_name, do_deploy=True,
+                              dep_sids=None):
+        data = self.__init_create_data(tenant_env=tenant_env, service=service, user_name=user_name, do_deploy=do_deploy,
                                        dep_sids=dep_sids)
         service_dep_relations = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id,
                                                                            service.service_id)
@@ -1002,7 +1004,7 @@ class ApplicationService(object):
             data["rule_extensions"] = rule_extensions
         return data
 
-    def __init_http_rule_for_region(self, session: SessionClass, tenant, service, rule, user_name):
+    def __init_http_rule_for_region(self, session: SessionClass, tenant_env, service, rule, user_name):
         certificate_info = None
         if rule.certificate_id:
             certificate_info = (
@@ -1014,13 +1016,12 @@ class ApplicationService(object):
         data["uuid"] = make_uuid(rule.domain_name)
         data["domain"] = rule.domain_name
         data["service_id"] = service.service_id
-        data["tenant_env_id"] = tenant.tenant_env_id
-        data["tenant_name"] = tenant.tenant_name
+        data["tenant_env_id"] = tenant_env.env_id
+        data["env_name"] = tenant_env.env_name
         data["protocol"] = rule.protocol
         data["container_port"] = int(rule.container_port)
         data["add_time"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         data["add_user"] = user_name
-        data["enterprise_id"] = tenant.enterprise_id
         data["http_rule_id"] = rule.http_rule_id
         data["path"] = rule.domain_path
         data["cookie"] = rule.domain_cookie
@@ -1312,7 +1313,7 @@ class ApplicationService(object):
             app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
         return app_id_status_rels
 
-    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_name, tenant_env, status="all"):
+    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_env, status="all"):
         count = {
             "running": 0,
             "closed": 0,
@@ -1354,7 +1355,7 @@ class ApplicationService(object):
                         "accesses": [],
                     }
         # 获取应用下组件的访问地址
-        accesses = port_service.list_access_infos(session=session, tenant=tenant_env, services=service_list)
+        accesses = port_service.list_access_infos(session=session, tenant_env=tenant_env, services=service_list)
         for service in service_list:
             svc_sas = service_status.get(service.service_id, {"status": "failure",
                                                               "used_mem": 0})
@@ -1419,9 +1420,9 @@ class ApplicationService(object):
 
         return result
 
-    def create_default_app(self, session: SessionClass, tenant, region_name):
-        app = application_repo.get_or_create_default_group(session, tenant.tenant_env_id, region_name)
-        self.create_region_app(session=session, env=tenant, region_name=region_name, app=app)
+    def create_default_app(self, session: SessionClass, tenant_env, region_name):
+        app = application_repo.get_or_create_default_group(session, tenant_env.env_id, region_name)
+        self.create_region_app(session=session, env=tenant_env, region_name=region_name, app=app)
         return jsonable_encoder(app)
 
     @staticmethod
@@ -1482,7 +1483,7 @@ class ApplicationService(object):
         )
         # avoid circular import
         from service.app_actions.app_manage import app_manage_service
-        app_manage_service.delete_components(session=session, tenant=tenant_env, components=components, user=user)
+        app_manage_service.delete_components(session=session, tenant_env=tenant_env, components=components, user=user)
         self._delete_app(session, tenant_env, region_name, app_id)
 
     def _delete_wutong_app(self, session: SessionClass, tenant_env, region_name, app_id):
@@ -1589,9 +1590,9 @@ class ApplicationService(object):
     def get_group_service(self, session: SessionClass, tenant_env_id, response_region, group_id):
         """查询某一应用下的组件"""
         gsr = app_component_relation_repo.get_services_by_tenant_env_id_and_group(session,
-                                                                              tenant_env_id,
-                                                                              response_region,
-                                                                              group_id)
+                                                                                  tenant_env_id,
+                                                                                  response_region,
+                                                                                  group_id)
         return gsr
 
     def sync_envs(self, session, tenant_name, region_name, region_app_id, components, envs):
@@ -1663,7 +1664,8 @@ class ApplicationService(object):
 
     def list_kubernetes_services(self, session, tenant_env_id, region_name, app_id):
         # list service_ids
-        service_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session=session, tenant_env_id=tenant_env_id,
+        service_ids = app_component_relation_repo.list_serivce_ids_by_app_id(session=session,
+                                                                             tenant_env_id=tenant_env_id,
                                                                              region_name=region_name, app_id=app_id)
         if not service_ids:
             return []

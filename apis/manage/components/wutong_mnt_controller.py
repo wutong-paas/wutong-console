@@ -73,7 +73,7 @@ async def get_mnt(request: Request,
     elif query_type == "unmnt":
         services = app_repo.get_app_list(session, env.env_id, service.service_region, query)
         services_ids = [s.service_id for s in services]
-        mnt_list, total = mnt_service.get_service_unmount_volume_list(session=session, tenant=env, service=service,
+        mnt_list, total = mnt_service.get_service_unmount_volume_list(session=session, tenant_env=env, service=service,
                                                                       service_ids=services_ids, page=page,
                                                                       page_size=page_size, is_config=is_config)
     else:

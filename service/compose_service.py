@@ -100,12 +100,12 @@ class ComposeService(object):
 
         compose_relation_repo.delete_compose_service_relation_by_compose_id(session, compose_id)
 
-    def __init_compose_service(self, tenant, user, service_cname, image, region):
+    def __init_compose_service(self, tenant_env, user, service_cname, image, region):
         """
         初始化docker compose创建的组件默认数据
         """
         tenant_service = TeamComponentInfo()
-        tenant_service.tenant_env_id = tenant.tenant_env_id
+        tenant_service.tenant_env_id = tenant_env.env_id
         tenant_service.service_id = make_uuid()
         tenant_service.service_cname = service_cname
         tenant_service.service_alias = "wt" + tenant_service.service_id[-6:]
@@ -132,7 +132,7 @@ class ComposeService(object):
         tenant_service.service_type = "application"
         tenant_service.total_memory = 0
         tenant_service.volume_mount_path = ""
-        tenant_service.host_path = "/wtdata/tenant/" + tenant.tenant_env_id + "/service/" + tenant_service.service_id
+        tenant_service.host_path = "/wtdata/env/" + tenant_env.env_id + "/service/" + tenant_service.service_id
         tenant_service.code_from = "image_manual"
         tenant_service.language = "docker-compose"
         tenant_service.service_source = AppConstants.DOCKER_COMPOSE

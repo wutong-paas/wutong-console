@@ -28,7 +28,7 @@ def get_paged_plugins(
         is_complete=None,
         scope="",
         source="",
-        tenant=None,
+        tenant_env=None,
         page=1,
         limit=10,
         order_by="",
@@ -39,13 +39,13 @@ def get_paged_plugins(
     :param is_complete:
     :param scope:
     :param source:
-    :param tenant:
+    :param tenant_env:
     :param page:
     :param limit:
     :param order_by:
     :param category:
     :return:
     """
-    data = center_app_repo.get_paged_plugins(session, plugin_name, is_complete, scope, source, tenant, page, limit,
+    data = center_app_repo.get_paged_plugins(session, plugin_name, is_complete, scope, source, tenant_env, page, limit,
                                              order_by, category)
     return data

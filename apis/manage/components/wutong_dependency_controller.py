@@ -51,7 +51,7 @@ async def get_dependency_component(request: Request,
     if page_num < 1:
         page_num = 1
     page_size = int(request.query_params.get("page_size", 25))
-    dependencies = dependency_service.get_service_dependencies(session=session, tenant=env, service=service)
+    dependencies = dependency_service.get_service_dependencies(session=session, tenant_env=env, service=service)
     service_ids = [s.service_id for s in dependencies]
     service_group_map = application_service.get_services_group_name(session=session, service_ids=service_ids)
     dep_list = []

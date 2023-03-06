@@ -93,19 +93,3 @@ async def get_cloud_app_versions(market_id: int = None, app_id: str = None,
     }
     app_versions = wutong_market_client.get_market_app_versions(session=session, market=market, query_body=query_body)
     return JSONResponse(general_message("0", "success", "操作成功", list=jsonable_encoder(app_versions)), status_code=200)
-
-
-@router.post("/enterprise/market-apps/{market_id}/install_cloud_app", name="安装商店应用")
-async def install_cloud_market_app(market_id: str,
-                                   params: Optional[MarketAppInstallParam] = MarketAppInstallParam(),
-                                   user=Depends(deps.get_current_user),
-                                   session: SessionClass = Depends(deps.get_session)) -> Any:
-    wutong_market_service.install_cloud_market_app(session=session, user=user,
-                                                   market_id=market_id, params=params)
-    return JSONResponse(general_message("0", "success", "操作成功", status_code=200))
-
-
-@router.get("/enterprise/store-list", name="获取店铺下拉列表")
-async def get_store_list(session: SessionClass = Depends(deps.get_session)) -> Any:
-    store_list = wutong_market_service.get_store_list(session=session)
-    return JSONResponse(general_message("0", "success", "操作成功", list=jsonable_encoder(store_list), status_code=200))

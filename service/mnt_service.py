@@ -132,8 +132,8 @@ class AppMntService(object):
             })
         return un_mount_dependencies, total
 
-    def get_volume_dependent(self, session: SessionClass, tenant, service):
-        mnts = mnt_repo.get_by_dep_service_id(session, tenant.tenant_env_id, service.service_id)
+    def get_volume_dependent(self, session: SessionClass, tenant_env, service):
+        mnts = mnt_repo.get_by_dep_service_id(session, tenant_env.env_id, service.service_id)
         if not mnts:
             return None
 

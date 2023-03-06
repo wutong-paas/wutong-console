@@ -64,7 +64,7 @@ async def get_volume_dir(request: Request,
                 tenant_service_volume["file_content"] = cf_file.file_content
             volumes_list.append(tenant_service_volume)
     else:
-        dependents = mnt_service.get_volume_dependent(session=session, tenant=env, service=service)
+        dependents = mnt_service.get_volume_dependent(session=session, tenant_env=env, service=service)
         name2deps = {}
         if dependents:
             for dep in dependents:

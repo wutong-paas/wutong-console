@@ -337,7 +337,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(tenant_env.tenant_name, region_name, session)
-        url += "/v2/monitor/metrics?target={target}&tenant={tenant_env_id}&app={app_id}&component={component_id}".format(
+        url += "/v2/monitor/metrics?target={target}&tenant_env={tenant_env_id}&app={app_id}&component={component_id}".format(
             target=target, tenant_env_id=tenant_env.env_id, app_id=app_id, component_id=component_id)
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_name)

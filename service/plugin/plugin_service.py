@@ -16,7 +16,7 @@ from service.plugin.plugin_version_service import plugin_version_service
 
 
 class PluginService(object):
-    def get_service_plugin_config(self, session: SessionClass, tenant, service, plugin_id, build_version):
+    def get_service_plugin_config(self, session: SessionClass, tenant_env, service, plugin_id, build_version):
         config_groups = plugin_config_service.get_config_group(session=session, plugin_id=plugin_id,
                                                                build_version=build_version)
         service_plugin_vars = service_plugin_config_repo.get_service_plugin_config_var(session=session,
@@ -96,7 +96,7 @@ class PluginService(object):
                         "config": copy.deepcopy(options)
                     })
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
-                dep_services = plugin_config_service.get_service_dependencies(session=session, tenant=tenant,
+                dep_services = plugin_config_service.get_service_dependencies(session=session, tenant_env=tenant_env,
                                                                               service=service)
                 for dep_service in dep_services:
                     ports = port_repo.list_inner_ports(dep_service.tenant_env_id, dep_service.service_id)
@@ -159,7 +159,7 @@ class PluginService(object):
                                                                               tenant_env_id=tenant_env.env_id,
                                                                               plugin_id=plugin.plugin_id)
                 if pbv:
-                    configs = self.get_service_plugin_config(session=session, tenant=tenant_env, service=service,
+                    configs = self.get_service_plugin_config(session=session, tenant_env=tenant_env, service=service,
                                                              plugin_id=plugin.plugin_id,
                                                              build_version=pbv.build_version)
                     self.update_service_plugin_config(session=session, tenant_env=tenant_env, service=service,
@@ -290,12 +290,12 @@ class PluginService(object):
                                                           service.service_alias, plugin_id,
                                                           region_config)
 
-    def __get_dep_service_ids(self, session: SessionClass, tenant, service):
-        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant.tenant_env_id, service.service_id)
+    def __get_dep_service_ids(self, session: SessionClass, tenant_env, service):
+        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id, service.service_id)
         return [service_dep.dep_service_id for service_dep in service_dependencies]
 
-    def get_service_dependencies(self, session: SessionClass, tenant, service):
-        dep_ids = self.__get_dep_service_ids(session=session, tenant=tenant, service=service)
+    def get_service_dependencies(self, session: SessionClass, tenant_env, service):
+        dep_ids = self.__get_dep_service_ids(session=session, tenant_env=tenant_env, service=service)
         services = service_info_repo.get_services_by_service_ids(session, dep_ids)
         return services
 

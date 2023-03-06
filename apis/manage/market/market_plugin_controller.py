@@ -26,7 +26,7 @@ async def market_plugins(page: int = 1,
     # todo tenant_env_id
     total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, page=page,
                                        limit=limit,
-                                       order_by='is_complete', source='market', scope='goodrain', tenant=None)
+                                       order_by='is_complete', source='market', scope='goodrain', tenant_env=None)
     result = general_message("0", "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
     return JSONResponse(result, status_code=200)
 
@@ -47,7 +47,7 @@ async def internal_market_plugins(page: int = 1,
     """
     # todo tenant_env_id
     total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, scope=scope,
-                                       tenant=None,
+                                       tenant_env=None,
                                        page=page, limit=limit)
     result = general_message("0", "success", "查询成功", list=plugins, total=total, next_page=int(page) + 1)
     return JSONResponse(result, status_code=200)
@@ -66,7 +66,7 @@ async def installable_internal_plugins(page: int = 1,
     :return:
     """
     # todo tenant_env_id
-    total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, tenant=None,
+    total, plugins = get_paged_plugins(session=session, plugin_name=plugin_name, is_complete=True, tenant_env=None,
                                        page=page,
                                        limit=limit)
     # todo tenant_env_id  region

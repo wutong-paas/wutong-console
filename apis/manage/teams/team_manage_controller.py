@@ -56,11 +56,10 @@ def __sort_events(event1, event2):
         return 0
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps", response_model=Response, name="总览团队应用信息")
-async def overview_team_app_info(request: Request,
+@router.get("/teams/{team_name}/env/{env_id}/apps", response_model=Response, name="总览环境应用信息")
+async def overview_env_app_info(request: Request,
                                  page: int = Query(default=1, ge=1, le=9999),
                                  page_size: int = Query(default=10, ge=1, le=500),
-                                 team_name: Optional[str] = None,
                                  env_id: Optional[str] = None,
                                  session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -96,7 +95,7 @@ async def overview_team_app_info(request: Request,
         group_ids = [group.ID for group in groups]
         apps, count = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids,
                                                                   region=region_name,
-                                                                  tenant_name=team_name, tenant_env=env, status=status)
+                                                                  tenant_env=env, status=status)
 
     apps = apps[start:end]
     app_num_dict.update(count)
@@ -121,7 +120,7 @@ async def env_services_event(
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     total = 0
-    region_list = region_repo.get_team_opened_region(session, env.tenant_name)
+    region_list = region_repo.get_team_opened_region(session, env.env_name)
     event_service_dynamic_list = []
     if region_list:
         for region in region_list:

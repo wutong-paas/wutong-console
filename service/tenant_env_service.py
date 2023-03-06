@@ -24,36 +24,36 @@ class TenantEnvService(object):
             raise ServiceHandleException(status_code=500, msg="", msg_show="设置租户限额失败")
 
     def get_tenant_env_list_by_region(self, session, region_id, page=1, page_size=10):
-        teams = env_repo.get_team_by_enterprise_id(session)
-        team_maps = {}
-        if teams:
-            for team in teams:
-                team_maps[team.tenant_env_id] = team
+        envs = env_repo.get_all_envs(session)
+        env_maps = {}
+        if envs:
+            for env in envs:
+                env_maps[env.env_id] = env
         res, body = remote_build_client.list_tenant_envs(session, region_id, page, page_size)
-        tenant_list = []
+        env_list = []
         total = 0
         if body.get("bean"):
-            tenants = body.get("bean").get("list")
+            region_envs = body.get("bean").get("list")
             total = body.get("bean").get("total")
-            if tenants:
-                for tenant in tenants:
-                    tenant_alias = team_maps.get(tenant["UUID"]).tenant_alias if team_maps.get(tenant["UUID"]) else ''
-                    tenant_list.append({
-                        "tenant_env_id": tenant["UUID"],
-                        "team_name": tenant_alias,
-                        "tenant_name": tenant["Name"],
-                        "memory_request": tenant["memory_request"],
-                        "cpu_request": tenant["cpu_request"],
-                        "memory_limit": tenant["memory_limit"],
-                        "cpu_limit": tenant["cpu_limit"],
-                        "running_app_num": tenant["running_app_num"],
-                        "running_app_internal_num": tenant["running_app_internal_num"],
-                        "running_app_third_num": tenant["running_app_third_num"],
-                        "set_limit_memory": tenant["LimitMemory"],
+            if region_envs:
+                for env in region_envs:
+                    env_alias = env_maps.get(env["UUID"]).tenant_alias if env_maps.get(env["UUID"]) else ''
+                    env_list.append({
+                        "tenant_env_id": env["UUID"],
+                        "env_alias": env_alias,
+                        "env_name": env["Name"],
+                        "memory_request": env["memory_request"],
+                        "cpu_request": env["cpu_request"],
+                        "memory_limit": env["memory_limit"],
+                        "cpu_limit": env["cpu_limit"],
+                        "running_app_num": env["running_app_num"],
+                        "running_app_internal_num": env["running_app_internal_num"],
+                        "running_app_third_num": env["running_app_third_num"],
+                        "set_limit_memory": env["LimitMemory"],
                     })
         else:
             logger.error(body)
-        return tenant_list, total
+        return env_list, total
 
     def devops_get_tenant(self, session, tenant_name):
         tenant = session.execute(
@@ -98,9 +98,6 @@ class TenantEnvService(object):
                 raise ServiceHandleException(
                     msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name), msg="delete tenant failure")
         env_repo.delete_by_env_id(session=session, env_id=env.env_id)
-
-    def get_tenant_by_tenant_name(self, session: SessionClass, tenant_name, exception=True):
-        return env_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=exception)
 
     def check_and_get_user_team_by_name_and_region(self, session, user_id, tenant_name, region_name):
         tenant_env = env_repo.get_user_tenant_by_name(session, user_id, tenant_name)

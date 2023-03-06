@@ -190,7 +190,7 @@ class AppTagRepository(object):
         from
             center_app_tag_relation atr
         left join center_app_tag tag on
-            and atr.tag_id = tag.ID
+            atr.tag_id = tag.ID
         where
             and atr.app_id in :app_ids;
         """

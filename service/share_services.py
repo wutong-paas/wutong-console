@@ -134,14 +134,14 @@ class ShareService(object):
             result[kvs[0]] = kvs[1]
         return result
 
-    def _list_http_ingresses(self, session, tenant, component_keys):
+    def _list_http_ingresses(self, session, tenant_env, component_keys):
         service_domains = domain_repo.list_by_component_ids(session, component_keys.keys())
         if not service_domains:
             return []
         configs = configuration_repo.list_by_rule_ids(session, [sd.http_rule_id for sd in service_domains])
         configs = {cfg.rule_id: json.loads(cfg.value) for cfg in configs}
 
-        ports = port_repo.list_by_service_ids(session, tenant.tenant_env_id, component_keys.keys())
+        ports = port_repo.list_by_service_ids(session, tenant_env.env_id, component_keys.keys())
         ports = {port.container_port: port for port in ports}
 
         ingress_http_routes = []
@@ -224,7 +224,7 @@ class ShareService(object):
         return rt_list
 
     def create_share_info(self, session, tenant_env, region_name, share_record,
-                          share_team, share_user, share_info, use_force):
+                          share_env, share_user, share_info, use_force):
         try:
             share_version_info = share_info.app_version_info
             app_model_id = share_version_info.app_model_id
@@ -297,8 +297,8 @@ class ShareService(object):
                         plugin_info["plugin_image"] = share_image_info
                         event = PluginShareRecordEvent(
                             record_id=share_record.ID,
-                            env_name=share_team.env_name,
-                            tenant_env_id=share_team.env_id,
+                            env_name=share_env.env_name,
+                            tenant_env_id=share_env.env_id,
                             plugin_id=plugin_info['plugin_id'],
                             plugin_name=plugin_info['plugin_alias'],
                             event_status='not_start',
@@ -351,13 +351,13 @@ class ShareService(object):
 
                         if service.get("need_share", None):
                             ssre = ServiceShareRecordEvent(
-                                tenant_env_id=share_team.env_id,
+                                tenant_env_id=share_env.env_id,
                                 service_key=service["service_key"],
                                 service_id=service["service_id"],
                                 service_name=service["service_cname"],
                                 service_alias=service["service_alias"],
                                 record_id=share_record.ID,
-                                team_name=share_team.tenant_name,
+                                env_name=share_env.env_name,
                                 event_status="not_start",
                                 region_share_id="")
                             session.merge(ssre)
@@ -382,7 +382,7 @@ class ShareService(object):
                 template_type=template_type,
                 record_id=share_record.ID,
                 share_user=share_user.user_id,
-                share_team=share_team.tenant_name,
+                share_env=share_env.env_name,
                 group_id=share_record.group_id,
                 source="local",
                 scope=scope,
@@ -1012,11 +1012,11 @@ class ShareService(object):
             res[component_label.service_id] = clabels
         return res
 
-    def get_service_share_record_by_ID(self, session, ID, team_name):
-        return component_share_repo.get_service_share_record_by_ID(session, ID=ID, team_name=team_name)
+    def get_service_share_record_by_ID(self, session, ID, env_name):
+        return component_share_repo.get_service_share_record_by_ID(session, ID=ID, env_name=env_name)
 
-    def delete_record(self, session, ID, team_name):
-        return component_share_repo.delete_record(session=session, ID=ID, team_name=team_name)
+    def delete_record(self, session, ID, env_name):
+        return component_share_repo.delete_record(session=session, ID=ID, env_name=env_name)
 
     def create_publish_event(self, session, record_event, user_name, event_type):
         import datetime

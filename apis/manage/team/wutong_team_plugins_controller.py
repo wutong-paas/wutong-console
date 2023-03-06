@@ -342,9 +342,6 @@ async def get_plugin_version(
         base_info.image = base_info.image + ":" + plugin_version.image_tag
     data = jsonable_encoder(base_info)
     data.update(jsonable_encoder(plugin_version))
-    # update_status_thread = threading.Thread(
-    #     target=plugin_version_service.update_plugin_build_status, args=(response_region, team))
-    # update_status_thread.start()
     plugin_version_service.update_plugin_build_status(session, response_region, env)
     session.rollback()
     result = general_message("0", "success", "查询成功", bean=data)

@@ -214,7 +214,7 @@ class ApplicationConfigGroupRepository(BaseRepository[ConfigGroupService]):
 
 class TenantServiceEndpoints(BaseRepository[ThirdPartyComponentEndpoints]):
 
-    def update_or_create_endpoints(self, session, tenant, service, service_endpoints):
+    def update_or_create_endpoints(self, session, tenant_env, service, service_endpoints):
         endpoints = self.get_service_endpoints_by_service_id(session, service.service_id)
         if not service_endpoints:
             session.execute(
@@ -225,7 +225,7 @@ class TenantServiceEndpoints(BaseRepository[ThirdPartyComponentEndpoints]):
             endpoints.endpoints_info = json.dumps(service_endpoints)
         else:
             data = {
-                "tenant_env_id": tenant.tenant_env_id,
+                "tenant_env_id": tenant_env.env_id,
                 "service_id": service.service_id,
                 "service_cname": service.service_cname,
                 "endpoints_info": json.dumps(service_endpoints),

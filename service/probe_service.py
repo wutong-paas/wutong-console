@@ -30,7 +30,7 @@ class ProbeService(object):
         session.flush()
         return 200, "success", probe
 
-    def create_probe(self, session: SessionClass, tenant, service, data):
+    def create_probe(self, session: SessionClass, tenant_env, service, data):
         code, msg = self.__check_probe_data(data)
         if code != 200:
             raise AbortRequest("invalid probe", msg_show=msg)

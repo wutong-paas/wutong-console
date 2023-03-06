@@ -335,7 +335,6 @@ async def restart_component(serviceAlias: Optional[str] = None,
                             user=Depends(deps.get_current_user),
                             env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-    oauth_instance, _ = None, None
     code, msg = app_manage_service.restart(session=session, tenant_env=env, service=service, user=user)
     bean = {}
     if code != 200:
@@ -362,7 +361,6 @@ async def start_component(serviceAlias: Optional[str] = None,
                           user=Depends(deps.get_current_user),
                           env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-    oauth_instance, _ = None, None
     try:
         code, msg = app_manage_service.start(session=session, tenant_env=env, service=service, user=user)
         bean = {}
@@ -386,7 +384,6 @@ async def upgrade_component(serviceAlias: Optional[str] = None,
     更新
     """
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-    oauth_instance, _ = None, None
     try:
         code, msg, _ = app_manage_service.upgrade(session=session, tenant_env=env, service=service, user=user)
         bean = {}
@@ -668,7 +665,6 @@ async def compose_build(
     probe_map = dict()
     services = None
     data = await request.json()
-    oauth_instance, _ = None, None
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
@@ -687,7 +683,7 @@ async def compose_build(
         # group_compose.save()
         for s in new_app_list:
             try:
-                app_manage_service.deploy(session, env, s, user, oauth_instance=oauth_instance)
+                app_manage_service.deploy(session, env, s, user)
             except ErrInsufficientResource as e:
                 result = general_message(e.error_code, e.msg, e.msg_show)
                 return JSONResponse(result, status_code=e.status_code)

@@ -26,7 +26,7 @@ class DevopsMarketAppCreateParam(BaseModel):
     application_id: Optional[int] = -1
     model_app_id: Optional[str] = None
     model_app_version: Optional[str] = None
-    team_code: Optional[str] = None
+    env_id: Optional[str] = None
     region_name: Optional[str] = None
 
 

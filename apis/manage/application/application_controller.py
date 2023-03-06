@@ -60,8 +60,10 @@ async def create_app(params: TeamAppCreateRequest,
                      session: SessionClass = Depends(deps.get_session),
                      user=Depends(deps.get_current_user)) -> Any:
     """
-    新建团队应用
+    新建环境应用
     :param session:
+    :param env_id:
+    :param user:
     :param params:
     :return:
     """
@@ -82,8 +84,7 @@ async def create_app(params: TeamAppCreateRequest,
     try:
         data = application_service.create_app(
             session=session,
-            team_id=params.team_id,
-            env=env,
+            tenant_env=env,
             project_id=params.project_id,
             region_name=params.region_name,
             app_name=params.app_name,
@@ -344,7 +345,7 @@ async def app_share_record(request: Request,
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     total, share_records = component_share_repo.get_service_share_records_by_groupid(
-        session=session, team_name=team_name, group_id=group_id, page=page, page_size=page_size)
+        session=session, env_name=env.env_name, group_id=group_id, page=page, page_size=page_size)
     if not share_records:
         result = general_message("0", "success", "获取成功", bean={'total': total}, list=data)
         return JSONResponse(result, status_code=200)

@@ -18,13 +18,13 @@ from service.base_services import base_service
 from service.plugin_service import plugin_service
 
 
-def get_region_list_by_team_name(session: SessionClass, team_name):
+def get_region_list_by_env_name(session: SessionClass, env_name):
     """
     :param session:
     :param team_name:
     :return:
     """
-    regions = team_region_repo.get_active_region_by_tenant_name(session=session, tenant_name=team_name)
+    regions = team_region_repo.get_active_region_by_env_name(session=session, env_name=env_name)
     if regions:
         region_name_list = []
         for region in regions:
@@ -299,7 +299,7 @@ class RegionService(object):
     def delete_env_on_region(self, session: SessionClass, env, region_name, user):
         env_region = region_repo.get_env_region_by_env_and_region(session, env.env_id, region_name)
         if not env_region:
-            raise ServiceHandleException(msg="team not open cluster, not need close", msg_show="该团队未开通此集群，无需关闭")
+            raise ServiceHandleException(msg="env not open cluster, not need close", msg_show="该环境未开通此集群，无需关闭")
         # start delete
         region_config = region_repo.get_enterprise_region_by_region_name(session, region_name)
         ignore_cluster_resource = False
@@ -353,8 +353,8 @@ class RegionService(object):
                 raise ServiceHandleException(msg="delete tenant from cluster failure", msg_show="从集群删除租户失败")
         region_repo.delete_team_region_by_tenant_and_region(session, env.env_id, region_name)
 
-    def get_team_unopen_region(self, session: SessionClass, team_name):
-        team_opened_regions = region_repo.get_team_opened_region(session, team_name, is_init=True)
+    def get_team_unopen_region(self, session: SessionClass, env_name):
+        team_opened_regions = region_repo.get_team_opened_region(session, env_name, is_init=True)
         opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
         unopen_regions = region_repo.get_usable_regions(session, opened_regions_name)
         return [jsonable_encoder(unopen_region) for unopen_region in unopen_regions]

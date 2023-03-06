@@ -403,7 +403,7 @@ async def get_plugin_config(request: Request,
         logger.error("plugin.relation", '参数错误，plugin_id and version_id')
         return JSONResponse(general_message(400, "params error", "请指定插件版本"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=env, service=service,
+    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant_env=env, service=service,
                                                                plugin_id=plugin_id, build_version=build_version)
     svc_plugin_relation = app_plugin_service.get_service_plugin_relation(session=session, service_id=service.service_id,
                                                                          plugin_id=plugin_id)
@@ -466,7 +466,7 @@ async def update_plugin_config(request: Request,
     if not pbv:
         return JSONResponse(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status_code=400)
 
-    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant=env, service=service,
+    result_bean = app_plugin_service.get_service_plugin_config(session=session, tenant_env=env, service=service,
                                                                plugin_id=plugin_id, build_version=pbv.build_version)
 
     # update service plugin config

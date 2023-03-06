@@ -96,7 +96,7 @@ class DevopsRepository:
             service = new_service
             if is_deploy:
                 try:
-                    app_manage_service.deploy(session=session, tenant=tenant_env, service=service, user=user)
+                    app_manage_service.deploy(session=session, tenant_env=tenant_env, service=service, user=user)
                 except ErrInsufficientResource as e:
                     return general_message(e.error_code, e.msg, e.msg_show)
                 except Exception as e:
@@ -106,7 +106,7 @@ class DevopsRepository:
                 # 添加组件部署关系
                 application_service.create_deploy_relation_by_service_id(session=session, service_id=service.service_id)
 
-            return general_message("0", "success", "部署成功")
+            return general_message("0", "success", "部署成功", bean={"service_alias": service.service_alias})
         except ApiBaseHttpClient.RemoteInvokeError as e:
             logger.exception(e)
             if e.status == 403:
@@ -128,7 +128,7 @@ class DevopsRepository:
             volume_service.delete_region_volumes(session=session, tenant_env=tenant_env, service=service)
             env_var_service.delete_region_env(session=session, tenant_env=tenant_env, service=service)
             dependency_service.delete_region_dependency(session=session, tenant_env=tenant_env, service=service)
-            app_manage_service.delete_region_service(session=session, tenant=tenant_env, service=service)
+            app_manage_service.delete_region_service(session=session, tenant_env=tenant_env, service=service)
         service.create_status = "checked"
         return result
 
@@ -186,11 +186,11 @@ class DevopsRepository:
         return result
 
     @staticmethod
-    def add_dep(session, user, tenant, service, dep_service_ids):
+    def add_dep(session, user, tenant_env, service, dep_service_ids):
         if service.is_third_party():
             raise AbortRequest(msg="third-party components cannot add dependencies", msg_show="第三方组件不能添加依赖组件")
         dep_service_list = dep_service_ids.split(",")
-        code, msg = dependency_service.patch_add_dependency(session=session, tenant=tenant, service=service,
+        code, msg = dependency_service.patch_add_dependency(session=session, tenant_env=tenant_env, service=service,
                                                             dep_service_ids=dep_service_list, user_name=user.nick_name)
         if code != 200:
             return general_message(code, "add dependency error", msg)

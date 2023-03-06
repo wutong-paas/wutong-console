@@ -45,17 +45,17 @@ class ComponentCheckService(object):
 
         return 200, "success", rt_msg
 
-    def update_service_check_info(self, session: SessionClass, tenant, service, data):
+    def update_service_check_info(self, session: SessionClass, tenant_env, service, data):
         if data["check_status"] != "success":
             return
         sid = None
         try:
             # sid = transaction.savepoint()
             # 删除原有build类型env，保存新检测build类型env
-            self.upgrade_service_env_info(session, tenant, service, data)
+            self.upgrade_service_env_info(session, tenant_env, service, data)
             # 重新检测后对端口做加法
             try:
-                self.add_service_check_port(session=session, tenant=tenant, service=service, data=data)
+                self.add_service_check_port(session=session, tenant_env=tenant_env, service=service, data=data)
             except ErrComponentPortExists:
                 logger.error('upgrade component port by code check failure due to component port exists')
             lang = data["service_info"][0]["language"]
@@ -74,38 +74,38 @@ class ComponentCheckService(object):
             raise ServiceHandleException(status_code=400, msg="handle check service code info failure",
                                          msg_show="处理检测结果失败")
 
-    def upgrade_service_env_info(self, session: SessionClass, tenant, service, data):
+    def upgrade_service_env_info(self, session: SessionClass, tenant_env, service, data):
         # 更新构建时环境变量
         if data["check_status"] == "success":
             service_info_list = data["service_info"]
-            self.upgrade_service_info(session, tenant, service, service_info_list[0])
+            self.upgrade_service_info(session, tenant_env, service, service_info_list[0])
 
-    def add_service_check_port(self, session: SessionClass, tenant, service, data):
+    def add_service_check_port(self, session: SessionClass, tenant_env, service, data):
         # 更新构建时环境变量
         if data["check_status"] == "success":
             service_info_list = data["service_info"]
-            self.add_check_ports(session=session, tenant=tenant, service=service,
+            self.add_check_ports(session=session, tenant_env=tenant_env, service=service,
                                  check_service_info=service_info_list[0])
 
-    def add_check_ports(self, session: SessionClass, tenant, service, check_service_info):
+    def add_check_ports(self, session: SessionClass, tenant_env, service, check_service_info):
         service_info = check_service_info
         ports = service_info.get("ports", None)
         if not ports:
             return
         # 更新构建时环境变量
-        self.__save_check_port(session=session, tenant=tenant, service=service, ports=ports)
+        self.__save_check_port(session=session, tenant_env=tenant_env, service=service, ports=ports)
 
-    def upgrade_service_info(self, session: SessionClass, tenant, service, check_service_info):
+    def upgrade_service_info(self, session: SessionClass, tenant_env, service, check_service_info):
         service_info = check_service_info
         envs = service_info["envs"]
         # 更新构建时环境变量
-        self.__upgrade_env(session, tenant, service, envs)
+        self.__upgrade_env(session, tenant_env, service, envs)
 
-    def __save_check_port(self, session: SessionClass, tenant, service, ports):
+    def __save_check_port(self, session: SessionClass, tenant_env, service, ports):
         if not ports:
             return
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(session=session, tenant=tenant, service=service,
+            code, msg, port_data = port_service.add_service_port(session=session, tenant_env=tenant_env, service=service,
                                                                  container_port=int(port["container_port"]),
                                                                  protocol=port["protocol"],
                                                                  port_alias=service.service_alias.upper() + str(
@@ -113,11 +113,11 @@ class ComponentCheckService(object):
             if code != 200:
                 logger.error("save service check info port error {0}".format(msg))
 
-    def __upgrade_env(self, session: SessionClass, tenant, service, envs):
+    def __upgrade_env(self, session: SessionClass, tenant_env, service, envs):
         if envs:
             # 删除原有的build类型环境变量
             session.execute(
-                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant.tenant_env_id,
+                delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env.env_id,
                                               ComponentEnvVar.service_id == service.service_id,
                                               ComponentEnvVar.scope == "build")
             )
@@ -246,9 +246,9 @@ class ComponentCheckService(object):
         self.__save_port(session, tenant_env, service, ports)
         self.__save_volume(session, tenant_env, service, volumes)
 
-    def __save_compile_env(self, session: SessionClass, tenant, service, language):
+    def __save_compile_env(self, session: SessionClass, tenant_env, service, language):
         # 删除原有 compile env
-        logger.debug("save tenant {0} compile service env {1}".format(tenant.tenant_name, service.service_cname))
+        logger.debug("save tenant {0} compile service env {1}".format(tenant_env.tenant_name, service.service_cname))
         session.execute(
             delete(TeamComponentEnv).where(TeamComponentEnv.service_id == service.service_id)
         )
@@ -316,7 +316,7 @@ class ComponentCheckService(object):
 
             for port in ports:
                 code, msg, port_data = port_service.add_service_port(
-                    session=session, tenant=tenant_env, service=service, container_port=int(port["container_port"]),
+                    session=session, tenant_env=tenant_env, service=service, container_port=int(port["container_port"]),
                     protocol=port["protocol"],
                     port_alias=service.service_alias.upper() + str(port["container_port"]))
                 if code != 200:
@@ -327,7 +327,7 @@ class ComponentCheckService(object):
                     delete(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant_env.env_id,
                                                     TeamComponentPort.service_id == service.service_id))
 
-                _, _, t_port = port_service.add_service_port(session=session, tenant=tenant_env, service=service,
+                _, _, t_port = port_service.add_service_port(session=session, tenant_env=tenant_env, service=service,
                                                              container_port=5000, protocol="http",
                                                              port_alias=service.service_alias.upper() + str(5000),
                                                              is_inner_service=False,

@@ -171,7 +171,7 @@ async def get_topological_internet_info(
             return JSONResponse(result, status_code=200)
         else:
             data = topological_service.get_internet_topological_graph(session=session, group_id=group_id,
-                                                                      team_name=team_name)
+                                                                      env_name=env.env_name)
             result = general_message(code, "Obtain topology internet success.", "获取拓扑图Internet成功", bean=data)
     return JSONResponse(result, status_code=code)
 
@@ -208,7 +208,7 @@ async def get_topological_info(
         session=session,
         tenant_env=env,
         env_id=env.env_id,
-        team_name=team_name,
+        env_name=env.env_name,
         service=service,
         region_name=service.service_region)
     result = general_message("0", "success", "成功", bean=result)

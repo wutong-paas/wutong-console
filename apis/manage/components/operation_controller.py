@@ -88,7 +88,7 @@ async def docker_run(
                                                            user_name=params.user_name,
                                                            password=params.password)
 
-        code, msg_show = application_service.add_component_to_app(session=session, tenant=env,
+        code, msg_show = application_service.add_component_to_app(session=session, tenant_env=env,
                                                                   region_name=region_name,
                                                                   app_id=params.group_id,
                                                                   component_id=new_service.service_id)
@@ -163,7 +163,7 @@ async def get_check_detail(check_uuid: Optional[str] = None,
         if service_info is not None and len(service_info) > 1 and service_info[0].get("language") == "Java-maven":
             pass
         else:
-            component_check_service.update_service_check_info(session=session, tenant=env, service=service,
+            component_check_service.update_service_check_info(session=session, tenant_env=env, service=service,
                                                               data=data)
         check_brief_info = component_check_service.wrap_service_check_info(session=session, service=service, data=data)
         return JSONResponse(general_message("0", "success", "请求成功", bean=check_brief_info), status_code=200)
@@ -268,7 +268,7 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
         service = new_service
         if is_deploy:
             try:
-                app_manage_service.deploy(session=session, tenant=env, service=service, user=user)
+                app_manage_service.deploy(session=session, tenant_env=env, service=service, user=user)
             except ErrInsufficientResource as e:
                 return JSONResponse(general_message(e.error_code, e.msg, e.msg_show), e.error_code)
             except Exception as e:
@@ -295,7 +295,7 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
         volume_service.delete_region_volumes(session=session, tenant_env=env, service=service)
         env_var_service.delete_region_env(session=session, tenant_env=env, service=service)
         dependency_service.delete_region_dependency(session=session, tenant_env=env, service=service)
-        app_manage_service.delete_region_service(session=session, tenant=env, service=service)
+        app_manage_service.delete_region_service(session=session, tenant_env=env, service=service)
     service.create_status = "checked"
 
     session.merge(service)

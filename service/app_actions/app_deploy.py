@@ -82,34 +82,34 @@ class AppDeployService(object):
     def set_impl(self, impl):
         self.impl = impl
 
-    def pre_deploy_action(self, session, tenant, service, version=None):
+    def pre_deploy_action(self, session, tenant_env, service, version=None):
         """perform pre-deployment actions"""
         if service.service_source == "market":
-            self.impl = MarketService(session, tenant, service, version)
+            self.impl = MarketService(session, tenant_env, service, version)
         self.impl.pre_action(session)
 
     def get_async_action(self):
         return self.impl.get_async_action()
 
-    def execute(self, session: SessionClass, tenant, service, user, is_upgrade, version, committer_name=None,
+    def execute(self, session: SessionClass, tenant_env, service, user, is_upgrade, version, committer_name=None,
                 oauth_instance=None):
         async_action = self.get_async_action()
         logger.info("service id: {}; action is '{}'".format(service.service_id, async_action))
         if async_action == AsyncAction.BUILD.value:
-            code, msg, event_id = app_manage_service.deploy(session=session, tenant=tenant, service=service, user=user)
+            code, msg, event_id = app_manage_service.deploy(session=session, tenant_env=tenant_env, service=service, user=user)
         elif async_action == AsyncAction.UPDATE.value:
-            code, msg, event_id = app_manage_service.upgrade(session=session, tenant=tenant, service=service, user=user)
+            code, msg, event_id = app_manage_service.upgrade(session=session, tenant_env=tenant_env, service=service, user=user)
         else:
             return 200, "", ""
         return code, msg, event_id
 
-    def deploy(self, session, tenant, service, user, version, committer_name=None, oauth_instance=None):
+    def deploy(self, session, tenant_env, service, user, version, committer_name=None, oauth_instance=None):
         """
         After the preparation is completed, emit a deployment task to the data center.
         """
-        self.pre_deploy_action(session, tenant, service, version)
+        self.pre_deploy_action(session, tenant_env, service, version)
 
-        return self.execute(session, tenant, service, user, version, committer_name, oauth_instance=oauth_instance)
+        return self.execute(session, tenant_env, service, user, version, committer_name, oauth_instance=oauth_instance)
 
 
 class OtherService(object):

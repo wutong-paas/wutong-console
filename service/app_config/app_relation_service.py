@@ -52,15 +52,15 @@ class AppServiceRelationService(object):
                     not_dependencies.append(s)
         return not_dependencies
 
-    def get_dependencies(self, session: SessionClass, tenant):
+    def get_dependencies(self, session: SessionClass, tenant_env):
 
         # 打开对内端口才能被依赖
         services = service_info_repo.devops_get_tenant_region_services_by_service_id(session=session,
-                                                                                     tenant_env_id=tenant.tenant_env_id)
+                                                                                     tenant_env_id=tenant_env.env_id)
         dependencies = []
         for s in services:
             # 查找打开内部访问的组件
-            open_inner_services = port_repo.get_service_ports_by_is_inner_service(session, tenant.tenant_env_id,
+            open_inner_services = port_repo.get_service_ports_by_is_inner_service(session, tenant_env.env_id,
                                                                                   s.service_id)
             if open_inner_services:
                 dependencies.append(s)
@@ -102,9 +102,9 @@ class AppServiceRelationService(object):
                 if e.status_code != 404:
                     raise e
 
-    def __is_env_duplicate(self, session: SessionClass, tenant, service, dep_service):
-        dep_ids = self.__get_dep_service_ids(session=session, tenant=tenant, service=service)
-        service_envs = env_var_repo.get_service_env_by_scope(session, tenant.tenant_env_id, dep_service.service_id)
+    def __is_env_duplicate(self, session: SessionClass, tenant_env, service, dep_service):
+        dep_ids = self.__get_dep_service_ids(session=session, tenant_env=tenant_env, service=service)
+        service_envs = env_var_repo.get_service_env_by_scope(session, tenant_env.env_id, dep_service.service_id)
         attr_names = [service_env.attr_name for service_env in service_envs]
         envs = env_var_repo.get_env_by_ids_and_attr_names(session, dep_service.tenant_env_id, dep_ids, attr_names)
         if envs:
@@ -134,7 +134,7 @@ class AppServiceRelationService(object):
                 port_list = [service_port.container_port for service_port in service_ports]
                 return 201, "要关联的组件暂未开启对内端口，是否打开", port_list
 
-        is_duplicate = self.__is_env_duplicate(session=session, tenant=tenant_env, service=service, dep_service=dep_service)
+        is_duplicate = self.__is_env_duplicate(session=session, tenant_env=tenant_env, service=service, dep_service=dep_service)
         if is_duplicate:
             return 412, "要关联的组件的变量与已关联的组件变量重复，请修改后再试", None
         if service.create_status == "complete":

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class TeamAppCreateRequest(BaseModel):
     """
-    创建团队应用
+    创建环境应用
     """
     app_name: Optional[str] = None
     note: Optional[str] = None
@@ -17,7 +17,6 @@ class TeamAppCreateRequest(BaseModel):
     region_name: Optional[str] = None
     k8s_app: Optional[str] = None
     project_id: Optional[str] = None
-    team_id: Optional[str] = None
     team_alias: Optional[str] = None
     project_alias: Optional[str] = None
 

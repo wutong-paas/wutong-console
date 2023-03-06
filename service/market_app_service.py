@@ -567,51 +567,6 @@ class MarketAppService(object):
         app_upgrade.install(session)
         return market_app.app_name
 
-    def install_helm_app(self,
-                         session,
-                         user,
-                         tenant,
-                         app_id,
-                         version,
-                         region_name,
-                         is_deploy,
-                         install_from_cloud,
-                         helm_dir):
-        app = (
-            session.execute(select(Application).where(Application.ID == app_id))
-        ).scalars().first()
-
-        if not app:
-            raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
-
-        helm_apps = self.get_all_helm_info(helm_dir)
-
-        app_template = {"plugins": None}
-        app_template["group_key"] = "12345678"
-        app_template["group_name"] = "test"
-        app_template["app_config_groups"] = []
-        app_template["template_version"] = "v1"
-        app_template.update({"apps": helm_apps})
-        region = get_env_region_info(tenant.tenant_name, region_name, session)
-
-        component_group = self._create_tenant_service_group(session, region_name, tenant.tenant_env_id,
-                                                            app.app_id,
-                                                            "12345678", version, "test")
-        app_upgrade = AppUpgrade(
-            session,
-            tenant,
-            region,
-            user,
-            app,
-            version,
-            component_group,
-            app_template,
-            install_from_cloud,
-            "helmApplication",
-            is_deploy=is_deploy)
-        app_upgrade.install(session)
-        return ""
-
     def _create_tenant_service_group(self, session: SessionClass, region_name, tenant_env_id, group_id, app_key,
                                      app_version, app_name):
         group_name = '_'.join(["wt", make_uuid()[-4:]])
@@ -705,7 +660,7 @@ class MarketAppService(object):
                     # The version of the component group is the version of the application
                     upgrade_app_models[upgrade_app_key] = {'version': component_group.group_version,
                                                            'component_source': ss}
-        iterator = self.yield_app_info(session=session, app_models=upgrade_app_models, tenant=tenant_env, app_id=app_id)
+        iterator = self.yield_app_info(session=session, app_models=upgrade_app_models, tenant_env=tenant_env, app_id=app_id)
         # todo
         if iterator:
             app_info_list = [app_info for app_info in iterator]
@@ -722,7 +677,7 @@ class MarketAppService(object):
             return ApplicationUpgradeRecord()
         return result
 
-    def yield_app_info(self, session: SessionClass, app_models, tenant, app_id):
+    def yield_app_info(self, session: SessionClass, app_models, tenant_env, app_id):
         for upgrade_key in app_models:
             app_model_key = upgrade_key.split("-")[0]
             upgrade_group_id = upgrade_key.split("-")[1]
@@ -753,7 +708,7 @@ class MarketAppService(object):
                 'is_official': app_model.is_official,
                 'details': app_model.details
             }
-            not_upgrade_record = self.get_app_not_upgrade_record(session=session, tenant_env_id=tenant.tenant_env_id,
+            not_upgrade_record = self.get_app_not_upgrade_record(session=session, tenant_env_id=tenant_env.env_id,
                                                                  group_id=app_id,
                                                                  group_key=app_model_key)
             versions = self.__get_upgradeable_versions(session,

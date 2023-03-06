@@ -59,9 +59,9 @@ class AppPortService:
         port_env = self._create_port_env(component, port, "端口", attr_name_prefix + "_PORT", str(port.container_port))
         return [host_env, port_env]
 
-    def close_thirdpart_outer(self, session, tenant, service, deal_port):
+    def close_thirdpart_outer(self, session, tenant_env, service, deal_port):
         try:
-            self.__close_outer(session, tenant, service, deal_port)
+            self.__close_outer(session, tenant_env, service, deal_port)
         except remote_component_client.CallApiError as e:
             logger.exception(e)
             raise ServiceHandleException(msg="close outer port failed", msg_show="关闭对外服务失败")
@@ -73,7 +73,7 @@ class AppPortService:
 
         old_port_alias = deal_port.port_alias
         deal_port.port_alias = new_port_alias
-        envs = env_var_service.get_env_by_container_port(session=session, tenant=tenant_env, service=service,
+        envs = env_var_service.get_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
                                                          container_port=deal_port.container_port)
         for env in envs:
             old_env_attr_name = env.attr_name
@@ -430,11 +430,11 @@ class AppPortService:
                 port_domains[d.container_port].insert(0, "http://{0}{1}".format(d.domain_name, domain_path))
         return port_domains
 
-    def list_access_infos(self, session: SessionClass, tenant, services):
+    def list_access_infos(self, session: SessionClass, tenant_env, services):
         accesses = dict()
         svc_ports = dict()
         service_ids = [service.service_id for service in services]
-        service_ports = port_repo.list_by_service_ids(session, tenant.tenant_env_id, service_ids)
+        service_ports = port_repo.list_by_service_ids(session, tenant_env.env_id, service_ids)
         for svc_port in service_ports:
             if not svc_ports.get(svc_port.service_id):
                 svc_ports[svc_port.service_id] = {
@@ -535,10 +535,10 @@ class AppPortService:
             port_info_list = []
             for p in http_outer_port:
                 port_dict = p.__dict__
-                access_urls = self.__get_port_access_url(session=session, tenant=tenant_env, service=service,
+                access_urls = self.__get_port_access_url(session=session, tenant_env=tenant_env, service=service,
                                                          port=p.container_port)
                 if not access_urls:
-                    port_and_url = self.__get_stream_outer_url(session=session, tenant=tenant_env, service=service, port=p)
+                    port_and_url = self.__get_stream_outer_url(session=session, tenant_env=tenant_env, service=service, port=p)
                     if port_and_url:
                         access_type = ServicePortConstants.NOT_HTTP_OUTER
                         access_urls = [port_and_url]
@@ -551,8 +551,8 @@ class AppPortService:
             access_type = ServicePortConstants.NOT_HTTP_OUTER
             port_info_list = []
             for p in stream_outer_port:
-                port_and_url = self.__get_stream_outer_url(session=session, tenant=tenant_env, service=service, port=p)
-                associate_info = self.get_port_associated_env(session=session, tenant=tenant_env, service=service,
+                port_and_url = self.__get_stream_outer_url(session=session, tenant_env=tenant_env, service=service, port=p)
+                associate_info = self.get_port_associated_env(session=session, tenant_env=tenant_env, service=service,
                                                               port=p.container_port)
                 port_dict = p.__dict__
                 port_dict["access_urls"] = [port_and_url] if port_and_url else []
@@ -566,7 +566,7 @@ class AppPortService:
             port_info_list = []
             for p in stream_inner_port:
                 port_dict = p.__dict__
-                env_list = self.get_port_associated_env(session=session, tenant=tenant_env, service=service,
+                env_list = self.get_port_associated_env(session=session, tenant_env=tenant_env, service=service,
                                                         port=p.container_port)
                 port_dict["connect_info"] = env_list
                 port_dict["service_cname"] = service.service_cname
@@ -579,7 +579,7 @@ class AppPortService:
             port_info_list = []
             for p in http_inner_port:
                 port_dict = p.__dict__
-                env_list = self.get_port_associated_env(session=session, tenant=tenant_env, service=service,
+                env_list = self.get_port_associated_env(session=session, tenant_env=tenant_env, service=service,
                                                         port=p.container_port)
                 port_dict["connect_info"] = env_list
                 port_dict["service_cname"] = service.service_cname
@@ -590,7 +590,7 @@ class AppPortService:
             access_type = ServicePortConstants.NO_PORT
             return access_type, []
 
-    def __get_port_access_url(self, session: SessionClass, tenant, service, port):
+    def __get_port_access_url(self, session: SessionClass, tenant_env, service, port):
         urls = []
         domains = domain_repo.get_service_domain_by_container_port(session, service.service_id, port)
         if domains:
@@ -603,11 +603,11 @@ class AppPortService:
 
         return urls
 
-    def __get_stream_outer_url(self, session: SessionClass, tenant, service, port):
+    def __get_stream_outer_url(self, session: SessionClass, tenant_env, service, port):
         region = region_repo.get_region_by_region_name(session, service.service_region)
         if region:
             service_tcp_domain = tcp_domain_repo.get_service_tcpdomain(session,
-                                                                       tenant.tenant_env_id, region.region_id,
+                                                                       tenant_env.env_id, region.region_id,
                                                                        service.service_id,
                                                                        port.container_port)
 
@@ -618,9 +618,9 @@ class AppPortService:
             else:
                 return None
 
-    def get_port_associated_env(self, session: SessionClass, tenant, service, port):
+    def get_port_associated_env(self, session: SessionClass, tenant_env, service, port):
 
-        env_var = env_var_service.get_env_by_container_port(session=session, tenant=tenant, service=service,
+        env_var = env_var_service.get_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
                                                             container_port=port)
         env_list = [{"name": e.name, "attr_name": e.attr_name, "attr_value": e.attr_value} for e in env_var]
         attr_names = [e.attr_name for e in env_var]

@@ -23,7 +23,7 @@ class NewApp(object):
 
     def __init__(self,
                  session,
-                 tenant,
+                 tenant_env,
                  region_name,
                  app: Application,
                  component_group: ComponentGroup,
@@ -40,8 +40,8 @@ class NewApp(object):
                  config_group_components=None,
                  user=None):
         self.user = user
-        self.tenant = tenant
-        self.tenant_env_id = tenant.tenant_env_id
+        self.tenant_env = tenant_env
+        self.tenant_env_id = tenant_env.env_id
         self.region_name = region_name
         self.app_id = app.app_id
         self.app = app

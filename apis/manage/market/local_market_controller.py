@@ -32,34 +32,6 @@ from service.tenant_env_service import env_services
 router = APIRouter()
 
 
-@router.get("/enterprise/create-app-teams", response_model=Response, name="安装应用-团队列表")
-async def create_app_teams(
-                           session: SessionClass = Depends(deps.get_session),
-                           user=Depends(deps.get_current_user)) -> Any:
-    if not user:
-        return JSONResponse(general_message(400, "not found user", "用户不存在"), status_code=400)
-    teams = list()
-    tenants = []
-    tenant_env_ids = (
-        session.execute(select(PermRelTenant.tenant_env_id).where(PermRelTenant.user_id == user.user_id))
-    ).scalars().all()
-    tenant_env_ids = set(tenant_env_ids)
-    for tenant_env_id in tenant_env_ids:
-        tn = env_repo.get_by_primary_key(session=session, primary_key=tenant_env_id)
-        if tn:
-            tenants.append(tn)
-
-    if tenants:
-        for tenant in tenants:
-            # perms = user_svc.list_user_team_perms(session, user, tenant)
-            # # todo 权限控制
-            # if 200001 not in perms or 300002 not in perms or 400002 not in perms:
-            #     continue
-            region_teams = env_services.team_with_region_info(session=session, tenant=tenant, request_user=user)
-            teams.append(region_teams)
-    return general_message("0", "success", "查询成功", list=teams)
-
-
 @router.post("/teams/{team_name}/env/{env_id}/apps/market_create", response_model=Response, name="安装市场应用")
 async def market_create(
         request: Request,
@@ -76,7 +48,7 @@ async def market_create(
 
     region_info = region_config_repo.get_one_by_model(session=session,
                                                       query_model=RegionConfig(region_name=region.region_name))
-    market_app_service.install_app(session=session, tenant=env, region=region_info, user=user,
+    market_app_service.install_app(session=session, tenant_env=env, region=region_info, user=user,
                                    app_id=params.group_id,
                                    app_model_key=params.app_id, version=params.app_version,
                                    market_name=params.market_name,

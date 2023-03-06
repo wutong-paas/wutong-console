@@ -238,7 +238,7 @@ class CenterRepository(BaseRepository[CenterApp]):
                           is_complete=None,
                           scope="",
                           source="",
-                          tenant: TeamEnvInfo = None,
+                          tenant_env: TeamEnvInfo = None,
                           page=1,
                           limit=10,
                           order_by="",
@@ -249,7 +249,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         :param is_complete:
         :param scope:
         :param source:
-        :param tenant:
+        :param tenant_env:
         :param page:
         :param limit:
         :param order_by:
@@ -265,18 +265,10 @@ class CenterRepository(BaseRepository[CenterApp]):
             conditions.append(CenterPlugin.plugin_name == plugin_name)
         if category:
             conditions.append(CenterPlugin.category == category)
-        if scope == 'team':
-            conditions.append(CenterPlugin.share_team == tenant.tenant_name)
+        if scope == 'env':
+            conditions.append(CenterPlugin.share_env == tenant_env.env_name)
         elif scope == 'wutong':
             conditions.append(CenterPlugin.scope == scope)
-        elif scope == 'enterprise':
-            tenants = env_repo.get_teams_by_enterprise_id(session, tenant.enterprise_id)
-            tenant_names = [t.tenant_name for t in tenants]
-            conditions.append(or_(
-                (CenterPlugin.share_team.in_(tenant_names), CenterPlugin.scope == "enterprise"),
-                CenterPlugin.scope == "wutong",
-                (CenterPlugin.share_team == tenant.tenant_name, CenterPlugin.scope == "team")
-            ))
         # 查询总数
         # todo
         count = session.query(func.count(CenterPlugin)).filter(*conditions).scalar()

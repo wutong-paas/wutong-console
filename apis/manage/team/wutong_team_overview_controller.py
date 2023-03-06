@@ -98,11 +98,11 @@ async def get_app_state(request: Request,
         return JSONResponse(general_message(400, "query success", "该应用不存在"), status_code=400)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/overview", response_model=Response, name="总览团队信息")
-async def overview_team_info(region_name: Optional[str] = None,
-                             env_id: Optional[str] = None,
-                             session: SessionClass = Depends(deps.get_session)
-                             ) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/overview", response_model=Response, name="总览环境信息")
+async def overview_team_env_info(region_name: Optional[str] = None,
+                                 env_id: Optional[str] = None,
+                                 session: SessionClass = Depends(deps.get_session)
+                                 ) -> Any:
     """
      总览 团队信息
      ---

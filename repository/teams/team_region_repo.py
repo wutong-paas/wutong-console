@@ -28,18 +28,18 @@ class TeamRegionRepository(BaseRepository[EnvRegionInfo]):
         data = results.scalars().first()
         return data
 
-    def get_active_region_by_tenant_name(self, session: SessionClass, tenant_name):
+    def get_active_region_by_env_name(self, session: SessionClass, env_name):
         """
 
         :param tenant_name:
         :return:
         """
-        tenant_results = session.execute(select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_name))
-        tenant = tenant_results.scalars().first()
-        if not tenant:
+        env_results = session.execute(select(TeamEnvInfo).where(TeamEnvInfo.env_name == env_name))
+        tenant_env = env_results.scalars().first()
+        if not tenant_env:
             return None
         regions_result = session.execute(
-            select(EnvRegionInfo).where(EnvRegionInfo.region_env_id == tenant.tenant_env_id,
+            select(EnvRegionInfo).where(EnvRegionInfo.region_env_id == tenant_env.env_id,
                                         EnvRegionInfo.is_active == 1, EnvRegionInfo.is_init == 1))
         regions = regions_result.scalars().all()
         if regions:

@@ -40,11 +40,11 @@ class PropertiesChanges(object):
         self.all_component_one_model = all_component_one_model
 
 
-    def have_upgrade_info(self, tenant, services, version):
+    def have_upgrade_info(self, tenant_env, services, version):
         if not services:
             return False
         for service in services:
-            _, _, upgrade_info = upgrade_service.get_service_changes(service, tenant, version, services)
+            _, _, upgrade_info = upgrade_service.get_service_changes(service, tenant_env, version, services)
             if upgrade_info:
                 return True
         return False
@@ -431,7 +431,7 @@ def has_changes(changes):
     return False
 
 
-def get_upgrade_app_version_template_app(session, tenant, version, pc):
+def get_upgrade_app_version_template_app(session, tenant_env, version, pc):
     if pc.install_from_cloud:
         data = market_app_service.get_market_app_model_version(session=session, market=pc.market,
                                                                app_id=pc.service_source.group_key, version=version,
@@ -446,7 +446,7 @@ def get_upgrade_app_version_template_app(session, tenant, version, pc):
 
         app = next(iter([x for x in apps if func(x)]), None)
     else:
-        app = rbd_center_app_service.get_version_app(tenant.enterprise_id, version, pc.service_source)
+        app = rbd_center_app_service.get_version_app(version, pc.service_source)
     return app
 
 

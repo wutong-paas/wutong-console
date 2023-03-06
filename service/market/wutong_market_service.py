@@ -72,47 +72,6 @@ def update_wutong_market(session: SessionClass, market_id: str, market_name: str
     wutong_market_repo.update_by_primary_key(session=session, update_model=AppMarket(ID=market_id, name=market_name))
 
 
-def install_cloud_market_app(session: SessionClass, user, market_id: str,
-                             params: MarketAppInstallParam):
-    # 前置校验
-    application = application_repo.get_by_primary_key(session=session, primary_key=params.application_id)
-    if not application:
-        raise AbortRequest("application not found", "本地应用不存在", status_code=400, error_code=400)
-    # 查询云市场应用信息 : 应用ID、应用名称
-    market = wutong_market_repo.get_by_primary_key(session=session, primary_key=market_id)
-    app_version_detail = wutong_market_client.get_market_app_version_detail(session=session,
-                                                                            market=market,
-                                                                            version_id=params.market_app_version_id)
-    # 获取应用模版信息
-    app_template = json.loads(app_version_detail.assembly_info)
-    # app_template["update_time"] = app_version.update_time
-
-    # 查询团队
-    team_info = env_repo.get_one_by_model(session=session, query_model=TeamEnvInfo(tenant_env_id=application.tenant_env_id))
-    # 查询region
-    region = region_repo.get_one_by_model(session=session,
-                                          query_model=RegionConfig(region_name=application.region_name))
-
-    # 安装应用
-    component_group = create_tenant_service_group(session, application.region_name, application.tenant_env_id,
-                                                  application.ID,
-                                                  params.market_app_id, app_version_detail.numbers,
-                                                  params.market_app_name)
-    app_upgrade = AppUpgrade(
-        session,
-        team_info,
-        region,
-        user,
-        application,
-        app_version_detail.numbers,
-        component_group,
-        app_template,
-        False,
-        market.name,
-        is_deploy=params.is_deploy)
-    app_upgrade.install(session)
-
-
 def create_tenant_service_group(session: SessionClass, region_name, tenant_env_id, group_id, app_key,
                                 app_version, app_name):
     group_name = '_'.join(["wt", make_uuid()[-4:]])
@@ -127,7 +86,7 @@ def create_tenant_service_group(session: SessionClass, region_name, tenant_env_i
     }
     add_model: TeamApplication = TeamApplication(**params)
     session.add(add_model)
-    # session.flush()
+    session.flush()
 
     return add_model
 

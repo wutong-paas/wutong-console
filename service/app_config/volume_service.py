@@ -136,7 +136,7 @@ class AppVolumeService(object):
             if settings["access_mode"] == "RWO" or settings["access_mode"] == "ROX":
                 raise ErrVolumeTypeDoNotAllowMultiNode
 
-    def create_service_volume(self, session: SessionClass, tenant, service, volume_path, volume_type, volume_name,
+    def create_service_volume(self, session: SessionClass, tenant_env, service, volume_path, volume_type, volume_name,
                               settings=None,
                               mode=None):
         # volume_name = volume_name.strip()
@@ -144,7 +144,7 @@ class AppVolumeService(object):
         volume_name = self.check_volume_name(session=session, service=service, volume_name=volume_name)
 
         self.check_volume_path(session=session, service=service, volume_path=volume_path)
-        host_path = "/wtdata/tenant/{0}/service/{1}{2}".format(tenant.tenant_env_id, service.service_id, volume_path)
+        host_path = "/wtdata/env/{0}/service/{1}{2}".format(tenant_env.env_id, service.service_id, volume_path)
 
         volume_data = {
             "service_id": service.service_id,
@@ -157,9 +157,9 @@ class AppVolumeService(object):
         }
 
         if settings:
-            self.check_volume_options(session=session, tenant=tenant, service=service, volume_type=volume_type,
+            self.check_volume_options(session=session, tenant_env=tenant_env, service=service, volume_type=volume_type,
                                       settings=settings)
-            settings = self.setting_volume_properties(session, tenant, service, volume_type, settings)
+            settings = self.setting_volume_properties(session, tenant_env, service, volume_type, settings)
 
             volume_data['volume_capacity'] = settings['volume_capacity']
             volume_data['volume_provider_name'] = settings['volume_provider_name']
@@ -224,7 +224,7 @@ class AppVolumeService(object):
         if exists is False:
             raise ErrVolumeTypeNotFound
 
-    def setting_volume_properties(self, session: SessionClass, tenant, service, volume_type, settings=None):
+    def setting_volume_properties(self, session: SessionClass, tenant_env, service, volume_type, settings=None):
         """
         目的：
         1. 现有存储如果提供默认的读写策略、共享模式等参数
@@ -243,7 +243,7 @@ class AppVolumeService(object):
         capacity = self.__setting_volume_capacity(session=session, service=service, volume_type=volume_type,
                                                   settings=settings)
         settings["volume_capacity"] = capacity
-        volume_provider_name = self.__setting_volume_provider_name(session=session, tenant=tenant, service=service,
+        volume_provider_name = self.__setting_volume_provider_name(session=session, tenant_env=tenant_env, service=service,
                                                                    volume_type=volume_type, settings=settings)
         settings["volume_provider_name"] = volume_provider_name
 

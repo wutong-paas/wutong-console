@@ -15,7 +15,7 @@ from service.region_service import region_services
 
 class TopologicalService(object):
 
-    def get_group_topological_graph_details(self, session, tenant_env, env_id, team_name, service, region_name):
+    def get_group_topological_graph_details(self, session, tenant_env, env_id, env_name, service, region_name):
         result = dict()
         # 组件信息
         result['tenant_env_id'] = env_id
@@ -42,7 +42,7 @@ class TopologicalService(object):
             if port.is_outer_service:
                 if port.protocol != 'http' and port.protocol != "https":
                     cur_region = service.service_region.replace("-1", "")
-                    domain = "{0}.{1}.{2}-s1.goodrain.net".format(service.service_alias, team_name, cur_region)
+                    domain = "{0}.{1}.{2}-s1.goodrain.net".format(service.service_alias, env_name, cur_region)
                     tcpdomain = region_services.get_region_tcpdomain(session, service.service_region)
                     if tcpdomain:
                         domain = tcpdomain
@@ -55,7 +55,7 @@ class TopologicalService(object):
                 elif port.protocol == 'http' or port.protocol == 'https':
                     exist_service_domain = True
                     httpdomain = region_services.get_region_httpdomain(session, service.service_region)
-                    outer_service = {"domain": "{0}.{1}.{2}".format(service.service_alias, team_name, httpdomain), "port": ""}
+                    outer_service = {"domain": "{0}.{1}.{2}".format(service.service_alias, env_name, httpdomain), "port": ""}
                 # 外部url
                 if outer_service['port'] == '-1':
                     port_info['outer_url'] = 'query error!'
@@ -105,7 +105,7 @@ class TopologicalService(object):
 
         # 依赖组件信息
         relation_list = session.execute(select(TeamComponentRelation).where(
-            TeamComponentRelation.tenant_env_id == team_id,
+            TeamComponentRelation.tenant_env_id == env_id,
             TeamComponentRelation.service_id == service.service_id
         )).scalars().all()
         relation_id_list = set([x.dep_service_id for x in relation_list])
@@ -139,7 +139,7 @@ class TopologicalService(object):
             result["cur_status"] = "third_party"
         return result
 
-    def get_internet_topological_graph(self, session, group_id, team_name):
+    def get_internet_topological_graph(self, session, group_id, env_name):
         result = dict()
         service_groups = session.execute(select(ComponentApplicationRelation).where(
             ComponentApplicationRelation.group_id == group_id
@@ -179,7 +179,7 @@ class TopologicalService(object):
                 if port.is_outer_service:
                     if port.protocol != 'http' and port.protocol != "https":
                         cur_region = service_region.replace("-1", "")
-                        domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_info.service_alias, team_name, cur_region)
+                        domain = "{0}.{1}.{2}-s1.goodrain.net".format(service_info.service_alias, env_name, cur_region)
                         tcpdomain = region_services.get_region_tcpdomain(session, service_region)
                         if tcpdomain:
                             domain = tcpdomain
@@ -193,7 +193,7 @@ class TopologicalService(object):
                         exist_service_domain = True
                         httpdomain = region_services.get_region_httpdomain(session, service_region)
                         outer_service = {
-                            "domain": "{0}.{1}.{2}".format(service_info.service_alias, team_name, httpdomain),
+                            "domain": "{0}.{1}.{2}".format(service_info.service_alias, env_name, httpdomain),
                             "port": ""
                         }
                     else:

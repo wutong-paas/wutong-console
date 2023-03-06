@@ -68,7 +68,7 @@ class AppImportService(object):
             template_version=app_template["template_version"],
             record_id=import_record.ID,
             share_user=0,
-            share_team="",
+            share_env="",
             is_complete=1,
             app_version_info=app_template.get("annotations", {}).get("version_info", ""),
             version_alias=app_template.get("annotations", {}).get("version_alias", ""),

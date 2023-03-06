@@ -55,7 +55,7 @@ class Component(object):
         self.support_labels = {label.label_name: label for label in support_labels}
         self.action_type = ActionType.NOTHING.value
 
-    def set_changes(self, session, tenant, region, changes, governance_mode):
+    def set_changes(self, session, tenant_env, region, changes, governance_mode):
         """
         Set changes to the component
         """

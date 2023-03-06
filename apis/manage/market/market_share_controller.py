@@ -29,7 +29,8 @@ from service.share_services import share_service
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response, name="查询分享记录详情")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response,
+            name="查询分享记录详情")
 async def get_record_detail(group_id: Optional[str] = None,
                             record_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
@@ -85,7 +86,8 @@ async def get_record_detail(group_id: Optional[str] = None,
     return JSONResponse(general_message("0", "success", None, bean=jsonable_encoder(data)), status_code=200)
 
 
-@router.put("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response, name="更新分享记录")
+@router.put("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record/{record_id}", response_model=Response,
+            name="更新分享记录")
 async def update_record(session: SessionClass = Depends(deps.get_session),
                         params: Optional[MarketShareUpdateParam] = MarketShareUpdateParam(),
                         group_id: Optional[str] = None,
@@ -182,7 +184,7 @@ async def create_share_info(
                                                       tenant_env=env,
                                                       region_name=region_name,
                                                       share_record=share_record,
-                                                      share_team=env,
+                                                      share_env=env,
                                                       share_user=user,
                                                       share_info=params,
                                                       use_force=use_force)
@@ -195,7 +197,6 @@ async def shared_apps(scope: Optional[str] = None,
                       group_id: Optional[str] = None,
                       session: SessionClass = Depends(deps.get_session),
                       env=Depends(deps.get_current_team_env)) -> Any:
-
     data = share_service.get_last_shared_app_and_app_list(tenant_env=env,
                                                           group_id=group_id, scope=scope,
                                                           market_name=market_id, session=session)
@@ -206,11 +207,14 @@ async def shared_apps(scope: Optional[str] = None,
 
 
 @router.get("/teams/{team_name}/env/{env_id}/share/{share_id}/events", response_model=Response, name="获取分享事件")
-async def get_share_event(team_name: Optional[str] = None,
+async def get_share_event(env_id: Optional[str] = None,
                           share_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+        share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
             return JSONResponse(result, status_code=404)
@@ -263,7 +267,7 @@ async def share_event(
         env = env_repo.get_env_by_env_id(session, env_id)
         if not env:
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-        share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+        share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
             return JSONResponse(result, status_code=404)
@@ -308,7 +312,7 @@ async def get_share_info(
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
-        share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+        share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
             return JSONResponse(result, status_code=404)
@@ -336,6 +340,7 @@ async def get_share_info(
 @router.delete("/teams/{team_name}/env/{env_id}/share/{share_id}/giveup", response_model=Response,
                name="放弃应用分享操作，放弃时删除分享记录")
 async def delete_share_info(team_name: Optional[str] = None,
+                            env_id: Optional[str] = None,
                             share_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -354,7 +359,10 @@ async def delete_share_info(team_name: Optional[str] = None,
           paramType: path
     """
     try:
-        share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+        env = env_repo.get_env_by_env_id(session, env_id)
+        if not env:
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+        share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，不能放弃")
             return JSONResponse(result, status_code=404)
@@ -364,7 +372,7 @@ async def delete_share_info(team_name: Optional[str] = None,
         app = share_service.get_app_by_key(session=session, key=share_record.group_share_id)
         if app and not app.is_complete:
             share_service.delete_app(session=session, key=share_record.group_share_id)
-        share_service.delete_record(session=session, ID=share_id, team_name=team_name)
+        share_service.delete_record(session=session, ID=share_id, env_name=env.env_name)
         result = general_message(200, "delete success", "放弃成功")
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
@@ -377,12 +385,12 @@ async def delete_share_info(team_name: Optional[str] = None,
 
 @router.post("/teams/{team_name}/env/{env_id}/share/{share_id}/complete", response_model=Response,
              name="发布应用")
-async def share_app(team_name: Optional[str] = None,
+async def share_app(
                     share_id: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session),
                     user=Depends(deps.get_current_user),
                     env=Depends(deps.get_current_team_env)) -> Any:
-    share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+    share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
     if not share_record:
         result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
         return JSONResponse(result, status_code=404)
@@ -470,7 +478,7 @@ async def share_plugin(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+    share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
     if not share_record:
         result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
         return JSONResponse(result, status_code=404)
@@ -503,7 +511,6 @@ async def share_plugin(
             name="获取分享插件进度")
 async def get_share_plugin(
         request: Request,
-        team_name: Optional[str] = None,
         env_id: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,
@@ -511,7 +518,7 @@ async def get_share_plugin(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, team_name=team_name)
+    share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
     if not share_record:
         result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
         return JSONResponse(result, status_code=404)

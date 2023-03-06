@@ -158,7 +158,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
     with open(file_path, encoding='utf-8') as f:
         all_default_config = json.load(f)
 
-    def update_sys_plugin(self, session, plugin, tenant, plugin_type, user, region, needed_plugin_config,
+    def update_sys_plugin(self, session, plugin, tenant_env, plugin_type, user, region, needed_plugin_config,
                           build_version):
         build_cmd = ""
         if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin":
@@ -187,7 +187,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         plugin_build_version = plugin_version_service.create_build_version(session=session,
                                                                            region=region,
                                                                            plugin_id=plugin.plugin_id,
-                                                                           tenant_env_id=tenant.tenant_env_id,
+                                                                           tenant_env_id=tenant_env.env_id,
                                                                            user_id=user.user_id, update_info="",
                                                                            build_status="unbuild",
                                                                            min_memory=min_memory,

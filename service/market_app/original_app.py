@@ -19,9 +19,9 @@ from service.market_app.component import Component
 
 
 class OriginalApp(object):
-    def __init__(self, session, tenant, region: RegionConfig, app: Application, upgrade_group_id, support_labels=None):
-        self.tenant = tenant
-        self.tenant_env_id = tenant.tenant_env_id
+    def __init__(self, session, tenant_env, region: RegionConfig, app: Application, upgrade_group_id, support_labels=None):
+        self.tenant_env = tenant_env
+        self.tenant_env_id = tenant_env.env_id
         self.region = region
         self.region_name = region.region_name
         self.app_id = app.app_id

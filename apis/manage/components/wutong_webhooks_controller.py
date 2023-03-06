@@ -39,7 +39,6 @@ async def get_auto_url(request: Request,
             result = general_message(400, "Parameter cannot be empty", "缺少参数")
             return JSONResponse(result, status_code=400)
         service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-        tenant_env_id = env.env_id
         service_alias = service.service_alias
         service_obj = team_component_repo.get_one_by_model(session=session,
                                                            query_model=TeamComponentInfo(tenant_env_id=env.env_id,
@@ -180,7 +179,6 @@ async def update_key(request: Request,
             result = general_message(code, "no secret_key", "请输入密钥")
             return JSONResponse(result, status_code=code)
         service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-        tenant_env_id = env.env_id
         service_alias = service.service_alias
         service_obj = team_component_repo.get_one_by_model(session=session,
                                                            query_model=TeamComponentInfo(tenant_env_id=env.env_id,

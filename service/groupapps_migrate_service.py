@@ -205,17 +205,17 @@ class GroupappsMigrateService(object):
         return migrate_record
 
     def __init_app(self, session: SessionClass, service_base_info, new_service_id, new_servie_alias, user, region,
-                   tenant):
+                   tenant_env):
         service_base_info.pop("ID")
         ts = TeamComponentInfo(**service_base_info)
         if service_base_info["service_source"] == "third_party":
-            new_service_id = make_uuid(tenant.tenant_env_id)
+            new_service_id = make_uuid(tenant_env.env_id)
             new_servie_alias = application_service.create_service_alias(session=session, service_id=new_service_id)
         ts.service_id = new_service_id
         ts.service_alias = new_servie_alias
         ts.service_region = region
         ts.creater = user.user_id
-        ts.tenant_env_id = tenant.tenant_env_id
+        ts.tenant_env_id = tenant_env.env_id
         ts.create_status = "creating"
         ts.service_cname = ts.service_cname + "-copy"
         ts.k8s_component_name = "{}-{}".format(
@@ -367,12 +367,12 @@ class GroupappsMigrateService(object):
                                                                        tcp_rule_id,
                                                                        tenant_env_id, region_id)
 
-    def __save_env(self, session: SessionClass, tenant, service, tenant_service_env_vars):
+    def __save_env(self, session: SessionClass, tenant_env, service, tenant_service_env_vars):
         env_list = []
         for env in tenant_service_env_vars:
             env.pop("ID")
             new_env = ComponentEnvVar(**env)
-            new_env.env_id = tenant.tenant_env_id
+            new_env.env_id = tenant_env.env_id
             new_env.service_id = service.service_id
             env_list.append(new_env)
         if env_list:
@@ -439,12 +439,12 @@ class GroupappsMigrateService(object):
             new_compile_env.service_id = service.service_id
             compile_env_repo.save(session, new_compile_env)
 
-    def __save_service_label(self, session: SessionClass, tenant, service, region, service_labels):
+    def __save_service_label(self, session: SessionClass, tenant_env, service, region, service_labels):
         service_label_list = []
         for service_label in service_labels:
             service_label.pop("ID")
             new_service_label = ComponentLabels(**service_label)
-            new_service_label.tenant_env_id = tenant.tenant_env_id
+            new_service_label.tenant_env_id = tenant_env.env_id
             new_service_label.service_id = service.service_id
             new_service_label.region = region
             service_label_list.append(new_service_label)
@@ -461,14 +461,14 @@ class GroupappsMigrateService(object):
         if service_probe_list:
             port_repo.bulk_all(session, service_probe_list)
 
-    def __save_service_source(self, session: SessionClass, tenant, service, service_source):
+    def __save_service_source(self, session: SessionClass, tenant_env, service, service_source):
         if service_source:
             service_source.pop("ID")
             if "service" in service_source:
                 service_source["service_id"] = service_source.pop("service")
             new_service_source = ComponentSourceInfo(**service_source)
             new_service_source.service_id = service.service_id
-            new_service_source.team_id = tenant.tenant_env_id
+            new_service_source.team_id = tenant_env.env_id
             service_source_repo.save(session=session, new_service_source=new_service_source)
 
     def __save_service_auth(self, session: SessionClass, service, service_auth):
@@ -494,10 +494,10 @@ class GroupappsMigrateService(object):
             service_endpoint_list.append(ThirdPartyComponentEndpoints(**endpoint))
         port_repo.bulk_all(session, service_endpoint_list)
 
-    def __save_service_monitors(self, session: SessionClass, tenant, service, service_monitors):
+    def __save_service_monitors(self, session: SessionClass, tenant_env, service, service_monitors):
         if not service_monitors:
             return
-        service_monitor_service.bulk_create_component_service_monitors(session=session, tenant=tenant, service=service,
+        service_monitor_service.bulk_create_component_service_monitors(session=session, tenant_env=tenant_env, service=service,
                                                                        service_monitors=service_monitors)
 
     def __save_component_graphs(self, session: SessionClass, service, component_graphs):
@@ -505,13 +505,13 @@ class GroupappsMigrateService(object):
             return
         component_graph_service.bulk_create(session=session, component_id=service.service_id, graphs=component_graphs)
 
-    def __save_plugins(self, session: SessionClass, region_name, tenant, plugins):
+    def __save_plugins(self, session: SessionClass, region_name, tenant_env, plugins):
         if not plugins:
             return
         create_plugins = []
         for plugin in plugins:
             plugin.pop("ID")
-            plugin["tenant_env_id"] = tenant.tenant_env_id
+            plugin["tenant_env_id"] = tenant_env.env_id
             plugin["region"] = region_name
             plugin = plugin_repo.create_if_not_exist(session, **plugin)
             if plugin:
@@ -532,13 +532,13 @@ class GroupappsMigrateService(object):
             group.pop("ID")
             config_group_repo.create_if_not_exist(session, **group)
 
-    def __save_plugin_build_versions(self, session: SessionClass, tenant, plugin_build_versions):
+    def __save_plugin_build_versions(self, session: SessionClass, tenant_env, plugin_build_versions):
         if not plugin_build_versions:
             return
         create_version_list = []
         for version in plugin_build_versions:
             version.pop("ID")
-            version["tenant_env_id"] = tenant.tenant_env_id
+            version["tenant_env_id"] = tenant_env.env_id
             create_version = plugin_version_repo.create_if_not_exist(session, **version)
             create_version_list.append(create_version)
         return create_version_list
@@ -597,7 +597,7 @@ class GroupappsMigrateService(object):
             new_configs.append(new_cfg)
         port_repo.bulk_all(session, new_configs)
 
-    def __save_service_relations(self, session: SessionClass, tenant, service_relations_list, old_new_service_id_map,
+    def __save_service_relations(self, session: SessionClass, tenant_env, service_relations_list, old_new_service_id_map,
                                  same_team,
                                  same_region):
         new_service_relation_list = []
@@ -605,7 +605,7 @@ class GroupappsMigrateService(object):
             for relation in service_relations_list:
                 relation.pop("ID")
                 new_service_relation = TeamComponentRelation(**relation)
-                new_service_relation.tenant_env_id = tenant.tenant_env_id
+                new_service_relation.tenant_env_id = tenant_env.env_id
                 new_service_relation.service_id = old_new_service_id_map[relation["service_id"]]
                 if old_new_service_id_map.get(relation["dep_service_id"]):
                     new_service_relation.dep_service_id = old_new_service_id_map[relation["dep_service_id"]]
@@ -617,7 +617,7 @@ class GroupappsMigrateService(object):
                 new_service_relation_list.append(new_service_relation)
             port_repo.bulk_all(session, new_service_relation_list)
 
-    def __save_service_mnt_relation(self, session: SessionClass, tenant, service_mnt_relation_list,
+    def __save_service_mnt_relation(self, session: SessionClass, tenant_env, service_mnt_relation_list,
                                     old_new_service_id_map, same_team,
                                     same_region):
         new_service_mnt_relation_list = []
@@ -625,7 +625,7 @@ class GroupappsMigrateService(object):
             for mnt in service_mnt_relation_list:
                 mnt.pop("ID")
                 new_service_mnt = TeamComponentMountRelation(**mnt)
-                new_service_mnt.tenant_env_id = tenant.tenant_env_id
+                new_service_mnt.tenant_env_id = tenant_env.env_id
                 new_service_mnt.service_id = old_new_service_id_map[mnt["service_id"]]
                 if old_new_service_id_map.get(mnt["dep_service_id"]):
                     new_service_mnt.dep_service_id = old_new_service_id_map[mnt["dep_service_id"]]
@@ -661,28 +661,28 @@ class GroupappsMigrateService(object):
             new_service_alias = changed_service_map[service_base_info["service_id"]]["ServiceAlias"]
             ts = self.__init_app(session=session, service_base_info=app["service_base"], new_service_id=new_service_id,
                                  new_servie_alias=new_service_alias, user=user, region=migrate_region,
-                                 tenant=env)
+                                 tenant_env=env)
             old_new_service_id_map[app["service_base"]["service_id"]] = ts.service_id
             application_service.add_service_to_group(session, env, migrate_region, group.ID, ts.service_id)
             self.__save_port(session=session, region_name=migrate_region, tenant_env=env, service=ts,
                              tenant_service_ports=app["service_ports"], governance_mode=group.governance_mode,
                              tenant_service_env_vars=app["service_env_vars"], sync_flag=sync_flag)
-            self.__save_env(session=session, tenant=env, service=ts,
+            self.__save_env(session=session, tenant_env=env, service=ts,
                             tenant_service_env_vars=app["service_env_vars"])
             self.__save_volume(session=session, tenant_env=env, service=ts,
                                tenant_service_volumes=app["service_volumes"],
                                service_config_file=app["service_config_file"] if 'service_config_file' in app else None)
             self.__save_compile_env(session=session, service=ts, compile_env=app["service_compile_env"])
-            self.__save_service_label(session=session, tenant=env, service=ts, region=migrate_region,
+            self.__save_service_label(session=session, tenant_env=env, service=ts, region=migrate_region,
                                       service_labels=app["service_labels"])
             if sync_flag:
                 self.__save_service_probes(session=session, service=ts, service_probes=app["service_probes"])
-            self.__save_service_source(session=session, tenant=env, service=ts,
+            self.__save_service_source(session=session, tenant_env=env, service=ts,
                                        service_source=app["service_source"])
             self.__save_service_auth(session=session, service=ts, service_auth=app["service_auths"])
             self.__save_third_party_service_endpoints(session=session, service=ts,
                                                       service_endpoints=app.get("third_party_service_endpoints", []))
-            self.__save_service_monitors(session=session, tenant=env, service=ts,
+            self.__save_service_monitors(session=session, tenant_env=env, service=ts,
                                          service_monitors=app.get("service_monitors"))
             self.__save_component_graphs(session=session, service=ts, component_graphs=app.get("component_graphs"))
 
@@ -738,13 +738,13 @@ class GroupappsMigrateService(object):
             session.merge(ts)
 
         # restore plugin info
-        self.__save_plugins(session=session, region_name=migrate_region, tenant=env,
+        self.__save_plugins(session=session, region_name=migrate_region, tenant_env=env,
                             plugins=metadata["plugin_info"]["plugins"])
         self.__save_plugin_config_items(session=session,
                                         plugin_config_items=metadata["plugin_info"]["plugin_config_items"])
         self.__save_plugin_config_groups(session=session,
                                          plugin_config_groups=metadata["plugin_info"]["plugin_config_groups"])
-        versions = self.__save_plugin_build_versions(session=session, tenant=env,
+        versions = self.__save_plugin_build_versions(session=session, tenant_env=env,
                                                      plugin_build_versions=metadata["plugin_info"][
                                                          "plugin_build_versions"])
         for app in apps:
@@ -756,11 +756,11 @@ class GroupappsMigrateService(object):
             if app.get("service_plugin_config", None):
                 self.__save_service_plugin_config(session=session, sid=new_service_id,
                                                   service_plugin_configs=app["service_plugin_config"])
-        self.__save_service_relations(session=session, tenant=env,
+        self.__save_service_relations(session=session, tenant_env=env,
                                       service_relations_list=service_relations_list,
                                       old_new_service_id_map=old_new_service_id_map, same_team=same_team,
                                       same_region=same_region)
-        self.__save_service_mnt_relation(session=session, tenant=env,
+        self.__save_service_mnt_relation(session=session, tenant_env=env,
                                          service_mnt_relation_list=service_mnt_list,
                                          old_new_service_id_map=old_new_service_id_map, same_team=same_team,
                                          same_region=same_region)

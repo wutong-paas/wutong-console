@@ -14,7 +14,7 @@ from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.bcode import ErrThirdComponentStartFailed
-from exceptions.exceptions import ErrChangeServiceType, TenantNotExistError, NoAccessKeyErr
+from exceptions.exceptions import ErrChangeServiceType, TenantNotExistError
 from exceptions.main import AbortRequest, ServiceHandleException
 from models.application.models import ComponentApplicationRelation, ComposeServiceRelation, ConfigGroupService, \
     ServiceShareRecordEvent, Application
@@ -97,7 +97,6 @@ class AppManageService(AppManageBase):
             body["operator"] = str(user.nick_name)
             body["upgrade_version"] = deploy_version
             body["service_id"] = service.service_id
-            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.rollback(session, service.service_region, tenant_env, service.service_alias,
                                                  body)
@@ -192,20 +191,20 @@ class AppManageService(AppManageBase):
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(session=session,
                                                                             pk=service.tenant_service_group_id)
-        self.__create_service_delete_event(session=session, tenant=tenant_env, service=service, user=user)
+        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service, user=user)
         return ignore_delete_from_cluster
 
-    def delete_components(self, session: SessionClass, tenant, components, user=None):
+    def delete_components(self, session: SessionClass, tenant_env, components, user=None):
         # Batch delete considers that the preconditions have been met,
         # and no longer judge the preconditions
         for cpt in components:
-            self.truncate_service(session, tenant, cpt, user)
+            self.truncate_service(session, tenant_env, cpt, user)
 
     # todo 事物
     def truncate_service(self, session: SessionClass, tenant_env, service, user=None):
         """彻底删除组件"""
         try:
-            data = {"etcd_keys": self.get_etcd_keys(session=session, tenant=tenant_env, service=service)}
+            data = {"etcd_keys": self.get_etcd_keys(session=session, tenant_env=tenant_env, service=service)}
             remote_component_client.delete_service(session, service.service_region, tenant_env,
                                                    service.service_alias,
                                                    tenant_env.enterprise_id,
@@ -215,7 +214,7 @@ class AppManageService(AppManageBase):
                 logger.exception(e)
                 return 500, "删除组件失败 {0}".format(e.message)
 
-        self._truncate_service(session=session, tenant=tenant_env, service=service, user=user)
+        self._truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
 
         # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
@@ -232,7 +231,7 @@ class AppManageService(AppManageBase):
 
         return 200, "success"
 
-    def _truncate_service(self, session: SessionClass, tenant, service, user=None):
+    def _truncate_service(self, session: SessionClass, tenant_env, service, user=None):
         if service.create_status == "complete":
             data = jsonable_encoder(service)
             data.pop("ID")
@@ -256,7 +255,7 @@ class AppManageService(AppManageBase):
         service_id = service.service_id
 
         session.execute(
-            delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant.tenant_env_id,
+            delete(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env.env_id,
                                           ComponentEnvVar.service_id == service_id)
         )
 
@@ -273,7 +272,7 @@ class AppManageService(AppManageBase):
         )
 
         session.execute(
-            delete(TeamComponentRelation).where(TeamComponentRelation.tenant_env_id == tenant.tenant_env_id,
+            delete(TeamComponentRelation).where(TeamComponentRelation.tenant_env_id == tenant_env.env_id,
                                                 TeamComponentRelation.service_id == service_id)
         )
 
@@ -282,7 +281,7 @@ class AppManageService(AppManageBase):
         )
 
         session.execute(
-            delete(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant.tenant_env_id,
+            delete(TeamComponentPort).where(TeamComponentPort.tenant_env_id == tenant_env.env_id,
                                             TeamComponentPort.service_id == service_id)
         )
 
@@ -311,7 +310,7 @@ class AppManageService(AppManageBase):
         )
 
         session.execute(
-            delete(ComponentSourceInfo).where(ComponentSourceInfo.tenant_env_id == tenant.tenant_env_id,
+            delete(ComponentSourceInfo).where(ComponentSourceInfo.tenant_env_id == tenant_env.env_id,
                                               ComponentSourceInfo.service_id == service_id)
         )
 
@@ -340,10 +339,10 @@ class AppManageService(AppManageBase):
             delete(ComponentMonitor).where(ComponentMonitor.service_id == service_id)
         )
 
-        self.__create_service_delete_event(session=session, tenant=tenant, service=service, user=user)
+        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service, user=user)
         service_info_repo.delete_service(session, service.ID)
 
-    def get_etcd_keys(self, session: SessionClass, tenant, service):
+    def get_etcd_keys(self, session: SessionClass, tenant_env, service):
         logger.debug("ready delete etcd data while delete service")
         keys = []
         # 删除代码检测的etcd数据
@@ -360,14 +359,14 @@ class AppManageService(AppManageBase):
                 keys.append(event.region_share_id)
         return keys
 
-    def __create_service_delete_event(self, session: SessionClass, tenant, service, user):
+    def __create_service_delete_event(self, session: SessionClass, tenant_env, service, user):
         if not user:
             return None
         try:
             event_info = {
                 "event_id": make_uuid(),
                 "service_id": service.service_id,
-                "tenant_env_id": tenant.tenant_env_id,
+                "tenant_env_id": tenant_env.env_id,
                 "type": "truncate",
                 "old_deploy_version": "",
                 "user_name": user.nick_name,
@@ -401,13 +400,13 @@ class AppManageService(AppManageBase):
         data = ''
         code = 200
         if action == "start":
-            code, data = self.start_services_info(session=session, body=body, services=services, tenant=tenant_env,
+            code, data = self.start_services_info(session=session, body=body, services=services, tenant_env=tenant_env,
                                                   user=user)
         elif action == "stop":
-            code, data = self.stop_services_info(session=session, body=body, services=services, tenant=tenant_env,
+            code, data = self.stop_services_info(session=session, body=body, services=services, tenant_env=tenant_env,
                                                  user=user)
         elif action == "upgrade":
-            code, data = self.upgrade_services_info(session=session, body=body, services=services, tenant=tenant_env,
+            code, data = self.upgrade_services_info(session=session, body=body, services=services, tenant_env=tenant_env,
                                                     user=user)
         elif action == "deploy":
             code, data = self.deploy_services_info(session=session, body=body, services=services, tenant_env=tenant_env,
@@ -423,7 +422,7 @@ class AppManageService(AppManageBase):
             logger.exception(e)
             raise AbortRequest(500, "failed to request region api", "数据中心操作失败")
 
-    def start_services_info(self, session: SessionClass, body, services, tenant, user):
+    def start_services_info(self, session: SessionClass, body, services, tenant_env, user):
         body["operation"] = "start"
         start_infos_list = []
         body["start_infos"] = start_infos_list
@@ -437,7 +436,7 @@ class AppManageService(AppManageBase):
                 start_infos_list.append(service_dict)
         return 200, body
 
-    def stop_services_info(self, session: SessionClass, body, services, tenant, user):
+    def stop_services_info(self, session: SessionClass, body, services, tenant_env, user):
         body["operation"] = "stop"
         stop_infos_list = []
         body["stop_infos"] = stop_infos_list
@@ -448,7 +447,7 @@ class AppManageService(AppManageBase):
                 stop_infos_list.append(service_dict)
         return 200, body
 
-    def upgrade_services_info(self, session: SessionClass, body, services, tenant, user):
+    def upgrade_services_info(self, session: SessionClass, body, services, tenant_env, user):
         body["operation"] = "upgrade"
         upgrade_infos_list = []
         body["upgrade_infos"] = upgrade_infos_list
@@ -937,8 +936,8 @@ class AppManageService(AppManageBase):
             return True, dep_service_names
         return False, ""
 
-    def __is_service_mnt_related(self, session: SessionClass, tenant, service):
-        sms = mnt_repo.get_mount_current_service(session, tenant.tenant_env_id, service.service_id)
+    def __is_service_mnt_related(self, session: SessionClass, tenant_env, service):
+        sms = mnt_repo.get_mount_current_service(session, tenant_env.env_id, service.service_id)
         if sms:
             sids = [sm.service_id for sm in sms]
             service_ids = service_info_repo.get_services_by_service_ids(session, sids)
@@ -1005,14 +1004,14 @@ class AppManageService(AppManageBase):
         if is_related:
             return 412, "组件被{0}依赖，不可删除".format(msg)
         # 判断组件是否被其他组件挂载
-        is_mounted, msg = self.__is_service_mnt_related(session=session, tenant=tenant_env, service=service)
+        is_mounted, msg = self.__is_service_mnt_related(session=session, tenant_env=tenant_env, service=service)
         if is_mounted:
             return 412, "当前组件有存储被{0}组件挂载, 不可删除".format(msg)
         if not is_force:
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(session=session, service=service)
             # 组件关系移除
-            self.move_service_relation_info_recycle_bin(session=session, tenant=tenant_env, service=service)
+            self.move_service_relation_info_recycle_bin(session=session, tenant_env=tenant_env, service=service)
             return 200, "success"
         else:
             try:
@@ -1064,10 +1063,6 @@ class AppManageService(AppManageBase):
             raise ErrChangeServiceType
 
     def deploy(self, session: SessionClass, tenant_env, service, user):
-        status_info_map = application_service.get_service_status(session=session, tenant_env=tenant_env,
-                                                                 service=service)
-        # if status_info_map.get("status", "Unknown") in ["undeploy", "closed "] and not True:
-        #     raise ServiceHandleException(msg="not enough quota", error_code=20002)
         body = dict()
         # 默认更新升级
         body["action"] = "deploy"
@@ -1143,7 +1138,7 @@ class AppManageService(AppManageBase):
         try:
             data = {}
             logger.debug("delete service {0} for team {1}".format(service.service_cname, tenant_env.tenant_name))
-            data["etcd_keys"] = self.get_etcd_keys(session=session, tenant=tenant_env, service=service)
+            data["etcd_keys"] = self.get_etcd_keys(session=session, tenant_env=tenant_env, service=service)
             remote_component_client.delete_service(session, service.service_region, tenant_env,
                                                    service.service_alias, tenant_env.enterprise_id,
                                                    data)
@@ -1212,7 +1207,7 @@ class AppManageService(AppManageBase):
             code = 409
             return code, msg
         # 判断组件是否被其他组件挂载
-        is_mounted, msg = self.__is_service_mnt_related(session=session, tenant=tenant_env, service=service)
+        is_mounted, msg = self.__is_service_mnt_related(session=session, tenant_env=tenant_env, service=service)
         if is_mounted:
             code = 412
             msg = "当前组件被其他组件挂载, 您确定要删除吗？"
@@ -1238,7 +1233,7 @@ class AppManageService(AppManageBase):
             # 如果不是真删除，将数据备份,删除tenant_service表中的数据
             self.move_service_into_recycle_bin(session=session, service=service)
             # 组件关系移除
-            self.move_service_relation_info_recycle_bin(session=session, tenant=tenant_env, service=service)
+            self.move_service_relation_info_recycle_bin(session=session, tenant_env=tenant_env, service=service)
             code = 200
             msg = "success"
             return code, msg

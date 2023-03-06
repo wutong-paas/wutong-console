@@ -7,10 +7,10 @@ from sqlalchemy import select
 from starlette.responses import JSONResponse
 from xpinyin import Pinyin
 from core import deps
-from core.utils.return_message import general_message, error_message
+from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.exceptions import GroupNotExistError
-from exceptions.main import ServiceHandleException, ResourceNotEnoughException, AccountOverdueException
+from exceptions.main import ResourceNotEnoughException, AccountOverdueException
 from models.teams import RegionConfig
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
@@ -26,7 +26,6 @@ from service.app_actions.exception import ErrServiceSourceNotFound
 from service.app_config.app_relation_service import dependency_service
 from service.application_service import application_service
 from service.market_app_service import market_app_service
-from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -34,7 +33,6 @@ router = APIRouter()
 @router.get("/v1.0/devops/teams/{team_code}/env/{env_id}/components", response_model=Response, name="组件列表")
 async def get_app_state(
         request: Request,
-        team_code: Optional[str] = None,
         env_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
@@ -123,11 +121,11 @@ async def get_un_dependency(
 ) -> Any:
     page_num = 1
     page_size = 99
-    team_code = request.query_params.get("team_code")
-    search_key = None
-    condition = None
-    tenant = env_services.devops_get_tenant(tenant_name=team_code, session=session)
-    dependencies = dependency_service.get_dependencies(session=session, tenant=tenant)
+    env_id = request.query_params.get("env_id")
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    dependencies = dependency_service.get_dependencies(session=session, tenant_env=env)
     service_ids = [s.service_id for s in dependencies]
     service_group_map = application_service.get_services_group_name(session=session, service_ids=service_ids)
     dep_list = []
@@ -138,23 +136,7 @@ async def get_un_dependency(
             "service_id": dep.service_id,
             "service_code": dep.service_alias
         }
-
-        if search_key is not None and condition:
-            if condition == "group_name":
-                if search_key.lower() in service_group_map[dep.service_id]["group_name"].lower():
-                    dep_list.append(dep_service_info)
-            elif condition == "service_name":
-                if search_key.lower() in dep.service_cname.lower():
-                    dep_list.append(dep_service_info)
-            else:
-                result = general_message(400, "error", "condition参数错误")
-                return JSONResponse(result, status_code=400)
-        elif search_key is not None and not condition:
-            if search_key.lower() in service_group_map[dep.service_id][
-                "group_name"].lower() or search_key.lower() in dep.service_cname.lower():
-                dep_list.append(dep_service_info)
-        elif search_key is None and not condition:
-            dep_list.append(dep_service_info)
+        dep_list.append(dep_service_info)
 
     rt_list = dep_list[(page_num - 1) * page_size:page_num * page_size]
     result = general_message("0", "success", "查询成功", list=rt_list, total=len(dep_list))
@@ -164,10 +146,8 @@ async def get_un_dependency(
 @router.post("/v1.0/devops/teams/{team_code}/env/{env_id}/applications/{application_id}/build", response_model=Response,
              name="部署业务组件")
 async def deploy_business_component(
-        request: Request,
         params: DeployBusinessParams,
         env_id: Optional[str] = None,
-        team_code: Optional[str] = None,
         application_id: Optional[str] = None,
         user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -192,7 +172,7 @@ async def deploy_business_component(
 
         code, msg_show, new_service = application_service.create_docker_run_app(session=session,
                                                                                 region_name=params.region_name,
-                                                                                tenant=env,
+                                                                                tenant_env=env,
                                                                                 user=user,
                                                                                 service_cname=params.component_name,
                                                                                 docker_cmd=params.docker_image,
@@ -203,11 +183,11 @@ async def deploy_business_component(
 
         # 添加username,password信息
         if params.registry_password or params.registry_user:
-            application_service.create_service_source_info(session=session, tenant=env, service=new_service,
+            application_service.create_service_source_info(session=session, tenant_env=env, service=new_service,
                                                            user_name=params.registry_user,
                                                            password=params.registry_password)
 
-        code, msg_show = application_service.add_component_to_app(session=session, tenant=env,
+        code, msg_show = application_service.add_component_to_app(session=session, tenant_env=env,
                                                                   region_name=params.region_name,
                                                                   app_id=application_id,
                                                                   component_id=new_service.service_id)
@@ -249,11 +229,9 @@ async def deploy_business_component(
 
 @router.post("/v1.0/devops/teams/{team_code}/env/{env_id}/buildsource", response_model=Response, name="构建组件")
 async def deploy_component(
-        request: Request,
         params: BuildSourceParam,
         user=Depends(deps.get_current_user),
         env_id: Optional[str] = None,
-        team_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     """
@@ -277,7 +255,6 @@ async def deploy_component(
         if not env:
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         result = general_message("0", "success", "成功")
-        tenant = env_services.devops_get_tenant(tenant_name=team_code, session=session)
         service = service_info_repo.get_service(session, params.component_code, env.env_id)
         oauth_instance, _ = None, None
         if params.docker_image is not None:
@@ -296,7 +273,7 @@ async def deploy_component(
         if params.update_env_variables is not None:
             for env_variables in params.update_env_variables:
                 if env_variables.key is not None:
-                    result = devops_repo.modify_env(session, user, tenant, service,
+                    result = devops_repo.modify_env(session, user, env, service,
                                                     env_variables.key, env_variables.desc, env_variables.value)
 
         if result["code"] != 200:
@@ -306,14 +283,14 @@ async def deploy_component(
         if params.delete_env_variables is not None:
             for env_variables in params.delete_env_variables:
                 if env_variables.key is not None:
-                    result = devops_repo.delete_envs(session, user, tenant, service, env_variables.key)
+                    result = devops_repo.delete_envs(session, user, env, service, env_variables.key)
 
         if result["code"] != 200:
             session.rollback()
             return JSONResponse(result, status_code=result["code"])
 
         if params.dep_service_ids is not None:
-            result = devops_repo.add_dep(session, user, tenant, service, params.dep_service_ids)
+            result = devops_repo.add_dep(session, user, env, service, params.dep_service_ids)
 
         if result["code"] != 200:
             session.rollback()
@@ -330,7 +307,7 @@ async def deploy_component(
         session.flush()
         group_version = None
         code, msg, _ = app_deploy_service.deploy(
-            session, tenant, service, user, version=group_version, oauth_instance=oauth_instance)
+            session, env, service, user, version=group_version, oauth_instance=oauth_instance)
         bean = {}
         if code != 200:
             session.rollback()
@@ -351,7 +328,6 @@ async def deploy_component(
 
 @router.post("/v1.0/devops/teams/components/model_create", response_model=Response, name="部署基础组件")
 async def market_create(
-        request: Request,
         params: DevopsMarketAppCreateParam,
         user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)
@@ -362,16 +338,15 @@ async def market_create(
     install_from_cloud = False
     is_deploy = True
     market_name = ""
-    # 查询当前团队
-    tenant = env_services.devops_get_tenant(tenant_name=params.team_code, session=session)
-    if not tenant:
-        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, params.env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     region_info = session.execute(select(RegionConfig).where(
         RegionConfig.region_name == params.region_name
     )).scalars().first()
 
-    market_app_service.install_app(session=session, tenant=tenant, region=region_info,
+    market_app_service.install_app(session=session, tenant_env=env, region=region_info,
                                    user=user,
                                    app_id=params.application_id,
                                    app_model_key=params.model_app_id,
@@ -382,26 +357,8 @@ async def market_create(
     return JSONResponse(general_message("0", "success", "部署成功"), status_code=200)
 
 
-@router.get("/v1.0/devops/teams/{team_name}/env/{env_id}/regions", response_model=Response, name="查询团队绑定集群")
-async def get_team_regions(
-        request: Request,
-        env=Depends(deps.get_current_team_env),
-        session: SessionClass = Depends(deps.get_session)
-) -> Any:
-    region_info_map = []
-    region_name_list = env_repo.get_team_region_names(session, env.env_id)
-    if region_name_list:
-        region_infos = region_repo.get_region_by_region_names(session, region_name_list)
-        if region_infos:
-            for region in region_infos:
-                region_info_map.append(
-                    {"id": region.ID, "region_name": region.region_name, "region_alias": region.region_alias})
-    return JSONResponse(general_message("0", "success", "查询成功", data=region_info_map), status_code=200)
-
-
 @router.get("/v1.0/devops/teams/{team_name}/env/{env_id}/checkResource", response_model=Response, name="检查应用及组件是否存在")
 async def check_resource(
-        request: Request,
         application_code: Optional[int] = -1,
         component_code: Optional[str] = None,
         env=Depends(deps.get_current_team_env),

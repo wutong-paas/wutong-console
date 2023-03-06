@@ -57,23 +57,23 @@ class RegionRepo(BaseRepository[RegionConfig]):
         data = results.scalars().all()
         return data
 
-    def get_team_opened_region(self, session: SessionClass, team_name, is_init=None):
+    def get_team_opened_region(self, session: SessionClass, env_name, is_init=None):
         """获取团队已开通的数据中心"""
-        tenant = env_repo.get_team_by_team_name(session, team_name)
-        if not tenant:
+        tenant_env = env_repo.get_team_by_env_name(session, env_name)
+        if not tenant_env:
             return None
         if not is_init:
             results = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.region_env_id == tenant.tenant_env_id))
+                EnvRegionInfo.region_env_id == tenant_env.env_id))
         else:
             results = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.region_env_id == tenant.tenant_env_id,
+                EnvRegionInfo.region_env_id == tenant_env.env_id,
                 EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 
-    def get_team_opened_region_name(self, session: SessionClass, team_name, region_names, is_init=None):
+    def get_team_opened_region_name(self, session: SessionClass, env_name, region_names, is_init=None):
         """获取团队已开通的数据中心"""
-        tenant = env_repo.get_team_by_team_name(session, team_name)
+        tenant = env_repo.get_team_by_env_name(session, env_name)
         if not tenant:
             return None
         if not is_init:
@@ -87,10 +87,10 @@ class RegionRepo(BaseRepository[RegionConfig]):
                 EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 
-    def get_region_by_tenant_name(self, session: SessionClass, tenant_name):
-        tenant = env_repo.get_tenant_by_tenant_name(session=session, team_name=tenant_name, exception=True)
+    def get_region_by_tenant_name(self, session: SessionClass, env_name):
+        env = env_repo.get_tenant_by_env_name(session=session, env_name=env_name, exception=True)
         results = session.execute(select(EnvRegionInfo).where(
-            EnvRegionInfo.region_env_id == tenant.tenant_env_id))
+            EnvRegionInfo.region_env_id == env.env_id))
         return results.scalars().all()
 
     def get_region_desc_by_region_name(self, session: SessionClass, region_name):
@@ -128,18 +128,16 @@ class RegionRepo(BaseRepository[RegionConfig]):
         return session.execute(select(EnvRegionInfo).where(
             EnvRegionInfo.region_env_id == env_id)).scalars().all()
 
-    def get_usable_regions(self, session: SessionClass, enterprise_id, opened_regions_name):
+    def get_usable_regions(self, session: SessionClass, opened_regions_name):
         """获取可使用的数据中心"""
         return (session.execute(select(RegionConfig).where(
             RegionConfig.status == "1",
-            RegionConfig.enterprise_id == enterprise_id,
             not_(RegionConfig.region_name.in_(opened_regions_name))))).scalars().all()
 
-    def get_usable_cert_regions(self, session: SessionClass, enterprise_id):
+    def get_usable_cert_regions(self, session: SessionClass):
         """获取可使用的数据中心"""
         return (session.execute(select(RegionConfig).where(
-            RegionConfig.status == "1",
-            RegionConfig.enterprise_id == enterprise_id))).scalars().all()
+            RegionConfig.status == "1"))).scalars().all()
 
     def get_usable_regions_by_enterprise_id(self, session: SessionClass, enterprise_id):
         """获取可使用的数据中心"""
