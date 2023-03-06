@@ -18,7 +18,6 @@ from service.backup_service import groupapp_backup_service
 from service.groupapps_migrate_service import migrate_service
 from service.groupcopy_service import groupapp_copy_service
 from service.region_service import region_services
-from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -219,7 +218,7 @@ async def app_migrate(request: Request,
     """
     data = await request.json()
     migrate_region = data.get("region", None)
-    team = data.get("team", None)
+    migrate_env_id = data.get("migrate_env_id", None)
     backup_id = data.get("backup_id", None)
     migrate_type = data.get("migrate_type", "migrate")
     event_id = data.get("event_id", None)
@@ -232,21 +231,15 @@ async def app_migrate(request: Request,
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    if not team:
+    if not migrate_env_id:
         return JSONResponse(general_message(400, "team is null", "请指明要迁移的团队"), status_code=400)
-    migrate_team = env_services.get_tenant_by_tenant_name(session=session, tenant_name=team)
-    if not migrate_team:
-        return JSONResponse(general_message(404, "team is not found", "需要迁移的团队{0}不存在".format(team)), status_code=404)
-    regions = region_services.get_team_usable_regions(session=session, team_name=migrate_team.tenant_name)
-    if not regions:
-        return JSONResponse(general_message(412, "region is not usable", "团队未开通任何集群"), status_code=412)
-    if migrate_region not in [r.region_name for r in regions]:
-        msg_cn = "无法迁移至集群{0},请确保该集群可用且团队{1}已开通该集群权限".format(migrate_region, migrate_team.tenant_name)
-        return JSONResponse(general_message(412, "region is not usable", msg_cn), status_code=412)
+    migrate_env = env_repo.get_env_by_env_id(session, migrate_env_id)
+    if not migrate_env:
+        return JSONResponse(general_message(404, "team is not found", "需要迁移的环境不存在"), status_code=404)
 
     try:
         migrate_record = migrate_service.start_migrate(session=session, user=user, tenant_env=env,
-                                                       current_region=response_region, migrate_team=migrate_team,
+                                                       current_region=response_region, migrate_env=migrate_env,
                                                        migrate_region=migrate_region,
                                                        backup_id=backup_id, migrate_type=migrate_type,
                                                        event_id=event_id,
@@ -259,19 +252,25 @@ async def app_migrate(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="查询应用迁移状态")
 async def get_app_migrate_state(request: Request,
-                                team_name: Optional[str] = None,
+                                env_id: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session),
                                 user=Depends(deps.get_current_user)) -> Any:
     restore_id = request.query_params.get("restore_id", None)
     if not restore_id:
         return JSONResponse(general_message(400, "restore id is null", "请指明查询的备份ID"), status_code=400)
 
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
-    migrate_record = migrate_service.get_and_save_migrate_status(session=session, user=user, restore_id=restore_id,
-                                                                 current_team_name=team_name,
+    migrate_record = migrate_service.get_and_save_migrate_status(session=session,
+                                                                 migrate_env=env,
+                                                                 user=user, restore_id=restore_id,
+                                                                 current_env_name=env.env_name,
                                                                  current_region=response_region)
     if not migrate_record:
         return JSONResponse(general_message(404, "not found record", "记录不存在"), status_code=404)

@@ -194,7 +194,7 @@ class GroupAppMigrateRecord(Base):
     group_uuid = Column(String(32), comment="group UUID", nullable=True)
     version = Column(String(32), comment="迁移的版本", nullable=True)
     backup_id = Column(String(36), comment="备份ID", nullable=True)
-    migrate_team = Column(String(32), comment="迁移的团队名称", nullable=True)
+    migrate_env = Column(String(32), comment="迁移的环境名称", nullable=True)
     user = Column(String(64), comment="恢复人", nullable=True)
     migrate_region = Column(String(64), comment="迁移的数据中心", nullable=True)
     status = Column(String(15), comment="时间请求状态", nullable=True)

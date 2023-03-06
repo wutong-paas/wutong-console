@@ -150,15 +150,15 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
         return tenant_name
 
-    def env_is_exists_by_env_name(self, session, env_id, env_alias):
+    def env_is_exists_by_env_name(self, session, team_id, env_alias):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_alias == env_alias,
-            TeamEnvInfo.env_id == env_id)).scalars().first()
+            TeamEnvInfo.tenant_id == team_id)).scalars().first()
 
-    def env_is_exists_by_namespace(self, session, tenant_env_id, env_name):
+    def env_is_exists_by_namespace(self, session, team_id, env_name):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_name == env_name,
-            TeamEnvInfo.env_id == tenant_env_id)).scalars().first()
+            TeamEnvInfo.tenant_id == team_id)).scalars().first()
 
     def create_env(self, session, user, region_name, env_name, env_alias, team_id, team_name, namespace="",
                    desc=""):
@@ -171,7 +171,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             "env_alias": env_alias,
             "limit_memory": 0,
             "namespace": namespace,
-            "tenant_env_id": team_id,
+            "tenant_id": team_id,
             "tenant_name": team_name,
             "desc": desc
         }

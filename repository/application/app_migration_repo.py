@@ -19,7 +19,7 @@ class AppMigrationRespository(BaseRepository[GroupAppMigrateRecord]):
     def create_migrate_record(self, session, **params):
         gamr = GroupAppMigrateRecord(**params)
         session.add(gamr)
-
+        session.flush()
         return gamr
 
     def get_by_restore_id(self, session, restore_id):

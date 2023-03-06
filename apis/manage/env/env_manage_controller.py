@@ -33,7 +33,7 @@ async def add_env(request: Request,
     region_name = from_data["region_name"]
     env_name = from_data["env_name"]
     namespace = team_name + "-" + env_name
-    tenant_env_id = from_data["tenant_env_id"]
+    tenant_id = from_data["tenant_id"]
     desc = from_data.get("desc", "")
     if not is_qualified_name(env_name):
         raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只能由小写字母、数字或“-”组成，“-”不能位于开头结尾")
@@ -46,22 +46,22 @@ async def add_env(request: Request,
         result = general_message(400, "env name not null", "环境名不能为空")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_env_name(session, tenant_env_id, env_alias)
+    env = env_repo.env_is_exists_by_env_name(session, tenant_id, env_alias)
     if env:
         result = general_message(400, "env name is exist", "该环境名已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_namespace(session, tenant_env_id, env_name)
+    env = env_repo.env_is_exists_by_namespace(session, tenant_id, env_name)
     if env:
         result = general_message(400, "env namespace is exist", "该环境标识已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.create_env(session, user, region.region_alias, env_name, env_alias, tenant_env_id, team_name, namespace, desc)
+    env = env_repo.create_env(session, user, region.region_alias, env_name, env_alias, tenant_id, team_name, namespace, desc)
     exist_namespace_region_names = []
 
     try:
         region_services.create_env_on_region(session=session, env=env, region_name=region_name, namespace=env.namespace,
-                                             team_id=tenant_env_id,
+                                             team_id=tenant_id,
                                              team_name=team_name)
     except ErrNamespaceExists:
         exist_namespace_region_names.append(region_name)
