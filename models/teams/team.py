@@ -1,10 +1,8 @@
 import json
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text
-from sqlalchemy_utils import ChoiceType
-from core.utils.crypt import make_env_id, make_uuid
+from core.utils.crypt import make_env_id
 from database.session import Base
-from core.setting import settings
 
 tenant_env_identity = (("拥有者", "owner"), ("管理员", "admin"), ("开发者", "developer"), ("观察者", "viewer"), ("访问", "access"))
 
@@ -140,21 +138,6 @@ class ServiceDomainCertificate(Base):
         return "private_key:{} certificate:{}".format(self.private_key, self.certificate)
 
 
-class PermRelTenant(Base):
-    """
-    用户和团队的关系表
-    identity ：租户权限
-    """
-
-    __tablename__ = 'tenant_perms'
-
-    ID = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False, comment="关联用户")
-    tenant_env_id = Column(Integer, nullable=False, comment="环境id")
-    identity = Column(String(15), ChoiceType(tenant_env_identity), comment="租户身份", nullable=True)
-    role_id = Column(Integer, nullable=True, comment="角色")
-
-
 class RegionConfig(Base):
     """集群管理"""
 
@@ -179,11 +162,6 @@ class RegionConfig(Base):
     key_file = Column(Text, comment="验证的key", nullable=True)
     provider = Column(String(24), comment="底层集群供应类型", nullable=True, default='')
     provider_cluster_id = Column(String(64), comment="底层集群ID", nullable=True, default='')
-
-
-def logo_path(instance, filename):
-    suffix = filename.split('.')[-1]
-    return '{0}/logo/{1}.{2}'.format(settings.MEDIA_ROOT, make_uuid(), suffix)
 
 
 class ConsoleConfig(Base):

@@ -1,16 +1,14 @@
 """
 tenant repository
 """
-import datetime
 import random
 import string
 from loguru import logger
-from sqlalchemy import select, delete, not_
-from core.idaasapi import idaas_api
+from sqlalchemy import select, delete
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from models.region.models import EnvRegionInfo
-from models.teams import TeamEnvInfo, PermRelTenant, RegionConfig
+from models.teams import TeamEnvInfo, RegionConfig
 from models.component.models import TeamComponentInfo
 from repository.base import BaseRepository
 
@@ -37,10 +35,10 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         :return:
         """
         logger.info("get_tenant_by_tenant_name,param:{}", env_name)
-        tenant = session.execute(select(TeamEnvInfo).where(TeamEnvInfo.env_name == env_name)).scalars().first()
-        if not tenant and exception:
+        env = session.execute(select(TeamEnvInfo).where(TeamEnvInfo.env_name == env_name)).scalars().first()
+        if not env and exception:
             return None
-        return tenant
+        return env
 
     def get_tenant_by_tenant_env_id(self, session: SessionClass, tenant_env_id):
         """
@@ -54,15 +52,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         results = session.execute(sql)
         data = results.scalars().first()
         return data
-
-    def get_team_by_team_names(self, session, team_names):
-        return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.tenant_name.in_(team_names))).scalars().all()
-
-    def get_team_by_team_id(self, session, env_id):
-        tenant = session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id))
-        return tenant.scalars().first()
 
     def get_env_by_env_id(self, session, env_id):
         return session.execute(
@@ -96,37 +85,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         return session.execute(select(EnvRegionInfo).where(
             EnvRegionInfo.region_name == region_name,
             EnvRegionInfo.region_env_id == env_id)).scalars().all()
-
-    def get_user_tenant_by_name(self, session, user_id, name):
-        res = session.execute(select(PermRelTenant).where(
-            PermRelTenant.user_id == user_id)).scalars().all()
-        tenant_env_ids = [r.tenant_env_id for r in res]
-        tenant = session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.ID.in_(tenant_env_ids),
-            TeamEnvInfo.tenant_name == name)).scalars().first()
-        return tenant
-
-    def get_teams_by_enterprise_id(self, session, enterprise_id, user_id=None, query=None):
-        """
-        查询企业团队列表
-        :param enterprise_id:
-        :param user_id:
-        :param query:
-        :return:
-        """
-        sql = select(TeamEnvInfo).where(
-            TeamEnvInfo.enterprise_id == enterprise_id).order_by(TeamEnvInfo.create_time.desc())
-        if user_id:
-            sql = select(TeamEnvInfo).where(
-                TeamEnvInfo.enterprise_id == enterprise_id,
-                TeamEnvInfo.creater == user_id).order_by(TeamEnvInfo.create_time.desc())
-        if query:
-            sql = select(TeamEnvInfo).where(
-                TeamEnvInfo.enterprise_id == enterprise_id,
-                TeamEnvInfo.tenant_alias.like('%' + query + '%')).order_by(TeamEnvInfo.create_time.desc())
-
-        data = session.execute(sql).scalars().all()
-        return data
 
     def random_env_name(self, session, enterprise=None, length=8):
         """

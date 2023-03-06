@@ -24,7 +24,7 @@ async def get_app_views(request: Request,
     enterprise_apps, apps_count = enterprise_repo.get_enterprise_app_list(session, tenant_env_ids, page, page_size)
     if enterprise_apps:
         for app in enterprise_apps:
-            tenant = env_services.get_team_by_team_id(session, app.tenant_env_id)
+            tenant = env_services.get_env_by_env_id(session, app.tenant_env_id)
             if not tenant:
                 tenant_name = None
             else:

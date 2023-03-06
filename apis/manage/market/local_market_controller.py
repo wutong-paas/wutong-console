@@ -14,7 +14,7 @@ from core.utils.validation import validate_name
 from database.session import SessionClass
 from exceptions.main import RegionNotFound, AbortRequest
 from models.market.models import CenterAppTag
-from models.teams import PermRelTenant, RegionConfig
+from models.teams import RegionConfig
 from repository.application.app_repository import app_tag_repo
 from repository.market.center_app_tag_repo import center_app_tag_repo
 from repository.market.center_repo import CenterRepository

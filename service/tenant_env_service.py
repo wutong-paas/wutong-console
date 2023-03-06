@@ -99,8 +99,8 @@ class TenantEnvService(object):
                     msg_show="{}集群自动卸载失败，请手动卸载后重新删除团队".format(region.region_name), msg="delete tenant failure")
         env_repo.delete_by_env_id(session=session, env_id=env.env_id)
 
-    def check_and_get_user_team_by_name_and_region(self, session, user_id, tenant_name, region_name):
-        tenant_env = env_repo.get_user_tenant_by_name(session, user_id, tenant_name)
+    def check_and_get_user_team_by_name_and_region(self, session, env_name, region_name):
+        tenant_env = env_repo.get_env_by_env_name(session, env_name)
         if not tenant_env:
             return tenant_env
         if not env_repo.get_team_region_by_name(session, tenant_env.env_id, region_name):

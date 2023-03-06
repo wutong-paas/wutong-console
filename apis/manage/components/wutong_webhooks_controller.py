@@ -249,7 +249,7 @@ async def update_deploy_mode(
         if not service_obj:
             result = general_message(400, "failed", "组件不存在")
             return JSONResponse(result, status_code=400)
-        tenant_obj = env_services.get_team_by_team_id(session, service_obj.tenant_env_id)
+        tenant_obj = env_services.get_env_by_env_id(session, service_obj.tenant_env_id)
         service_webhook = service_webhooks_repo.get_service_webhooks_by_service_id_and_type(
             session, service_obj.service_id, "image_webhooks")
         if not service_webhook.state:
