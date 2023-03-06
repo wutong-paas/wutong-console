@@ -162,15 +162,3 @@ class RegionConfig(Base):
     key_file = Column(Text, comment="验证的key", nullable=True)
     provider = Column(String(24), comment="底层集群供应类型", nullable=True, default='')
     provider_cluster_id = Column(String(64), comment="底层集群ID", nullable=True, default='')
-
-
-class ConsoleConfig(Base):
-    """
-    控制台配置
-    """
-    __tablename__ = 'console_config'
-    ID = Column(Integer, primary_key=True)
-    key = Column(String(100), comment="配置名称")
-    value = Column(String(1000), comment="配置值")
-    description = Column(Text(), nullable=True, default="", comment="说明")
-    update_time = Column(DateTime(), onupdate=datetime.now, comment="更新时间", nullable=True)

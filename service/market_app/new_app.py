@@ -81,8 +81,6 @@ class NewApp(object):
         # dependency
         self._save_component_deps(session)
         self._save_volume_deps(session)
-        # config group
-        self._save_config_groups(session)
         # component group
         self.component_group.save(session)
 
@@ -221,7 +219,6 @@ class NewApp(object):
         for source in sources:
             session.merge(source)
         session.flush()
-        extend_repo.bulk_create_or_update(session, extend_infos)
         env_var_repo.overwrite_by_component_ids(session, component_ids, envs)
         port_repo.overwrite_by_component_ids(session, component_ids, ports)
         volume_repo.overwrite_by_component_ids(session, component_ids, volumes)
@@ -236,14 +233,6 @@ class NewApp(object):
 
     def _save_volume_deps(self, session):
         mnt_repo.overwrite_by_component_id(session, self.component_ids, self.volume_deps)
-
-    def _save_config_groups(self, session):
-        try:
-            app_config_group_repo.bulk_create_or_update(session, self.config_groups)
-            app_config_group_item_repo.bulk_create_or_update(session, self.config_group_items)
-            app_config_group_service_repo.bulk_create_or_update(session, self.config_group_components)
-        except:
-            pass
 
     def _existing_volume_deps(self, session):
         components = self._components()
