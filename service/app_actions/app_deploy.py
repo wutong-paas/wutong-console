@@ -77,7 +77,7 @@ class RegionApiBaseHttpClient(object):
 
 class AppDeployService(object):
     def __init__(self):
-        self.impl = OtherService()
+        self.impl = None
 
     def set_impl(self, impl):
         self.impl = impl
@@ -89,7 +89,7 @@ class AppDeployService(object):
         self.impl.pre_action(session)
 
     def get_async_action(self):
-        return self.impl.get_async_action()
+        return AsyncAction.BUILD.value
 
     def execute(self, session: SessionClass, tenant_env, service, user, is_upgrade, version, committer_name=None,
                 oauth_instance=None):
@@ -110,18 +110,6 @@ class AppDeployService(object):
         self.pre_deploy_action(session, tenant_env, service, version)
 
         return self.execute(session, tenant_env, service, user, version, committer_name, oauth_instance=oauth_instance)
-
-
-class OtherService(object):
-    """
-    Services outside the market service
-    """
-
-    def pre_action(self, session):
-        logger.info("type: other; pre-deployment action.")
-
-    def get_async_action(self):
-        return AsyncAction.BUILD.value
 
 
 class MarketService(object):
@@ -300,7 +288,8 @@ class MarketService(object):
                 self.tenant_env,
                 all_component_one_model=self.all_component_one_model,
                 install_from_cloud=self.install_from_cloud)
-            template = get_upgrade_app_template(session=session, tenant_env=self.tenant_env, version=self.version, pc=pc)
+            template = get_upgrade_app_template(session=session, tenant_env=self.tenant_env, version=self.version,
+                                                pc=pc)
             self.template = template
             self.template_update_time = pc.template_updatetime
         if not self.changes and self.changes != {} and pc:
@@ -344,7 +333,7 @@ class MarketService(object):
                     func = self.update_funcs.get(k, None)
                     if func is None:
                         continue
-                    if k == "volumes" or k == "ports" or k == "connect_infos" or k == "envs"\
+                    if k == "volumes" or k == "ports" or k == "connect_infos" or k == "envs" \
                             or k == "slug_path" or k == "image" or k == "plugins":
                         func(session, v)
                     else:
@@ -511,7 +500,8 @@ class MarketService(object):
             if container_port == 0 and value == "**None**":
                 value = self.service.service_id[:8]
             try:
-                env_var_service.create_env_var(session, self.service, container_port, name, attr_name, value, is_change, scope)
+                env_var_service.create_env_var(session, self.service, container_port, name, attr_name, value, is_change,
+                                               scope)
             except (EnvAlreadyExist, InvalidEnvName) as e:
                 logger.warning("failed to create env: {}; will ignore this env".format(e))
 

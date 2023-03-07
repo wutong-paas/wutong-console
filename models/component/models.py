@@ -14,7 +14,8 @@ class TeamComponentInfo(Base):
     """组件管理"""
 
     __tablename__ = 'tenant_service'
-    unique_together = ('tenant_env_id', 'service_alias')
+    # todo
+    # unique_together = ('tenant_env_id', 'service_alias')
 
     ID = Column(Integer, primary_key=True)
     service_id = Column(String(32), comment="组件id", nullable=False, unique=True)
@@ -95,8 +96,9 @@ class TeamComponentInfo(Base):
     git_full_name = Column(String(64), comment="git项目的fullname", nullable=True, default=None)
     k8s_component_name = Column(String(100), comment="集群组件名称", nullable=True)
 
-    def __unicode__(self):
-        return self.service_alias
+    is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
+    delete_time = Column(DateTime(), nullable=True, comment="删除时间")
+    delete_operator = Column(String(100), comment="删除操作人", nullable=False)
 
     def toJSON(self):
         data = {}
@@ -439,9 +441,6 @@ class ComponentCreateStep(Base):
     tenant_env_id = Column(String(32), comment="环境id")
     service_id = Column(String(32), comment="组件id")
     app_step = Column(Integer, default=1, comment="创建组件的步数")
-
-
-pay_method = (('预付费提前采购', "prepaid"), ('按使用后付费', "postpaid"))
 
 
 class ComponentAttachInfo(Base):
