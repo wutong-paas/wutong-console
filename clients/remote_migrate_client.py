@@ -68,9 +68,8 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def get_enterprise_app_import_status(self, session, region, event_id):
         """
-
+        :param session:
         :param region:
-        :param eid:
         :param event_id:
         :return:
         """
@@ -82,9 +81,8 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def get_enterprise_import_file_dir(self, session, region, event_id):
         """
-
         :param region:
-        :param eid:
+        :param session:
         :param event_id:
         :return:
         """

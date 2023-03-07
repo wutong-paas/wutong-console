@@ -1,4 +1,3 @@
-from appstore.app_store_client import get_market_client
 
 
 class AppStore(object):

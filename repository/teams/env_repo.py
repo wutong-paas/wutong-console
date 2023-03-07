@@ -18,11 +18,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     TenantRepository
     """
 
-    def get_enterprise_team_by_name(self, session, team_name):
-        return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.tenant_name == team_name
-        )).scalars().first()
-
     def get_all_envs(self, session):
         return session.execute(select(TeamEnvInfo)).scalars().all()
 
@@ -30,7 +25,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         """
         get_tenant_by_tenant_name
 
-        :param team_name:
+        :param session:
         :return:
         """
         logger.info("get_tenant_by_tenant_name,param:{}", env_name)
@@ -39,19 +34,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             return None
         return env
 
-    def get_tenant_by_tenant_env_id(self, session: SessionClass, tenant_env_id):
-        """
-        get_tenant_by_tenant_env_id
-
-        :param tenant_env_id:
-        :return:
-        """
-        logger.info("get_tenant_by_tenant_env_id,param:{}", tenant_env_id)
-        sql = select(TeamEnvInfo).where(TeamEnvInfo.env_id == tenant_env_id)
-        results = session.execute(sql)
-        data = results.scalars().first()
-        return data
-
     def get_env_by_env_id(self, session, env_id):
         return session.execute(
             select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id)).scalars().first()
@@ -59,13 +41,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     def get_env_by_env_name(self, session, env_name):
         return session.execute(
             select(TeamEnvInfo).where(TeamEnvInfo.env_name == env_name)).scalars().first()
-
-    def get_team_by_team_name_and_eid(self, session, team_name):
-        tenant = session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == team_name)).scalars().first()
-        if not tenant:
-            raise ServiceHandleException(msg_show="团队不存在", msg="team not found")
-        return tenant
 
     def delete_by_env_id(self, session, env_id):
         row = session.execute(
@@ -110,15 +85,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         session.flush()
         return add_team
 
-    def get_team_region_names(self, session, env_id):
-        result_region_names = session.execute(
-            select(EnvRegionInfo.region_name).where(EnvRegionInfo.region_env_id == env_id))
-        region_names = result_region_names.scalars().all()
-        result_regions = session.execute(
-            select(RegionConfig.region_name).where(RegionConfig.region_name.in_(region_names)))
-        regions = result_regions.scalars().all()
-        return regions
-
     def get_team_by_env_name(self, session, env_name):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_name == env_name)).scalars().first()
@@ -137,11 +103,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         except Exception as e:
             logger.exception(e)
             return "测试Region"
-
-    def get_tenant(self, session, tenant_name):
-        tenant = session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_name))
-        return tenant.scalars().first()
 
 
 env_repo = EnvRepository(TeamEnvInfo)

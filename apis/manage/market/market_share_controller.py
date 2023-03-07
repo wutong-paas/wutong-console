@@ -21,8 +21,6 @@ from repository.teams.env_repo import env_repo
 from schemas.market import MarketShareUpdateParam, MarketAppShareInfoCreateParam
 from schemas.response import Response
 from service.app_actions.app_log import event_service
-from service.market import wutong_market_service
-from service.market_app_service import market_app_service
 from service.region_service import region_services
 from service.share_services import share_service
 
@@ -47,13 +45,6 @@ async def get_record_detail(group_id: Optional[str] = None,
         store_version = "1.0"
         store_id = share_record.share_app_market_name
         scope = share_record.scope
-        if store_id:
-            extend, market = market_app_service.get_app_market(session=session,
-                                                               market_name=share_record.share_app_market_name,
-                                                               extend="true", raise_exception=True)
-            if market:
-                store_name = market.name
-                store_version = extend.get("version", store_version)
         app = center_app_repo.get_one_by_model(session=session, query_model=CenterApp(app_id=share_record.app_id))
         if app:
             app_model_id = share_record.app_id
@@ -410,14 +401,6 @@ async def share_app(
         result = general_message(415, "share complete can not do", "组件或插件同步未全部完成")
         return JSONResponse(result, status_code=415)
     app_market_url = share_service.complete(session, env, user, share_record)
-    if share_record.scope == "market":
-        # 分享至梧桐应用商店
-        center_app = center_app_repo.get_one_by_model(session=session,
-                                                      query_model=CenterApp(app_id=share_record.app_id))
-        # 查询店铺信息
-        wutong_market_service.push_local_application(session=session, store_id=center_app.store_id,
-                                                     service_share_record_id=share_record.ID,
-                                                     service_share_model_name=share_record.share_app_model_name)
 
     result = general_message(200, "share complete", "应用分享完成", bean=jsonable_encoder(share_record),
                              app_market_url=app_market_url)

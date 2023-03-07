@@ -7,8 +7,6 @@ from fastapi.encoders import jsonable_encoder
 from jsonpath import jsonpath
 from loguru import logger
 from sqlalchemy import select, delete
-
-from appstore.app_store_client import get_market_client
 from clients.remote_component_client import remote_component_client
 from core.enum.component_enum import Kind
 from core.idaasapi import idaas_api
@@ -32,89 +30,6 @@ from service.market_app.app_upgrade import AppUpgrade
 
 
 class MarketAppService(object):
-
-    def get_market(self, store):
-        store_client = get_market_client(store.access_key, store.url)
-        data = store_client.get_market_info(market_domain=store.domain)
-        return data
-
-    def get_app_market(self, session, market_name, extend="false", raise_exception=False):
-        market = app_market_repo.get_app_market_by_name(session, market_name, raise_exception)
-        dt = {
-            "access_key": market.access_key,
-            "name": market.name,
-            "url": market.url,
-            "type": market.type,
-            "domain": market.domain,
-            "ID": market.ID,
-        }
-        if extend == "true":
-            version = "1.0"
-            try:
-                extend_info = self.get_market(market)
-                market.description = extend_info.description
-                market.alias = extend_info.name
-                market.status = extend_info.status
-                market.access_actions = extend_info.access_actions
-                version = extend_info.version if extend_info.version else version
-            except Exception as e:
-                logger.debug(e)
-                market.description = None
-                market.alias = None
-                market.status = 0
-                market.access_actions = []
-            if raise_exception:
-                if market.status == 0:
-                    raise ServiceHandleException(msg="call market error", msg_show="应用商店状态异常")
-            dt.update({
-                "description": market.description,
-                "alias": market.alias,
-                "status": market.status,
-                "access_actions": market.access_actions,
-                "version": version
-            })
-        return dt, market
-
-    def get_app_markets(self, extend):
-        app_market_repo.create_default_app_market_if_not_exists()
-
-        market_list = []
-        markets = app_market_repo.get_app_markets()
-        for market in markets:
-            dt = {
-                "access_key": market.access_key,
-                "name": market.name,
-                "url": market.url,
-                "type": market.type,
-                "domain": market.domain,
-                "ID": market.ID,
-            }
-            if extend == "true":
-                version = "1.0"
-                try:
-                    extend_info = self.get_market(market)
-                    market.description = extend_info.description
-                    market.alias = extend_info.name
-                    market.status = extend_info.status
-                    market.create_time = extend_info.create_time
-                    market.access_actions = extend_info.access_actions
-                    version = extend_info.version if hasattr(extend_info, "version") else version
-                except Exception as e:
-                    logger.exception(e)
-                    market.description = None
-                    market.alias = market.name
-                    market.status = 0
-                    market.create_time = None
-                    market.access_actions = []
-                dt.update({
-                    "description": market.description,
-                    "alias": market.alias,
-                    "status": market.status,
-                    "access_actions": market.access_actions,
-                    "version": version
-                })
-            market_list.append(dt)
-        return market_list
 
     def list_app_upgradeable_versions(self, session, record: ApplicationUpgradeRecord):
         component_group = tenant_service_group_repo.get_component_group(session, record.upgrade_group_id)
