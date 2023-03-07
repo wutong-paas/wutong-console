@@ -248,7 +248,6 @@ async def get_share_event(env_id: Optional[str] = None,
              name="分享应用")
 async def share_event(
         request: Request,
-        team_name: Optional[str] = None,
         env_id: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,
@@ -290,7 +289,6 @@ async def share_event(
             name="获取分享进度")
 async def get_share_info(
         request: Request,
-        team_name: Optional[str] = None,
         env_id: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,
@@ -330,7 +328,7 @@ async def get_share_info(
 
 @router.delete("/teams/{team_name}/env/{env_id}/share/{share_id}/giveup", response_model=Response,
                name="放弃应用分享操作，放弃时删除分享记录")
-async def delete_share_info(team_name: Optional[str] = None,
+async def delete_share_info(
                             env_id: Optional[str] = None,
                             share_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -452,7 +450,6 @@ async def get_object_log(
              name="分享插件")
 async def share_plugin(
         request: Request,
-        team_name: Optional[str] = None,
         env_id: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,

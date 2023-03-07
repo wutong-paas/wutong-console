@@ -307,7 +307,6 @@ async def manager(
 
 @router.get("/teams/{team_name}/env/{env_id}/kubeconfig", response_model=Response, name="获取kubeconfig")
 async def get_kubeconfig(request: Request,
-                         team_name: Optional[str] = None,
                          env_id: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     region = await region_services.get_region_by_request(session, request)
@@ -315,7 +314,7 @@ async def get_kubeconfig(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     env = env_repo.get_env_by_env_id(session=session, env_id=env_id)
-    res = remote_tenant_client.get_kubeconfig(session, region.region_name, env, team_name)
+    res = remote_tenant_client.get_kubeconfig(session, region.region_name, env)
     if res:
         file = io.StringIO(res['bean'])
         response = StreamingResponse(file)

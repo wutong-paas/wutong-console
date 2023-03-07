@@ -137,7 +137,6 @@ async def open_topological_port(
 @router.get("/teams/{team_name}/env/{env_id}/{group_id}/outer-service", response_model=Response, name="拓扑图中Internet详情")
 async def get_topological_internet_info(
         request: Request,
-        team_name: Optional[str] = None,
         env_id: Optional[str] = None,
         group_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -180,7 +179,6 @@ async def get_topological_internet_info(
             name="拓扑图中组件详情")
 async def get_topological_info(
         env_id: Optional[str] = None,
-        team_name: Optional[str] = None,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """

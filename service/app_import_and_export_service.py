@@ -35,7 +35,7 @@ class AppImportService(object):
         if not import_record:
             raise RecordNotFound("import_record not found")
         import_record.scope = scope
-        if tenant_env.team_name:
+        if tenant_env.tenant_name:
             import_record.team_name = tenant_env.team_name
 
         service_image = app_store.get_app_hub_info(session=session)

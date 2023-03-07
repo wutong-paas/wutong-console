@@ -71,11 +71,11 @@ class RemoteTenantClient(ApiBaseHttpClient):
         return body
 
     # 获取kubeconfig
-    def get_kubeconfig(self, session, region, tenant_env, tenant_name):
+    def get_kubeconfig(self, session, region, tenant_env):
         """获取kubeconfig"""
 
         url, token = get_region_access_info(region, session)
-        url = url + "/v2/tenants/{0}/envs/{1}/kubeconfig".format(tenant_name, tenant_env.env_name)
+        url = url + "/v2/tenants/{0}/envs/{1}/kubeconfig".format(tenant_env.tenant_name, tenant_env.env_name)
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)

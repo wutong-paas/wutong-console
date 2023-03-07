@@ -349,10 +349,9 @@ async def common_operation(
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record", response_model=Response, name="应用发布")
-async def app_share_record(request: Request,
+async def app_share_record(
                            page: int = Query(default=1, ge=1, le=9999),
                            page_size: int = Query(default=10, ge=1, le=500),
-                           team_name: Optional[str] = None,
                            env_id: Optional[str] = None,
                            group_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -430,7 +429,6 @@ async def app_share_record(request: Request,
 
 @router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record", response_model=Response, name="应用发布到组件库")
 async def app_share(request: Request,
-                    team_name: Optional[str] = None,
                     env_id: Optional[str] = None,
                     group_id: Optional[str] = None,
                     session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -486,7 +484,7 @@ async def app_share(request: Request,
         fields_dict = {
             "group_share_id": make_uuid(),
             "group_id": group_id,
-            "team_name": team_name,
+            "env_name": env.env_name,
             "is_success": False,
             "step": 1,
             "share_app_market_name": market_name,
