@@ -431,9 +431,8 @@ async def delete_component(request: Request,
                            env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
-    is_force = data.get("is_force", False)
 
-    code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user, is_force=is_force)
+    code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user)
     bean = {}
     if code != 200:
         return JSONResponse(general_message(code, "delete service error", msg, bean=bean), status_code=code)

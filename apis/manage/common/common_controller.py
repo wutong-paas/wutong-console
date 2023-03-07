@@ -7,7 +7,7 @@ from core.utils.return_message import general_message
 from core import deps
 from database.session import SessionClass
 from exceptions.exceptions import LogoFormatError, LogoSizeError
-from models.base.err_log import Errorlog
+from models.base.err_log import ErrorLog
 from schemas.response import Response
 from schemas.wutong_errlog import ErrLogCreate
 from service.upload_service import upload_service
@@ -28,7 +28,7 @@ async def create_error_log(
         """
     logger.info("创建错误日志,params:{}", params)
     model = params.dict()
-    add = Errorlog(**model)
+    add = ErrorLog(**model)
     db.add(add)
     db.flush()
 

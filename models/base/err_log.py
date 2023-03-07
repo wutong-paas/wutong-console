@@ -3,7 +3,7 @@ from sqlalchemy import Column, String, Integer
 from database.session import Base
 
 
-class Errorlog(Base):
+class ErrorLog(Base):
     """错误日志"""
 
     __tablename__ = "errlog"

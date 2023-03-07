@@ -85,8 +85,7 @@ async def batch_delete_components(request: Request,
     services = service_info_repo.get_services_by_service_ids(session, service_id_list)
     msg_list = []
     for service in services:
-        code, msg = app_manage_service.batch_delete(session=session, user=user, tenant_env=env, service=service,
-                                                    is_force=True)
+        code, msg = app_manage_service.batch_delete(session=session, user=user, tenant_env=env, service=service)
         msg_dict = dict()
         msg_dict['status'] = code
         msg_dict['msg'] = msg

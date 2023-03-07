@@ -71,7 +71,7 @@ class MultiAppService(object):
             user=user,
             service_infos=service_infos)
 
-        code, msg = app_manage_service.delete(session, user, tenant_env, temporary_service, True)
+        code, msg = app_manage_service.delete(session, user, tenant_env, temporary_service)
         if code != 200:
             raise AbortRequest(
                 "Service id: " + temporary_service.service_id + "; error deleting temporary service",

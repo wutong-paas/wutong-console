@@ -28,8 +28,6 @@ class BaseRepository(Generic[ModelType]):
         :param primary_key: id
         :return: model
         """
-        if self.model.__name__ == Users.__name__:
-            return (session.execute(select(self.model).where(self.model.user_id == primary_key))).scalars().first()
         return (session.execute(select(self.model).where(self.model.ID == primary_key))).scalars().first()
 
     def get_multi(self, session: Session, *, skip: int = 0, limit: int = 20) -> List[ModelType]:

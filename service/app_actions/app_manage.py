@@ -1,9 +1,11 @@
 import datetime
 import json
+
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from sqlalchemy import select, delete, func, or_
 from starlette.responses import JSONResponse
+
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
@@ -27,7 +29,7 @@ from models.component.models import ComponentEvent, ComponentCreateStep, Compone
 from models.region.models import RegionApp
 from models.relate.models import TeamComponentRelation
 from models.teams import ServiceDomain, ServiceTcpDomain, TeamEnvInfo
-from repository.application.app_repository import recycle_bin_repo, relation_recycle_bin_repo, delete_service_repo
+from repository.application.app_repository import delete_service_repo
 from repository.application.application_repo import application_repo
 from repository.application.config_group_repo import app_config_group_service_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
@@ -108,21 +110,16 @@ class AppManageService(AppManageBase):
                 return 409, "操作过于频繁，请稍后再试"
         return 200, "操作成功"
 
-    def delete_again(self, session, user, tenant_env, service, is_force):
-        if not is_force:
-            # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(session, service)
-            # 组件关系移除
-            self.move_service_relation_info_recycle_bin(session, tenant_env, service)
-        else:
-            try:
-                self.really_delete_service(session, tenant_env, service, user)
-            except ServiceHandleException as e:
-                raise e
-            except Exception as e:
-                logger.exception(e)
-                raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias),
-                                             msg_show="组件删除失败")
+    def delete_again(self, session, user, tenant_env, service):
+
+        try:
+            self.really_delete_service(session, tenant_env, service, user)
+        except ServiceHandleException as e:
+            raise e
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias),
+                                         msg_show="组件删除失败")
 
     def really_delete_service(self, session: SessionClass, tenant_env, service, user=None, ignore_cluster_result=False,
                               not_delete_from_cluster=False):
@@ -405,7 +402,8 @@ class AppManageService(AppManageBase):
             code, data = self.stop_services_info(session=session, body=body, services=services, tenant_env=tenant_env,
                                                  user=user)
         elif action == "upgrade":
-            code, data = self.upgrade_services_info(session=session, body=body, services=services, tenant_env=tenant_env,
+            code, data = self.upgrade_services_info(session=session, body=body, services=services,
+                                                    tenant_env=tenant_env,
                                                     user=user)
         elif action == "deploy":
             code, data = self.deploy_services_info(session=session, body=body, services=services, tenant_env=tenant_env,
@@ -940,53 +938,7 @@ class AppManageService(AppManageBase):
             return True, mnt_service_names
         return False, ""
 
-    def move_service_into_recycle_bin(self, session: SessionClass, service):
-        """将组件移入回收站"""
-        data = service.toJSON()
-        data.pop("ID")
-        trash_service = recycle_bin_repo.create_trash_service(**data)
-
-        # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
-        if service.tenant_service_group_id > 0:
-            count = service_info_repo.get_services_by_service_group_id(session=session,
-                                                                       service_group_id=service.tenant_service_group_id).count()
-            if count <= 1:
-                tenant_service_group_repo.delete_tenant_service_group_by_pk(session=session,
-                                                                            pk=service.tenant_service_group_id)
-
-        service.delete()
-        return trash_service
-
-    def move_service_relation_info_recycle_bin(self, session: SessionClass, tenant_env, service):
-        # 1.如果组件依赖其他组件，将组件对应的关系放入回收站
-        relations = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id, service.service_id)
-        if relations:
-            for r in relations:
-                r_data = r.__dict__
-                r_data.pop("ID")
-                relation_recycle_bin_repo.create_trash_service_relation(**r_data)
-                r.delete()
-        # 如果组件被其他应用下的组件依赖，将组件对应的关系删除
-        relations = dep_relation_repo.get_dependency_by_dep_id(tenant_env.env_id, service.service_id)
-        if relations:
-            relations.delete()
-        # 如果组件关系回收站有被此组件依赖的组件，将信息及其对应的数据中心的依赖关系删除
-        recycle_relations = relation_recycle_bin_repo.get_by_dep_service_id(service.service_id)
-        if recycle_relations:
-            for recycle_relation in recycle_relations:
-                task = dict()
-                task["dep_service_id"] = recycle_relation.dep_service_id
-                task["tenant_env_id"] = tenant_env.env_id
-                task["dep_service_type"] = "v"
-                try:
-                    remote_component_client.delete_service_dependency(session,
-                                                                      service.service_region, tenant_env,
-                                                                      service.service_alias, task)
-                except Exception as e:
-                    logger.exception(e)
-                recycle_relation.delete()
-
-    def delete(self, session: SessionClass, user, tenant_env, service, is_force):
+    def delete(self, session: SessionClass, user, tenant_env, service):
         # 判断组件是否是运行状态
         if self.__is_service_running(session=session, tenant_env=tenant_env,
                                      service=service) and service.service_source != "third_party":
@@ -1000,26 +952,21 @@ class AppManageService(AppManageBase):
         is_mounted, msg = self.__is_service_mnt_related(session=session, tenant_env=tenant_env, service=service)
         if is_mounted:
             return 412, "当前组件有存储被{0}组件挂载, 不可删除".format(msg)
-        if not is_force:
-            # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(session=session, service=service)
-            # 组件关系移除
-            self.move_service_relation_info_recycle_bin(session=session, tenant_env=tenant_env, service=service)
-            return 200, "success"
-        else:
-            try:
-                code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
-                if code != 200:
-                    return code, msg
-                else:
-                    return code, "success"
-            except Exception as e:
-                logger.exception(e)
-                return 507, "删除异常"
+
+        try:
+            code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
+            if code != 200:
+                return code, msg
+            else:
+                return code, "success"
+        except Exception as e:
+            logger.exception(e)
+            return 507, "删除异常"
 
     def change_service_type(self, session: SessionClass, tenant_env, service, extend_method, user_name=''):
         # 存储限制
-        tenant_service_volumes = volume_service.get_service_volumes(session=session, tenant_env=tenant_env, service=service)
+        tenant_service_volumes = volume_service.get_service_volumes(session=session, tenant_env=tenant_env,
+                                                                    service=service)
         if tenant_service_volumes:
             old_extend_method = service.extend_method
             for tenant_service_volume in tenant_service_volumes:
@@ -1191,7 +1138,7 @@ class AppManageService(AppManageBase):
         return False
 
     # 批量删除组件
-    def batch_delete(self, session: SessionClass, user, tenant_env, service, is_force):
+    def batch_delete(self, session: SessionClass, user, tenant_env, service):
         # 判断组件是否是运行状态
         if self.__is_service_running(session=session, tenant_env=tenant_env,
                                      service=service) and service.service_source != "third_party":
@@ -1221,27 +1168,18 @@ class AppManageService(AppManageBase):
             msg = "当前组件被其他应用下的组件依赖了，您确定要删除吗？"
             return code, msg
 
-        if not is_force:
-            # 如果不是真删除，将数据备份,删除tenant_service表中的数据
-            self.move_service_into_recycle_bin(session=session, service=service)
-            # 组件关系移除
-            self.move_service_relation_info_recycle_bin(session=session, tenant_env=tenant_env, service=service)
-            code = 200
-            msg = "success"
-            return code, msg
-        else:
-            try:
-                code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
-                if code != 200:
-                    return code, msg
-                else:
-                    msg = "success"
-                    return code, msg
-            except Exception as e:
-                logger.exception(e)
-                code = 507
-                msg = "删除异常"
+        try:
+            code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
+            if code != 200:
                 return code, msg
+            else:
+                msg = "success"
+                return code, msg
+        except Exception as e:
+            logger.exception(e)
+            code = 507
+            msg = "删除异常"
+            return code, msg
 
     def batch_action(self, session: SessionClass, region_name, tenant_env, user, action, service_ids, move_group_id):
         services = service_info_repo.get_services_by_service_ids(session, service_ids)

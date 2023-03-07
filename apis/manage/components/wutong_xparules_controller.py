@@ -15,13 +15,6 @@ from service.region_service import region_services
 
 router = APIRouter()
 
-BUILD_KIND_MAP = {
-    "build_from_source_code": "源码构建",
-    "build_from_image": "镜像构建",
-    "build_from_market_image": "云市镜像构建",
-    "build_from_market_slug": "云市slug包构建"
-}
-
 
 async def validate_parameter(data):
     xpa_type = await parse_item(data, key="xpa_type", required=True)
@@ -154,7 +147,8 @@ async def get_extend_method(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules/{rule_id}", response_model=Response, name="查询组件伸缩指标")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules/{rule_id}", response_model=Response,
+            name="查询组件伸缩指标")
 async def get_xparules_index(rule_id: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session)) -> Any:
     res = autoscaler_service.get_by_rule_id(session, rule_id)

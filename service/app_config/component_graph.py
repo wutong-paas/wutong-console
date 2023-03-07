@@ -3,7 +3,6 @@ import os
 
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from sqlalchemy import select
 
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
@@ -152,7 +151,7 @@ class ComponentGraphService(object):
         sequence = 0
         for graph in graphs:
             graph.sequence = sequence
-            
+
             sequence += 1
 
     def create_component_graph(self, session, component_id, title, promql):

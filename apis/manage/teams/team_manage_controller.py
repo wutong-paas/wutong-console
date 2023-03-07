@@ -177,6 +177,6 @@ async def again_delete_app(request: Request,
     data = await request.json()
     service_id = data.get("service_id", None)
     service = service_info_repo.get_service_by_service_id(session, service_id)
-    app_manage_service.delete_again(session, user, env, service, is_force=True)
+    app_manage_service.delete_again(session, user, env, service)
     result = general_message("0", "success", "操作成功", bean={})
     return JSONResponse(result, status_code=200)

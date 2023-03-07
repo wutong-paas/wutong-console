@@ -291,7 +291,8 @@ class ComponentRepository(BaseRepository[Component]):
                                         Component.service_id == service_id))
         ).scalars().first()
 
-    def change_service_image_tag(self, session, service, tag):
+    @staticmethod
+    def change_service_image_tag(session, service, tag):
         """改变镜像标签"""
         ref_repo_name, ref_tag = service.image.split(":")
         service.image = "{}:{}".format(ref_repo_name, tag)
