@@ -1,11 +1,9 @@
 from datetime import datetime
 from enum import Enum
-
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import relationship
-
 from core.enum.app import GovernanceModeEnum, ApplicationUpgradeStatus, ApplicationUpgradeRecordType
 from database.session import Base
 
@@ -345,7 +343,7 @@ class ServiceUpgradeRecord(Base):
     )
 
     app_upgrade_record = relationship("ApplicationUpgradeRecord", back_populates="service_upgrade_records")
-    service = relationship("TeamComponentInfo")
+    service = relationship("Component")
 
     ID = Column(Integer, primary_key=True)
     service_cname = Column(String(100), comment="服务名", nullable=False)

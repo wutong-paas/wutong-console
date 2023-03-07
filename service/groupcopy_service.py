@@ -15,7 +15,6 @@ from service.base_services import base_service
 from service.groupapps_migrate_service import migrate_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin_service import plugin_service
-from service.tenant_env_service import env_services
 
 
 class GroupAppCopyService(object):
@@ -46,18 +45,14 @@ class GroupAppCopyService(object):
             group_services_list.append(group_service)
         return group_services_list
 
-    def check_and_get_team_group(self, session, env_name, region_name, group_id):
-        team = env_services.check_and_get_user_team_by_name_and_region(session, env_name, region_name)
-        if not team:
-            raise ServiceHandleException(
-                msg="no found team or team not join this region", msg_show="目标团队不存在，或团队为加入该数据中心", status_code=404)
+    def check_and_get_env_group(self, session, env_id, group_id):
         group = application_repo.get_group_by_id(session, group_id)
         if not group:
             raise ServiceHandleException(msg="no found group app", msg_show="目标应用不存在", status_code=404)
-        if group.tenant_env_id != team.tenant_env_id:
+        if group.tenant_env_id != env_id:
             raise ServiceHandleException(msg="group app and team relation no found", msg_show="目标应用不属于目标团队",
                                          status_code=400)
-        return team, group
+        return group
 
     def change_services_map(self, session, service_ids):
         change_services = {}

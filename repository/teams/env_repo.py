@@ -80,27 +80,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         session.add(ts)
         session.flush()
 
-    def get_team_region_by_name(self, session, env_id, region_name):
-        return session.execute(select(EnvRegionInfo).where(
-            EnvRegionInfo.region_name == region_name,
-            EnvRegionInfo.region_env_id == env_id)).scalars().all()
-
-    def random_env_name(self, session, enterprise=None, length=8):
-        """
-        生成随机的云帮租户（云帮的团队名），副需要符合k8s的规范(小写字母,_)
-        :param enterprise 企业信息
-        :param length:
-        :return:
-        """
-        tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
-        sql = select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_name)
-        q = session.execute(sql)
-        session.flush()
-        data = q.scalars().all()
-        while len(data) > 0:
-            tenant_name = ''.join(random.sample(string.ascii_lowercase + string.digits, length))
-        return tenant_name
-
     def env_is_exists_by_env_name(self, session, team_id, env_alias):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.env_alias == env_alias,

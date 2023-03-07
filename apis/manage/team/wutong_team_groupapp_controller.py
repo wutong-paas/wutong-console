@@ -342,8 +342,7 @@ async def app_copy(request: Request,
 
     if not tar_env_name or not tar_region_name or not tar_group_id:
         raise ServiceHandleException(msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
-    tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(session, tar_env_name, tar_region_name,
-                                                                         tar_group_id)
+    tar_group = groupapp_copy_service.check_and_get_env_group(session, env.env_id, tar_group_id)
     try:
         region = await region_services.get_region_by_request(session, request)
         if not region:

@@ -33,10 +33,10 @@ async def get_plat_apps(
 
 @router.get("/plat/query/envs", response_model=Response, name="平台查询环境")
 async def get_plat_envs(
-        tenant_env_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    if tenant_env_id:
-        envs = env_services.get_envs_by_tenant_env_id(session, tenant_env_id)
+    if tenant_id:
+        envs = env_services.get_envs_by_tenant_id(session, tenant_id)
     else:
         envs = env_services.get_all_envs(session)
     result = general_message("0", "success", "获取成功", list=jsonable_encoder(envs))
