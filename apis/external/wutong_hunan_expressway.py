@@ -20,9 +20,8 @@ from service.tenant_env_service import env_services
 router = APIRouter()
 
 
-@router.get("/v1.0/metrics/{enterprise_id}/cluster", response_model=Response, name="获取集群节点信息")
+@router.get("/v1.0/metrics/cluster", response_model=Response, name="获取集群节点信息")
 async def get_store(
-        enterprise_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     result_bean = {}
     node_info = []
@@ -40,11 +39,11 @@ async def get_store(
         "used_pod": 0,
         "free_pod": 0
     }
-    usable_regions = region_repo.get_usable_regions_by_enterprise_id(session=session, enterprise_id=enterprise_id)
+    usable_regions = region_repo.get_new_usable_regions(session=session)
     for r in usable_regions:
         region_name = r.region_name
         try:
-            res, body = hunan_expressway_client.get_region_cluster(session, region_name, enterprise_id)
+            res, body = hunan_expressway_client.get_region_cluster(session, region_name)
             result_bean = body["bean"]
             status = res["status"]
             if status != 200:
@@ -91,9 +90,8 @@ async def get_store(
     return JSONResponse(general_message("0", "success", "获取成功", bean=info), status_code=200)
 
 
-@router.get("/v1.0/metrics/{enterprise_id}/overview/app", response_model=Response, name="总览-应用信息")
+@router.get("/v1.0/metrics/overview/app", response_model=Response, name="总览-应用信息")
 async def overview_app(
-        enterprise_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     service_info = {
@@ -108,14 +106,14 @@ async def overview_app(
         "unrunning": 0,
         "abnormal": 0
     }
-    usable_regions = region_repo.get_usable_regions_by_enterprise_id(session=session, enterprise_id=enterprise_id)
+    usable_regions = region_repo.get_new_usable_regions(session=session)
     for r in usable_regions:
         region_name = r.region_name
         apps = hunan_expressway_service.get_all_app(session, region_name)
         app_total_num = len(apps)
 
         try:
-            data = remote_component_client.get_all_services_status(session, enterprise_id,
+            data = remote_component_client.get_all_services_status(session,
                                                                    region_name,
                                                                    test=True)
             if data:
@@ -155,19 +153,18 @@ async def overview_app(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/v1.0/metrics/{enterprise_id}/tenant/info", response_model=Response, name="总览-团队信息")
+@router.get("/v1.0/metrics/tenant/info", response_model=Response, name="总览-团队信息")
 async def overview_tenant(
-        enterprise_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     tenant_pods_info = {}
     tenant_pods = {}
     tenant_info = []
-    usable_regions = region_repo.get_usable_regions_by_enterprise_id(session=session, enterprise_id=enterprise_id)
+    usable_regions = region_repo.get_new_usable_regions(session=session)
     for r in usable_regions:
         region_name = r.region_name
         try:
-            res, body = hunan_expressway_client.get_region_cluster(session, region_name, enterprise_id)
+            res, body = hunan_expressway_client.get_region_cluster(session, region_name)
             tenant_pods = body["bean"]["tenant_pods"]
             status = res["status"]
             if status != 200 and tenant_pods:
@@ -198,19 +195,18 @@ async def overview_tenant(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/v1.0/metrics/{enterprise_id}/event", response_model=Response, name="集群事件统计")
+@router.get("/v1.0/metrics/event", response_model=Response, name="集群事件统计")
 async def get_region_event(
-        enterprise_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     events = []
     event_list = []
     result_bean = {}
-    usable_regions = region_repo.get_usable_regions_by_enterprise_id(session=session, enterprise_id=enterprise_id)
+    usable_regions = region_repo.get_new_usable_regions(session=session)
     for r in usable_regions:
         region_name = r.region_name
         try:
-            res, body = hunan_expressway_client.get_region_cluster(session, region_name, enterprise_id)
+            res, body = hunan_expressway_client.get_region_cluster(session, region_name)
             result_bean = body["bean"]
             status = res["status"]
             if status != 200:
@@ -219,7 +215,7 @@ async def get_region_event(
             logger.exception(e)
 
         try:
-            res, body = hunan_expressway_client.get_region_event(session, region_name, enterprise_id)
+            res, body = hunan_expressway_client.get_region_event(session, region_name)
             event_list = body["list"]
             status = res["status"]
             if status != 200:

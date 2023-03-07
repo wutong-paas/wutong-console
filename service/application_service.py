@@ -1328,7 +1328,7 @@ class ApplicationService(object):
         service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(session=session, region=region, tenant_env=tenant_env,
-                                                        service_ids=service_ids, enterprise_id=tenant_env.enterprise_id)
+                                                        service_ids=service_ids)
         service_status = dict()
         if status_list is None:
             raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")

@@ -133,7 +133,7 @@ class AppManageService(AppManageBase):
                 data["etcd_keys"] = self.get_etcd_keys(session, tenant_env, service)
                 remote_component_client.delete_service(session, service.service_region, tenant_env,
                                                        service.service_alias,
-                                                       tenant_env.enterprise_id, data)
+                                                       data)
             except remote_component_client.CallApiError as e:
                 if (not ignore_cluster_result) and int(e.status) != 404:
                     logger.error("delete component form cluster failure {}".format(e.body))
@@ -207,7 +207,6 @@ class AppManageService(AppManageBase):
             data = {"etcd_keys": self.get_etcd_keys(session=session, tenant_env=tenant_env, service=service)}
             remote_component_client.delete_service(session, service.service_region, tenant_env,
                                                    service.service_alias,
-                                                   tenant_env.enterprise_id,
                                                    data)
         except remote_component_client.CallApiError as e:
             if int(e.status) != 404:
@@ -577,7 +576,6 @@ class AppManageService(AppManageBase):
                                 else:
                                     _, app_version = market_app_service.get_wutong_app_and_version(
                                         session=session,
-                                        enterprise_id=tenant_env.enterprise_id,
                                         app_id=service_source.group_key,
                                         app_version=service_source.version)
                                 if app_version:
@@ -820,7 +818,6 @@ class AppManageService(AppManageBase):
                 raise ServiceHandleException(error_code=20002, msg="not enough quota")
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.restart_service(session,
                                                         service.service_region, tenant_env,
@@ -838,7 +835,6 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.stop_service(session,
                                                      service.service_region, tenant_env,
@@ -856,7 +852,6 @@ class AppManageService(AppManageBase):
         if service.create_status == "complete":
             body = dict()
             body["operator"] = str(user.nick_name)
-            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.start_service(session,
                                                       service.service_region, tenant_env,
@@ -899,8 +894,7 @@ class AppManageService(AppManageBase):
                 return False
             status_info = remote_component_client.check_service_status(session,
                                                                        service.service_region, tenant_env,
-                                                                       service.service_alias,
-                                                                       tenant_env.enterprise_id)
+                                                                       service.service_alias)
             status = status_info["bean"]["cur_status"]
             if status in (
                     "running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
@@ -984,7 +978,6 @@ class AppManageService(AppManageBase):
                 task["dep_service_id"] = recycle_relation.dep_service_id
                 task["tenant_env_id"] = tenant_env.env_id
                 task["dep_service_type"] = "v"
-                task["enterprise_id"] = tenant_env.enterprise_id
                 try:
                     remote_component_client.delete_service_dependency(session,
                                                                       service.service_region, tenant_env,
@@ -1140,7 +1133,6 @@ class AppManageService(AppManageBase):
             logger.debug("delete service {0} for team {1}".format(service.service_cname, tenant_env.tenant_name))
             data["etcd_keys"] = self.get_etcd_keys(session=session, tenant_env=tenant_env, service=service)
             remote_component_client.delete_service(session, service.service_region, tenant_env,
-                                                   service.service_alias, tenant_env.enterprise_id,
                                                    data)
             return 200, "success"
         except remote_component_client.CallApiError as e:
@@ -1546,7 +1538,6 @@ class AppManageService(AppManageBase):
             if new_gpu_type is not None and new_gpu_type != '':
                 body["container_gpu_type"] = new_gpu_type
             body["operator"] = str(user.nick_name)
-            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.vertical_upgrade(session,
                                                          service.service_region, tenant_env,
@@ -1579,7 +1570,6 @@ class AppManageService(AppManageBase):
             body = dict()
             body["node_num"] = new_node
             body["operator"] = str(user.nick_name)
-            body["enterprise_id"] = tenant_env.enterprise_id
             try:
                 remote_component_client.horizontal_upgrade(session,
                                                            service.service_region, tenant_env,

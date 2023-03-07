@@ -3,7 +3,7 @@ from appstore.app_store_client import get_market_client
 
 class AppStore(object):
 
-    def get_slug_hub_info(self, store=None, app_id=None, enterprise_id=None):
+    def get_slug_hub_info(self, store=None, app_id=None):
         image_config = {"ftp_host": None, "ftp_port": None, "namespace": None, "ftp_username": None, "ftp_password": None}
         if store:
             store_client = get_market_client(store.access_key, store.url)

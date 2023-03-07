@@ -207,8 +207,7 @@ class AppLogService(object):
         try:
             body = remote_component_client.get_service_log_files(session,
                                                                  service.service_region, tenant_env,
-                                                                 service.service_alias,
-                                                                 tenant_env.enterprise_id)
+                                                                 service.service_alias)
             file_list = body["list"]
             return 200, "success", file_list
         except remote_component_client.CallApiError as e:

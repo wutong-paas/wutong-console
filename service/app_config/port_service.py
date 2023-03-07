@@ -757,7 +757,6 @@ class AppPortService:
             remote_component_client.add_service_port(session, service.service_region, tenant_env,
                                                      service.service_alias, {
                                                          "port": [service_port],
-                                                         "enterprise_id": tenant_env.enterprise_id,
                                                          "operator": user_name
                                                      })
 
@@ -921,7 +920,7 @@ class AppPortService:
             # 删除数据中心端口
             remote_component_client.delete_service_port(session, service.service_region, tenant_env,
                                                         service.service_alias, container_port,
-                                                        tenant_env.enterprise_id, body)
+                                                        body)
 
         self.__disable_probe_by_port(session=session, tenant_env=tenant_env, service=service,
                                      container_port=container_port)
@@ -957,7 +956,7 @@ class AppPortService:
                 try:
                     remote_component_client.delete_service_port(session, service.service_region, tenant_env,
                                                                 service.service_alias,
-                                                                port.container_port, tenant_env.enterprise_id)
+                                                                port.container_port)
                 except Exception as e:
                     logger.exception(e)
 

@@ -88,8 +88,7 @@ class IDaaSApi:
             "real_name": data.get("realName"),
             "nick_name": data.get("nickName"),
             "email": data.get("email"),
-            "phone": data.get("mobile"),
-            "enterprise_id": "95eaa13e9cc8ea1e561fbf36798a533f"
+            "phone": data.get("mobile")
         }
         user = UserInfo(**user)
         return user
@@ -105,8 +104,7 @@ class IDaaSApi:
                 "real_name": user_info.get("realName"),
                 "nick_name": user_info.get("nickName"),
                 "email": user_info.get("email"),
-                "phone": user_info.get("mobile"),
-                "enterprise_id": "95eaa13e9cc8ea1e561fbf36798a533f"
+                "phone": user_info.get("mobile")
             }
             user = UserInfo(**user)
             user_list.append(user)

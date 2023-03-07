@@ -949,8 +949,8 @@ class MarketAppService(object):
             data.append(helm_data)
         return data
 
-    def get_wutong_detail_app_and_version(self, session: SessionClass, enterprise_id, app_id, app_version):
-        app, app_version = center_app_repo.get_wutong_app_and_version(session, enterprise_id, app_id, app_version)
+    def get_wutong_detail_app_and_version(self, session: SessionClass, app_id, app_version):
+        app, app_version = center_app_repo.get_wutong_app_and_version(session, app_id, app_version)
         return app, app_version
 
     def app_model_serializers(self, market, data, extend=False):
@@ -961,7 +961,6 @@ class MarketAppService(object):
                 "app_name": data.name,
                 "update_time": data.update_time,
                 "local_market_id": market.ID,
-                "enterprise_id": market.enterprise_id,
                 "source": "market",
             }
             if extend:
@@ -994,7 +993,7 @@ class MarketAppService(object):
             install_from_cloud = component_source.is_install_from_cloud()
 
             return self.__get_upgradeable_versions(session,
-                                                   tenant_env.enterprise_id, component_source.group_key,
+                                                   component_source.group_key,
                                                    component_source.version,
                                                    component_source.get_template_update_time(), install_from_cloud,
                                                    market)

@@ -477,7 +477,6 @@ class RemoteComponentClient(ApiBaseHttpClient):
         :param tenant_name:
         :param service_alias:
         :param volume_name:
-        :param enterprise_id:
         :param body:
         :return:
         """

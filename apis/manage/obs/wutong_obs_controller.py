@@ -43,8 +43,7 @@ async def get_pods_info(
     service_pods_info = remote_component_client.get_service_pods(session,
                                                                  service.service_region,
                                                                  env,
-                                                                 service.service_alias,
-                                                                 env.enterprise_id)
+                                                                 service.service_alias)
     if service_pods_info["bean"]:
 
         def foobar(data):

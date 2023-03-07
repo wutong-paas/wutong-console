@@ -102,7 +102,7 @@ class RegionService(object):
             raise ServiceHandleException(status_code=400, msg="test link region field", msg_show="连接集群测试失败，请确认网络和集群状态")
 
         # 根据当前企业查询是否有region
-        exist_region = region_repo.get_region_by_enterprise_id(session)
+        exist_region = region_repo.get_region(session)
         region = region_repo.create_region(session, region_data)
 
         if exist_region:
@@ -371,8 +371,8 @@ class RegionService(object):
             return region.httpdomain
         return ""
 
-    def get_team_usable_regions(self, session: SessionClass, team_name, enterprise_id):
-        usable_regions = region_repo.get_usable_regions_by_enterprise_id(session=session, enterprise_id=enterprise_id)
+    def get_team_usable_regions(self, session: SessionClass, team_name):
+        usable_regions = region_repo.get_new_usable_regions(session=session)
         region_names = [r.region_name for r in usable_regions]
         team_opened_regions = region_repo.get_team_opened_region_name(session, team_name, region_names)
         return team_opened_regions

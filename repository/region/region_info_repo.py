@@ -9,9 +9,8 @@ from repository.teams.env_repo import env_repo
 
 class RegionRepo(BaseRepository[RegionConfig]):
 
-    def del_by_enterprise_region_id(self, session, enterprise_id, region_id):
+    def del_by_enterprise_region_id(self, session, region_id):
         session.execute(delete(RegionConfig).where(
-            RegionConfig.enterprise_id == enterprise_id,
             RegionConfig.region_id == region_id
         ))
 
@@ -21,7 +20,7 @@ class RegionRepo(BaseRepository[RegionConfig]):
         session.flush()
         return region_config
 
-    def get_region_by_enterprise_id(self, session):
+    def get_region(self, session):
         return session.execute(select(RegionConfig).where(
         )).scalars().first()
 
@@ -139,11 +138,10 @@ class RegionRepo(BaseRepository[RegionConfig]):
         return (session.execute(select(RegionConfig).where(
             RegionConfig.status == "1"))).scalars().all()
 
-    def get_usable_regions_by_enterprise_id(self, session: SessionClass, enterprise_id):
+    def get_new_usable_regions(self, session: SessionClass):
         """获取可使用的数据中心"""
         return (session.execute(select(RegionConfig).where(
-            RegionConfig.status == "1",
-            RegionConfig.enterprise_id == enterprise_id))).scalars().all()
+            RegionConfig.status == "1"))).scalars().all()
 
     def get_by_region_name(self, session: SessionClass, region_name):
         return (

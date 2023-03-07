@@ -201,22 +201,21 @@ class AppTagRepository(object):
     def create_app_tags_relation(self, session, app, tag_ids):
         relation_list = []
         session.execute(delete(CenterAppTagsRelation).where(
-            CenterAppTagsRelation.enterprise_id == app.enterprise_id,
             CenterAppTagsRelation.app_id == app.app_id
         ))
         for tag_id in tag_ids:
             relation_list.append(
-                CenterAppTagsRelation(enterprise_id=app.enterprise_id, app_id=app.app_id, tag_id=tag_id))
+                CenterAppTagsRelation(app_id=app.app_id, tag_id=tag_id))
 
         return session.add_all(relation_list)
 
-    def create_tag(self, session, enterprise_id, name):
+    def create_tag(self, session, name):
         old_tag = session.execute(select(CenterAppTag).where(
             CenterAppTag.name == name
         )).scalars().all()
         if old_tag:
             return False
-        wcat = CenterAppTag(enterprise_id=enterprise_id, name=name, is_deleted=False)
+        wcat = CenterAppTag(name=name, is_deleted=False)
         session.add(wcat)
         return wcat
 

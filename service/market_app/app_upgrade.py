@@ -356,10 +356,10 @@ class AppUpgrade(MarketApp):
 
         return NewApp(
             session,
-            self.tenant,
+            self.tenant_env,
             self.region_name,
             self.app,
-            ComponentGroup(self.enterprise_id, new_component_group, need_save=not self.is_upgrade_one),
+            ComponentGroup(new_component_group, need_save=not self.is_upgrade_one),
             new_components,
             update_components,
             component_deps,

@@ -1,6 +1,6 @@
 from typing import Optional
 from loguru import logger
-from sqlalchemy import select, or_, func, delete, not_, text
+from sqlalchemy import select, func, delete, not_, text
 from sqlalchemy.orm import defer
 import yaml
 import os
@@ -11,7 +11,6 @@ from models.market.models import AppImportRecord
 from models.market.models import CenterApp, CenterAppVersion, CenterPlugin
 from models.teams import TeamEnvInfo
 from repository.base import BaseRepository
-from repository.teams.env_repo import env_repo
 from schemas import CenterAppCreate
 
 
@@ -123,8 +122,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         if app_name:
             extend_where += " and app.app_name like :app_name"
         if need_install == "true":
-            join_version += " left join center_app_version apv on app.app_id = apv.app_id" \
-                            " and app.enterprise_id = apv.enterprise_id"
+            join_version += " left join center_app_version apv on app.app_id = apv.app_id"
             extend_where += " and apv.`version` <> '' and apv.is_complete"
         if scope == "team":
             team_sql = ""
@@ -180,24 +178,21 @@ class CenterRepository(BaseRepository[CenterApp]):
 
     def get_center_app_list(self,
                             session: SessionClass,
-                            enterprise_id: str,
                             app_name: str,
                             scope: Optional[str] = None,
                             page: Optional[int] = 1,
                             page_size: Optional[int] = 10, ):
         """
         获取本地市场应用列表
-        :param enterprise_id:
         :param app_name:
         :param scope:
         :param page:
         :param page_size:
         :return:
         """
-        logger.info("获取本地市场应用列表,scope:{},app_name:{},page:{},page_size:{},enterprise_id:{}", scope, app_name, page,
-                    page_size, enterprise_id)
-        sql = select(CenterApp).where(CenterApp.app_name.like("%" + app_name + "%"),
-                                      (CenterApp.enterprise_id == enterprise_id)).limit(page_size).offset(
+        logger.info("获取本地市场应用列表,scope:{},app_name:{},page:{},page_size:{}:{}", scope, app_name, page,
+                    page_size)
+        sql = select(CenterApp).where(CenterApp.app_name.like("%" + app_name + "%")).limit(page_size).offset(
             (page - 1) * page_size)
         q = session.execute(sql)
         session.flush()
@@ -220,17 +215,6 @@ class CenterRepository(BaseRepository[CenterApp]):
         sql = select(CenterPlugin).where(CenterPlugin.record_id == record_id)
         results = session.execute(sql)
         data = results.scalars().first()
-        return data
-
-    def list_plugins_by_enterprise_ids(self, session: SessionClass, enterprise_ids):
-        """
-        查询企业插件列表
-
-        :param enterprise_ids:
-        :return:
-        """
-        data = session.query(CenterPlugin).filter(
-            CenterPlugin.enterprise_id.in_(enterprise_ids)).all()
         return data
 
     def get_paged_plugins(self, session: SessionClass,

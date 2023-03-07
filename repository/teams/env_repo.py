@@ -18,9 +18,8 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     TenantRepository
     """
 
-    def get_enterprise_team_by_name(self, session, enterprise_id, team_name):
+    def get_enterprise_team_by_name(self, session, team_name):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.enterprise_id == enterprise_id,
             TeamEnvInfo.tenant_name == team_name
         )).scalars().first()
 

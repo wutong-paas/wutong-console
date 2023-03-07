@@ -117,7 +117,7 @@ async def get_app_upgrade_info(request: Request,
         request, 'record_id', value_type=str, required=True, error='record_id is a required parameter')
     record = upgrade_repo.get_by_record_id(session, record_id)
     # get app model upgrade versions
-    versions = market_app_service.list_app_upgradeable_versions(session, env.enterprise_id, record)
+    versions = market_app_service.list_app_upgradeable_versions(session, record)
     return JSONResponse(
         general_message(code=200, msg_show="查询成功", msg="success",
                         bean={'record': record.to_dict(), 'versions': versions}), status_code=200)

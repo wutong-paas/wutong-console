@@ -24,15 +24,15 @@ class HunanExpresswayClient(ApiBaseHttpClient):
             self.default_headers.update({"Authorization": token})
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
-    def get_region_cluster(self, session, region, enterprise_id):
-        url, token = get_region_access_info(enterprise_id, region, session)
+    def get_region_cluster(self, session, region):
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/cluster"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_region_event(self, session, region, enterprise_id):
-        url, token = get_region_access_info(enterprise_id, region, session)
+    def get_region_event(self, session, region):
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/cluster/events"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)

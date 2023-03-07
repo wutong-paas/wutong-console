@@ -555,8 +555,7 @@ class ShareService(object):
             from
                 center_app_tag_relation atr
             left join center_app_tag tag on
-                atr.enterprise_id = tag.enterprise_id
-                and atr.tag_id = tag.ID
+                atr.tag_id = tag.ID
             where
                 and atr.app_id = '{app_id}';
             """.format(app_id=app.app_id)
@@ -601,7 +600,7 @@ class ShareService(object):
             service_ids = [service.service_id for service in service_list]
             status_list = base_service.status_multi_service(session=session,
                                                             region=region_name, tenant_env=tenant_env,
-                                                            service_ids=service_ids, enterprise_id=tenant_env.enterprise_id)
+                                                            service_ids=service_ids)
             for status in status_list:
                 if status["status"] == "running":
                     data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
@@ -1138,7 +1137,7 @@ class ShareService(object):
             data["template_type"] = app.template_type
             data["version"] = app.version
             data["version_alias"] = app.version_alias
-            market = market_app_service.get_app_market_by_name(session=session, enterprise_id=tenant_env.enterprise_id,
+            market = market_app_service.get_app_market_by_name(session=session,
                                                                name=share_record.share_app_market_name,
                                                                raise_exception=True)
             market_app_service.create_market_app_model_version(market, app.app_id, data)
