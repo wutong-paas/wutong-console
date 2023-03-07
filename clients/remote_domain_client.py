@@ -36,7 +36,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
@@ -55,7 +55,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/services/" + service_alias + "/domains/" + \
@@ -72,7 +72,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/http-rule"
@@ -88,7 +88,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/http-rule"
@@ -105,7 +105,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/http-rule"
 
         self._set_headers(token)
@@ -120,7 +120,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/tcp-rule"
@@ -136,7 +136,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/tcp-rule"
@@ -153,7 +153,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/tenants/" + tenant_name + "/envs/" + tenant_env.env_name + "/tcp-rule"
 
         self._set_headers(token)

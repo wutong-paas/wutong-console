@@ -30,7 +30,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
     def get_tenant_resources(self, session, region, tenant_env):
         """获取指定租户的资源使用情况"""
 
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
               "/resources"
@@ -42,7 +42,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
     # 新建环境
     def create_env(self, session, region, team_id, team_name, env_name, env_id, namespace):
         """创建环境"""
-        url, token = get_region_access_info(env_name, region, session)
+        url, token = get_region_access_info(region, session)
         data = {"tenant_id": team_id, "tenant_name": team_name, "tenant_env_id": env_id, "tenant_env_name": env_name,
                 "namespace": namespace}
         url += "/v2/tenants/{0}/envs".format(team_name)
@@ -62,7 +62,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
     def delete_env(self, session, region, tenant_env):
         """删除环境"""
 
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name
 
@@ -74,7 +74,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
     def get_kubeconfig(self, session, region, tenant_env, tenant_name):
         """获取kubeconfig"""
 
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/tenants/{0}/envs/{1}/kubeconfig".format(tenant_name, tenant_env.env_name)
 
         self._set_headers(token)
@@ -86,7 +86,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         """获取kubeconfig"""
 
         params = ""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
 
         for service_alias in service_alias_list:
             params += "&service_aliases={0}".format(service_alias)

@@ -52,7 +52,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def import_app(self, session, region, tenant_env, data):
         """导入应用"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url += "/v2/app/import"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
@@ -60,7 +60,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def get_app_import_status(self, session, region, tenant_env, event_id):
         """查询导入状态"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
@@ -96,7 +96,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def get_import_file_dir(self, session, region, tenant_env, event_id):
         """查询导入目录"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
@@ -116,7 +116,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def delete_import(self, session, region, tenant_env, event_id):
         """删除导入"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/" + event_id
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region)
@@ -124,7 +124,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def create_import_file_dir(self, session, region, tenant_env, event_id):
         """创建导入目录"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region)
@@ -144,7 +144,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def delete_import_file_dir(self, session, region, tenant_env, event_id):
         """删除导入目录"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         url = url + "/v2/app/import/ids/" + event_id
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region)
@@ -158,7 +158,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :param body:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups"
@@ -175,7 +175,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :param backup_id:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups/" + str(backup_id)
@@ -192,7 +192,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :param backup_id:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups/" + str(backup_id)
@@ -209,7 +209,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :param group_uuid:
         :return:
         """
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups?group_id=" + str(group_uuid)
@@ -220,7 +220,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def star_apps_migrate_task(self, session, region, tenant_env, backup_id, data):
         """发起迁移命令"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups/" + backup_id + "/restore"
@@ -231,7 +231,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def get_apps_migrate_status(self, session, region, tenant_env, backup_id, restore_id):
         """获取迁移结果"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups/" \
@@ -243,7 +243,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
 
     def copy_backup_data(self, session, region, tenant_env, data):
         """数据中心备份数据进行拷贝"""
-        url, token = get_region_access_info(tenant_env.env_name, region, session)
+        url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backupcopy"
