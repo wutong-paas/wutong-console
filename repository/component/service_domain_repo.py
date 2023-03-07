@@ -37,33 +37,6 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             ServiceDomainCertificate.tenant_env_id == tenant_env_id,
             ServiceDomainCertificate.alias == alias)).scalars().first()
 
-    def check_custom_rule(self, session):
-        """
-        check if there is a custom gateway rule
-        """
-        sql = """
-            SELECT
-                *
-            FROM
-                service_domain a,
-                tenant_info b
-            WHERE
-                a.tenant_env_id = b.tenant_env_id
-                AND (
-                    a.certificate_id <> 0
-                    OR ( a.domain_path <> '/' AND a.domain_path <> '' )
-                    OR a.domain_cookie <> ''
-                    OR a.domain_heander <> ''
-                    OR a.the_weight <> 100
-                    OR a.path_rewrite <> 0
-                    OR a.rewrites <> ''
-                    OR a.domain_name NOT LIKE concat('%',b.tenant_name,'%')
-                )
-                LIMIT 1"""
-        sql = text(sql)
-        result = session.execute(sql).fetchall()
-        return True if len(result) > 0 else False
-
     def delete_service_domain(self, session, service_id):
         session.execute(delete(ServiceDomain).where(
             ServiceDomain.service_id == service_id))

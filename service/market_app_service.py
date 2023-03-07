@@ -1,14 +1,15 @@
 import base64
 import json
 import time
+
 from addict import Dict
 from fastapi.encoders import jsonable_encoder
 from jsonpath import jsonpath
 from loguru import logger
 from sqlalchemy import select, delete
-from appstore.app_store_client import app_store_client, get_market_client
+
+from appstore.app_store_client import get_market_client
 from clients.remote_component_client import remote_component_client
-from common.base_client_service import get_env_region_info
 from core.enum.component_enum import Kind
 from core.idaasapi import idaas_api
 from core.utils.crypt import make_uuid
@@ -17,7 +18,7 @@ from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFoun
 from models.application.models import Application, ApplicationUpgradeRecord
 from models.component.models import TeamApplication
 from models.market.models import CenterApp, CenterAppTagsRelation, CenterAppVersion, \
-    AppImportRecord, CenterAppTag, AppMarket
+    AppImportRecord, CenterAppTag
 from models.teams import TeamEnvInfo
 from repository.application.app_repository import app_tag_repo, app_repo
 from repository.application.app_upgrade_repo import upgrade_repo
@@ -25,7 +26,6 @@ from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.market.center_repo import center_app_repo
-from repository.teams.env_repo import env_repo
 from service.application_service import application_service
 from service.component_group import ComponentGroup
 from service.market_app.app_upgrade import AppUpgrade
@@ -125,43 +125,6 @@ class MarketAppService(object):
                                                component_group.app_model_key, component_group.version,
                                                app_template_source.get_template_update_time(),
                                                component_group.is_install_from_cloud(session), market)
-
-    def cloud_app_model_to_db_model(self, market: AppMarket, app_id, version, for_install=False):
-        app = app_store_client.get_app(market, app_id)
-        app_version = None
-        app_template = None
-        try:
-            if version:
-                app_template = app_store_client.get_app_version(market, app_id, version, for_install=for_install,
-                                                                get_template=True)
-        except ServiceHandleException as e:
-            if e.status_code != 404:
-                logger.exception(e)
-            app_template = None
-        wutong_app = CenterApp(
-            app_id=app.app_key_id,
-            app_name=app.name,
-            dev_status=app.dev_status,
-            source="market",
-            scope="wutong",
-            describe=app.desc,
-            details=app.introduction,
-            pic=app.logo,
-            create_time=app.create_time,
-            update_time=app.update_time)
-        wutong_app.market_name = market.name
-        if app_template:
-            app_version = CenterAppVersion(
-                app_id=app.app_key_id,
-                app_template=app_template.template,
-                version=app_template.version,
-                version_alias=app_template.version_alias,
-                template_version=app_template.rainbond_version,
-                app_version_info=app_template.description,
-                update_time=app_template.update_time,
-                is_official=1)
-            app_version.template_type = app_template.template_type
-        return wutong_app, app_version
 
     def update_wutong_app_install_num(self, session, app_id, app_version):
         app_repo.add_wutong_install_num(session, app_id, app_version)
@@ -531,16 +494,11 @@ class MarketAppService(object):
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
-        if install_from_cloud:
-            _, market = market_app_service.get_app_market(session, market_name, raise_exception=True)
-            market_app, app_version = market_app_service.cloud_app_model_to_db_model(
-                market, app_model_key, version, for_install=True)
-        else:
-            market_app, app_version = self.get_wutong_app_and_version(session, app_model_key, version)
-            if app_version and app_version.region_name and app_version.region_name != region.region_name:
-                raise AbortRequest(
-                    msg="app version can not install to this region",
-                    msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
+        market_app, app_version = self.get_wutong_app_and_version(session, app_model_key, version)
+        if app_version and app_version.region_name and app_version.region_name != region.region_name:
+            raise AbortRequest(
+                msg="app version can not install to this region",
+                msg_show="该应用版本属于{}集群，无法跨集群安装，若需要跨集群，请在企业设置中配置跨集群访问的镜像仓库后重新发布。".format(app_version.region_name))
         if not market_app:
             raise AbortRequest("market app not found", "应用市场应用不存在", status_code=404, error_code=404)
         if not app_version:
@@ -660,7 +618,8 @@ class MarketAppService(object):
                     # The version of the component group is the version of the application
                     upgrade_app_models[upgrade_app_key] = {'version': component_group.group_version,
                                                            'component_source': ss}
-        iterator = self.yield_app_info(session=session, app_models=upgrade_app_models, tenant_env=tenant_env, app_id=app_id)
+        iterator = self.yield_app_info(session=session, app_models=upgrade_app_models, tenant_env=tenant_env,
+                                       app_id=app_id)
         # todo
         if iterator:
             app_info_list = [app_info for app_info in iterator]

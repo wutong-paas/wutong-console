@@ -1,6 +1,8 @@
 from typing import Optional
+
 from fastapi import Request, Header, Depends
 from loguru import logger
+
 from core.idaasapi import idaas_api
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
@@ -26,8 +28,7 @@ async def get_session() -> SessionClass:
         session.close()
 
 
-async def get_current_user(request: Request, authorization: Optional[str] = Header(None),
-                           session: SessionClass = Depends(get_session)) -> UserInfo:
+async def get_current_user(request: Request, authorization: Optional[str] = Header(None)) -> UserInfo:
     try:
         idaas_api.set_token(authorization)
         from urllib import parse

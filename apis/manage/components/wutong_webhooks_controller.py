@@ -263,7 +263,6 @@ async def update_deploy_mode(
             return JSONResponse(result, status_code=400)
 
         push_data = data.get("push_data")
-        pusher = push_data.get("pusher")
         tag = push_data.get("tag")
         repo_name = repository.get("repo_name")
         if not repo_name:
@@ -300,11 +299,9 @@ async def update_deploy_mode(
         status_map = application_service.get_service_status(session, env, service_obj)
         status = status_map.get("status", None)
         user_obj = idaas_api.get_user_info(service_obj.creater)
-        committer_name = pusher
         if status != "closed":
             return app_manage_service.deploy_service(
-                session=session, tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj,
-                committer_name=committer_name)
+                session=session, tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj)
         else:
             result = general_message(400, "failed", "组件状态处于关闭中，不支持自动构建")
             return JSONResponse(result, status_code=400)

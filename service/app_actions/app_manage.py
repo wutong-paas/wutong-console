@@ -59,26 +59,26 @@ from service.base_services import baseService
 from service.market_app_service import market_app_service
 
 
-class AppManageBase(object):
-    def __init__(self):
-        self.MODULES = "Owned_Fee"
-        self.START = "restart"
-        self.STOP = "stop"
-        self.RESTART = "reboot"
-        self.DELETE = "delete"
-        self.DEPLOY = "deploy"
-        self.UPGRADE = "upgrade"
-        self.ROLLBACK = "callback"
-        self.VERTICAL_UPGRADE = "VerticalUpgrade"
-        self.HORIZONTAL_UPGRADE = "HorizontalUpgrade"
-        self.TRUNCATE = "truncate"
+# class AppManageBase(object):
+#     def __init__(self):
+#         self.MODULES = "Owned_Fee"
+#         self.START = "restart"
+#         self.STOP = "stop"
+#         self.RESTART = "reboot"
+#         self.DELETE = "delete"
+#         self.DEPLOY = "deploy"
+#         self.UPGRADE = "upgrade"
+#         self.ROLLBACK = "callback"
+#         self.VERTICAL_UPGRADE = "VerticalUpgrade"
+#         self.HORIZONTAL_UPGRADE = "HorizontalUpgrade"
+#         self.TRUNCATE = "truncate"
 
 
-class AppManageService(AppManageBase):
+class AppManageService(object):
     def __init__(self):
         super().__init__()
 
-    def deploy_service(self, session, tenant_env, service_obj, user, committer_name=None, oauth_instance=None):
+    def deploy_service(self, session, tenant_env, service_obj, user):
         """重新构建"""
         code, msg, event_id = self.deploy(session, tenant_env, service_obj, user)
         bean = {}

@@ -10,20 +10,3 @@ def get_market_client(access_key, host=None):
     if access_key:
         configuration.api_key['Authorization'] = access_key
     return store_client.MarketOpenapiApi(store_client.ApiClient(configuration))
-
-
-class AppStoreClient(object):
-
-    def get_app(self, store, app_id):
-        store_client = get_market_client(store.access_key, store.url)
-        data = store_client.get_user_app_detail(app_id=app_id, market_domain=store.domain, _return_http_data_only=True)
-        return data
-
-    def get_app_version(self, store, app_id, version, for_install=False, get_template=False):
-        store_client = get_market_client(store.access_key, store.url)
-        data = store_client.get_user_app_version_detail(
-            app_id=app_id, version=version, market_domain=store.domain, for_install=for_install, get_template=get_template)
-        return data
-
-
-app_store_client = AppStoreClient()

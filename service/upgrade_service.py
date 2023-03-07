@@ -1,11 +1,11 @@
 import json
 from datetime import datetime
 from json import JSONDecodeError
+
 from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import Params, paginate
 from loguru import logger
 
-from appstore.app_store_client import app_store_client
 from clients.remote_build_client import remote_build_client
 from database.session import SessionClass
 from exceptions.bcode import ErrLastRecordUnfinished, ErrAppUpgradeWrongStatus, ErrAppUpgradeRecordCanNotDeploy, \
@@ -14,10 +14,8 @@ from exceptions.main import AbortRequest, ServiceHandleException
 from models.application.models import ApplicationUpgradeStatus, ServiceUpgradeRecord, ApplicationUpgradeRecord, \
     ApplicationUpgradeRecordType, \
     Application
-from models.market.models import CenterAppVersion, AppMarket, CenterApp
 from models.teams import TeamEnvInfo
 from repository.application.app_upgrade_repo import upgrade_repo
-from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
 from repository.component.component_upgrade_record_repo import component_upgrade_record_repo
 from repository.market.center_repo import center_app_repo
@@ -90,7 +88,8 @@ class UpgradeService(object):
         component_ids = [record.service_id for record in failed_component_records.values()]
 
         try:
-            events = app_manage_service.batch_operations(session, tenant_env, region_name, user, "deploy", component_ids)
+            events = app_manage_service.batch_operations(session, tenant_env, region_name, user, "deploy",
+                                                         component_ids)
             status = ApplicationUpgradeStatus.UPGRADING.value \
                 if record.record_type == ApplicationUpgradeRecordType.UPGRADE.value else ApplicationUpgradeStatus.ROLLING.value
             upgrade_repo.change_app_record_status(session, record, status)
@@ -167,7 +166,8 @@ class UpgradeService(object):
         if not components:
             raise AbortRequest("components not found", "找不到组件", status_code=404, error_code=404)
         component = components[0]
-        component_source = service_source_repo.get_service_source(session, component.tenant_env_id, component.service_id)
+        component_source = service_source_repo.get_service_source(session, component.tenant_env_id,
+                                                                  component.service_id)
         return component_source
 
     def get_property_changes(self, session, tenant_env, region, user, app, upgrade_group_id, version):
@@ -184,50 +184,8 @@ class UpgradeService(object):
 
         return app_upgrade.changes()
 
-    def upgrade_cloud_app_model_to_db_model(self, market: AppMarket, app_id, version, for_install=False):
-        app = app_store_client.get_app(market, app_id)
-        app_version = None
-        app_template = None
-        try:
-            if version:
-                app_template = app_store_client.get_app_version(market, app_id, version, for_install=for_install,
-                                                                get_template=True)
-        except ServiceHandleException as e:
-            if e.status_code != 404:
-                logger.exception(e)
-            app_template = None
-        wutong_app = CenterApp(
-            app_id=app.app_key_id,
-            app_name=app.name,
-            dev_status=app.dev_status,
-            source="market",
-            scope="wutong",
-            describe=app.desc,
-            details=app.introduction,
-            pic=app.logo,
-            create_time=app.create_time,
-            update_time=app.update_time)
-        wutong_app.market_name = market.name
-        if app_template:
-            app_version = CenterAppVersion(
-                app_id=app.app_key_id,
-                app_template=app_template.template,
-                version=app_template.version,
-                version_alias=app_template.version_alias,
-                template_version=app_template.rainbond_version,
-                app_version_info=app_template.description,
-                update_time=app_template.update_time,
-                is_official=1)
-            app_version.template_type = app_template.template_type
-        return wutong_app, app_version
-
     def _app_template(self, session, app_model_key, version, app_template_source):
-        if not app_template_source.is_install_from_cloud():
-            _, app_version = center_app_repo.get_wutong_app_and_version(session, app_model_key, version)
-        else:
-            market = app_market_repo.get_app_market_by_name(
-                session, app_template_source.get_market_name(), raise_exception=True)
-            _, app_version = self.upgrade_cloud_app_model_to_db_model(market, app_model_key, version)
+        _, app_version = center_app_repo.get_wutong_app_and_version(session, app_model_key, version)
 
         if not app_version:
             raise AbortRequest("app template not found", "找不到应用模板", status_code=404, error_code=404)

@@ -63,6 +63,10 @@ class ServiceDomain(Base):
     path_rewrite = Column(Boolean, comment="是否开启简单路由重写", nullable=False, default=False)
     rewrites = Column(Text, comment="复杂路由重写配置", nullable=True)
 
+    is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
+    delete_time = Column(DateTime(), nullable=True, comment="删除时间")
+    delete_operator = Column(String(100), comment="删除操作人", nullable=False)
+
     def __unicode__(self):
         return self.domain_name
 
@@ -97,6 +101,10 @@ class ServiceTcpDomain(Base):
     type = Column(Integer, nullable=False, default=0, comment="类型（默认：0， 自定义：1）")
     rule_extensions = Column(Text, comment="扩展功能", nullable=True)
     is_outer_service = Column(Boolean, comment="是否已开启对外端口", nullable=False, default=True)
+
+    is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
+    delete_time = Column(DateTime(), nullable=True, comment="删除时间")
+    delete_operator = Column(String(100), comment="删除操作人", nullable=False)
 
     @property
     def load_balancing(self):

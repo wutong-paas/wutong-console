@@ -333,7 +333,7 @@ class ShareService(object):
                         if not delivered_type:
                             continue
                         if delivered_type == "slug":
-                            service['service_slug'] = app_store.get_slug_hub_info(session, market, app_model_id)
+                            # service['service_slug'] = app_store.get_slug_hub_info(session, market, app_model_id)
                             service["share_type"] = "slug"
                             if not service['service_slug']:
                                 return 400, "获取源码包上传地址错误", None
@@ -462,18 +462,18 @@ class ShareService(object):
         if market:
             apps = (
                 session.execute(select(CenterApp).where(
-                                                        # CenterApp.source == "local",
-                                                        or_(CenterApp.create_team == team_name,
-                                                            CenterApp.scope == "market")).order_by(
+                    # CenterApp.source == "local",
+                    or_(CenterApp.create_team == team_name,
+                        CenterApp.scope == "market")).order_by(
                     CenterApp.create_time.desc()))
             ).scalars().all()
         else:
             apps = (
                 session.execute(select(CenterApp).where(
-                                                        CenterApp.source == "local",
-                                                        or_(CenterApp.create_team == team_name,
-                                                            CenterApp.scope.in_(
-                                                                ["team", "enterprise"]))).order_by(
+                    CenterApp.source == "local",
+                    or_(CenterApp.create_team == team_name,
+                        CenterApp.scope.in_(
+                            ["team", "enterprise"]))).order_by(
                     CenterApp.create_time.desc()))
             ).scalars().all()
 
@@ -594,7 +594,8 @@ class ShareService(object):
         return plugin_list
 
     def check_service_source(self, session: SessionClass, tenant_env, group_id, region_name):
-        service_list = component_share_repo.get_service_list_by_group_id(session=session, tenant_env=tenant_env, group_id=group_id)
+        service_list = component_share_repo.get_service_list_by_group_id(session=session, tenant_env=tenant_env,
+                                                                         group_id=group_id)
         if service_list:
             # 批量查询组件状态
             service_ids = [service.service_id for service in service_list]
@@ -615,7 +616,8 @@ class ShareService(object):
         return component_share_repo.create_service_share_record(session, **kwargs)
 
     def query_share_service_info(self, tenant_env, group_id, session: SessionClass, scope=None):
-        service_list = component_share_repo.get_service_list_by_group_id(session=session, tenant_env=tenant_env, group_id=group_id)
+        service_list = component_share_repo.get_service_list_by_group_id(session=session, tenant_env=tenant_env,
+                                                                         group_id=group_id)
         if service_list:
             array_ids = [x.service_id for x in service_list]
             deploy_versions = self.get_team_service_deploy_version(session, service_list[0].service_region, tenant_env,
@@ -802,8 +804,8 @@ class ShareService(object):
     def get_team_service_deploy_version(self, session, region, tenant_env, service_ids):
         try:
             res, body = remote_build_client.get_env_services_deploy_version(session,
-                                                                             region, tenant_env,
-                                                                             {"service_ids": service_ids})
+                                                                            region, tenant_env,
+                                                                            {"service_ids": service_ids})
             if res.status == 200:
                 service_versions = {}
                 for version in body["list"]:
@@ -916,9 +918,10 @@ class ShareService(object):
 
     def get_dep_mnts_by_ids(self, tenant_env_id, service_ids, session: SessionClass):
         mnt_relations = (
-            session.execute(select(TeamComponentMountRelation).where(TeamComponentMountRelation.tenant_env_id == tenant_env_id,
-                                                                     TeamComponentMountRelation.service_id.in_(
-                                                                         service_ids)))
+            session.execute(
+                select(TeamComponentMountRelation).where(TeamComponentMountRelation.tenant_env_id == tenant_env_id,
+                                                         TeamComponentMountRelation.service_id.in_(
+                                                             service_ids)))
         ).scalars().all()
 
         if not mnt_relations:
