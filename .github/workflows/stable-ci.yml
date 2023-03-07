@@ -2,7 +2,7 @@ name: stable-ci
 
 env:
   TITLE: wutong-console
-  BASE_VERSION: stable-v1.0.0
+  BASE_VERSION: v1.0.0-stable
 
 on:
   push:
