@@ -12,7 +12,7 @@ from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.exceptions import ErrBackupRecordNotFound, ErrNeedAllServiceCloesed
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar
-from models.component.models import TeamComponentInfo, TeamComponentPort, ComponentEnvVar, \
+from models.component.models import Component, TeamComponentPort, ComponentEnvVar, \
     TeamComponentConfigurationFile, TeamComponentVolume, TeamComponentEnv, ComponentLabels, ComponentProbe, \
     ComponentSourceInfo, TeamComponentAuth, ThirdPartyComponentEndpoints, TeamComponentMountRelation
 from models.relate.models import TeamComponentRelation
@@ -207,7 +207,7 @@ class GroupappsMigrateService(object):
     def __init_app(self, session: SessionClass, service_base_info, new_service_id, new_servie_alias, user, region,
                    tenant_env):
         service_base_info.pop("ID")
-        ts = TeamComponentInfo(**service_base_info)
+        ts = Component(**service_base_info)
         if service_base_info["service_source"] == "third_party":
             new_service_id = make_uuid(tenant_env.env_id)
             new_servie_alias = application_service.create_service_alias(session=session, service_id=new_service_id)

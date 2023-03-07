@@ -15,7 +15,7 @@ from database.session import SessionClass
 from exceptions.bcode import ErrComponentBuildFailed
 from exceptions.main import AccountOverdueException, ResourceNotEnoughException, ErrInsufficientResource, \
     ServiceHandleException
-from models.component.models import TeamComponentInfo
+from models.component.models import Component
 from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.env_repo import env_repo
@@ -109,8 +109,8 @@ async def get_check_uuid(service_alias: Optional[str] = None,
                          env=Depends(deps.get_current_team_env)) -> Any:
     check_uuid = (
         session.execute(
-            select(TeamComponentInfo.check_uuid).where(TeamComponentInfo.service_alias == service_alias,
-                                                       TeamComponentInfo.tenant_env_id == env.env_id))
+            select(Component.check_uuid).where(Component.service_alias == service_alias,
+                                               Component.tenant_env_id == env.env_id))
     ).scalars().first()
 
     return JSONResponse(general_message("0", "success", "获取成功", bean={"check_uuid": check_uuid}), status_code=200)
@@ -148,8 +148,8 @@ async def get_check_detail(check_uuid: Optional[str] = None,
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
-                                                   query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                 tenant_env_id=env.env_id))
+                                                   query_model=Component(service_alias=service_alias,
+                                                                         tenant_env_id=env.env_id))
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     code, msg, data = component_check_service.get_service_check_info(session=session, tenant_env=env,
@@ -211,8 +211,8 @@ async def check(
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
-                                                   query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                 tenant_env_id=env.env_id))
+                                                   query_model=Component(service_alias=service_alias,
+                                                                         tenant_env_id=env.env_id))
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     code, msg, service_info = application_service.check_service(session=session, tenant_env=env, service=service,
@@ -250,8 +250,8 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
-                                                   query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                 tenant_env_id=env.env_id))
+                                                   query_model=Component(service_alias=service_alias,
+                                                                         tenant_env_id=env.env_id))
     if not service:
         return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
     try:
@@ -314,8 +314,8 @@ async def pod_detail(
         if not env:
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         service = team_component_repo.get_one_by_model(session=session,
-                                                       query_model=TeamComponentInfo(service_alias=service_alias,
-                                                                                     tenant_env_id=env.env_id))
+                                                       query_model=Component(service_alias=service_alias,
+                                                                             tenant_env_id=env.env_id))
         if not service:
             return JSONResponse(general_message(400, "not found service", "组件不存在"), status_code=400)
         data = remote_component_client.pod_detail(session,

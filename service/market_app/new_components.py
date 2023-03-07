@@ -14,7 +14,7 @@ from exceptions.bcode import ErrK8sServiceNameExists
 from exceptions.main import AbortRequest, ErrVolumePath
 from models.application.models import ComponentApplicationRelation
 from models.teams import RegionConfig, ServiceDomain, GatewayCustomConfiguration
-from models.component.models import TeamComponentInfo, ComponentSourceInfo, ComponentEnvVar, TeamComponentPort, \
+from models.component.models import Component, ComponentSourceInfo, ComponentEnvVar, TeamComponentPort, \
     TeamComponentConfigurationFile, ComponentExtendMethod, ComponentMonitor, ComponentGraph, ComponentLabels
 from service.app_config.port_service import port_service
 from service.app_config.promql_service import promql_service
@@ -147,7 +147,7 @@ class NewComponents(object):
         return False
 
     def _template_to_component(self, env_id, template):
-        component = TeamComponentInfo()
+        component = Component()
         component.tenant_env_id = env_id
         component.service_id = make_uuid()
         component.service_cname = template.get("service_cname", "default-name")
@@ -198,7 +198,7 @@ class NewComponents(object):
 
         return component
 
-    def _template_to_component_source(self, component: TeamComponentInfo, tmpl: map):
+    def _template_to_component_source(self, component: Component, tmpl: map):
         extend_info = tmpl.get("service_image")
         if not extend_info:
             extend_info = {}
@@ -291,7 +291,7 @@ class NewComponents(object):
         return new_ports
 
     @staticmethod
-    def _create_port_env(component: TeamComponentInfo, port: TeamComponentPort, name, attr_name, attr_value):
+    def _create_port_env(component: Component, port: TeamComponentPort, name, attr_name, attr_value):
         return ComponentEnvVar(
             tenant_env_id=component.tenant_env_id,
             service_id=component.component_id,
@@ -304,7 +304,7 @@ class NewComponents(object):
             create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         )
 
-    def _create_default_gateway_rule(self, component: TeamComponentInfo, port: TeamComponentPort):
+    def _create_default_gateway_rule(self, component: Component, port: TeamComponentPort):
         domain_name = self._create_default_domain(component.service_alias, port.container_port)
         return ServiceDomain(
             service_id=component.service_id,
@@ -447,7 +447,7 @@ class NewComponents(object):
             new_graphs[new_graph.title] = new_graph
         return new_graphs.values()
 
-    def _template_to_service_domain(self, component: TeamComponentInfo, ports: [TeamComponentPort]):
+    def _template_to_service_domain(self, component: Component, ports: [TeamComponentPort]):
         new_ports = {port.container_port: port for port in ports}
         ingress_http_routes = self.app_template.list_ingress_http_routes_by_component_key(component.service_key)
 
@@ -497,7 +497,7 @@ class NewComponents(object):
 
         return service_domains, configs
 
-    def _ensure_default_http_rule(self, component: TeamComponentInfo, http_rules: [ServiceDomain],
+    def _ensure_default_http_rule(self, component: Component, http_rules: [ServiceDomain],
                                   ports: [TeamComponentPort]):
         new_http_rules = {}
         for rule in http_rules:

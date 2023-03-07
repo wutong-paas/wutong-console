@@ -10,7 +10,7 @@ from database.session import Base
 user_origion = (("自主注册", "registration"), ("邀请注册", "invitation"))
 
 
-class TeamComponentInfo(Base):
+class Component(Base):
     """组件管理"""
 
     __tablename__ = 'tenant_service'

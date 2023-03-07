@@ -8,7 +8,7 @@ from clients.remote_component_client import remote_component_client
 from database.session import SessionClass
 from models.application.models import ComponentApplicationRelation
 from models.teams import ServiceDomain
-from models.component.models import TeamComponentInfo, TeamComponentPort
+from models.component.models import Component, TeamComponentPort
 from models.relate.models import TeamComponentRelation
 from service.region_service import region_services
 
@@ -109,8 +109,8 @@ class TopologicalService(object):
             TeamComponentRelation.service_id == service.service_id
         )).scalars().all()
         relation_id_list = set([x.dep_service_id for x in relation_list])
-        relation_service_list = session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_id.in_(relation_id_list)
+        relation_service_list = session.execute(select(Component).where(
+            Component.service_id.in_(relation_id_list)
         )).scalars().all()
         relation_service_map = {x.service_id: x for x in relation_service_list}
         relation_port_list = session.execute(select(TeamComponentPort).where(
@@ -145,8 +145,8 @@ class TopologicalService(object):
             ComponentApplicationRelation.group_id == group_id
         )).scalars().all()
         service_id_list = [service.service_id for service in service_groups]
-        service_list = session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_id.in_(service_id_list)
+        service_list = session.execute(select(Component).where(
+            Component.service_id.in_(service_id_list)
         )).scalars().all()
         outer_http_service_list = []
         for service in service_list:
@@ -251,7 +251,7 @@ class TopologicalService(object):
         all_service_id_list = list(set(dep_service_id_list).union(set(service_id_list)))
         service_list = (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_id.in_(all_service_id_list)))
+                select(Component).where(Component.service_id.in_(all_service_id_list)))
         ).scalars().all()
 
         service_map = {x.service_id: x for x in service_list}

@@ -11,7 +11,7 @@ from core.utils.constants import AppConstants
 from core.utils.crypt import make_uuid
 from core.utils.timeutil import current_time_str
 from database.session import SessionClass
-from models.component.models import TeamComponentInfo
+from models.component.models import Component
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.compose_repo import compose_relation_repo, compose_repo
@@ -104,7 +104,7 @@ class ComposeService(object):
         """
         初始化docker compose创建的组件默认数据
         """
-        tenant_service = TeamComponentInfo()
+        tenant_service = Component()
         tenant_service.tenant_env_id = tenant_env.env_id
         tenant_service.service_id = make_uuid()
         tenant_service.service_cname = service_cname

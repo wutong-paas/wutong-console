@@ -13,7 +13,7 @@ from core.utils.constants import AppConstants
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from models.component.models import TeamComponentInfo
+from models.component.models import Component
 from repository.component.component_repo import service_source_repo
 from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_info_repo
@@ -218,8 +218,8 @@ async def get_events_info(request: Request,
         targetAlias = env.tenant_name
     if target == "service":
         service = team_component_repo.get_one_by_model(session=session,
-                                                       query_model=TeamComponentInfo(tenant_env_id=env.env_id,
-                                                                                     service_alias=targetAlias))
+                                                       query_model=Component(tenant_env_id=env.env_id,
+                                                                             service_alias=targetAlias))
         if service:
             target_id = service.service_id
             events, total, has_next = event_service.get_target_events(session=session, target=target,

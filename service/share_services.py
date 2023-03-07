@@ -18,7 +18,7 @@ from exceptions.main import AbortRequest, ServiceHandleException, RbdAppNotFound
 from models.application.models import ServiceShareRecord, ServiceShareRecordEvent
 from models.application.plugin import TeamComponentPluginRelation, TeamPlugin, ComponentPluginConfigVar, \
     PluginShareRecordEvent
-from models.component.models import TeamComponentConfigurationFile, TeamComponentPort, TeamComponentInfo, \
+from models.component.models import TeamComponentConfigurationFile, TeamComponentPort, Component, \
     ComponentEnvVar, TeamComponentVolume, TeamComponentMountRelation, ComponentProbe, ComponentMonitor, ComponentGraph, \
     ComponentLabels, ComponentEvent
 from models.market.models import CenterApp, CenterAppVersion
@@ -856,8 +856,8 @@ class ShareService(object):
             for dep_service in relation_list:
                 dep_service_info = (
                     session.execute(
-                        select(TeamComponentInfo).where(TeamComponentInfo.service_id == dep_service.dep_service_id,
-                                                        TeamComponentInfo.tenant_env_id == dep_service.tenant_env_id))
+                        select(Component).where(Component.service_id == dep_service.dep_service_id,
+                                                Component.tenant_env_id == dep_service.tenant_env_id))
                 ).scalars().first()
 
                 if dep_service_info is None:

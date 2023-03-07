@@ -11,7 +11,7 @@ from core.idaasapi import idaas_api
 from core.utils.constants import AppConstants
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
-from models.component.models import TeamComponentInfo, DeployRelation
+from models.component.models import Component, DeployRelation
 from repository.application.app_repository import service_webhooks_repo
 from repository.component.deploy_repo import deploy_repo
 from repository.component.group_service_repo import service_info_repo
@@ -41,8 +41,8 @@ async def get_auto_url(request: Request,
         service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         service_alias = service.service_alias
         service_obj = team_component_repo.get_one_by_model(session=session,
-                                                           query_model=TeamComponentInfo(tenant_env_id=env.env_id,
-                                                                                         service_alias=service_alias))
+                                                           query_model=Component(tenant_env_id=env.env_id,
+                                                                                 service_alias=service_alias))
         if service_obj.service_source == AppConstants.MARKET:
             result = general_message(200, "failed", "该组件不符合要求", bean={"display": False})
             return JSONResponse(result, status_code=200)
@@ -181,8 +181,8 @@ async def update_key(request: Request,
         service = service_info_repo.get_service(session, serviceAlias, env.env_id)
         service_alias = service.service_alias
         service_obj = team_component_repo.get_one_by_model(session=session,
-                                                           query_model=TeamComponentInfo(tenant_env_id=env.env_id,
-                                                                                         service_alias=service_alias))
+                                                           query_model=Component(tenant_env_id=env.env_id,
+                                                                                 service_alias=service_alias))
         deploy_obj = deploy_repo.get_one_by_model(session=session,
                                                   query_model=DeployRelation(service_id=service_obj.service_id))
         pwd = base64.b64encode(pickle.dumps({"secret_key": secret_key}))

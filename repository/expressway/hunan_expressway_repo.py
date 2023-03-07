@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from models.application.models import Application, ComponentApplicationRelation
-from models.component.models import TeamComponentInfo
+from models.component.models import Component
 from models.teams import TeamEnvInfo
 
 
@@ -27,8 +27,8 @@ class HunanExpresswayRepository(object):
         )).scalars().all()
 
     def get_services_by_tenant_env_id(self, session, tenant_env_id):
-        return session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.tenant_env_id == tenant_env_id
+        return session.execute(select(Component).where(
+            Component.tenant_env_id == tenant_env_id
         )).scalars().all()
 
 

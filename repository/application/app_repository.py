@@ -3,7 +3,7 @@ import time
 from loguru import logger
 from sqlalchemy import select, delete, text
 
-from models.component.models import TeamComponentInfo, ComponentWebhooks, ComponentRecycleBin, \
+from models.component.models import Component, ComponentWebhooks, ComponentRecycleBin, \
     ComponentRelationRecycleBin, TeamComponentInfoDelete, TeamComponentConfigurationFile
 from models.market.models import CenterApp, CenterAppVersion, CenterAppTag, CenterAppTagsRelation
 
@@ -105,12 +105,12 @@ class AppRepo(object):
 
     def get_app_list(self, session, tenant_env_id, region, query=""):
         if query:
-            sql = select(TeamComponentInfo).where(TeamComponentInfo.tenant_env_id == tenant_env_id,
-                                                  TeamComponentInfo.service_region == region,
-                                                  TeamComponentInfo.service_cname.contains(query))
+            sql = select(Component).where(Component.tenant_env_id == tenant_env_id,
+                                          Component.service_region == region,
+                                          Component.service_cname.contains(query))
         else:
-            sql = select(TeamComponentInfo).where(TeamComponentInfo.tenant_env_id == tenant_env_id,
-                                                  TeamComponentInfo.service_region == region)
+            sql = select(Component).where(Component.tenant_env_id == tenant_env_id,
+                                          Component.service_region == region)
         return session.execute(sql).scalars().all()
 
 

@@ -22,7 +22,7 @@ from models.component.models import ComponentEvent, ComponentCreateStep, Compone
     TeamComponentInfoDelete, ComponentEnvVar, TeamComponentAuth, TeamComponentMountRelation, TeamComponentPort, \
     TeamComponentVolume, ComponentSourceInfo, ComponentLabels, TeamServiceBackup, \
     ComponentGraph, \
-    ComponentMonitor, TeamComponentInfo, TeamComponentEnv, ComponentExtendMethod, TeamApplication, \
+    ComponentMonitor, Component, TeamComponentEnv, ComponentExtendMethod, TeamApplication, \
     ThirdPartyComponentEndpoints
 from models.region.models import RegionApp
 from models.relate.models import TeamComponentRelation
@@ -220,8 +220,8 @@ class AppManageService(AppManageBase):
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
         if service.tenant_service_group_id > 0:
             count = (
-                session.execute(select(func.count(TeamComponentInfo.ID)).where(
-                    TeamComponentInfo.tenant_service_group_id == service.tenant_service_group_id))
+                session.execute(select(func.count(Component.ID)).where(
+                    Component.tenant_service_group_id == service.tenant_service_group_id))
             ).first()[0]
 
             if count <= 1:
@@ -390,7 +390,7 @@ class AppManageService(AppManageBase):
     def batch_operations(self, session: SessionClass, tenant_env, region_name, user, action, service_ids):
         services = (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_id.in_(service_ids)))
+                select(Component).where(Component.service_id.in_(service_ids)))
         ).scalars().all()
 
         if not services:
@@ -1334,7 +1334,7 @@ class AppManageService(AppManageBase):
         service_alias = "wt" + service_id[-6:]
         svc = (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_alias == service_alias))
+                select(Component).where(Component.service_alias == service_alias))
         ).scalars().first()
 
         if svc is None:
@@ -1365,7 +1365,7 @@ class AppManageService(AppManageBase):
         """
         初始化创建外置组件的默认数据,未存入数据库
         """
-        tenant_service = TeamComponentInfo()
+        tenant_service = Component()
         tenant_service.service_region = region
         tenant_service.service_key = "application"
         tenant_service.desc = "third party service"
@@ -1419,7 +1419,7 @@ class AppManageService(AppManageBase):
         remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
 
     @staticmethod
-    def _rollback_third_components(session, tenant_name, region_name, region_app_id, components: [TeamComponentInfo]):
+    def _rollback_third_components(session, tenant_name, region_name, region_app_id, components: [Component]):
         body = {
             "delete_component_ids": [component.component_id for component in components],
         }

@@ -3,7 +3,7 @@ from sqlalchemy import select, func, not_, delete, text
 
 from models.application.models import ServiceShareRecord, ComponentApplicationRelation, ServiceShareRecordEvent
 from models.application.plugin import TeamComponentPluginRelation
-from models.component.models import TeamComponentInfo
+from models.component.models import Component
 from models.market.models import CenterApp, CenterAppVersion
 from repository.base import BaseRepository
 
@@ -60,9 +60,9 @@ class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
             return []
         svc_ids = [svc_rel.service_id for svc_rel in svc_relations]
         return (session.execute(
-            select(TeamComponentInfo).where(
-                TeamComponentInfo.service_id.in_(svc_ids),
-                not_(TeamComponentInfo.service_source == 'third_party'))
+            select(Component).where(
+                Component.service_id.in_(svc_ids),
+                not_(Component.service_source == 'third_party'))
         )).scalars().all()
 
     def create_service_share_record(self, session, **kwargs):

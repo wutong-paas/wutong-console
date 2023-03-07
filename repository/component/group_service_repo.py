@@ -1,17 +1,17 @@
 from sqlalchemy import select, delete, not_, text
 from core.utils.status_translate import get_status_info_map
 from models.application.models import ComponentApplicationRelation
-from models.component.models import TeamComponentInfo, ComponentSourceInfo
+from models.component.models import Component, ComponentSourceInfo
 from repository.base import BaseRepository
 from service.base_services import base_service
 
 
-class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
+class ComponentRepository(BaseRepository[Component]):
 
     def get_service_by_tenant_and_alias(self, session, env_id, service_alias):
-        services = session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.tenant_env_id == env_id,
-            TeamComponentInfo.service_alias == service_alias
+        services = session.execute(select(Component).where(
+            Component.tenant_env_id == env_id,
+            Component.service_alias == service_alias
         )).scalars().all()
         if services:
             return services[0]
@@ -24,8 +24,8 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
             ComponentSourceInfo.service_id.in_(service_ids)
         )).scalars().all()
         service_ids = [service.service_id for service in service_source]
-        return session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_id.in_(service_ids)
+        return session.execute(select(Component).where(
+            Component.service_id.in_(service_ids)
         )).scalars().all()
 
     def check_image_svc_by_eid(self, session):
@@ -102,7 +102,7 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
     def get_service_by_service_alias(self, session, service_alias):
         return (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_alias == service_alias))
+                select(Component).where(Component.service_alias == service_alias))
         ).scalars().first()
 
     def get_team_service_num_by_team_id(self, session, env_id, region_name):
@@ -130,32 +130,32 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         return session.execute(sql).fetchall()
 
     def get_tenant_region_services(self, session, region, tenant_env_id):
-        return (session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_region == region,
-            TeamComponentInfo.tenant_env_id == tenant_env_id))).scalars().all()
+        return (session.execute(select(Component).where(
+            Component.service_region == region,
+            Component.tenant_env_id == tenant_env_id))).scalars().all()
 
     def devops_get_tenant_region_services_by_service_id(self, session, tenant_env_id):
-        return (session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.tenant_env_id == tenant_env_id))).scalars().all()
+        return (session.execute(select(Component).where(
+            Component.tenant_env_id == tenant_env_id))).scalars().all()
 
     def get_tenant_region_services_by_service_id(self, session, region, tenant_env_id, service_id):
-        return (session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_region == region,
-            TeamComponentInfo.tenant_env_id == tenant_env_id,
-            not_(TeamComponentInfo.service_id == service_id)))).scalars().all()
+        return (session.execute(select(Component).where(
+            Component.service_region == region,
+            Component.tenant_env_id == tenant_env_id,
+            not_(Component.service_id == service_id)))).scalars().all()
 
     def get_service(self, session, service_alias, env_id):
-        return session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_alias == service_alias,
-            TeamComponentInfo.tenant_env_id == env_id)).scalars().first()
+        return session.execute(select(Component).where(
+            Component.service_alias == service_alias,
+            Component.tenant_env_id == env_id)).scalars().first()
 
     def list_by_component_ids(self, session, service_ids: []):
-        return session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_id.in_(service_ids))).scalars().all()
+        return session.execute(select(Component).where(
+            Component.service_id.in_(service_ids))).scalars().all()
 
     def get_service_by_service_id(self, session, service_id):
-        return session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_id == service_id)).scalars().first()
+        return session.execute(select(Component).where(
+            Component.service_id == service_id)).scalars().first()
 
     def get_group_service_by_group_id(self, session, group_id, region_name, tenant_env, query=""):
         # todo
@@ -175,8 +175,8 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         result = []
         for service in group_services_list:
             service = dict(service)
-            service_obj = session.execute(select(TeamComponentInfo).where(
-                TeamComponentInfo.service_id == service["service_id"])).scalars().first()
+            service_obj = session.execute(select(Component).where(
+                Component.service_id == service["service_id"])).scalars().first()
             if service_obj:
                 service["service_source"] = service_obj.service_source
             service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
@@ -195,21 +195,21 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         return result
 
     def get_services_by_team_and_region(self, session, env_id, region_name):
-        return session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_region == region_name,
-            TeamComponentInfo.tenant_env_id == env_id)).scalars().all()
+        return session.execute(select(Component).where(
+            Component.service_region == region_name,
+            Component.tenant_env_id == env_id)).scalars().all()
 
     def delete_services_by_team_and_region(self, session, env_id, region_name):
-        session.execute(delete(TeamComponentInfo).where(
-            TeamComponentInfo.service_region == region_name,
-            TeamComponentInfo.tenant_env_id == env_id))
+        session.execute(delete(Component).where(
+            Component.service_region == region_name,
+            Component.tenant_env_id == env_id))
 
     def get_services_by_service_group_ids(self, session, component_ids, service_group_ids):
 
         return (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_id.in_(component_ids),
-                                                TeamComponentInfo.tenant_service_group_id.in_(service_group_ids)))
+                select(Component).where(Component.service_id.in_(component_ids),
+                                        Component.tenant_service_group_id.in_(service_group_ids)))
         ).scalars().all()
 
     def get_no_group_service_status_by_group_id(self, session, tenant_env, tenant_env_id, region_name):
@@ -253,42 +253,42 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
     def list_by_ids(self, session, service_ids):
         return (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_id.in_(service_ids)))
+                select(Component).where(Component.service_id.in_(service_ids)))
         ).scalars().all()
 
     def list_by_ids_upgrade_group_id(self, session, service_ids, upgrade_group_id):
         return (
             session.execute(
-                select(TeamComponentInfo).where(
-                    TeamComponentInfo.service_id.in_(service_ids),
-                    TeamComponentInfo.tenant_service_group_id == upgrade_group_id))
+                select(Component).where(
+                    Component.service_id.in_(service_ids),
+                    Component.tenant_service_group_id == upgrade_group_id))
         ).scalars().all()
 
     def get_services_by_service_ids(self, session, service_ids):
         return session.execute(
-            select(TeamComponentInfo).where(TeamComponentInfo.service_id.in_(service_ids))).scalars().all()
+            select(Component).where(Component.service_id.in_(service_ids))).scalars().all()
 
     def get_services_by_service_ids_tenant_env_id(self, session, service_ids, tenant_env_id):
         return session.execute(
-            select(TeamComponentInfo).where(
-                TeamComponentInfo.service_id.in_(service_ids),
-                TeamComponentInfo.tenant_env_id == tenant_env_id)).scalars().all()
+            select(Component).where(
+                Component.service_id.in_(service_ids),
+                Component.tenant_env_id == tenant_env_id)).scalars().all()
 
     def delete_service(self, session, pk):
         session.execute(
-            delete(TeamComponentInfo).where(TeamComponentInfo.ID == pk))
+            delete(Component).where(Component.ID == pk))
 
     def get_services_by_service_group_id(self, session, service_group_id):
         return (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.tenant_service_group_id == service_group_id))
+                select(Component).where(Component.tenant_service_group_id == service_group_id))
         ).scalars().all()
 
     def get_service_by_tenant_and_id(self, session, tenant_env_id, service_id):
         return (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.tenant_env_id == tenant_env_id,
-                                                TeamComponentInfo.service_id == service_id))
+                select(Component).where(Component.tenant_env_id == tenant_env_id,
+                                        Component.service_id == service_id))
         ).scalars().first()
 
     def change_service_image_tag(self, session, service, tag):
@@ -299,4 +299,4 @@ class ServiceInfoRepository(BaseRepository[TeamComponentInfo]):
         session.flush()
 
 
-service_info_repo = ServiceInfoRepository(TeamComponentInfo)
+service_info_repo = ComponentRepository(Component)

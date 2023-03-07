@@ -9,7 +9,7 @@ from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from models.region.models import EnvRegionInfo
 from models.teams import TeamEnvInfo, RegionConfig
-from models.component.models import TeamComponentInfo
+from models.component.models import Component
 from repository.base import BaseRepository
 
 
@@ -74,8 +74,8 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         return row.rowcount > 0
 
     def list_by_component_ids(self, session, service_ids: []):
-        return session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_id.in_(service_ids))).scalars().all()
+        return session.execute(select(Component).where(
+            Component.service_id.in_(service_ids))).scalars().all()
 
     def save_tenant_service_info(self, session, ts):
         session.add(ts)

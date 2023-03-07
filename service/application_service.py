@@ -24,7 +24,7 @@ from exceptions.bcode import ErrUserNotFound, ErrK8sAppExists, ErrApplicationNot
 from exceptions.main import ServiceHandleException, AbortRequest
 from models.application.models import Application, ComponentApplicationRelation, ApplicationUpgradeRecord, \
     GroupAppMigrateRecord, ApplicationVisitRecord
-from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoints, TeamComponentInfo, \
+from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoints, Component, \
     DeployRelation, ComponentSourceInfo, ComponentEnvVar, TeamComponentMountRelation
 from models.region.models import RegionApp
 from models.teams import ServiceDomainCertificate
@@ -61,7 +61,7 @@ class ApplicationService(object):
         """
         初始化源码创建的组件默认数据,未存入数据库
         """
-        tenant_service = TeamComponentInfo()
+        tenant_service = Component()
         tenant_service.service_region = region
         tenant_service.service_key = "application"
         tenant_service.desc = "application info"
@@ -171,9 +171,9 @@ class ApplicationService(object):
         if code != 200:
             return code, msg, new_service
         logger.debug("service.create, user:{0} create service from source code".format(user.nick_name))
-        ts = session.execute(select(TeamComponentInfo).where(
-            TeamComponentInfo.service_id == new_service.service_id,
-            TeamComponentInfo.tenant_env_id == new_service.tenant_env_id
+        ts = session.execute(select(Component).where(
+            Component.service_id == new_service.service_id,
+            Component.tenant_env_id == new_service.tenant_env_id
         )).scalars().first()
 
         return 200, "创建成功", ts
@@ -571,8 +571,8 @@ class ApplicationService(object):
         logger.debug("service.create", "user:{0} create service from docker run command !".format(user.nick_name))
         ts = (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_id == new_service.service_id,
-                                                TeamComponentInfo.tenant_env_id == new_service.tenant_env_id))
+                select(Component).where(Component.service_id == new_service.service_id,
+                                        Component.tenant_env_id == new_service.tenant_env_id))
         ).scalars().first()
 
         return 200, "创建成功", ts
@@ -599,7 +599,7 @@ class ApplicationService(object):
         service_alias = "wt" + service_id[-6:]
         svc = (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_alias == service_alias))
+                select(Component).where(Component.service_alias == service_alias))
         ).scalars().first()
 
         if svc is None:
@@ -611,7 +611,7 @@ class ApplicationService(object):
         """
         初始化docker image创建的组件默认数据,未存入数据库
         """
-        tenant_service = TeamComponentInfo()
+        tenant_service = Component()
         tenant_service.service_region = region_name
         tenant_service.service_key = "0000"
         tenant_service.desc = "docker run application"
@@ -1200,8 +1200,8 @@ class ApplicationService(object):
 
         ts = (
             session.execute(
-                select(TeamComponentInfo).where(TeamComponentInfo.service_id == new_service.service_id,
-                                                TeamComponentInfo.tenant_env_id == new_service.tenant_env_id))
+                select(Component).where(Component.service_id == new_service.service_id,
+                                        Component.tenant_env_id == new_service.tenant_env_id))
         ).scalars().first()
 
         return ts
@@ -1254,7 +1254,7 @@ class ApplicationService(object):
         """
         初始化创建外置组件的默认数据,未存入数据库
         """
-        tenant_service = TeamComponentInfo()
+        tenant_service = Component()
         tenant_service.service_region = region
         tenant_service.service_key = "application"
         tenant_service.desc = "third party service"
