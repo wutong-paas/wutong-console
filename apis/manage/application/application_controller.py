@@ -72,8 +72,8 @@ async def create_app(params: TeamAppCreateRequest,
         return JSONResponse(result, status_code=result["code"])
 
     k8s_app = params.k8s_app
-    if not k8s_app and params.app_name:
-        k8s_app = params.app_name
+    if not k8s_app and params.app_alias:
+        k8s_app = params.app_alias
     if k8s_app and not is_qualified_name(k8s_app):
         raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，“-”不能位于开头结尾")
 
@@ -87,7 +87,7 @@ async def create_app(params: TeamAppCreateRequest,
             tenant_env=env,
             project_id=params.project_id,
             region_name=params.region_name,
-            app_name=params.app_name,
+            app_name=params.app_alias,
             note=params.note,
             username=user.nick_name,
             app_store_name=params.app_store_name,
@@ -150,6 +150,8 @@ async def update_app(request: Request,
                      session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     app_name = data.get("app_name", None)
+    project_id = data.get("project_id", None)
+    project_name = data.get("project_name", None)
     note = data.get("note", "")
     logo = data.get("logo", "")
     if note and len(note) > 2048:
@@ -174,6 +176,8 @@ async def update_app(request: Request,
         app_name,
         note,
         username,
+        project_id,
+        project_name,
         overrides=overrides,
         version=version,
         revision=revision,

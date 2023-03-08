@@ -3,8 +3,7 @@ import os
 from loguru import logger
 from sqlalchemy import select
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_env_region_info, get_region_access_info, \
-    get_region_access_info
+from common.base_client_service import get_region_access_info
 from exceptions.main import ServiceHandleException
 from models.teams import RegionConfig
 
@@ -33,9 +32,9 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """创建组件"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         # 更新tenant_env_id 为数据中心tenant_env_id
-        body["tenant_env_id"] = tenant_region.region_tenant_env_id
+        body["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services"
 
         self._set_headers(token)
@@ -46,7 +45,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """更新组件"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/services/" + service_alias
 
@@ -58,7 +57,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """删除组件"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias
@@ -73,7 +72,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """组件构建"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/build"
 
@@ -85,9 +84,9 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """增加组件依赖"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         # 更新tenant_env_id 为数据中心tenant_env_id
-        body["tenant_env_id"] = tenant_region.region_tenant_env_id
+        body["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/dependency"
 
@@ -99,9 +98,9 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """取消组件依赖"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         # 更新tenant_env_id 为数据中心tenant_env_id
-        body["tenant_env_id"] = tenant_region.region_tenant_env_id
+        body["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/dependency"
 
@@ -113,9 +112,9 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """添加环境变量"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         # 更新tenant_env_id 为数据中心tenant_env_id
-        body["tenant_env_id"] = tenant_region.region_tenant_env_id
+        body["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/env"
 
@@ -127,9 +126,9 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """删除环境变量"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         # 更新tenant_env_id 为数据中心tenant_env_id
-        body["tenant_env_id"] = tenant_region.region_tenant_env_id
+        body["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/env"
 
@@ -139,8 +138,8 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
     def update_service_env(self, session, region, tenant_env, service_alias, body):
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        body["tenant_env_id"] = tenant_region.region_tenant_env_id
+        
+        body["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/env"
 
@@ -152,7 +151,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """组件水平伸缩"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/horizontal"
 
@@ -164,7 +163,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """组件垂直伸缩"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/vertical"
 
@@ -186,7 +185,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """添加组件对应的节点标签"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/label"
 
@@ -198,7 +197,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """删除组件对应的节点标签"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/label"
 
@@ -210,7 +209,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """获取组件pod信息"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias + "/pods"
 
@@ -220,7 +219,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
     def get_dynamic_services_pods(self, session, region, tenant_env, services_ids):
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/pods?service_ids={}".format(",".join(services_ids))
         self._set_headers(token)
@@ -231,7 +230,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """获取组件pod信息"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/pods/" + pod_name + "/detail"
 
@@ -243,10 +242,10 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """添加组件端口"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         port_list = body["port"]
         for port in port_list:
-            port["tenant_env_id"] = tenant_region.region_tenant_env_id
+            port["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/ports"
 
@@ -258,10 +257,10 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """更新组件端口"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         port_list = body["port"]
         for port in port_list:
-            port["tenant_env_id"] = tenant_region.region_tenant_env_id
+            port["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/ports"
 
@@ -273,7 +272,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """删除组件端口"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/ports/" + str(port)
 
@@ -285,7 +284,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """打开关闭对内端口"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/ports/" + str(port) + "/inner"
 
@@ -297,7 +296,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """打开关闭对外端口"""
         try:
             url, token = get_region_access_info(region, session)
-            tenant_region = get_env_region_info(tenant_env, region, session)
+            
             url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
                   "/services/" + service_alias + "/ports/" + str(port) + "/outer"
 
@@ -318,8 +317,8 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """更新组件探针信息"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        body["tenant_env_id"] = tenant_region.region_tenant_env_id
+        
+        body["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/probe"
 
@@ -331,8 +330,8 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """添加组件探针信息"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
-        body["tenant_env_id"] = tenant_region.region_tenant_env_id
+        
+        body["tenant_env_id"] = tenant_env.env_id
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/probe"
 
@@ -344,7 +343,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """删除组件探针信息"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/probe"
 
@@ -356,7 +355,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """重启组件"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/restart"
 
@@ -368,7 +367,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """组件版本回滚"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/rollback"
 
@@ -380,7 +379,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """启动组件"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/start"
 
@@ -392,7 +391,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """关闭组件"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/stop"
 
@@ -404,7 +403,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """升级组件"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/upgrade"
 
@@ -416,7 +415,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """获取单个组件状态"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/status"
 
@@ -446,7 +445,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes".format(
             tenant_name, tenant_env.env_name, service_alias)
@@ -464,7 +463,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes".format(tenant_name, tenant_env.env_name, service_alias)
         self._set_headers(token)
@@ -481,7 +480,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes/{3}".format(
             tenant_name, tenant_env.env_name, service_alias, volume_name)
@@ -498,7 +497,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes".format(tenant_name, tenant_env.env_name, service_alias)
         self._set_headers(token)
@@ -507,7 +506,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
     def add_service_dep_volumes(self, session, region, tenant_env, service_alias, body):
         """ Add dependent volumes """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/depvolumes".format(tenant_name, tenant_env.env_name,
                                                                          service_alias)
@@ -518,7 +517,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
     def delete_service_dep_volumes(self, session, region, tenant_env, service_alias, body):
         """ Delete dependent volume"""
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/depvolumes".format(tenant_name, tenant_env.env_name,
                                                                          service_alias)
@@ -529,7 +528,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """添加组件持久化目录"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/volume"
 
@@ -541,7 +540,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """删除组件持久化目录"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/volume"
 
@@ -553,7 +552,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """获取多个组件的状态"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services_status"
 
         self._set_headers(token)
@@ -607,7 +606,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
     def get_service_logs(self, session, region, tenant_env, service_alias, rows):
         """获取组件日志"""
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/logs?rows={3}".format(tenant_env.tenant_name,
                                                                             tenant_env.env_name, service_alias,
                                                                             rows)
@@ -619,7 +618,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """获取组件日志文件列表"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/log-file"
 

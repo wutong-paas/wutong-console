@@ -2,7 +2,7 @@ import json
 import os
 from loguru import logger
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info, get_env_region_info
+from common.base_client_service import get_region_access_info
 
 
 class RemotePluginClient(ApiBaseHttpClient):
@@ -35,7 +35,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/plugin"
 
@@ -53,7 +53,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/plugin/" + plugin_id
 
@@ -71,7 +71,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
 
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/plugin"
@@ -91,7 +91,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/plugin/" + plugin_id + "/setenv"
 
@@ -110,7 +110,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
 
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/plugin/" + plugin_id + "/upenv"
@@ -123,7 +123,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         """创建数据中心端插件"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/plugin"
 
@@ -134,7 +134,7 @@ class RemotePluginClient(ApiBaseHttpClient):
     def build_plugin(self, session, region, tenant_env, plugin_id, body):
         """创建数据中心端插件"""
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url += "/v2/tenants/{0}/envs/{1}/plugin/{2}/build".format(tenant_env.tenant_name, tenant_env.env_name,
                                                                   plugin_id)
 
@@ -145,7 +145,7 @@ class RemotePluginClient(ApiBaseHttpClient):
     def get_build_status(self, session, region, tenant_env, plugin_id, build_version):
         """获取插件构建状态"""
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url += "/v2/tenants/{0}/envs/{1}/plugin/{2}/build-version/{3}".format(tenant_env.tenant_name,
                                                                               tenant_env.env_name, plugin_id,
                                                                               build_version)
@@ -158,7 +158,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         """获取插件日志信息"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url += "/v2/tenants/{0}/envs/{1}/event-log".format(tenant_env.tenant_name, tenant_env.env_name)
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(data), region=region)
@@ -167,7 +167,7 @@ class RemotePluginClient(ApiBaseHttpClient):
     def delete_plugin_version(self, session, region, tenant_env, plugin_id, build_version):
         """删除插件某个版本信息"""
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
 
         url += "/v2/tenants/{0}/envs/{1}/plugin/{2}/build-version/{3}".format(tenant_env.tenant_name,
                                                                               tenant_env.env_name, plugin_id,
@@ -187,7 +187,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url += "/v2/tenants/{0}/envs/{1}/plugin/{2}".format(tenant_env.tenant_name, tenant_env.env_name,
                                                             plugin_id)
         self._set_headers(token)
@@ -203,7 +203,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url += "/v2/tenants/{0}/envs/{1}/plugin/{2}".format(tenant_env.tenant_name, tenant_env.env_name,
                                                             plugin_id)
         self._set_headers(token)
@@ -220,7 +220,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/plugin"
 
@@ -239,7 +239,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/plugin/" + plugin_id
         self._set_headers(token)
@@ -257,7 +257,7 @@ class RemotePluginClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
 
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/plugin/" + plugin_id + "/upenv"

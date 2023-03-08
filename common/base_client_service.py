@@ -23,27 +23,6 @@ def get_region_access_info(region, session):
     return url, token
 
 
-def get_env_region_info(env, region_name, session):
-    """
-
-    :param tenant_name:
-    :param region_name:
-    :return:
-    """
-    if env:
-        env_region = team_region_repo.get_env_region_info_by_env_id_and_region_name(session,
-                                                                                    env.env_id,
-                                                                                    region_name)
-        logger.info("")
-        if not env_region:
-            logger.error("env {0} is not in region {1}".format(env.env_name, region_name))
-            raise http.HTTPStatus.NOT_FOUND
-    else:
-        logger.error("env {0} is not found!".format(env.env_name))
-        raise http.HTTPStatus.NOT_FOUND
-    return env_region
-
-
 def get_enterprise_region_info(region, session):
     """
 

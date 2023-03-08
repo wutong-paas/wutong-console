@@ -7,7 +7,9 @@ class TeamAppCreateRequest(BaseModel):
     """
     创建环境应用
     """
-    app_name: Optional[str] = None
+    app_alias: Optional[str] = None
+    team_alias: Optional[str] = None
+    project_alias: Optional[str] = None
     note: Optional[str] = None
     logo: Optional[str] = None
     app_store_name: Optional[str] = None
@@ -17,8 +19,6 @@ class TeamAppCreateRequest(BaseModel):
     region_name: Optional[str] = None
     k8s_app: Optional[str] = None
     project_id: Optional[str] = None
-    team_alias: Optional[str] = None
-    project_alias: Optional[str] = None
 
 
 class DevOpsTeamAppCreateParam(BaseModel):

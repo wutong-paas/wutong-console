@@ -1727,6 +1727,8 @@ class ApplicationService(object):
                      app_name,
                      note="",
                      username=None,
+                     project_id=None,
+                     project_name=None,
                      overrides="",
                      version="",
                      revision=0,
@@ -1738,6 +1740,8 @@ class ApplicationService(object):
         data = {
             "note": note,
             "logo": logo,
+            "project_id": project_id,
+            "project_name": project_name
         }
         if username:
             # check username

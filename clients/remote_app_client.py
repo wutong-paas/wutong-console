@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info, get_env_region_info
+from common.base_client_service import get_region_access_info
 
 
 class RemoteAppClient(ApiBaseHttpClient):
@@ -86,7 +86,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        
+
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/batch_create_apps"
 
@@ -123,7 +123,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region_name, session)
         
-        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/apps/" + app_id + "/services"
 
         self._set_headers(token)
@@ -141,8 +141,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region_name, session)
         
-        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
-              "/apps/" + app_id
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + app_id
 
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
@@ -159,7 +158,7 @@ class RemoteAppClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region_name, session)
         
-        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/apps/" + app_id + "/configgroups"
 
         self._set_headers(token)

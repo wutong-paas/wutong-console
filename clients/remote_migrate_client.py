@@ -2,8 +2,7 @@ import json
 import os
 from loguru import logger
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info, get_env_region_info, \
-    get_region_access_info
+from common.base_client_service import get_region_access_info
 
 
 class RemoteMigrateClient(ApiBaseHttpClient):
@@ -157,7 +156,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups"
 
@@ -174,7 +173,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups/" + str(backup_id)
 
@@ -191,7 +190,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups/" + str(backup_id)
 
@@ -208,7 +207,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups?group_id=" + str(group_uuid)
 
@@ -219,7 +218,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
     def star_apps_migrate_task(self, session, region, tenant_env, backup_id, data):
         """发起迁移命令"""
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups/" + backup_id + "/restore"
 
@@ -230,7 +229,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
     def get_apps_migrate_status(self, session, region, tenant_env, backup_id, restore_id):
         """获取迁移结果"""
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backups/" \
               + backup_id + "/restore/" + restore_id
@@ -242,7 +241,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
     def copy_backup_data(self, session, region, tenant_env, data):
         """数据中心备份数据进行拷贝"""
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+        
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/groupapp/backupcopy"
 

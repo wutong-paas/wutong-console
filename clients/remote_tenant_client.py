@@ -3,7 +3,7 @@ import os
 
 from loguru import logger
 from common.api_base_http_client import ApiBaseHttpClient
-from common.base_client_service import get_region_access_info, get_env_region_info
+from common.base_client_service import get_region_access_info
 from exceptions.bcode import ErrNamespaceExists
 
 
@@ -31,7 +31,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         """获取指定租户的资源使用情况"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/resources"
 
@@ -63,7 +63,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
         """删除环境"""
 
         url, token = get_region_access_info(region, session)
-        tenant_region = get_env_region_info(tenant_env, region, session)
+
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name
 
         self._set_headers(token)
