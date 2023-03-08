@@ -36,7 +36,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         tenant_region = get_env_region_info(tenant_env, region, session)
         # 更新tenant_env_id 为数据中心tenant_env_id
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services"
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
@@ -47,7 +47,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/services/" + service_alias
 
         self._set_headers(token)
@@ -59,7 +59,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias
 
@@ -74,7 +74,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/build"
 
         self._set_headers(token)
@@ -88,7 +88,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         tenant_region = get_env_region_info(tenant_env, region, session)
         # 更新tenant_env_id 为数据中心tenant_env_id
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/dependency"
 
         self._set_headers(token)
@@ -102,7 +102,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         tenant_region = get_env_region_info(tenant_env, region, session)
         # 更新tenant_env_id 为数据中心tenant_env_id
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/dependency"
 
         self._set_headers(token)
@@ -116,7 +116,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         tenant_region = get_env_region_info(tenant_env, region, session)
         # 更新tenant_env_id 为数据中心tenant_env_id
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/env"
 
         self._set_headers(token)
@@ -130,7 +130,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         tenant_region = get_env_region_info(tenant_env, region, session)
         # 更新tenant_env_id 为数据中心tenant_env_id
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/env"
 
         self._set_headers(token)
@@ -141,7 +141,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/env"
 
         self._set_headers(token)
@@ -153,7 +153,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/horizontal"
 
         self._set_headers(token)
@@ -165,7 +165,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/vertical"
 
         self._set_headers(token)
@@ -187,7 +187,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/label"
 
         self._set_headers(token)
@@ -199,7 +199,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/label"
 
         self._set_headers(token)
@@ -211,7 +211,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias + "/pods"
 
         self._set_headers(token)
@@ -221,7 +221,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
     def get_dynamic_services_pods(self, session, region, tenant_env, services_ids):
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/pods?service_ids={}".format(",".join(services_ids))
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region, timeout=15)
@@ -232,7 +232,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/pods/" + pod_name + "/detail"
 
         self._set_headers(token)
@@ -247,7 +247,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         port_list = body["port"]
         for port in port_list:
             port["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/ports"
 
         self._set_headers(token)
@@ -262,7 +262,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         port_list = body["port"]
         for port in port_list:
             port["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/ports"
 
         self._set_headers(token)
@@ -274,7 +274,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/ports/" + str(port)
 
         self._set_headers(token)
@@ -286,7 +286,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/ports/" + str(port) + "/inner"
 
         self._set_headers(token)
@@ -298,7 +298,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         try:
             url, token = get_region_access_info(region, session)
             tenant_region = get_env_region_info(tenant_env, region, session)
-            url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+            url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
                   "/services/" + service_alias + "/ports/" + str(port) + "/outer"
 
             self._set_headers(token)
@@ -320,7 +320,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/probe"
 
         self._set_headers(token)
@@ -333,7 +333,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/probe"
 
         self._set_headers(token)
@@ -345,7 +345,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/probe"
 
         self._set_headers(token)
@@ -357,7 +357,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/restart"
 
         self._set_headers(token)
@@ -369,7 +369,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/rollback"
 
         self._set_headers(token)
@@ -381,7 +381,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/start"
 
         self._set_headers(token)
@@ -393,7 +393,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/stop"
 
         self._set_headers(token)
@@ -405,7 +405,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/upgrade"
 
         self._set_headers(token)
@@ -417,7 +417,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/status"
 
         self._set_headers(token)
@@ -447,7 +447,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        tenant_name = tenant_region.region_tenant_name
+        tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes".format(
             tenant_name, tenant_env.env_name, service_alias)
         self._set_headers(token)
@@ -465,7 +465,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        tenant_name = tenant_region.region_tenant_name
+        tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes".format(tenant_name, tenant_env.env_name, service_alias)
         self._set_headers(token)
         return self._post(session, url, self.default_headers, json.dumps(body), region=region)
@@ -482,7 +482,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        tenant_name = tenant_region.region_tenant_name
+        tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes/{3}".format(
             tenant_name, tenant_env.env_name, service_alias, volume_name)
         self._set_headers(token)
@@ -499,7 +499,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        tenant_name = tenant_region.region_tenant_name
+        tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/volumes".format(tenant_name, tenant_env.env_name, service_alias)
         self._set_headers(token)
         return self._put(session, url, self.default_headers, json.dumps(body), region=region)
@@ -508,7 +508,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """ Add dependent volumes """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        tenant_name = tenant_region.region_tenant_name
+        tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/depvolumes".format(tenant_name, tenant_env.env_name,
                                                                          service_alias)
         self._set_headers(token)
@@ -519,7 +519,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """ Delete dependent volume"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        tenant_name = tenant_region.region_tenant_name
+        tenant_name = tenant_env.tenant_name
         url += "/v2/tenants/{0}/envs/{1}/services/{2}/depvolumes".format(tenant_name, tenant_env.env_name,
                                                                          service_alias)
         self._set_headers(token)
@@ -530,7 +530,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/volume"
 
         self._set_headers(token)
@@ -542,7 +542,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/volume"
 
         self._set_headers(token)
@@ -554,7 +554,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services_status"
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services_status"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body), timeout=20)
@@ -608,7 +608,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         """获取组件日志"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url += "/v2/tenants/{0}/envs/{1}/services/{2}/logs?rows={3}".format(tenant_region.region_tenant_name,
+        url += "/v2/tenants/{0}/envs/{1}/services/{2}/logs?rows={3}".format(tenant_env.tenant_name,
                                                                             tenant_env.env_name, service_alias,
                                                                             rows)
         self._set_headers(token)
@@ -620,7 +620,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/log-file"
 
         self._set_headers(token)

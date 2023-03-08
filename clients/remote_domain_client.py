@@ -39,7 +39,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/services/" + service_alias + "/domains"
 
         self._set_headers(token)
@@ -57,7 +57,7 @@ class RemoteDomainClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name +\
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
               "/services/" + service_alias + "/domains/" + \
               body["domain"]
         self._set_headers(token)

@@ -43,7 +43,7 @@ class ComponentServiceMonitor(object):
         if not port_service.get_service_port_by_port(session=session, service=service, port=port):
             raise ServiceHandleException(msg="port not found", msg_show="配置的组件端口不存在", status_code=400, error_code=400)
         req = {"name": name, "path": path, "port": port, "service_show_name": service_show_name, "interval": interval,
-               "operator": user.get_name() if user else None}
+               "operator": user.real_name if user else None}
         if service.create_status == "complete":
             remote_build_client.create_service_monitor(session,
                                                        service.service_region,
@@ -122,7 +122,7 @@ class ComponentServiceMonitor(object):
         if not port_service.get_service_port_by_port(session, service, port):
             raise ServiceHandleException(msg="port not found", msg_show="配置的组件端口不存在", status_code=400, error_code=400)
         req = {"path": path, "port": port, "service_show_name": service_show_name, "interval": interval,
-               "operator": user.get_name()}
+               "operator": user.real_name}
         remote_build_client.update_service_monitor(session,
                                                    service.service_region, tenant_env,
                                                    service.service_alias, name, req)
@@ -139,7 +139,7 @@ class ComponentServiceMonitor(object):
         if not sm:
             raise ServiceHandleException(msg="service monitor is not found", msg_show="配置不存在", status_code=404)
         body = {
-            "operator": user.get_name(),
+            "operator": user.real_name,
         }
         try:
             remote_build_client.delete_service_monitor(session,

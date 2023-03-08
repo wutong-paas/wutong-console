@@ -32,7 +32,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/resources"
 
         self._set_headers(token)
@@ -64,7 +64,7 @@ class RemoteTenantClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region)

@@ -1570,7 +1570,7 @@ class ApplicationService(object):
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
         try:
             user = idaas_api.get_user_info("username", group.username)
-            principal_info["real_name"] = user.get_name()
+            principal_info["real_name"] = user.real_name
             principal_info["username"] = user.nick_name
             principal_info["email"] = user.email
         except ErrUserNotFound:

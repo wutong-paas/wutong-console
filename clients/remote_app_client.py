@@ -37,8 +37,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :param data:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
               region_app_id + "/install"
 
         self._set_headers(token)
@@ -53,8 +53,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
               region_app_id + "/services"
 
         self._set_headers(token)
@@ -70,8 +70,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps"
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/apps"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
@@ -86,8 +86,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/batch_create_apps"
 
         self._set_headers(token)
@@ -104,8 +104,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
               service_alias
 
         self._set_headers(token)
@@ -122,8 +122,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
               "/apps/" + app_id + "/services"
 
         self._set_headers(token)
@@ -140,8 +140,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
               "/apps/" + app_id
 
         self._set_headers(token)
@@ -158,8 +158,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" + \
               "/apps/" + app_id + "/configgroups"
 
         self._set_headers(token)
@@ -177,8 +177,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + \
               app_id + "/configgroups/" + config_group_name
 
         self._set_headers(token)
@@ -196,8 +196,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         if data is None:
             data = {}
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + app_id
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/apps/" + app_id
 
         self._set_headers(token)
         _, _ = self._delete(session, url, self.default_headers, region=region_name, body=json.dumps(data))
@@ -212,8 +212,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/apps/" + app_id + "/configgroups/" + config_group_name
 
         self._set_headers(token)
@@ -222,9 +222,9 @@ class RemoteAppClient(ApiBaseHttpClient):
 
     def check_app_governance_mode(self, session, region_name, tenant_env, region_app_id, query):
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
+        
         url = url + "/v2/tenants/{}/envs/{}/apps/{}/governance/check?governance_mode={}".format(
-            tenant_region.region_tenant_name,
+            tenant_env.tenant_name,
             tenant_env.env_name,
             region_app_id, query)
 
@@ -240,8 +240,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/apps/" + app_id + "/releases"
 
         self._set_headers(token)
@@ -289,8 +289,8 @@ class RemoteAppClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/apps/" + region_app_id + "/status"
 
         self._set_headers(token)

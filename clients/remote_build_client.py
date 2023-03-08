@@ -32,7 +32,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """组件源检测"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/servicecheck"
 
         self._set_headers(token)
@@ -43,7 +43,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """组件源检测信息获取"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/servicecheck/" + str(uuid)
 
         self._set_headers(token)
@@ -55,7 +55,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias + "/build-list"
 
         self._set_headers(token)
@@ -67,7 +67,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias + "/build-version/" + version_id
 
         self._set_headers(token)
@@ -79,7 +79,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/services/" \
               + service_alias + "/build-version/" + version_id
 
         self._set_headers(token)
@@ -90,7 +90,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """查询指定组件的部署版本"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/deployversions"
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/deployversions"
 
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
@@ -319,8 +319,8 @@ class RemoteBuildClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/pods/" + pod_name
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/pods/" + pod_name
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_name)
@@ -353,8 +353,8 @@ class RemoteBuildClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        tenant_region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + "/checkResourceName"
+        
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/checkResourceName"
 
         self._set_headers(token)
         _, body = self._post(
@@ -404,7 +404,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/xparecords"
 
         if page is not None and page_size is not None:
@@ -425,7 +425,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/xparules"
 
         self._set_headers(token)
@@ -443,7 +443,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/xparules"
 
         self._set_headers(token)
@@ -459,8 +459,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         :return:
         """
         url, token = get_region_access_info(region_name, session)
-        region = get_env_region_info(tenant_env, region_name, session)
-        url = url + "/v2/tenants/" + region.region_tenant_name + "/envs/" + tenant_env.env_name + "/gateway/certificate"
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + "/gateway/certificate"
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, body=json.dumps(body), region=region_name)
         return res, body
@@ -484,7 +483,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/event-log"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body), timeout=10)
@@ -534,7 +533,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """分享应用"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = "{0}/v2/tenants/{1}/envs/{2}/services/{3}/share".format(url, tenant_region.region_tenant_name,
+        url = "{0}/v2/tenants/{1}/envs/{2}/services/{3}/share".format(url, tenant_env.tenant_name,
                                                                       tenant_env.env_name,
                                                                       service_alias)
         self._set_headers(token)
@@ -545,7 +544,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """查询分享应用状态"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = "{0}/v2/tenants/{1}/envs/{2}/services/{3}/share/{4}".format(url, tenant_region.region_tenant_name,
+        url = "{0}/v2/tenants/{1}/envs/{2}/services/{3}/share/{4}".format(url, tenant_env.tenant_name,
                                                                           tenant_env.env_name,
                                                                           service_alias,
                                                                           region_share_id)
@@ -620,7 +619,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/event"
 
         self._set_headers(token)
@@ -635,7 +634,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/protocols"
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region)
@@ -646,7 +645,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """第三方组件endpoint操作"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/endpoints"
 
         self._set_headers(token)
@@ -658,7 +657,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """第三方组件endpoint操作"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/endpoints"
 
         self._set_headers(token)
@@ -670,7 +669,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """获取第三方组件endpoint数据"""
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/endpoints"
 
         self._set_headers(token)
@@ -688,7 +687,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         """
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/batchoperation"
 
         self._set_headers(token)
@@ -708,7 +707,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/rule-config"
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
@@ -728,7 +727,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
         body["tenant_env_id"] = tenant_region.region_tenant_env_id
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + "/tcprule-config"
         self._set_headers(token)
         res, body = self._put(session, url, self.default_headers, json.dumps(body), region=region)
@@ -739,7 +738,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region, session)
         tenant_region = get_env_region_info(tenant_env, region, session)
-        url = url + "/v2/tenants/" + tenant_region.region_tenant_name + "/envs/" + tenant_env.env_name + \
+        url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name + \
               "/services/" + service_alias + uri
 
         self._set_headers(token)

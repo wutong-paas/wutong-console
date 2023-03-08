@@ -641,7 +641,7 @@ async def docker_compose_components(
     region = await region_services.get_region_by_request(session, request)
     # 创建组
     group_info = application_service.create_app(
-        session, env, project_id, region.region_name, group_name, group_note, user.get_username(), k8s_app=k8s_app)
+        session, env, project_id, region.region_name, group_name, group_note, user.nick_name, k8s_app=k8s_app)
     code, msg, group_compose = compose_service.create_group_compose(
         session, env, region.region_name, group_info["group_id"], yaml_content, hub_user, hub_pass)
     if code != 200:
