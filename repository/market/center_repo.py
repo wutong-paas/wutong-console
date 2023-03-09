@@ -85,6 +85,8 @@ class CenterRepository(BaseRepository[CenterApp]):
             extend_where += team_sql
         if scope == "enterprise":
             extend_where += " and app.scope='" + scope + "'"
+        if extend_where[:5] == " and ":
+            extend_where = extend_where[5:]
         sql = """
             select
                 count(distinct app.app_id) as total
@@ -132,6 +134,8 @@ class CenterRepository(BaseRepository[CenterApp]):
             extend_where += team_sql
         if scope == "enterprise":
             extend_where += " and app.scope='enterprise'"
+        if extend_where[:5] == " and ":
+            extend_where = extend_where[5:]
         # sql
         sql = """
             select

@@ -65,17 +65,6 @@ class CenterAppVersion(Base):
     region_name = Column(String(64), nullable=True, default=None, comment="数据中心名称")
 
 
-class CenterAppInherit(Base):
-    """云市应用组继承关系"""
-    # todo 改表名
-    __tablename__ = "center_app_inherit"
-
-    ID = Column(Integer, primary_key=True, comment="主键")
-    group_key = Column(String(32), unique=True, comment="当前应用", nullable=False)
-    version = Column(String(20), unique=True, comment="当前应用版本号", nullable=False)
-    derived_group_key = Column(String(32), unique=True, comment="继承哪个云市应用", nullable=False)
-
-
 class CenterAppTagsRelation(Base):
     """云市应用标签关系"""
     # todo 改表名
