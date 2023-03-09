@@ -210,17 +210,6 @@ class CenterRepository(BaseRepository[CenterApp]):
         session.add(add)
         session.flush()
 
-    def get_center_plugin_by_record_id(self, session: SessionClass, record_id):
-        """
-
-        :param record_id:
-        :return:
-        """
-        sql = select(CenterPlugin).where(CenterPlugin.record_id == record_id)
-        results = session.execute(sql)
-        data = results.scalars().first()
-        return data
-
     def get_paged_plugins(self, session: SessionClass,
                           plugin_name="",
                           is_complete=None,

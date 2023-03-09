@@ -1,13 +1,11 @@
 import base64
 import json
 import time
-
 from addict import Dict
 from fastapi.encoders import jsonable_encoder
 from jsonpath import jsonpath
 from loguru import logger
 from sqlalchemy import select, delete
-from clients.remote_component_client import remote_component_client
 from core.enum.component_enum import Kind
 from core.idaasapi import idaas_api
 from core.utils.crypt import make_uuid
@@ -20,7 +18,6 @@ from models.market.models import CenterApp, CenterAppTagsRelation, CenterAppVers
 from models.teams import TeamEnvInfo
 from repository.application.app_repository import app_tag_repo, app_repo
 from repository.application.app_upgrade_repo import upgrade_repo
-from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.market.center_repo import center_app_repo
@@ -35,11 +32,9 @@ class MarketAppService(object):
         component_group = tenant_service_group_repo.get_component_group(session, record.upgrade_group_id)
         component_group = ComponentGroup(component_group, record.old_version)
         app_template_source = component_group.app_template_source(session)
-        market = app_market_repo.get_app_market_by_name(session, app_template_source.get_market_name())
         return self.__get_upgradeable_versions(session,
                                                component_group.app_model_key, component_group.version,
-                                               app_template_source.get_template_update_time(),
-                                               component_group.is_install_from_cloud(session), market)
+                                               app_template_source.get_template_update_time())
 
     def update_wutong_app_install_num(self, session, app_id, app_version):
         app_repo.add_wutong_install_num(session, app_id, app_version)
@@ -53,27 +48,11 @@ class MarketAppService(object):
         if not service_source:
             logger.info("app has been delete on market:{0}".format(service.service_cname))
             raise app_not_found
-        extend_info_str = service_source.extend_info
-        extend_info = json.loads(extend_info_str)
-        if not extend_info.get("install_from_cloud", False):
-            wutong_app, wutong_app_version = market_app_service.get_wutong_app_and_version(
-                session, service_source.group_key, service_source.version)
-            if not wutong_app or not wutong_app_version:
-                logger.info("app has been delete on market:{0}".format(service.service_cname))
-                raise app_not_found
-        else:
-            # get from cloud
-            try:
-                market = application_service.get_app_market_by_name(
-                    session, extend_info.get("market_name"), raise_exception=True)
-                # resp = application_service.get_market_app_model_version(market, service_source.group_key, service_source.version)
-                # if not resp:
-                #     raise app_not_found
-            except remote_component_client.CallApiError as e:
-                logger.exception("get market app failed: {0}".format(e))
-                if e.status == 404:
-                    raise app_not_found
-                raise MarketAppLost("云市应用查询失败")
+        wutong_app, wutong_app_version = market_app_service.get_wutong_app_and_version(
+            session, service_source.group_key, service_source.version)
+        if not wutong_app or not wutong_app_version:
+            logger.info("app has been delete on market:{0}".format(service.service_cname))
+            raise app_not_found
 
     def delete_wutong_app_version(self, session, app_id, version):
         try:
@@ -558,9 +537,6 @@ class MarketAppService(object):
             version = app_models[upgrade_key]['version']
             component_source = app_models[upgrade_key]['component_source']
             market_name = component_source.get_market_name()
-            market = None
-            # todo
-            install_from_cloud = component_source.is_install_from_cloud()
             app_model, _ = center_app_repo.get_wutong_app_and_version(session,
                                                                       app_model_key,
                                                                       version)
@@ -587,9 +563,7 @@ class MarketAppService(object):
                                                                  group_key=app_model_key)
             versions = self.__get_upgradeable_versions(session,
                                                        app_model_key, version,
-                                                       component_source.get_template_update_time(),
-                                                       install_from_cloud,
-                                                       market)
+                                                       component_source.get_template_update_time())
             dat.update({
                 'current_version': version,
                 'can_upgrade': bool(versions),
@@ -602,16 +576,11 @@ class MarketAppService(object):
     def __get_upgradeable_versions(self, session: SessionClass,
                                    app_model_key,
                                    current_version,
-                                   current_version_time,
-                                   install_from_cloud=False,
-                                   market=None):
+                                   current_version_time):
         # Simply determine if there is a version that can be upgraded, not attribute changes.
         versions = []
-        if install_from_cloud and market:
-            app_version_list = self.get_market_app_model_versions(session=session, market=market, app_id=app_model_key)
-        else:
-            app_version_list = center_app_repo.get_wutong_app_versions(session=session,
-                                                                       app_id=app_model_key)
+        app_version_list = center_app_repo.get_wutong_app_versions(session=session,
+                                                                   app_id=app_model_key)
         if not app_version_list:
             return None
         for version in app_version_list:
@@ -862,15 +831,10 @@ class MarketAppService(object):
     def list_upgradeable_versions(self, session, tenant_env, service):
         component_source = service_source_repo.get_service_source(session, service.tenant_env_id, service.service_id)
         if component_source:
-            market_name = component_source.get_market_name()
-            market = None
-            install_from_cloud = component_source.is_install_from_cloud()
-
             return self.__get_upgradeable_versions(session,
                                                    component_source.group_key,
                                                    component_source.version,
-                                                   component_source.get_template_update_time(), install_from_cloud,
-                                                   market)
+                                                   component_source.get_template_update_time())
         return []
 
 

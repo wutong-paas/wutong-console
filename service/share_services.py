@@ -235,29 +235,18 @@ class ShareService(object):
             version_describe = share_version_info.describe
             market_id = None
             market = None
-            app_model_name = None
             share_store_name = ''
             if target:
                 market_id = target.get("store_id")
             if not market_id:
                 market_id = share_record.share_app_market_name
-            if market_id:
-                scope = "wutong"
-                market = market_app_service.get_app_market_by_name(session=session,
-                                                                   name=market_id,
-                                                                   raise_exception=True)
-                cloud_app = market_app_service.get_market_app_model(market, app_model_id, True)
-                if cloud_app:
-                    app_model_name = cloud_app.app_name
-                    share_store_name = cloud_app.market_name
-            else:
-                local_app_version = session.execute(select(CenterApp).where(
-                    CenterApp.app_id == app_model_id)).scalars().first()
-                local_app_version.store_id = share_info.store_id
-                if not local_app_version:
-                    return 400, "本地应用模型不存在", None
-                scope = local_app_version.scope
-                app_model_name = local_app_version.app_name
+            local_app_version = session.execute(select(CenterApp).where(
+                CenterApp.app_id == app_model_id)).scalars().first()
+            local_app_version.store_id = share_info.store_id
+            if not local_app_version:
+                return 400, "本地应用模型不存在", None
+            scope = local_app_version.scope
+            app_model_name = local_app_version.app_name
             if scope is None or app_model_name is None:
                 return 400, "参数错误", None
 
@@ -1131,43 +1120,10 @@ class ShareService(object):
     def delete_app(self, session, key):
         component_share_repo.delete_app(session, key)
 
-    def publish_app_to_public_market(self, session, tenant_env, share_record, user_name, app, share_type="private"):
-        try:
-            data = dict()
-            data["description"] = app.app_version_info
-            data["rainbond_version"] = os.getenv("RELEASE_DESC", "public-cloud")
-            data["template"] = json.loads(app.app_template)
-            data["template_type"] = app.template_type
-            data["version"] = app.version
-            data["version_alias"] = app.version_alias
-            market = market_app_service.get_app_market_by_name(session=session,
-                                                               name=share_record.share_app_market_name,
-                                                               raise_exception=True)
-            market_app_service.create_market_app_model_version(market, app.app_id, data)
-            # 云市url
-        except ApiBaseHttpClient.CallApiError as e:
-            logger.exception(e)
-            if e.status == 403:
-                raise ServiceHandleException("no cloud permission", msg_show="云市授权不通过", status_code=403,
-                                             error_code=10407)
-            else:
-                raise ServiceHandleException("call cloud api failure", msg_show="云市请求错误", status_code=500,
-                                             error_code=500)
-
     def complete(self, session, tenant_env, user, share_record):
-        # app = rainbond_app_repo.get_app_version_by_record_id(share_record.ID)
         app = component_share_repo.get_app_version_by_record_id(session, share_record.ID)
         app_market_url = None
         if app:
-            # 分享到云市
-            if app.scope.startswith("goodrain"):
-                share_type = "private"
-                info = app.scope.split(":")
-                if len(info) > 1:
-                    share_type = info[1]
-                app_market_url = self.publish_app_to_public_market(session,
-                                                                   tenant_env, share_record, user.nick_name, app,
-                                                                   share_type)
             app.is_complete = True
             app.update_time = datetime.datetime.now()
             session.flush()

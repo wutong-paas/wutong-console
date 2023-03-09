@@ -1,11 +1,6 @@
-import os
 from datetime import datetime
-
 from sqlalchemy import select, update, not_, delete
-
-from exceptions.main import ServiceHandleException
 from models.application.models import Application, ComponentApplicationRelation
-from models.market.models import AppMarket
 from repository.base import BaseRepository
 
 
@@ -189,39 +184,4 @@ class ApplicationRepository(BaseRepository[Application]):
         session.flush()
 
 
-class AppMarketRepository(object):
-
-    def create_default_app_market_if_not_exists(self, session):
-        access_key = os.getenv("DEFAULT_APP_MARKET_ACCESS_KEY", "")
-        domain = os.getenv("DEFAULT_APP_MARKET_DOMAIN", "rainbond")
-        url = os.getenv("DEFAULT_APP_MARKET_URL", "https://store.goodrain.com")
-        name = os.getenv("DEFAULT_APP_MARKET_NAME", "RainbondMarket")
-
-        markets = session.execute(select(AppMarket).where(
-            AppMarket.domain == domain,
-            AppMarket.url == url
-        )).scalars().all()
-        if markets or os.getenv("DISABLE_DEFAULT_APP_MARKET", False):
-            return
-        app_market = AppMarket(
-            name=name,
-            url=url,
-            domain=domain,
-            type="rainstore",
-            access_key=access_key
-        )
-        session.add(app_market)
-        session.flush()
-
-    def get_app_market_by_name(self, session, name, raise_exception=False):
-        market = session.execute(select(AppMarket).where(
-            AppMarket.name == name
-        )).scalars().first()
-        if raise_exception:
-            if not market:
-                raise ServiceHandleException(status_code=404, msg="no found app market", msg_show="应用商店不存在")
-        return market
-
-
 application_repo = ApplicationRepository(Application)
-app_market_repo = AppMarketRepository()

@@ -29,7 +29,7 @@ from models.component.models import TeamComponentPort, ThirdPartyComponentEndpoi
 from models.region.models import RegionApp
 from models.teams import ServiceDomainCertificate
 from repository.application.app_backup_repo import backup_record_repo
-from repository.application.application_repo import application_repo, app_market_repo
+from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.compose_repo import compose_repo
@@ -274,9 +274,6 @@ class ApplicationService(object):
                 app_component_relation_repo.add_service_group_relation(session, group_id, service_id, tenant_env.env_id,
                                                                        region_name)
         return 200, "success"
-
-    def get_app_market_by_name(self, session, name, raise_exception=False):
-        return app_market_repo.get_app_market_by_name(session, name, raise_exception=raise_exception)
 
     def list_components_by_upgrade_group_id(self, session, group_id, upgrade_group_id):
         gsr = app_component_relation_repo.get_services_by_group(session, group_id)

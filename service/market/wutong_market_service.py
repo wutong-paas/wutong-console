@@ -1,8 +1,6 @@
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from models.component.models import TeamApplication
-from models.market.models import AppMarket
-from repository.market.wutong_market_repo import wutong_market_repo
 
 
 def create_tenant_service_group(session: SessionClass, region_name, tenant_env_id, group_id, app_key,
@@ -22,14 +20,3 @@ def create_tenant_service_group(session: SessionClass, region_name, tenant_env_i
     session.flush()
 
     return add_model
-
-
-def get_store_list(session: SessionClass):
-    store_list = wutong_market_repo.list_by_model(session=session, query_model=AppMarket)
-    if store_list:
-        result = []
-        for store in store_list:
-            result.append({"store_id": store.store_id, "store_name": store.name, "market_id": store.ID})
-        return result
-    else:
-        return []

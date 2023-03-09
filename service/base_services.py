@@ -1,13 +1,10 @@
-import json
 from re import split as re_split
 from loguru import logger
 from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core.setting import settings
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
 from repository.application.app_repository import app_repo
-from repository.application.application_repo import app_market_repo
 from repository.component.component_repo import service_source_repo
 from repository.teams.env_repo import env_repo
 
@@ -158,39 +155,7 @@ class BaseService:
                 if not service_source:
                     build_infos[service.service_id] = bean
                     continue
-
-                # get from cloud
                 app = None
-                if service_source.extend_info:
-                    extend_info = json.loads(service_source.extend_info)
-                    if extend_info and extend_info.get("install_from_cloud", False):
-                        market_name = extend_info.get("market_name")
-                        bean["install_from_cloud"] = True
-                        try:
-                            market = markets.get(market_name, None)
-                            if not market:
-                                market = app_market_repo.get_app_market_by_name(session,
-                                                                                market_name,
-                                                                                raise_exception=True)
-                                markets[market_name] = market
-
-                            # todo
-                            app = apps.get(service_source.group_key, None)
-
-                            bean["market_error_code"] = 200
-                            bean["market_status"] = 1
-                        except ServiceHandleException as e:
-                            logger.debug(e)
-                            bean["market_status"] = 0
-                            bean["market_error_code"] = e.error_code
-                            bean["version"] = service_source.version
-                            bean["app_version"] = service_source.version
-                            build_infos[service.service_id] = bean
-                            continue
-
-                        bean["install_from_cloud"] = True
-                        bean["app_detail_url"] = app.describe
-
                 if not app:
                     app = app_repo.get_wutong_app_qs_by_key(session, service_source.group_key)
                     if not app:

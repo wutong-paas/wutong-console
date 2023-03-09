@@ -390,18 +390,7 @@ async def app_share_record(
             session.flush()
         if scope == "wutong" and store_id and share_record.app_id and not app_model_name:
             try:
-                mkt = market.get(share_record.share_app_market_name, None)
-                if not mkt:
-                    mkt = market_app_service.get_app_market_by_name(session=session,
-                                                                    name=share_record.share_app_market_name,
-                                                                    raise_exception=True)
-                    market[share_record.share_app_market_name] = mkt
-
                 c_app = cloud_app.get(share_record.app_id, None)
-                if not c_app:
-                    c_app = market_app_service.get_market_app_model(session=session, market=mkt,
-                                                                    app_id=share_record.app_id, extend=True)
-                    cloud_app[share_record.app_id] = c_app
                 store_name = c_app.market_name
                 app_model_name = c_app.app_name
                 share_record.share_app_model_name = app_model_name

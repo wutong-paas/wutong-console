@@ -126,17 +126,3 @@ class AppImportRecord(Base):
     team_name = Column(String(64), nullable=True, comment="正在导入的团队名称")
     region = Column(String(64), nullable=True, comment="数据中心")
     user_name = Column(String(64), nullable=True, comment="操作人")
-
-
-class AppMarket(Base):
-    __tablename__ = "app_market"
-
-    ID = Column(Integer, primary_key=True, comment="主键")
-    name = Column(String(64), comment="应用商店标识", nullable=False)
-    store_id = Column(String(64), comment="应用商店编号", nullable=False)
-    url = Column(String(255), comment="应用商店链接", nullable=False)
-    domain = Column(String(255), comment="应用商店域名", nullable=False)
-    access_key = Column(String(1024), nullable=True, comment="应用商店访问令牌")
-    access_secret = Column(String(1024), nullable=True, comment="应用商店访问密钥")
-    type = Column(String(32), comment="类型", nullable=False)
-    scope = Column(String(32), comment="可见范围", nullable=False)
