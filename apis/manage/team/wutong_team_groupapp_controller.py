@@ -19,7 +19,6 @@ from repository.application.application_repo import application_repo
 from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
-from service.backup_data_service import platform_data_services
 from service.backup_service import groupapp_backup_service
 from service.groupapps_migrate_service import migrate_service
 from service.groupcopy_service import groupapp_copy_service
@@ -226,6 +225,14 @@ async def app_migrate(request: Request,
     region = team_region_repo.get_region_by_tenant_id(session, cache_team.tenant_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    # 组件数限制
+    service_count = team_component_repo.get_count_by_region(session=session, enterprise_id=user.enterprise_id,
+                                                            region_name=region.region_name)
+    if service_count > settings.SERVICE_NUM_LIMIT:
+        return JSONResponse(general_message(400, "the number of services exceeds the limit", "组件数量已达上限,请联系管理员"),
+                            status_code=400)
+
     response_region = region.region_name
     if not team:
         return JSONResponse(general_message(400, "team is null", "请指明要迁移的团队"), status_code=400)

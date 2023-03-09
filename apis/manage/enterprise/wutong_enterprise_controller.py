@@ -12,6 +12,7 @@ from starlette.responses import StreamingResponse
 from clients.remote_build_client import remote_build_client
 from core import deps
 from core.enum.enterprise_enum import EnterpriseRolesEnum
+from core.setting import settings
 from core.utils.perms import ENTERPRISE
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message
@@ -26,6 +27,7 @@ from models.teams.enterprise import TeamEnterprise
 from models.users.users import Users
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.region.region_config_repo import region_config_repo
+from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
 from repository.teams.team_repo import team_repo
 from repository.users.user_repo import user_repo
@@ -488,10 +490,20 @@ async def down_enterprise_backup(backup_name: Optional[str] = None) -> Any:
 
 @router.post("/enterprise/{enterprise_id}/recover", response_model=Response, name="恢复备份")
 async def recovery_enterprise_backup(request: Request,
+                                     session: SessionClass = Depends(deps.get_session),
                                      user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
     name = data.get("name")
     password = data.get("password")
+    region = await region_services.get_region_by_request(session, request)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    # 组件数限制
+    service_count = team_component_repo.get_count_by_region(session=session, enterprise_id=user.enterprise_id,
+                                                            region_name=region.region_name)
+    if service_count > settings.SERVICE_NUM_LIMIT:
+        return JSONResponse(general_message(400, "the number of services exceeds the limit", "组件数量已达上限,请联系管理员"),
+                            status_code=400)
     if not user.check_password(password):
         return JSONResponse(general_message(400, "param error", "输入密码不正确"), status_code=400)
     if not name:
