@@ -1,8 +1,6 @@
 from datetime import datetime
-
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, BIGINT
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text
 from sqlalchemy.dialects.mysql import LONGTEXT
-
 from database.session import Base
 
 
@@ -83,33 +81,6 @@ class CenterAppTag(Base):
     ID = Column(Integer, primary_key=True, comment="主键")
     name = Column(String(32), unique=True, comment="标签名称", nullable=False)
     is_deleted = Column(Boolean(), default=False, comment="是否删除", nullable=False)
-
-
-class CenterPlugin(Base):
-    """云市插件"""
-    # todo 改表名
-    __tablename__ = "center_plugin"
-
-    ID = Column(Integer, primary_key=True, comment="主键")
-    plugin_key = Column(String(32), comment="插件分享key", nullable=False)
-    plugin_name = Column(String(64), comment="插件名称", nullable=False)
-    plugin_id = Column(String(32), nullable=True, comment="插件id")
-    category = Column(String(32), comment="插件类别", nullable=False)
-    record_id = Column(Integer, comment="分享流程id", nullable=False)
-    version = Column(String(20), comment="版本", nullable=False)
-    build_version = Column(String(32), comment="构建版本", nullable=False)
-    pic = Column(String(100), nullable=True, comment="插件头像信息")
-    # choices=plugin_scope,
-    scope = Column(String(10), comment="可用范围", nullable=False)
-    source = Column(String(15), default="", nullable=True, comment="应用来源(本地创建、云商店)")
-    share_user = Column(Integer, nullable=True, comment="分享人id")
-    share_env = Column(String(32), comment="来源应用所属环境", nullable=False)
-    desc = Column(String(400), nullable=True, comment="插件描述信息")
-    plugin_template = Column(Text, comment="全量插件信息", nullable=False)
-    is_complete = Column(Boolean(), default=False, comment="代码或镜像是否同步完成", nullable=False)
-    create_time = Column(DateTime(), default=datetime.now, nullable=True, comment="创建时间")
-    update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now, nullable=True, comment="更新时间")
-    details = Column(Text, nullable=True, comment="插件详细信息")
 
 
 class AppImportRecord(Base):

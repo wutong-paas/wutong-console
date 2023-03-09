@@ -8,8 +8,7 @@ from database.session import SessionClass
 from models.application.models import ApplicationExportRecord
 from models.market import models
 from models.market.models import AppImportRecord
-from models.market.models import CenterApp, CenterAppVersion, CenterPlugin
-from models.teams import TeamEnvInfo
+from models.market.models import CenterApp, CenterAppVersion
 from repository.base import BaseRepository
 from schemas import CenterAppCreate
 
@@ -209,68 +208,6 @@ class CenterRepository(BaseRepository[CenterApp]):
         add = models.CenterApp(**model)
         session.add(add)
         session.flush()
-
-    def get_paged_plugins(self, session: SessionClass,
-                          plugin_name="",
-                          is_complete=None,
-                          scope="",
-                          source="",
-                          tenant_env: TeamEnvInfo = None,
-                          page=1,
-                          limit=10,
-                          order_by="",
-                          category=""):
-        """
-        分页查询插件列表
-        :param plugin_name:
-        :param is_complete:
-        :param scope:
-        :param source:
-        :param tenant_env:
-        :param page:
-        :param limit:
-        :param order_by:
-        :param category:
-        :return:
-        """
-        conditions = []
-        if source:
-            conditions.append(CenterPlugin.source == source)
-        if is_complete:
-            conditions.append(CenterPlugin.is_complete == is_complete)
-        if plugin_name:
-            conditions.append(CenterPlugin.plugin_name == plugin_name)
-        if category:
-            conditions.append(CenterPlugin.category == category)
-        if scope == 'env':
-            conditions.append(CenterPlugin.share_env == tenant_env.env_name)
-        elif scope == 'wutong':
-            conditions.append(CenterPlugin.scope == scope)
-        # 查询总数
-        # todo
-        count = session.query(func.count(CenterPlugin)).filter(*conditions).scalar()
-        if order_by == 'is_complete':
-            plugins = session.query(CenterPlugin).filter(*conditions).order_by(
-                CenterPlugin.is_complete.desc()
-            ).limit(limit).offset((page - 1) * limit).all()
-        else:
-            plugins = session.query(CenterPlugin).filter(*conditions).order_by(
-                CenterPlugin.update_time.desc()
-            ).limit(limit).offset((page - 1) * limit).all()
-        data = [{
-            'plugin_name': plugin.plugin_name,
-            'plugin_key': plugin.plugin_key,
-            'category': plugin.category,
-            'pic': plugin.pic,
-            'version': plugin.version,
-            'desc': plugin.desc,
-            'id': plugin.ID,
-            'is_complete': plugin.is_complete,
-            'source': plugin.source,
-            'update_time': plugin.update_time,
-            'details': plugin.details
-        } for plugin in plugins]
-        return count, data
 
     def get_wutong_app_versions(self, session: SessionClass, app_id):
 
