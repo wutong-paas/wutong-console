@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM wutongpaas/base-python-fastapi:3.8
+FROM --platform=$TARGETPLATFORM wutongpaas/base-python-fastapi:3.8
 # FROM wutongpaas/base-python-fastapi:3.8
 
 COPY requirements.txt /tmp/requirements.txt
