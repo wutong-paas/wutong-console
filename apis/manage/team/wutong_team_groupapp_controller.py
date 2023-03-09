@@ -9,12 +9,14 @@ from starlette.responses import StreamingResponse
 from urllib import parse
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
+from core.setting import settings
 from core.utils.constants import StorageUnit
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.application.app_migration_repo import migrate_repo
 from repository.application.application_repo import application_repo
+from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from service.backup_data_service import platform_data_services
@@ -389,14 +391,22 @@ async def app_copy(request: Request,
     tar_team_name = data.get("tar_team_name")
     tar_region_name = data.get("tar_region_name")
     tar_group_id = data.get("tar_group_id")
+    region = await region_services.get_region_by_request(session, request)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    # 组件数限制
+    service_count = team_component_repo.get_count_by_region(session=session, enterprise_id=user.enterprise_id,
+                                                            region_name=region.region_name)
+    if service_count > settings.SERVICE_NUM_LIMIT:
+        return JSONResponse(general_message(400, "the number of services exceeds the limit", "组件数量已达上限,请联系管理员"),
+                            status_code=400)
+
     if not tar_team_name or not tar_region_name or not tar_group_id:
         raise ServiceHandleException(msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
     tar_team, tar_group = groupapp_copy_service.check_and_get_team_group(session, user, tar_team_name, tar_region_name,
                                                                          tar_group_id)
     try:
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
         groupapp_copy_service.copy_group_services(session, user, team, region_name, tar_team,
                                                   tar_region_name,

@@ -9,6 +9,7 @@ from loguru import logger
 from sqlalchemy import select
 
 from core import deps
+from core.setting import settings
 from core.utils.crypt import make_uuid
 from core.utils.dependencies import DALGetter
 from core.utils.return_message import general_message, error_message
@@ -24,6 +25,7 @@ from repository.market.center_app_tag_repo import center_app_tag_repo
 from repository.market.center_repo import CenterRepository
 from repository.region.region_config_repo import region_config_repo
 from repository.region.region_info_repo import region_repo
+from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_enterprise_repo import tenant_enterprise_repo
 from repository.teams.team_region_repo import team_region_repo
 from repository.teams.team_repo import team_repo
@@ -88,6 +90,13 @@ async def market_create(
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    # 组件数限制
+    service_count = team_component_repo.get_count_by_region(session=session, enterprise_id=user.enterprise_id,
+                                                            region_name=region.region_name)
+    if service_count > settings.SERVICE_NUM_LIMIT:
+        return JSONResponse(general_message(400, "the number of services exceeds the limit", "组件数量已达上限,请联系管理员"),
+                            status_code=400)
 
     region_info = region_config_repo.get_one_by_model(session=session,
                                                       query_model=RegionConfig(region_name=region.region_name))
