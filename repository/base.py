@@ -1,7 +1,7 @@
 from typing import Generic, TypeVar, Type, Optional, Any, List, Union, Dict
 
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, delete, update, func
 from sqlalchemy.orm import Session
 
 from database.session import Base
@@ -107,3 +107,12 @@ class BaseRepository(Generic[ModelType]):
         """
         list_data = (session.execute(select(self.model))).scalars().all()
         return list_data
+
+    def get_count(self, session: Session) -> ModelType:
+        """
+        查询列表
+        :param session:
+        :return:
+        """
+        count = session.execute(select(func.count(self.model.ID))).first()[0]
+        return count

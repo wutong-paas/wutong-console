@@ -6,6 +6,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from core import deps
+from core.setting import settings
 from core.utils.oauth.oauth_types import get_oauth_instance
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
@@ -14,6 +15,7 @@ from exceptions.main import ResourceNotEnoughException, AccountOverdueException
 from repository.application.app_repository import service_webhooks_repo
 from repository.component.component_repo import service_source_repo
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.team_component_repo import team_component_repo
 from repository.users.user_oauth_repo import oauth_repo
 from schemas.response import Response
 from service.application_service import application_service
@@ -182,7 +184,18 @@ async def code_create_component(
     if k8s_component_name and application_service.is_k8s_component_name_duplicate(session, group_id,
                                                                                   k8s_component_name):
         raise ErrK8sComponentNameExists
-    result = {}
+
+    region = await region_services.get_region_by_request(session, request)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    # 组件数限制
+    service_count = team_component_repo.get_count_by_region(session=session, enterprise_id=user.enterprise_id,
+                                                            region_name=region.region_name)
+    if service_count > settings.SERVICE_NUM_LIMIT:
+        return JSONResponse(general_message(400, "the number of services exceeds the limit", "组件数量已达上限,请联系管理员"),
+                            status_code=400)
+
     if is_oauth:
         open_webhook = data.get("open_webhook", False)
         try:
@@ -216,9 +229,6 @@ async def code_create_component(
         if service_code_clone_url:
             service_code_clone_url = service_code_clone_url.strip()
 
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         response_region = region.region_name
         code, msg_show, new_service = application_service.create_source_code_app(
             session,

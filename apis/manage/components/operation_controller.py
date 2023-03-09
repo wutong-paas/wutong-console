@@ -10,6 +10,7 @@ from sqlalchemy import select
 from clients.remote_component_client import remote_component_client
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
+from core.setting import settings
 
 from core.utils.oauth.oauth_types import support_oauth_type
 from core.utils.reqparse import parse_item
@@ -59,6 +60,17 @@ async def docker_run(
     """
     image和docker-run创建组件
     """
+    region = await region_services.get_region_by_request(session, request)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    # 组件数限制
+    service_count = team_component_repo.get_count_by_region(session=session, enterprise_id=user.enterprise_id,
+                                                            region_name=region.region_name)
+    if service_count > settings.SERVICE_NUM_LIMIT:
+        return JSONResponse(general_message(400, "the number of services exceeds the limit", "组件数量已达上限,请联系管理员"),
+                            status_code=400)
+
     if params.k8s_component_name and application_service.is_k8s_component_name_duplicate(session,
                                                                                          params.group_id,
                                                                                          params.k8s_component_name):
@@ -71,9 +83,7 @@ async def docker_run(
         # 查询当前团队
         if not team:
             return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
         region_name = region.region_name
 
         code, msg_show, new_service = application_service.create_docker_run_app(session=session,

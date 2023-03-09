@@ -98,6 +98,9 @@ class Settings(BaseSettings):
         "SSO_LOGIN": SSO_LOGIN == "TRUE",
     }
 
+    # 组件限制数
+    SERVICE_NUM_LIMIT = os.environ.get("SERVICE_NUM_LIMIT", 200)
+
     # nacos 配置
     ip_address = socket.gethostbyname(socket.gethostname())
     NACOS_HOST = os.environ.get("NACOS_HOST", "192.168.0.19:10848")

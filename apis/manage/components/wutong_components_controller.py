@@ -11,6 +11,7 @@ from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core import deps
 from core.enum.component_enum import is_support
+from core.setting import settings
 
 from core.utils.constants import PluginCategoryConstants
 from core.utils.reqparse import parse_argument, parse_item
@@ -24,6 +25,7 @@ from models.users.users import Users
 from repository.application.app_repository import service_webhooks_repo
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
+from repository.teams.team_component_repo import team_component_repo
 from schemas.response import Response
 from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
@@ -617,6 +619,17 @@ async def docker_compose_components(
         session: SessionClass = Depends(deps.get_session),
         team=Depends(deps.get_current_team),
         user: Users = Depends(deps.get_current_user)) -> Any:
+
+    region = await region_services.get_region_by_request(session, request)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    # 组件数限制
+    service_count = team_component_repo.get_count_by_region(session=session, enterprise_id=user.enterprise_id,
+                                                            region_name=region.region_name)
+    if service_count > settings.SERVICE_NUM_LIMIT:
+        return JSONResponse(general_message(400, "the number of services exceeds the limit", "组件数量已达上限,请联系管理员"),
+                            status_code=400)
+
     data = await request.json()
     group_name = data.get("group_name", None)
     k8s_app = data.get("k8s_app", None)
@@ -634,7 +647,6 @@ async def docker_compose_components(
     code, msg, json_data = compose_service.yaml_to_json(yaml_content)
     if code != 200:
         return JSONResponse(general_message(code, "parse yaml error", msg), status_code=code)
-    region = await region_services.get_region_by_request(session, request)
     # 创建组
     group_info = application_service.create_app(
         session, team, region.region_name, group_name, group_note, user.get_username(), k8s_app=k8s_app)

@@ -31,6 +31,7 @@ from repository.devops.devops_repo import devops_repo
 from repository.enterprise.enterprise_repo import enterprise_repo
 from repository.expressway.hunan_expressway_repo import hunan_expressway_repo
 from repository.region.region_info_repo import region_repo
+from repository.teams.team_component_repo import team_component_repo
 from repository.teams.team_region_repo import team_region_repo
 from repository.teams.team_repo import team_repo
 from repository.teams.team_roles_repo import TeamRolesRepository
@@ -206,8 +207,10 @@ async def add_users(
     session.flush()
     user_id = user.user_id
     idaas_oauth_service = oauth_repo.get_idaas_oauth_service(session)
-    oauth_user = oauth_user_repo.user_oauth_exists(session=session, service_id=idaas_oauth_service.ID, oauth_user_id=oauth_user_id)
-    link_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=idaas_oauth_service.ID, user_id=user_id)
+    oauth_user = oauth_user_repo.user_oauth_exists(session=session, service_id=idaas_oauth_service.ID,
+                                                   oauth_user_id=oauth_user_id)
+    link_user = oauth_repo.get_user_oauth_by_user_id(session=session, service_id=idaas_oauth_service.ID,
+                                                     user_id=user_id)
     if link_user is not None and link_user.oauth_user_id != oauth_user_id:
         logger.warning("该用户已绑定其他账号")
 
@@ -576,6 +579,18 @@ async def deploy_business_component(
         application_id: Optional[str] = None,
         authorization: Optional[str] = Depends(oauth2_scheme),
         session: SessionClass = Depends(deps.get_session)) -> Any:
+
+    # 查询当前团队
+    tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
+    if not tenant:
+        return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
+    # 组件数限制
+    service_count = team_component_repo.get_count_by_region(session=session, enterprise_id=tenant.enterprise_id,
+                                                            region_name=params.region_name)
+    if service_count > settings.SERVICE_NUM_LIMIT:
+        return JSONResponse(general_message(400, "the number of services exceeds the limit", "组件数量已达上限,请联系管理员"),
+                            status_code=400)
+
     result = general_message(200, "success", "成功")
     image_type = "docker_image"
     p = Pinyin()
@@ -588,10 +603,6 @@ async def deploy_business_component(
     try:
         if not params.docker_image:
             return JSONResponse(general_message(400, "docker_cmd cannot be null", "参数错误"), status_code=400)
-        # 查询当前团队
-        tenant = team_services.devops_get_tenant(tenant_name=team_code, session=session)
-        if not tenant:
-            return JSONResponse(general_message(400, "not found team", "团队不存在"), status_code=400)
         application = application_repo.get_by_primary_key(session=session, primary_key=application_id)
         if application and application.tenant_id != tenant.tenant_id:
             return JSONResponse(general_message(400, "not found app at team", "应用不属于该团队"), status_code=400)
