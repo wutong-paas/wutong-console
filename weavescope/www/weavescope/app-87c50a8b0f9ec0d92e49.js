@@ -15766,7 +15766,7 @@ function doRequest(opts) {
 
   var token = cookie.get('token');
   if (token) {
-    config.headers.Authorization = 'GRJWT ' + token;
+    config.headers.Authorization = 'Bearer ' + token;
   }
 
   return (0, _reqwest2.default)(config);
@@ -16013,13 +16013,14 @@ function getNodeDetails(topologyUrlsById, currentTopologyId, options, nodeMap, d
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
   if (obj && serviceAlias && tenantName && groupId) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
     var url = '';
     if (obj.id === 'The Internet') {
-      url = '/console/teams/' + tenantName + '/' + groupId + '/outer-service?region=' + region + '&_=' + new Date().getTime();
+      url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/' + groupId + '/outer-service?region=' + region + '&_=' + new Date().getTime();
     } else {
-      url = '/console/teams/' + tenantName + '/topological/services/' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
+      url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/topological/services/' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
     }
     doRequest({
       url: url,
@@ -16060,7 +16061,7 @@ function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatc
   var url = '';
   if (serviceAlias && tenantName && serviceAlias !== 'internet') {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/resource?region=' + region + '&_=' + new Date().getTime();
+    url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/apps/' + serviceAlias + '/resource?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
       url: url,
@@ -16096,7 +16097,7 @@ function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch
   if (serviceAlias && tenantName && serviceAlias !== 'internet') {
     console.log('coming');
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/pods?region=' + region + '&_=' + new Date().getTime();
+    url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/apps/' + serviceAlias + '/pods?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
       url: url,
@@ -16130,7 +16131,7 @@ function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispat
   var url = '';
   if (serviceAlias && tenantName && serviceAlias !== 'internet') {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/visit?region=' + region + '&_=' + new Date().getTime();
+    url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/apps/' + serviceAlias + '/visit?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
       url: url,
@@ -16164,7 +16165,7 @@ function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dis
   var url = '';
   if (serviceAlias && tenantName) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/group/service/visitservice_alias=' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
+    url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/group/service/visitservice_alias=' + serviceAlias + '?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
       url: url,
@@ -16198,7 +16199,7 @@ function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, di
   var url = '';
   if (serviceAlias && tenantName) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/groups/' + groupId + '?region=' + region + '&_=' + new Date().getTime();
+    url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/groups/' + groupId + '?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
       url: url,
@@ -16232,7 +16233,7 @@ function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch
   var url = '';
   if (serviceAlias && tenantName) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
-    url = '/console/teams/' + tenantName + '/groups/' + groupId + '/status?region=' + region + '&_=' + new Date().getTime();
+    url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/groups/' + groupId + '/status?region=' + region + '&_=' + new Date().getTime();
 
     doRequest({
       url: url,
@@ -16265,7 +16266,7 @@ function Podname(serviceAlias) {
     var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
     var url = '';
     if (serviceAlias && serviceAlias !== 'internet') {
-      url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/pods?region=' + region + '&_=' + new Date().getTime();
+      url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/apps/' + serviceAlias + '/pods?region=' + region + '&_=' + new Date().getTime();
       doRequest({
         url: url,
         success: function success(res) {
@@ -16296,9 +16297,9 @@ async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, di
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
     var url = '';
     if (obj.id === 'The Internet') {
-      url = '/console/teams/' + tenantName + '/' + groupId + '/outer-service?region=' + region + '&_=' + new Date().getTime();
+      url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/' + groupId + '/outer-service?region=' + region + '&_=' + new Date().getTime();
     } else {
-      url = '/console/teams/' + tenantName + '/apps/' + serviceAlias + '/pods/' + padname + '/detail?region=' + region + '&_=' + new Date().getTime();
+      url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/apps/' + serviceAlias + '/pods/' + padname + '/detail?region=' + region + '&_=' + new Date().getTime();
     }
 
     doRequest({

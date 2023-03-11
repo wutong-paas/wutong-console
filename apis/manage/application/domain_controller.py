@@ -16,7 +16,7 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/enterprise/team/{team_name}/env/{env_id}/app/{app_id}/domain", response_model=Response,
+@router.get("/enterprise/teams/{team_name}/env/{env_id}/app/{app_id}/domain", response_model=Response,
             name="应用HTTP网关查询")
 async def get_domain_info(request: Request,
                           app_id: Optional[str] = None,
@@ -78,7 +78,7 @@ async def get_domain_info(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/enterprise/team/{team_name}/env/{env_id}/app/{app_id}/tcpdomain", response_model=Response,
+@router.get("/enterprise/teams/{team_name}/env/{env_id}/app/{app_id}/tcpdomain", response_model=Response,
             name="应用TCP网关查询")
 async def get_tcp_domain_info(request: Request,
                               app_id: Optional[str] = None,

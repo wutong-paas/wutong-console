@@ -17,6 +17,7 @@ class IDaaSApi:
     def set_token(self, token):
         self.token = token
         self.headers = {
+            'Connection': 'close',
             "Accept": "application/json",
             "Authorization": self.token,
         }
@@ -62,10 +63,15 @@ class IDaaSApi:
             logger.exception(e)
             raise NoAccessKeyErr("can not get user info")
         if not rst:
-            err_msg = json.loads(err_msg)
-            raise ServiceHandleException(msg=err_msg.get("code") + " can not get user info",
-                                         msg_show=err_msg.get("msg"),
-                                         status_code=400)
+            if err_msg:
+                err_msg = json.loads(err_msg)
+                raise ServiceHandleException(msg=err_msg.get("code") + " can not get user info",
+                                             msg_show=err_msg.get("msg"),
+                                             status_code=400)
+            else:
+                raise ServiceHandleException(msg="can not get user info",
+                                             msg_show="获取用户信息失败",
+                                             status_code=400)
         code = rst.get("code", None)
         if code == '0':
             data = rst.get("data", None)

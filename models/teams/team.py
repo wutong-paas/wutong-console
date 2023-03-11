@@ -66,7 +66,7 @@ class ServiceDomain(Base):
 
     is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
     delete_time = Column(DateTime(), nullable=True, comment="删除时间")
-    delete_operator = Column(String(100), comment="删除操作人", nullable=False)
+    delete_operator = Column(String(100), comment="删除操作人", nullable=True)
 
     def __unicode__(self):
         return self.domain_name
@@ -105,7 +105,7 @@ class ServiceTcpDomain(Base):
 
     is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
     delete_time = Column(DateTime(), nullable=True, comment="删除时间")
-    delete_operator = Column(String(100), comment="删除操作人", nullable=False)
+    delete_operator = Column(String(100), comment="删除操作人", nullable=True)
 
     @property
     def load_balancing(self):
