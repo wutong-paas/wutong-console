@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class UserInfo(BaseModel):
     user_id: Optional[str] = None
+    user_name: Optional[str] = None
     nick_name: Optional[str] = None
     real_name: Optional[str] = None
     email: Optional[str] = None

@@ -9,7 +9,7 @@ from schemas.user import UserInfo
 
 class IDaaSApi:
     def __init__(self):
-        self._url = "https://wutong.talkweb.com.cn/bone-gateway"
+        self._url = "http://p5ayvh.natappfree.cc"
         self.session = requests.Session()
         self.headers = {}
         self.token = ""
@@ -79,12 +79,13 @@ class IDaaSApi:
     def get_url(self, home_url=None):
         return "/wutong-bone-core" + home_url
 
-    def get_user_info(self, user_id):
-        data, msg, code = self.__post(self.get_url("/user/detail"), params={"id": user_id})
+    def get_user_info(self, params):
+        data, msg, code = self.__post(self.get_url("/user/detail"), params=params)
         if not data:
             raise ServiceHandleException(msg_show=msg, msg="failed", status_code=code)
         user = {
             "user_id": data.get("id"),
+            "user_name": data.get("userName"),
             "real_name": data.get("realName"),
             "nick_name": data.get("nickName"),
             "email": data.get("email"),

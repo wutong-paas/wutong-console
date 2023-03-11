@@ -452,8 +452,8 @@ class ApplicationService(object):
             res['can_edit'] = False
 
         try:
-            principal = idaas_api.get_user_info("username", app.username)
-            res['principal'] = principal.get_name()
+            principal = idaas_api.get_user_info({"username": app.username})
+            res['principal'] = principal.real_name
             res['email'] = principal.email
         except ErrUserNotFound:
             res['principal'] = app.username
@@ -1566,7 +1566,7 @@ class ApplicationService(object):
         if not group:
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
         try:
-            user = idaas_api.get_user_info("username", group.username)
+            user = idaas_api.get_user_info({"username": group.username})
             principal_info["real_name"] = user.real_name
             principal_info["username"] = user.nick_name
             principal_info["email"] = user.email
@@ -1744,7 +1744,7 @@ class ApplicationService(object):
             # check username
             try:
                 data["username"] = username
-                idaas_api.get_user_info("username", username)
+                idaas_api.get_user_info({"username": username})
             except ErrUserNotFound:
                 raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
 

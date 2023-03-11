@@ -173,10 +173,10 @@ async def overview_team_env_info(region_name: Optional[str] = None,
         resp = remote_build_client.list_app_statuses_by_app_ids(session, env, region_name,
                                                                 {"app_ids": region_app_ids})
         app_statuses = resp.get("list", [])
-        # todo
-        for app_status in app_statuses:
-            if app_status.get("status") == "RUNNING":
-                running_app_num += 1
+        if app_statuses:
+            for app_status in app_statuses:
+                if app_status.get("status") == "RUNNING":
+                    running_app_num += 1
     except Exception as e:
         logger.exception(e)
     team_app_num = application_repo.get_tenant_region_groups_count(session, env.env_id, region_name)

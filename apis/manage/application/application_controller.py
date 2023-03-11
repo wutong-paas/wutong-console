@@ -89,7 +89,7 @@ async def create_app(params: TeamAppCreateRequest,
             region_name=params.region_name,
             app_name=params.app_alias,
             note=params.note,
-            username=user.nick_name,
+            username=user.user_name,
             app_store_name=params.app_store_name,
             app_store_url=params.app_store_url,
             app_template_name=params.app_template_name,
@@ -109,7 +109,7 @@ async def create_app(params: TeamAppCreateRequest,
 @router.get("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="团队应用详情")
 async def get_app_detail(
         request: Request,
-        env_id: Optional[int] = None,
+        env_id: Optional[str] = None,
         app_id: Optional[int] = None,
         user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -131,8 +131,8 @@ async def get_app_detail(
         visit_info = {
             "user_id": user.user_id,
             "app_id": app_id,
-            "app_alias": app.app_name,
-            "app_name": app.k8s_app,
+            "app_alias": app["app_name"],
+            "app_name": app["k8s_app"],
             "tenant_env_id": env.env_id,
             "tenant_env_alias": env.env_alias,
             "team_name": env.tenant_name

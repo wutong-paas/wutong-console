@@ -508,10 +508,10 @@ class RemoteBuildClient(ApiBaseHttpClient):
         res, body = self._get(session, url, self.default_headers, region=region)
         return res, body
 
-    def get_region_tenants_resources(self, session, region, data):
+    def get_region_tenants_resources(self, session, region, tenant_env, data):
         """获取租户在数据中心下的资源使用情况"""
         url, token = get_region_access_info(region, session)
-        url += "/v2/resources/tenants"
+        url += "/v2/resources/tenants/" + tenant_env.tenant_name + "/envs"
         self._set_headers(token)
         res, body = self._post(session, url, self.default_headers, json.dumps(data), region=region, timeout=15.0)
         return body

@@ -298,7 +298,7 @@ async def update_deploy_mode(
         # 获取组件状态
         status_map = application_service.get_service_status(session, env, service_obj)
         status = status_map.get("status", None)
-        user_obj = idaas_api.get_user_info(service_obj.creater)
+        user_obj = idaas_api.get_user_info({"id": service_obj.creater})
         if status != "closed":
             return app_manage_service.deploy_service(
                 session=session, tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj)

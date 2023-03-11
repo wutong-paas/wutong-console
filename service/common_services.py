@@ -6,9 +6,9 @@ from database.session import SessionClass
 
 class CommonServices:
     def get_current_region_used_resource(self, session: SessionClass, env, region_name):
-        data = {"tenant_name": [env.tenant_name]}
+        data = {"tenant_name": env.tenant_name, "tenant_env_names": [env.env_name]}
         try:
-            res = remote_build_client.get_region_tenants_resources(session, region_name, data)
+            res = remote_build_client.get_region_tenants_resources(session, region_name, env, data)
             d_list = res["list"]
             if d_list:
                 resource = d_list[0]

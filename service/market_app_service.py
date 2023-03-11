@@ -317,8 +317,8 @@ class MarketAppService(object):
             version.release_user = ""
             version.share_user_id = version.share_user
             version.share_user = ""
-            user = idaas_api.get_user_info(version.release_user_id)
-            share_user = idaas_api.get_user_info(version.share_user_id)
+            user = idaas_api.get_user_info({"id": version.release_user_id})
+            share_user = idaas_api.get_user_info({"id": version.share_user_id})
 
             if user:
                 version.release_user_id = user.user_id

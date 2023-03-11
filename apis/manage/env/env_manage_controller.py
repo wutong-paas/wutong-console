@@ -56,7 +56,8 @@ async def add_env(request: Request,
         result = general_message(400, "env namespace is exist", "该环境标识已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.create_env(session, user, region.region_alias, env_name, env_alias, tenant_id, team_name, namespace, desc)
+    env = env_repo.create_env(session, user, region.region_alias, region_name, env_name, env_alias, tenant_id,
+                              team_name, namespace, desc)
     exist_namespace_region_names = []
 
     try:

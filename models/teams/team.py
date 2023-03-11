@@ -17,6 +17,7 @@ class TeamEnvInfo(Base):
     ID = Column(Integer, primary_key=True)
     env_id = Column(String(33), comment="环境id", nullable=False, unique=True, default=make_env_id)
     region_name = Column(String(33), comment="集群名", nullable=False)
+    region_code = Column(String(33), comment="集群标识", nullable=False)
     env_name = Column(String(31), comment="环境名称", nullable=False)
     tenant_id = Column(String(33), comment="团队id", nullable=False)
     tenant_name = Column(String(31), comment="团队名称", nullable=False)
