@@ -191,7 +191,7 @@ function doRequest(opts) {
 
   const token = cookie.get('token');
   if (token) {
-    config.headers.Authorization = `GRJWT ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return reqwest(config);
@@ -698,7 +698,7 @@ export function Podname(serviceAlias){
         url,
         success: (res) => {
           res = res || {};
-    
+
           res.rank = res.cur_status;
           res = res || {};
           const data = res.data.list.new_pods[0].pod_name || [];
