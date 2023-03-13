@@ -9,7 +9,7 @@ from schemas.user import UserInfo
 
 class IDaaSApi:
     def __init__(self):
-        self._url = "http://p5ayvh.natappfree.cc"
+        self._url = "http://ph972m.natappfree.cc"
         self.session = requests.Session()
         self.headers = {}
         self.token = ""

@@ -108,7 +108,7 @@ async def get_xparecords(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/apps/{serviceAlias}/extend_method", response_model=Response, name="获取组件扩展方式")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/extend_method", response_model=Response, name="获取组件扩展方式")
 async def get_extend_method(serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             env=Depends(deps.get_current_team_env)) -> Any:

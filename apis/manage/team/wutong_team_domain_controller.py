@@ -196,11 +196,10 @@ async def service_tcp_domain(request: Request,
         bean.update({"service_alias": service_alias})
         bean.update({"group_name": group_name})
         bean.update({"g_id": g_id})
-        result = general_message("0", "success", "查询成功", bean=bean)
     else:
         bean = dict()
-        result = general_message("0", "success", "查询成功", bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+    result = general_message("0", "success", "查询成功", bean=bean)
+    return JSONResponse(result, status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/tcpdomain", response_model=Response, name="修改tcp/udp策略操作")
@@ -384,7 +383,7 @@ async def get_tenant_certificates(request: Request,
     certificates, nums = domain_service.get_certificate(session=session, tenant_env=env, page=page, page_size=page_size)
     bean = {"nums": nums}
     result = general_message("0", "success", "查询成功", list=certificates, bean=bean)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/certificates", response_model=Response, name="添加网关证书")
@@ -404,7 +403,7 @@ async def add_tenant_certificates(request: Request,
                                                certificate_type)
         bean = {"alias": alias, "id": new_c.ID}
         result = general_message("0", "success", "操作成功", bean=bean)
-        return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
 

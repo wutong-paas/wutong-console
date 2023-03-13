@@ -412,7 +412,7 @@ class ShareService(object):
             last_shared = (
                 session.execute(select(ServiceShareRecord).where(ServiceShareRecord.group_id == group_id,
                                                                  ServiceShareRecord.scope.in_(["team", "enterprise"]),
-                                                                 ServiceShareRecord.team_name == tenant_env.tenant_name,
+                                                                 ServiceShareRecord.env_name == tenant_env.env_name,
                                                                  ServiceShareRecord.is_success == True).order_by(
                     ServiceShareRecord.create_time.desc()))
             ).scalars().first()
@@ -755,7 +755,7 @@ class ShareService(object):
                 # component monitor
                 data["component_monitors"] = sid_2_monitors.get(service.service_id, None)
                 data["component_graphs"] = sid_2_graphs.get(service.service_id, None)
-                data["labels"] = labels.get(service.component_id, {})
+                data["labels"] = labels.get(service.service_id, {})
 
                 all_data_map[service.service_id] = data
 

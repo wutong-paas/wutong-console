@@ -240,6 +240,8 @@ class AppManageService(object):
             data.pop("server_type")
             data.pop("git_full_name")
             data.pop("gpu_type")
+            data.pop("is_delete")
+            data.pop("delete_operator")
         try:
             add_model: TeamComponentInfoDelete = TeamComponentInfoDelete(**data)
             session.add(add_model)
