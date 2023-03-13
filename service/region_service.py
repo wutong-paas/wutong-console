@@ -244,29 +244,6 @@ class RegionService(object):
         region_resource["health_status"] = "ok"
         return region_resource
 
-    def get_region_all_list_by_team_name(self, session: SessionClass, team_name):
-        regions = region_repo.get_region_by_tenant_name(session=session, tenant_name=team_name)
-        region_name_list = list()
-        if regions:
-            for region in regions:
-                region_desc = region_repo.get_region_desc_by_region_name(session=session,
-                                                                         region_name=region.region_name)
-                region_name_list.append({
-                    "region_id": region.ID,
-                    "region_name": region.region_name,
-                    "service_status": region.service_status,
-                    "is_active": region.is_active,
-                    "is_init": region.is_init,
-                    "region_scope": region.region_scope,
-                    "region_alisa": env_repo.get_region_alias(session, region.region_name),
-                    "region.region_tenant_env_id": region.region_tenant_env_id,
-                    "create_time": region.create_time,
-                    "desc": region_desc
-                })
-            return region_name_list
-        else:
-            return []
-
     def create_env_on_region(self, session: SessionClass, team_id, team_name, env, region_name,
                              namespace):
         region_config = region_repo.get_enterprise_region_by_region_name(session, region_name)
@@ -353,12 +330,6 @@ class RegionService(object):
                 raise ServiceHandleException(msg="delete tenant from cluster failure", msg_show="从集群删除租户失败")
         region_repo.delete_team_region_by_tenant_and_region(session, env.env_id, region_name)
 
-    def get_team_unopen_region(self, session: SessionClass, env_name):
-        team_opened_regions = region_repo.get_team_opened_region(session, env_name, is_init=True)
-        opened_regions_name = [team_region.region_name for team_region in team_opened_regions]
-        unopen_regions = region_repo.get_usable_regions(session, opened_regions_name)
-        return [jsonable_encoder(unopen_region) for unopen_region in unopen_regions]
-
     def get_region_tcpdomain(self, session: SessionClass, region_name):
         region = region_repo.get_region_by_region_name(session, region_name)
         if region:
@@ -370,12 +341,6 @@ class RegionService(object):
         if region:
             return region.httpdomain
         return ""
-
-    def get_team_usable_regions(self, session: SessionClass, team_name):
-        usable_regions = region_repo.get_new_usable_regions(session=session)
-        region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region_name(session, team_name, region_names)
-        return team_opened_regions
 
 
 region_services = RegionService()

@@ -86,22 +86,6 @@ class RegionRepo(BaseRepository[RegionConfig]):
                 EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 
-    def get_region_by_tenant_name(self, session: SessionClass, env_name):
-        env = env_repo.get_tenant_by_env_name(session=session, env_name=env_name, exception=True)
-        results = session.execute(select(EnvRegionInfo).where(
-            EnvRegionInfo.region_env_id == env.env_id))
-        return results.scalars().all()
-
-    def get_region_desc_by_region_name(self, session: SessionClass, region_name):
-        results = session.execute(select(RegionConfig).where(
-            RegionConfig.region_name == region_name))
-        regions = results.scalars().all()
-        if regions:
-            region_desc = regions[0].desc
-            return region_desc
-        else:
-            return None
-
     def get_enterprise_region_by_region_name(self, session: SessionClass, region_name):
         return session.execute(select(RegionConfig).where(
             RegionConfig.region_name == region_name)).scalars().first()
