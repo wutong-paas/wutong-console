@@ -1,6 +1,8 @@
 import json
 import os
-from sqlalchemy import select, delete, text
+
+from fastapi.encoders import jsonable_encoder
+from sqlalchemy import select, delete, text, update
 
 from core.setting import settings
 from core.utils.crypt import make_uuid
@@ -15,12 +17,9 @@ from service.plugin.plugin_version_service import plugin_version_service
 class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
     def overwrite_by_component_ids(self, session, component_ids, plugin_deps):
         plugin_deps = [plugin_dep for plugin_dep in plugin_deps if plugin_dep.service_id in component_ids]
-        session.execute(delete(TeamComponentPluginRelation).where(
-            TeamComponentPluginRelation.service_id.in_(component_ids)
-        ))
         for plugin_dep in plugin_deps:
-            session.merge(plugin_dep)
-        session.flush()
+            session.execute(update(TeamComponentPluginRelation).values(jsonable_encoder(plugin_dep)))
+            session.flush()
 
     def list_by_component_ids(self, session, service_ids):
         rels = session.execute(select(TeamComponentPluginRelation).where(

@@ -440,6 +440,7 @@ async def get_object_log(
         response_region = region.region_name
         log_content = event_service.get_event_log(session, env, response_region, event_id)
         result = general_message("0", "success", "查询成功", list=log_content)
+        return JSONResponse(result, status_code=200)
     except Exception as e:
         logger.exception(e)
         result = error_message("failed")

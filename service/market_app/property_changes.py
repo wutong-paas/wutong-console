@@ -54,7 +54,7 @@ class PropertyChanges(object):
         return self.changes
 
     def ensure_dep_changes(self, new_app: NewApp, original_app: OriginalApp):
-        update_components = {component.component.component_id: component for component in
+        update_components = {component.component.service_id: component for component in
                              new_app.list_update_components()}
         # get origin component dependency
         original_components_deps = {}
@@ -142,7 +142,7 @@ class PropertyChanges(object):
         if plugin_deps:
             result["plugin_deps"] = plugin_deps
 
-        component_graphs = self._graphs(component.component.component_id, component.graphs,
+        component_graphs = self._graphs(component.component.service_id, component.graphs,
                                         component_tmpl.get("component_graphs", []))
         if component_graphs:
             result["component_graphs"] = component_graphs

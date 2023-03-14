@@ -253,7 +253,7 @@ class ApplicationService(object):
         if user_name is not None:
             if not service_source:
                 params = {
-                    "team_id": tenant_env.env_id,
+                    "tenant_env_id": tenant_env.env_id,
                     "service_id": service.service_id,
                     "user_name": user_name,
                     "password": password,
@@ -1612,7 +1612,7 @@ class ApplicationService(object):
             component_base["replicas"] = cpt.min_node
             component = {
                 "component_base": component_base,
-                "envs": [jsonable_encoder(env) for env in envs if env.service_id == cpt.component_id]
+                "envs": [jsonable_encoder(env) for env in envs if env.service_id == cpt.service_id]
             }
             new_components.append(component)
 
@@ -1631,7 +1631,7 @@ class ApplicationService(object):
                                                                                region_name=region_name, app_id=app_id)
 
         components = service_info_repo.list_by_ids(session=session, service_ids=component_ids)
-        components = {cpt.component_id: cpt for cpt in components}
+        components = {cpt.service_id: cpt for cpt in components}
 
         ports = port_repo.list_inner_ports_by_service_ids(session, tenant_env.env_id, component_ids)
         ports = {port.service_id + str(port.container_port): port for port in ports}

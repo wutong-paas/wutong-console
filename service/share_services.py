@@ -518,7 +518,7 @@ class ShareService(object):
         left join center_app_tag tag on
             atr.tag_id = tag.ID
         where
-            and atr.app_id in ({app_ids});
+            atr.app_id in ({app_ids});
         """.format(app_ids=app_ids)
         result = (session.execute(text(sql))).fetchall()
         return result
@@ -546,7 +546,7 @@ class ShareService(object):
             left join center_app_tag tag on
                 atr.tag_id = tag.ID
             where
-                and atr.app_id = '{app_id}';
+                atr.app_id = '{app_id}';
             """.format(app_id=app.app_id)
         tags = (session.execute(text(sql))).fetchall()
 
@@ -1014,7 +1014,7 @@ class ShareService(object):
         event = ComponentEvent(
             event_id=make_uuid(),
             service_id=record_event.service_id,
-            tenant_env_id=record_event.team_id,
+            tenant_env_id=record_event.tenant_env_id,
             type=event_type,
             user_name=user_name,
             start_time=datetime.datetime.now(),

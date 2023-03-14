@@ -9,7 +9,7 @@ from schemas.user import UserInfo
 
 class IDaaSApi:
     def __init__(self):
-        self._url = "http://ph972m.natappfree.cc"
+        self._url = "http://8abqza.natappfree.cc"
         self.session = requests.Session()
         self.headers = {}
         self.token = ""
@@ -64,7 +64,12 @@ class IDaaSApi:
             raise NoAccessKeyErr("can not get user info")
         if not rst:
             if err_msg:
-                err_msg = json.loads(err_msg)
+                try:
+                    err_msg = json.loads(err_msg)
+                except:
+                    raise ServiceHandleException(msg=err_msg,
+                                                 msg_show="获取用户信息失败",
+                                                 status_code=400)
                 raise ServiceHandleException(msg=err_msg.get("code") + " can not get user info",
                                              msg_show=err_msg.get("msg"),
                                              status_code=400)

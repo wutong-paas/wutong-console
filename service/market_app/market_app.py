@@ -21,7 +21,7 @@ class MarketApp(object):
         self.original_app = original_app
         self.new_app = new_app
 
-        self.tenant_name = self.new_app.tenant.tenant_name
+        self.tenant_env = self.new_app.tenant_env
         self.region_name = self.new_app.region_name
 
         self.labels = {label.label_id: label for label in label_repo.get_all_labels(session)}
@@ -50,7 +50,7 @@ class MarketApp(object):
                 "build_infos": builds,
             }
             _, body = remote_build_client.batch_operation_service(session, self.new_app.region_name,
-                                                                  self.new_app.tenant.tenant_name, body)
+                                                                  self.tenant_env, body)
             res += body["bean"]["batch_result"]
 
         if upgrades:
@@ -60,7 +60,7 @@ class MarketApp(object):
             }
             _, body = remote_build_client.batch_operation_service(session,
                                                                   self.new_app.region_name,
-                                                                  self.new_app.tenant.tenant_name, body)
+                                                                  self.tenant_env, body)
             res += body["bean"]["batch_result"]
 
         return res
@@ -80,7 +80,7 @@ class MarketApp(object):
             # and installed), then update it.
             new_deps.extend(self.original_app.component_deps)
             return self._dedup_deps(new_deps)
-        component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
+        component_ids = [cpt.component.service_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
         deps = []
@@ -108,7 +108,7 @@ class MarketApp(object):
             # and installed), then update it.
             new_deps.extend(self.original_app.volume_deps)
             return self._dedup_deps(new_deps)
-        component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
+        component_ids = [cpt.component.service_id for cpt in self.original_app.components()]
         if tmpl_component_ids:
             component_ids = [component_id for component_id in component_ids if component_id in tmpl_component_ids]
         deps = []
@@ -128,14 +128,14 @@ class MarketApp(object):
         body = {
             "components": self._create_component_body(self.new_app),
         }
-        remote_app_client.sync_components(session, self.tenant_name, self.region_name, self.new_app.region_app_id, body)
+        remote_app_client.sync_components(session, self.tenant_env, self.region_name, self.new_app.region_app_id, body)
 
     def _rollback_components(self, session):
         body = {
             "components": self._create_component_body(self.original_app),
-            "delete_component_ids": [cpt.component.component_id for cpt in self.new_app.new_components]
+            "delete_component_ids": [cpt.component.service_id for cpt in self.new_app.new_components]
         }
-        remote_app_client.sync_components(session, self.tenant_name, self.region_name, self.new_app.region_app_id, body)
+        remote_app_client.sync_components(session, self.tenant_env, self.region_name, self.new_app.region_app_id, body)
 
     def _create_component_body(self, app):
         components = app.components()
@@ -195,13 +195,13 @@ class MarketApp(object):
                     "config_group_name": config_group.config_group_name
                 } for config_group in cpt.app_config_groups]
             # plugin
-            plugin_body = plugin_bodies.get(cpt.component.component_id, [])
+            plugin_body = plugin_bodies.get(cpt.component.service_id, [])
             component["plugins"] = plugin_body
             new_components.append(component)
         return new_components
 
     def _create_plugin_body(self, components):
-        components = {cpt.component.component_id: cpt for cpt in components}
+        components = {cpt.component.service_id: cpt for cpt in components}
         plugins = {plugin.plugin.plugin_id: plugin for plugin in self.new_app.plugins}
         plugin_configs = {}
         for plugin_config in self.new_app.plugin_configs:
@@ -318,7 +318,7 @@ class MarketApp(object):
         body = {
             "app_config_groups": config_groups,
         }
-        remote_app_client.sync_config_groups(session, self.tenant_name, self.region_name, self.new_app.region_app_id,
+        remote_app_client.sync_config_groups(session, self.tenant_env, self.region_name, self.new_app.region_app_id,
                                              body)
 
     def list_original_plugins(self, session):
@@ -359,7 +359,7 @@ class MarketApp(object):
             if cpt.action_type != ActionType.BUILD.value:
                 continue
             build = dict()
-            build["service_id"] = cpt.component.component_id
+            build["service_id"] = cpt.component.service_id
             build["action"] = 'deploy'
             if cpt.component.build_upgrade:
                 build["action"] = 'upgrade'
@@ -380,7 +380,7 @@ class MarketApp(object):
             if cpt.action_type != ActionType.UPDATE.value:
                 continue
             upgrade = dict()
-            upgrade["service_id"] = cpt.component.component_id
+            upgrade["service_id"] = cpt.component.service_id
             upgrades.append(upgrade)
         return upgrades
 

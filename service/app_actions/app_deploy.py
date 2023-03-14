@@ -86,7 +86,7 @@ class AppDeployService(object):
         """perform pre-deployment actions"""
         if service.service_source == "market":
             self.impl = MarketService(session, tenant_env, service, version)
-        self.impl.pre_action(session)
+            self.impl.pre_action(session)
 
     def get_async_action(self):
         return AsyncAction.BUILD.value

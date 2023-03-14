@@ -192,7 +192,7 @@ class AppTagRepository(object):
         left join center_app_tag tag on
             atr.tag_id = tag.ID
         where
-            and atr.app_id in :app_ids;
+            atr.app_id in :app_ids;
         """
         sql = text(sql).bindparams(app_ids=tuple(app_ids.split(",")))
         apps = session.execute(sql).fetchall()

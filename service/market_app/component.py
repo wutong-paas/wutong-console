@@ -90,7 +90,7 @@ class Component(object):
     def _create_port_env(self, port: TeamComponentPort, name, attr_name, attr_value):
         return ComponentEnvVar(
             tenant_env_id=self.component.tenant_env_id,
-            service_id=self.component.component_id,
+            service_id=self.component.service_id,
             container_port=port.container_port,
             name=name,
             attr_name=attr_name,
@@ -178,7 +178,7 @@ class Component(object):
             # Optimization: do not update port data iteratively
             self._update_port_data(session, port)
             new_port = TeamComponentPort(**port)
-            new_port.service_id = self.component.component_id
+            new_port.service_id = self.component.service_id
             port_alias = new_port.port_alias.lower()
             old_k8s_name = new_port.k8s_service_name.split('-')
             new_port.k8s_service_name = port_alias + '-' + '-'.join(old_k8s_name[1:])
@@ -203,7 +203,7 @@ class Component(object):
         for graph in graphs:
             new_graph = ComponentGraph(**graph)
             new_graph.graph_id = make_uuid()
-            new_graph.component_id = self.component.component_id
+            new_graph.component_id = self.component.service_id
             self.graphs.append(new_graph)
 
         graphs = component_graphs.get("upd", [])
@@ -222,7 +222,7 @@ class Component(object):
         monitors = component_monitors.get("add", [])
         for monitor in monitors:
             new_monitor = ComponentMonitor(**monitor)
-            new_monitor.service_id = self.component.component_id
+            new_monitor.service_id = self.component.service_id
             new_monitor.tenant_env_id = self.component.tenant_env_id
             self.monitors.append(new_monitor)
         self.update_action_type(ActionType.UPDATE.value)
@@ -238,7 +238,7 @@ class Component(object):
             self.labels.append(
                 ComponentLabels(
                     tenant_env_id=self.component.tenant_env_id,
-                    service_id=self.component.component_id,
+                    service_id=self.component.service_id,
                     label_id=label.label_id,
                     region=self.component.service_region,
                     create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -272,7 +272,7 @@ class Component(object):
             if file_content:
                 self.config_files.append(
                     TeamComponentConfigurationFile(
-                        service_id=self.component.component_id,
+                        service_id=self.component.service_id,
                         volume_name=volume["volume_name"],
                         file_content=file_content,
                     ))
@@ -314,13 +314,13 @@ class Component(object):
             if not old_probe:
                 # create new probe
                 probe["probe_id"] = make_uuid()
-                probe["service_id"] = self.component.component_id
+                probe["service_id"] = self.component.service_id
                 probes.append(ComponentProbe(**probe))
                 continue
             # update probe
             probe = ComponentProbe(**probe)
             probe.ID = old_probe.ID
-            probe.service_id = self.component.component_id
+            probe.service_id = self.component.service_id
             probes.append(probe)
         self.probes = probes
         self.update_action_type(ActionType.UPDATE.value)

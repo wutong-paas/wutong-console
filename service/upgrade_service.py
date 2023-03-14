@@ -200,7 +200,7 @@ class UpgradeService(object):
     def upgrade_component(self, session, tenant_env, region, user, app, component, version):
         component_group = tenant_service_group_repo.get_component_group(session, component.upgrade_group_id)
         app_template_source = service_source_repo.get_service_source(session, component.tenant_env_id,
-                                                                     component.component_id)
+                                                                     component.service_id)
         app_template = self._app_template(session, component_group.group_key, version,
                                           app_template_source)
 

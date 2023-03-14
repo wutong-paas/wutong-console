@@ -135,7 +135,8 @@ async def get_app_detail(
             "app_name": app["k8s_app"],
             "tenant_env_id": env.env_id,
             "tenant_env_alias": env.env_alias,
-            "team_name": env.tenant_name
+            "team_name": env.tenant_name,
+            "region_code": env.region_code
         }
         application_visit_service.create_app_visit_record(session, **visit_info)
 

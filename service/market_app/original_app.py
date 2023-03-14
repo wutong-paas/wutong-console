@@ -37,7 +37,7 @@ class OriginalApp(object):
         # dependency
         component_deps = dep_relation_repo.list_by_component_ids(session,
                                                                  self.tenant_env_id,
-                                                                 [cpt.component.component_id for cpt in
+                                                                 [cpt.component.service_id for cpt in
                                                                   self._components])
         self.component_deps = list(component_deps) if component_deps else []
         self.volume_deps = self._volume_deps(session)
@@ -60,11 +60,11 @@ class OriginalApp(object):
     def _component_ids(self, session):
         components = application_service.list_components_by_upgrade_group_id(session, self.app_id,
                                                                              self.upgrade_group_id)
-        return [cpt.component_id for cpt in components]
+        return [cpt.service_id for cpt in components]
 
     def _create_components(self, session, app_id, upgrade_group_id):
         components = application_service.list_components_by_upgrade_group_id(session, app_id, upgrade_group_id)
-        component_ids = [cpt.component_id for cpt in components]
+        component_ids = [cpt.service_id for cpt in components]
 
         http_rules = self._list_http_rules(session, component_ids)
         tcp_rules = self._list_tcp_rules(session, component_ids)
@@ -92,8 +92,8 @@ class OriginalApp(object):
                 monitors,
                 graphs,
                 plugin_deps,
-                http_rules=http_rules.get(cpt.component_id),
-                tcp_rules=tcp_rules.get(cpt.component_id),
+                http_rules=http_rules.get(cpt.service_id),
+                tcp_rules=tcp_rules.get(cpt.service_id),
                 support_labels=self.support_labels)
             result.append(component)
         return result
@@ -119,7 +119,7 @@ class OriginalApp(object):
         return result
 
     def _volume_deps(self, session):
-        component_ids = [cpt.component.component_id for cpt in self._components]
+        component_ids = [cpt.component.service_id for cpt in self._components]
         return list(mnt_repo.list_mnt_relations_by_service_ids(session, self.tenant_env_id, component_ids))
 
     def _config_groups(self, session):

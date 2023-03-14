@@ -45,7 +45,7 @@ class UpdateComponents(object):
         for cpt in components:
             component_tmpl = get_component_template(cpt, self.app_template)
             if component_tmpl:
-                cpt.set_changes(session, self.original_app.tenant, self.original_app.region, cpt_changes[cpt.component.component_id],
+                cpt.set_changes(session, self.original_app.tenant, self.original_app.region, cpt_changes[cpt.component.service_id],
                                 self.original_app.governance_mode)
                 cpt.component.image = component_tmpl["share_image"]
                 cpt.component.cmd = component_tmpl.get("cmd", "")

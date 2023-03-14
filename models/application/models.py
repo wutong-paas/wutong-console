@@ -386,6 +386,7 @@ class ApplicationVisitRecord(Base):
     app_id = Column(Integer, comment="应用id", nullable=False)
     app_name = Column(String(32), comment="应用名", nullable=False)
     app_alias = Column(String(64), comment="应用别名", nullable=False)
+    region_code = Column(String(32), comment="集群标识", nullable=False)
     team_name = Column(String(32), comment="团队名", nullable=False)
     tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     tenant_env_alias = Column(String(32), comment="环境名", nullable=False)

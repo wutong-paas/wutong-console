@@ -89,7 +89,7 @@ class ComponentRepository(BaseRepository[Component]):
                 service_source b,
                 service_group_relation c
             WHERE
-                a.tenant_env_id = b.team_id
+                a.tenant_env_id = b.tenant_env_id
                 AND a.service_id = b.service_id
                 AND b.service_share_uuid IN :uuids
                 AND a.service_id = c.service_id

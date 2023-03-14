@@ -1353,7 +1353,7 @@ class AppManageService(object):
     @staticmethod
     def _rollback_third_components(session, tenant_name, region_name, region_app_id, components: [Component]):
         body = {
-            "delete_component_ids": [component.component_id for component in components],
+            "delete_component_ids": [component.service_id for component in components],
         }
         remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
 
@@ -1382,7 +1382,7 @@ class AppManageService(object):
             relation = ComponentApplicationRelation(
                 group_id=app.app_id,
                 tenant_env_id=component.tenant_env_id,
-                service_id=component.component_id,
+                service_id=component.service_id,
                 region_name=region_name,
             )
             relations.append(relation)
@@ -1450,7 +1450,7 @@ class AppManageService(object):
         components = self.create_third_components_kubernetes(session, tenant_env, region_name, user, app, services)
 
         # start the third components
-        component_ids = [cpt.component_id for cpt in components]
+        component_ids = [cpt.service_id for cpt in components]
         try:
             app_manage_service.batch_operations(session, tenant_env, region_name, user, "start", component_ids)
         except Exception as e:

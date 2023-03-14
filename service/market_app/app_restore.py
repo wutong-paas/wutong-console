@@ -110,11 +110,11 @@ class AppRestore(MarketApp):
         event_ids = {event["service_id"]: event["event_id"] for event in events}
         records = []
         for cpt in self.new_app.components():
-            event_id = event_ids.get(cpt.component.component_id)
+            event_id = event_ids.get(cpt.component.service_id)
             record = ServiceUpgradeRecord(
                 create_time=datetime.now(),
                 app_upgrade_record=self.rollback_record,
-                service_id=cpt.component.component_id,
+                service_id=cpt.component.service_id,
                 service_cname=cpt.component.service_cname,
                 upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value,
                 event_id=event_id,
@@ -135,7 +135,7 @@ class AppRestore(MarketApp):
         snap = app_snapshot_repo.get_by_snapshot_id(session, self.upgrade_record.snapshot_id)
         snap = json.loads(snap.snapshot)
         # filter out components that are in the snapshot but not in the application
-        component_ids = [cpt.component.component_id for cpt in self.original_app.components()]
+        component_ids = [cpt.component.service_id for cpt in self.original_app.components()]
         snap["components"] = [snap for snap in snap["components"] if snap["component_id"] in component_ids]
         return snap
 
@@ -146,7 +146,7 @@ class AppRestore(MarketApp):
         components = []
         for snap in self.snapshot["components"]:
             components.append(self._create_component(snap))
-        component_ids = [cpt.component.component_id for cpt in components]
+        component_ids = [cpt.component.service_id for cpt in components]
 
         # component dependencies
         new_deps = self._create_component_deps(component_ids)

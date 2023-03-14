@@ -41,7 +41,7 @@ class AppPortService:
     def _create_port_env(component, port, name, attr_name, attr_value):
         return ComponentEnvVar(
             tenant_env_id=component.tenant_env_id,
-            service_id=component.component_id,
+            service_id=component.service_id,
             container_port=port.container_port,
             name=name,
             attr_name=attr_name,
@@ -1000,8 +1000,8 @@ class AppPortService:
             component_base["replicas"] = cpt.min_node
             component = {
                 "component_base": component_base,
-                "ports": [jsonable_encoder(port) for port in ports if port.service_id == cpt.component_id],
-                "envs": [jsonable_encoder(env) for env in envs if env.service_id == cpt.component_id],
+                "ports": [jsonable_encoder(port) for port in ports if port.service_id == cpt.service_id],
+                "envs": [jsonable_encoder(env) for env in envs if env.service_id == cpt.service_id],
             }
             new_components.append(component)
 

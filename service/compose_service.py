@@ -242,7 +242,7 @@ class ComposeService(object):
             "hub_user": hub_user,
             "hub_pass": hub_pass,
             "group_id": group_id,
-            "team_id": tenant_env.env_id,
+            "tenant_env_id": tenant_env.env_id,
             "region": region,
             "compose_content": compose_content,
             "compose_id": make_uuid(),

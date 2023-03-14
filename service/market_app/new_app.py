@@ -52,7 +52,7 @@ class NewApp(object):
         self.governance_mode = app.governance_mode
         self.new_components = new_components
         self.update_components = update_components
-        self.component_ids = [cpt.component.component_id for cpt in self._components()]
+        self.component_ids = [cpt.component.service_id for cpt in self._components()]
 
         # plugins
         self.plugins = plugins
@@ -121,11 +121,11 @@ class NewApp(object):
             pcs.append(plugin_config)
             plugin_configs[plugin_config.service_id] = pcs
         for cpt in components:
-            cpt.component_deps = component_deps.get(cpt.component.component_id)
-            cpt.volume_deps = volume_deps.get(cpt.component.component_id)
-            cpt.app_config_groups = config_group_components.get(cpt.component.component_id)
-            cpt.plugin_deps = plugin_deps.get(cpt.component.component_id)
-            cpt.plugin_configs = plugin_configs.get(cpt.component.component_id)
+            cpt.component_deps = component_deps.get(cpt.component.service_id)
+            cpt.volume_deps = volume_deps.get(cpt.component.service_id)
+            cpt.app_config_groups = config_group_components.get(cpt.component.service_id)
+            cpt.plugin_deps = plugin_deps.get(cpt.component.service_id)
+            cpt.plugin_configs = plugin_configs.get(cpt.component.service_id)
         return components
 
     def _components(self):
@@ -213,7 +213,7 @@ class NewApp(object):
             labels.extend(cpt.labels)
 
         components = [cpt.component for cpt in self.update_components]
-        component_ids = [cpt.component_id for cpt in components]
+        component_ids = [cpt.service_id for cpt in components]
         for component in components:
             session.merge(component)
         for source in sources:
@@ -238,7 +238,7 @@ class NewApp(object):
         components = self._components()
         volume_deps = mnt_repo.list_mnt_relations_by_service_ids(session,
                                                                  self.tenant_env_id,
-                                                                 [cpt.component.component_id for cpt in components])
+                                                                 [cpt.component.service_id for cpt in components])
         return {dep.key(): dep for dep in volume_deps}
 
     def _save_plugin_deps(self, session):

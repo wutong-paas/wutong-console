@@ -1,11 +1,8 @@
 # -*- coding: utf8 -*-
-import logging
 import json
 from datetime import datetime
-
 from loguru import logger
 from sqlalchemy import select
-
 from core.enum.component_enum import ComponentType
 from core.enum.enterprise_enum import ActionType
 from core.utils.constants import AppConstants, DomainType
@@ -14,7 +11,7 @@ from exceptions.bcode import ErrK8sServiceNameExists
 from exceptions.main import AbortRequest, ErrVolumePath
 from models.application.models import ComponentApplicationRelation
 from models.teams import RegionConfig, ServiceDomain, GatewayCustomConfiguration
-from models.component.models import Component, ComponentSourceInfo, ComponentEnvVar, TeamComponentPort, \
+from models.component.models import Component as TeamComponentInfo, ComponentSourceInfo, ComponentEnvVar, TeamComponentPort, \
     TeamComponentConfigurationFile, ComponentExtendMethod, ComponentMonitor, ComponentGraph, ComponentLabels
 from service.app_config.port_service import port_service
 from service.app_config.promql_service import promql_service
@@ -101,7 +98,7 @@ class NewComponents(object):
             # graphs
             graphs = self._template_to_component_graphs(cpt, component_tmpl.get("component_graphs"))
             service_group_rel = ComponentApplicationRelation(
-                service_id=cpt.component_id,
+                service_id=cpt.service_id,
                 group_id=self.original_app.app_id,
                 tenant_env_id=self.tenant_env.env_id,
                 region_name=self.region_name,
@@ -147,7 +144,7 @@ class NewComponents(object):
         return False
 
     def _template_to_component(self, env_id, template):
-        component = Component()
+        component = TeamComponentInfo()
         component.tenant_env_id = env_id
         component.service_id = make_uuid()
         component.service_cname = template.get("service_cname", "default-name")
@@ -198,7 +195,7 @@ class NewComponents(object):
 
         return component
 
-    def _template_to_component_source(self, component: Component, tmpl: map):
+    def _template_to_component_source(self, component: TeamComponentInfo, tmpl: map):
         extend_info = tmpl.get("service_image")
         if not extend_info:
             extend_info = {}
@@ -216,7 +213,7 @@ class NewComponents(object):
             extend_info["market"] = "default"
             extend_info["market_name"] = self.market_name
         return ComponentSourceInfo(
-            team_id=component.tenant_env_id,
+            tenant_env_id=component.tenant_env_id,
             service_id=component.service_id,
             extend_info=json.dumps(extend_info),
             group_key=self.app_model_key,
@@ -291,10 +288,10 @@ class NewComponents(object):
         return new_ports
 
     @staticmethod
-    def _create_port_env(component: Component, port: TeamComponentPort, name, attr_name, attr_value):
+    def _create_port_env(component: TeamComponentInfo, port: TeamComponentPort, name, attr_name, attr_value):
         return ComponentEnvVar(
             tenant_env_id=component.tenant_env_id,
-            service_id=component.component_id,
+            service_id=component.service_id,
             container_port=port.container_port,
             name=name,
             attr_name=attr_name,
@@ -304,7 +301,7 @@ class NewComponents(object):
             create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         )
 
-    def _create_default_gateway_rule(self, component: Component, port: TeamComponentPort):
+    def _create_default_gateway_rule(self, component: TeamComponentInfo, port: TeamComponentPort):
         domain_name = self._create_default_domain(component.service_alias, port.container_port)
         return ServiceDomain(
             service_id=component.service_id,
@@ -340,13 +337,13 @@ class NewComponents(object):
                 if volume["volume_type"] == "config-file" and volume["file_content"] != "":
                     settings = None
                     config_file = TeamComponentConfigurationFile(
-                        service_id=component.component_id,
+                        service_id=component.service_id,
                         volume_name=volume["volume_name"],
                         file_content=volume["file_content"])
                     config_files.append(config_file)
                 else:
                     settings = volume_service.get_best_suitable_volume_settings(session,
-                                                                                self.tenant, component,
+                                                                                self.tenant_env, component,
                                                                                 volume["volume_type"],
                                                                                 volume.get("access_mode"),
                                                                                 volume.get("share_policy"),
@@ -364,7 +361,7 @@ class NewComponents(object):
                 volumes2.append(
                     volume_service.create_service_volume(
                         session,
-                        self.tenant,
+                        self.tenant_env,
                         component,
                         volume["volume_path"],
                         volume["volume_type"],
@@ -380,7 +377,7 @@ class NewComponents(object):
             return []
         result = []
         for probe in probes:
-            result.append(probe_service.create_probe(session, self.tenant, component, probe))
+            result.append(probe_service.create_probe(session, self.tenant_env, component, probe))
         return result
 
     def _template_to_extend_info(self, component, extend_info):
@@ -447,7 +444,7 @@ class NewComponents(object):
             new_graphs[new_graph.title] = new_graph
         return new_graphs.values()
 
-    def _template_to_service_domain(self, component: Component, ports: [TeamComponentPort]):
+    def _template_to_service_domain(self, component: TeamComponentInfo, ports: [TeamComponentPort]):
         new_ports = {port.container_port: port for port in ports}
         ingress_http_routes = self.app_template.list_ingress_http_routes_by_component_key(component.service_key)
 
@@ -456,14 +453,14 @@ class NewComponents(object):
         for ingress in ingress_http_routes:
             port = new_ports.get(ingress["port"])
             if not port:
-                logger.warning("component id: {}; port not found for ingress".format(component.component_id))
+                logger.warning("component id: {}; port not found for ingress".format(component.service_id))
                 continue
 
             service_domain = ServiceDomain(
                 http_rule_id=make_uuid(),
                 region_id=self.region.region_id,
                 tenant_env_id=self.tenant_env.env_id,
-                service_id=component.component_id,
+                service_id=component.service_id,
                 service_name=component.service_alias,
                 create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 container_port=ingress["port"],

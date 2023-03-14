@@ -1,12 +1,9 @@
 # -*- coding: utf8 -*-
 import json
-import logging
 import copy
 from datetime import datetime
-
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-
 from clients.remote_plugin_client import remote_plugin_client
 from core.enum.enterprise_enum import ActionType
 from core.utils.crypt import make_uuid
@@ -149,11 +146,11 @@ class AppUpgrade(MarketApp):
         templates = {tmpl["service_key"]: tmpl for tmpl in templates}
 
         result = []
-        original_components = {cpt.component.component_id: cpt for cpt in self.original_app.components()}
+        original_components = {cpt.component.service_id: cpt for cpt in self.original_app.components()}
         cpt_changes = {change["component_id"]: change for change in self.property_changes.changes}
         # upgrade components
         for cpt in self.new_app.update_components:
-            component_id = cpt.component.component_id
+            component_id = cpt.component.service_id
             change = cpt_changes.get(component_id, {})
             if "component_id" in change.keys():
                 change.pop("component_id")
@@ -164,7 +161,7 @@ class AppUpgrade(MarketApp):
             current_version = original_cpt.component_source.version
             result.append({
                 "service": {
-                    "service_id": cpt.component.component_id,
+                    "service_id": cpt.component.service_id,
                     "service_cname": cpt.component.service_cname,
                     "service_key": cpt.component.service_key,
                     "type": "upgrade",
@@ -220,7 +217,7 @@ class AppUpgrade(MarketApp):
         body = {
             "plugins": new_plugins,
         }
-        remote_plugin_client.sync_plugins(session, self.tenant_name, self.region_name, body)
+        remote_plugin_client.sync_plugins(session, self.tenant_env, self.region_name, body)
 
     def _install_deploy(self, session):
         try:
@@ -260,7 +257,7 @@ class AppUpgrade(MarketApp):
         body = {
             "plugins": new_plugins,
         }
-        remote_plugin_client.build_plugins(session, self.tenant_name, self.region_name, body)
+        remote_plugin_client.build_plugins(session, self.tenant_env, self.region_name, body)
 
     def _deploy(self, session, record):
         # Optimization: not all components need deploy
@@ -280,11 +277,11 @@ class AppUpgrade(MarketApp):
         event_ids = {event["service_id"]: event["event_id"] for event in events}
         records = []
         for cpt in self.new_app.components():
-            event_id = event_ids.get(cpt.component.component_id)
+            event_id = event_ids.get(cpt.component.service_id)
             record = ServiceUpgradeRecord(
                 create_time=datetime.now(),
                 app_upgrade_record=app_record,
-                service_id=cpt.component.component_id,
+                service_id=cpt.component.service_id,
                 service_cname=cpt.component.service_cname,
                 upgrade_type=ServiceUpgradeRecord.UpgradeType.UPGRADE.value,
                 event_id=event_id,
@@ -331,7 +328,7 @@ class AppUpgrade(MarketApp):
 
         # component existing in the template.
         tmpl_components = self._tmpl_components(components)
-        tmpl_component_ids = [cpt.component.component_id for cpt in tmpl_components]
+        tmpl_component_ids = [cpt.component.service_id for cpt in tmpl_components]
 
         # create new component dependency from app_template
         new_component_deps = self._create_component_deps(components)
@@ -498,13 +495,13 @@ class AppUpgrade(MarketApp):
         if self.is_upgrade_one:
             return
 
-        new_components = {cpt.component.component_id: cpt for cpt in self.new_app.components()}
+        new_components = {cpt.component.service_id: cpt for cpt in self.new_app.components()}
 
         components = []
         for cpt in self.original_app.components():
             # component snapshot
             csnap, _ = label_service.get_service_details(session, self.tenant_env, cpt.component)
-            new_component = new_components.get(cpt.component.component_id)
+            new_component = new_components.get(cpt.component.service_id)
             if new_component:
                 csnap["action_type"] = new_component.action_type
             else:
@@ -580,13 +577,13 @@ class AppUpgrade(MarketApp):
                 cpt = components.get(component_key)
                 if not cpt:
                     continue
-                key = config_group.config_group_name + cpt.component.component_id
+                key = config_group.config_group_name + cpt.component.service_id
                 if key in config_group_component_keys:
                     continue
                 cgc = ConfigGroupService(
                     app_id=self.app_id,
                     config_group_name=config_group.config_group_name,
-                    service_id=cpt.component.component_id,
+                    service_id=cpt.component.service_id,
                     config_group_id=config_group.config_group_id,
                 )
                 config_group_components.append(cgc)
@@ -622,7 +619,7 @@ class AppUpgrade(MarketApp):
                 logger.info("plugin {} not found".format(plugin_dep["plugin_key"]))
                 continue
 
-            if component.component.component_id + plugin.plugin.plugin_id in old_plugin_deps:
+            if component.component.service_id + plugin.plugin.plugin_id in old_plugin_deps:
                 continue
 
             # plugin configs
@@ -635,7 +632,7 @@ class AppUpgrade(MarketApp):
 
             new_plugin_deps.append(
                 TeamComponentPluginRelation(
-                    service_id=component.component.component_id,
+                    service_id=component.component.service_id,
                     plugin_id=plugin.plugin.plugin_id,
                     build_version=plugin.build_version.build_version,
                     service_meta_type=plugin_dep.get("service_meta_type"),
@@ -655,7 +652,7 @@ class AppUpgrade(MarketApp):
         new_plugin_configs = []
         for plugin_config in plugin_configs:
             new_plugin_config = ComponentPluginConfigVar(
-                service_id=component.component.component_id,
+                service_id=component.component.service_id,
                 plugin_id=plugin.plugin.plugin_id,
                 build_version=plugin.build_version.build_version,
                 service_meta_type=plugin_config["service_meta_type"],
@@ -676,7 +673,7 @@ class AppUpgrade(MarketApp):
                 if not dep_component:
                     logger.info("dependent component {} not found".format(dep_component_key))
                     return [], True
-                new_plugin_config.dest_service_id = dep_component.component.component_id
+                new_plugin_config.dest_service_id = dep_component.component.service_id
                 new_plugin_config.dest_service_alias = dep_component.component.service_alias
             new_plugin_configs.append(new_plugin_config)
 
@@ -709,7 +706,7 @@ class AppUpgrade(MarketApp):
                 passwd = plugin_tmpl["plugin_image"]["hub_password"]
 
             plugin = TeamPlugin(
-                tenant_env_id=self.tenant.tenant_env_id,
+                tenant_env_id=self.tenant_env.env_id,
                 region=self.region_name,
                 plugin_id=make_uuid(),
                 create_user=self.user.user_id,
@@ -747,7 +744,7 @@ class AppUpgrade(MarketApp):
 
         return PluginBuildVersion(
             plugin_id=plugin_id,
-            tenant_env_id=self.tenant.tenant_env_id,
+            tenant_env_id=self.tenant_env.env_id,
             region=self.region_name,
             user_id=self.user.user_id,
             event_id=make_uuid(),
