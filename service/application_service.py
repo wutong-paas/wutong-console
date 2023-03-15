@@ -1470,12 +1470,19 @@ class ApplicationService(object):
             Application.ID == app_id
         )).scalars().first()
 
+    def _delete_app_visit(self, session: SessionClass, app_id):
+        session.execute(delete(ApplicationVisitRecord).where(
+            ApplicationVisitRecord.app_id == app_id
+        ))
+        session.flush()
+
     def delete_app(self, session: SessionClass, tenant_env, region_name, app_id, app_type):
         if app_type == AppType.helm.name:
             self._delete_helm_app(session, tenant_env, region_name, app_id)
 
             return
         self._delete_wutong_app(session, tenant_env, region_name, app_id)
+        self._delete_app_visit(session, app_id)
 
     def _delete_helm_app(self, session: SessionClass, tenant_env, region_name, app_id, user=None):
         """
