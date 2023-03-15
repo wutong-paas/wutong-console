@@ -149,7 +149,7 @@ class NewComponents(object):
         component.service_id = make_uuid()
         component.service_cname = template.get("service_cname", "default-name")
         component.service_alias = "wt" + component.service_id[-6:]
-        component.creater = self.user.user_id
+        component.creater = self.user.nick_name
         component.image = template.get("share_image", template["image"])
         component.cmd = template.get("cmd", "")
         component.service_region = self.region_name

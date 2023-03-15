@@ -242,7 +242,8 @@ async def modify_components_name(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/analyze_plugins", response_model=Response, name="查询组件的性能分析插件")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/analyze_plugins", response_model=Response,
+            name="查询组件的性能分析插件")
 async def get_analyze_plugins(serviceAlias: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
                               env=Depends(deps.get_current_team_env)) -> Any:
@@ -292,7 +293,8 @@ async def get_volume_opts_list(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/build_envs", response_model=Response, name="获取构建组件的环境变量参数")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/build_envs", response_model=Response,
+            name="获取构建组件的环境变量参数")
 async def get_build_envs(serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
                          env=Depends(deps.get_current_team_env)) -> Any:
@@ -307,7 +309,8 @@ async def get_build_envs(serviceAlias: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/set/is_upgrade", response_model=Response, name="设置是否自动升级")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/set/is_upgrade", response_model=Response,
+            name="设置是否自动升级")
 async def set_is_upgrade(request: Request,
                          serviceAlias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
@@ -440,7 +443,8 @@ async def delete_component(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/un_dependency", response_model=Response, name="获取组件可以依赖但未依赖的组件")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/un_dependency", response_model=Response,
+            name="获取组件可以依赖但未依赖的组件")
 async def get_un_dependency(request: Request,
                             serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
@@ -554,7 +558,8 @@ async def market_service_upgrade(
     return JSONResponse(general_message("0", "success", "升级成功"), status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/apps/{app_id}/components", response_model=Response, name="获取组件实例")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/apps/{app_id}/components", response_model=Response,
+            name="获取组件实例")
 async def get_pods_info(request: Request,
                         group_id: Optional[str] = None,
                         app_id: Optional[str] = None,
@@ -594,7 +599,8 @@ async def get_container_log(request: Request,
     return response
 
 
-@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/check_update", response_model=Response, name="组件检测信息修改")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/check_update", response_model=Response,
+            name="组件检测信息修改")
 async def get_app_visit_info(
         request: Request,
         serviceAlias: Optional[str] = None,
@@ -641,7 +647,8 @@ async def docker_compose_components(
     region = await region_services.get_region_by_request(session, request)
     # 创建组
     group_info = application_service.create_app(
-        session, env, project_id, region.region_name, group_name, group_note, user.nick_name, k8s_app=k8s_app)
+        session, env, project_id, region.region_name, group_name, group_note, user.nick_name, team_code=env.tenant_name,
+        k8s_app=k8s_app)
     code, msg, group_compose = compose_service.create_group_compose(
         session, env, region.region_name, group_info["group_id"], yaml_content, hub_user, hub_pass)
     if code != 200:
@@ -650,7 +657,7 @@ async def docker_compose_components(
     bean["group_id"] = group_compose.group_id
     bean["compose_id"] = group_compose.compose_id
     bean["app_name"] = group_info["application_name"]
-    result = general_message(200, "operation success", "compose组创建成功", bean=bean)
+    result = general_message("0", "operation success", "compose组创建成功", bean=bean)
     return JSONResponse(result, status_code=200)
 
 
@@ -710,7 +717,8 @@ async def compose_build(
     return JSONResponse(result, status_code=result["code"])
 
 
-@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/keyword", response_model=Response, name="修改组件触发自动部署关键字")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/keyword", response_model=Response,
+            name="修改组件触发自动部署关键字")
 async def update_keyword(
         request: Request,
         serviceAlias: Optional[str] = None,
@@ -735,7 +743,8 @@ async def update_keyword(
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/build_envs", response_model=Response, name="修改构建组件的环境变量参数")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/build_envs", response_model=Response,
+            name="修改构建组件的环境变量参数")
 async def update_build_envs(
         request: Request,
         serviceAlias: Optional[str] = None,

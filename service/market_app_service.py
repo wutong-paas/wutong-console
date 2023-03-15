@@ -7,14 +7,12 @@ from jsonpath import jsonpath
 from loguru import logger
 from sqlalchemy import select, delete
 from core.enum.component_enum import Kind
-from core.idaasapi import idaas_api
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, AbortRequest
 from models.application.models import Application, ApplicationUpgradeRecord
 from models.component.models import TeamApplication
-from models.market.models import CenterApp, CenterAppTagsRelation, CenterAppVersion, \
-    AppImportRecord, CenterAppTag
+from models.market.models import CenterApp, CenterAppTagsRelation, CenterAppVersion, CenterAppTag
 from models.teams import TeamEnvInfo
 from repository.application.app_repository import app_tag_repo, app_repo
 from repository.application.app_upgrade_repo import upgrade_repo
@@ -316,23 +314,7 @@ class MarketAppService(object):
 
             version.release_user = ""
             version.share_user_id = version.share_user
-            version.share_user = ""
-            user = idaas_api.get_user_info({"id": version.release_user_id})
-            share_user = idaas_api.get_user_info({"id": version.share_user_id})
-
-            if user:
-                version.release_user_id = user.user_id
-            if share_user:
-                version.share_user = share_user.user_id
-            else:
-                record = (
-                    session.execute(
-                        select(AppImportRecord).where(AppImportRecord.ID == version.record_id))
-                ).scalars().first()
-
-                # todo
-                # if record:
-                # version.share_user = record.user_name
+            version.share_user = version.share_user_id
 
             app_with_versions[version.version] = version
             if version.version not in apv_ver_nums:

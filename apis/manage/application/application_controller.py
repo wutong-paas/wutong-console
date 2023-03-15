@@ -56,6 +56,7 @@ def check_services(session: SessionClass, app_id, req_service_ids):
 
 @router.post("/teams/{team_name}/env/{env_id}/groups", response_model=Response, name="新建环境应用")
 async def create_app(params: TeamAppCreateRequest,
+                     team_name: Optional[str] = None,
                      env_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
                      user=Depends(deps.get_current_user)) -> Any:
@@ -89,13 +90,14 @@ async def create_app(params: TeamAppCreateRequest,
             region_name=params.region_name,
             app_name=params.app_alias,
             note=params.note,
-            username=user.user_name,
+            username=user.nick_name,
             app_store_name=params.app_store_name,
             app_store_url=params.app_store_url,
             app_template_name=params.app_template_name,
             version=params.version,
             logo=params.logo,
             k8s_app=k8s_app,
+            team_code=team_name,
             tenant_name=params.team_alias,
             project_name=params.project_alias
         )
@@ -150,7 +152,7 @@ async def update_app(request: Request,
                      app_id: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
-    app_name = data.get("app_name", None)
+    app_alias = data.get("app_alias", None)
     project_id = data.get("project_id", None)
     project_name = data.get("project_name", None)
     note = data.get("note", "")
@@ -174,7 +176,7 @@ async def update_app(request: Request,
         env,
         response_region,
         app_id,
-        app_name,
+        app_alias,
         note,
         username,
         project_id,
@@ -355,11 +357,11 @@ async def common_operation(
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record", response_model=Response, name="应用发布")
 async def app_share_record(
-                           page: int = Query(default=1, ge=1, le=9999),
-                           page_size: int = Query(default=10, ge=1, le=500),
-                           env_id: Optional[str] = None,
-                           group_id: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session)) -> Any:
+        page: int = Query(default=1, ge=1, le=9999),
+        page_size: int = Query(default=10, ge=1, le=500),
+        env_id: Optional[str] = None,
+        group_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     data = []
     market = dict()
     cloud_app = dict()
@@ -487,7 +489,7 @@ async def app_share(request: Request,
             "update_time": datetime.datetime.now(),
         }
         service_share_record = share_service.create_service_share_record(**fields_dict, session=session)
-        result = general_message(200, "create success", "创建成功", bean=jsonable_encoder(service_share_record))
+        result = general_message("0", "create success", "创建成功", bean=jsonable_encoder(service_share_record))
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
         raise e
@@ -877,7 +879,7 @@ async def delete_compose_create(
     if not compose_id:
         return JSONResponse(general_message(400, "params error", "请指明需要删除的compose ID "), status_code=400)
     compose_service.give_up_compose_create(session, env, group_id, compose_id)
-    result = general_message(200, "compose delete success", "删除成功")
+    result = general_message("0", "compose delete success", "删除成功")
     return JSONResponse(result, status_code=200)
 
 

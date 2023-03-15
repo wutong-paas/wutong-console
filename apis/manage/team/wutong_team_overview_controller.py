@@ -201,14 +201,8 @@ async def overview_team_env_info(region_name: Optional[str] = None,
             overview_detail["team_service_total_memory"] = int(source["limit_memory"])
             overview_detail["team_service_use_cpu"] = int(source["cpu"])
             overview_detail["running_component_num"] = int(source.get("service_running_num", 0))
-            cpu_usage = 0
-            memory_usage = 0
-            if int(source["limit_cpu"]) != 0:
-                cpu_usage = float(int(source["cpu"])) / float(int(source["limit_cpu"])) * 100
-            if int(source["limit_memory"]) != 0:
-                memory_usage = float(int(source["memory"])) / float(int(source["limit_memory"])) * 100
-            overview_detail["cpu_usage"] = round(cpu_usage, 2)
-            overview_detail["memory_usage"] = round(memory_usage, 2)
+            overview_detail["cpu_usage"] = round(int(source["cpu"]) / 1000, 2)
+            overview_detail["memory_usage"] = round(int(source["memory"]) / 1024, 2)
         except Exception as e:
             logger.debug(source)
             logger.exception(e)
@@ -217,12 +211,12 @@ async def overview_team_env_info(region_name: Optional[str] = None,
     return JSONResponse(general_message("0", "success", "查询成功", bean=overview_detail), status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/overview/groups", response_model=Response, name="团队应用列表")
-async def team_app_group(request: Request,
-                         session: SessionClass = Depends(deps.get_session),
-                         env=Depends(deps.get_current_team_env)) -> Any:
+@router.get("/teams/{team_name}/env/{env_id}/overview/groups", response_model=Response, name="团队环境应用列表")
+async def team_env_app_group(request: Request,
+                             session: SessionClass = Depends(deps.get_session),
+                             env=Depends(deps.get_current_team_env)) -> Any:
     """
-       应用列表
+       团队环境下应用列表
        ---
        parameters:
            - name: team_name
@@ -245,6 +239,29 @@ async def team_app_group(request: Request,
     app_type = request.query_params.get("app_type", "")
     groups_services = application_service.get_groups_and_services(session=session, tenant_env=env, region=region_name,
                                                                   query=query, app_type=app_type)
+    return general_message("0", "success", "查询成功", list=groups_services)
+
+
+@router.get("/teams/{team_name}/overview/groups", response_model=Response, name="团队应用列表")
+async def team_app_group(
+        team_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+       团队下应用列表
+       ---
+       parameters:
+           - name: team_name
+             description: 团队名
+             required: true
+             type: string
+             paramType: path
+           - name: query
+             description: 应用搜索名称
+             required: false
+             type: string
+             paramType: query
+   """
+    groups_services = application_service.get_team_groups(session=session, tenant_name=team_name)
     return general_message("0", "success", "查询成功", list=groups_services)
 
 
@@ -307,10 +324,10 @@ async def team_app_group(
             pg = paginate(result, params)
             total = pg.total
             result = pg.items
-            result = general_message(200, "query user success", "查询用户成功", list=result, total=total)
+            result = general_message("0", "query user success", "查询用户成功", list=result, total=total)
         except Exception as e:
             logger.exception(e)
-            return general_message(200, "failed", "查询失败", list=services_list)
+            return general_message("0", "failed", "查询失败", list=services_list)
         return JSONResponse(result, status_code=result["code"])
     else:
         result = general_message("0", "success", "当前团队没有创建应用")

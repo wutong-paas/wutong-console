@@ -13,7 +13,6 @@ from clients.remote_build_client import remote_build_client
 from clients.remote_component_client import remote_component_client
 from core.enum.app import AppType, GovernanceModeEnum
 from core.enum.component_enum import ComponentType
-from core.idaasapi import idaas_api
 from core.setting import settings
 from core.utils.constants import AppConstants, PluginImage, SourceCodeType
 from core.utils.crypt import make_uuid
@@ -160,7 +159,7 @@ class ApplicationService(object):
         service_alias = self.create_service_alias(session, service_id)
         new_service.service_id = service_id
         new_service.service_alias = service_alias
-        new_service.creater = user.user_id
+        new_service.creater = user.nick_name
         new_service.server_type = server_type
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         session.add(new_service)
@@ -327,6 +326,7 @@ class ApplicationService(object):
                    region_name,
                    app_name,
                    tenant_name,
+                   team_code,
                    project_name="",
                    note="",
                    username="",
@@ -367,10 +367,12 @@ class ApplicationService(object):
         app = Application(
             tenant_env_id=tenant_env.env_id,
             project_id=project_id,
+            team_code=team_code,
             tenant_name=tenant_name,
             env_name=tenant_env.env_alias,
             project_name=project_name,
             region_name=region_name,
+            region_alias=tenant_env.region_name,
             group_name=app_name,
             note=note,
             is_default=False,
@@ -451,13 +453,7 @@ class ApplicationService(object):
         if running_components.get("list") and len(running_components["list"]) > 0:
             res['can_edit'] = False
 
-        try:
-            principal = idaas_api.get_user_info({"username": app.username})
-            res['principal'] = principal.real_name
-            res['email'] = principal.email
-        except ErrUserNotFound:
-            res['principal'] = app.username
-
+        res['principal'] = app.username
         res["create_status"] = "complete"
         res["compose_id"] = None
         if app_id != -1:
@@ -557,7 +553,7 @@ class ApplicationService(object):
         service_alias = self.create_service_alias(session, service_id)
         new_service.service_id = service_id
         new_service.service_alias = service_alias
-        new_service.creater = user.user_id
+        new_service.creater = user.nick_name
         new_service.host_path = "/wtdata/tenant/" + tenant_env.env_id + "/service/" + service_id
         new_service.docker_cmd = docker_cmd
         new_service.image = ""
@@ -1241,7 +1237,7 @@ class ApplicationService(object):
         service_alias = self.create_service_alias(session, service_id)
         component.service_id = service_id
         component.service_alias = service_alias
-        component.creater = user.user_id
+        component.creater = user.nick_name
         component.server_type = ''
         component.protocol = 'tcp'
         component.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
@@ -1347,6 +1343,7 @@ class ApplicationService(object):
                         "group_note": app.note,
                         "service_list": [],
                         "used_mem": app_status.get("memory", 0) if app_status else 0,
+                        "used_cpu": round(app_status.get("cpu", 0) / 1000, 2) if app_status else 0,
                         "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
                         "logo": app.logo,
                         "accesses": [],
@@ -1365,6 +1362,7 @@ class ApplicationService(object):
         for a in app_list:
             app = apps.get(a.ID)
             if app:
+                app["project_name"] = a.project_name
                 app["services_num"] = len(app["service_list"])
                 if not app.get("run_service_num"):
                     app["run_service_num"] = 0
@@ -1417,10 +1415,20 @@ class ApplicationService(object):
 
         return result
 
-    def create_default_app(self, session: SessionClass, tenant_env, region_name):
-        app = application_repo.get_or_create_default_group(session, tenant_env.env_id, region_name)
-        self.create_region_app(session=session, env=tenant_env, region_name=region_name, app=app)
-        return jsonable_encoder(app)
+    def get_team_groups(self, session: SessionClass, tenant_name):
+        result = []
+        groups = application_repo.get_groups_by_team_name(session, tenant_name)
+        for g in groups:
+            bean = dict()
+            bean["group_id"] = g.ID
+            bean["group_name"] = g.group_name
+            bean["env_name"] = g.env_name
+            bean["team_code"] = tenant_name
+            bean["env_id"] = g.tenant_env_id
+            bean["region_code"] = g.region_name
+            bean["region_name"] = g.region_alias
+            result.append(bean)
+        return result
 
     @staticmethod
     def get_app_status(session: SessionClass, tenant_env, region_name, app_id):
@@ -1560,16 +1568,13 @@ class ApplicationService(object):
 
     def get_group_by_id(self, session: SessionClass, tenant_env, region, group_id):
         principal_info = dict()
-        principal_info["email"] = ""
         principal_info["is_delete"] = False
         group = application_repo.get_by_primary_key(session=session, primary_key=group_id)
         if not group:
             raise ServiceHandleException(status_code=404, msg="app not found", msg_show="目标应用不存在")
         try:
-            user = idaas_api.get_user_info({"username": group.username})
-            principal_info["real_name"] = user.real_name
-            principal_info["username"] = user.nick_name
-            principal_info["email"] = user.email
+            principal_info["real_name"] = group.username
+            principal_info["username"] = group.username
         except ErrUserNotFound:
             principal_info["is_delete"] = True
             principal_info["real_name"] = group.username
@@ -1721,7 +1726,7 @@ class ApplicationService(object):
                      tenant_env,
                      region_name,
                      app_id,
-                     app_name,
+                     app_alias,
                      note="",
                      username=None,
                      project_id=None,
@@ -1741,24 +1746,18 @@ class ApplicationService(object):
             "project_name": project_name
         }
         if username:
-            # check username
-            try:
-                data["username"] = username
-                idaas_api.get_user_info({"username": username})
-            except ErrUserNotFound:
-                raise ServiceHandleException(msg="user not exists", msg_show="用户不存在,请选择其他应用负责人", status_code=404)
-
+            data["username"] = username
         app = application_repo.get_group_by_id(session, app_id)
 
         # check app name
-        if app_name:
-            self.check_app_name(session, tenant_env.env_id, region_name, app_name, app,
+        if app_alias:
+            self.check_app_name(session, tenant_env.env_id, region_name, app_alias, app,
                                 k8s_app=k8s_app)
         if overrides:
             overrides = self._parse_overrides(overrides)
 
-        if app_name:
-            data["group_name"] = app_name
+        if app_alias:
+            data["group_name"] = app_alias
         if version:
             data["version"] = version
 

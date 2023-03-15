@@ -33,7 +33,7 @@ async def get_topological(
     if group_id == "-1":
         no_service_list = service_info_repo.get_no_group_service_status_by_group_id(
             session=session, tenant_env=env, region_name=region_name, tenant_env_id=env.env_id)
-        return JSONResponse(general_message(200, "query success", "应用查询成功", list=no_service_list), status_code=200)
+        return JSONResponse(general_message("0", "query success", "应用查询成功", list=no_service_list), status_code=200)
     else:
         if group_id is None or not group_id.isdigit():
             code = 400
@@ -92,7 +92,7 @@ async def open_topological_port(
                                                    tenant_service_port.port_alias)
         if code != 200:
             return JSONResponse(general_message(412, "open outer fail", "打开对外端口失败"), status_code=412)
-        return JSONResponse(general_message(200, "open outer success", "开启成功"), status_code=200)
+        return JSONResponse(general_message("0", "open outer success", "开启成功"), status_code=200)
     # 关闭该组件所有对外端口
     if close_outer:
         tenant_service_ports = port_service.get_service_ports(session, service)
@@ -102,7 +102,7 @@ async def open_topological_port(
                                                        tenant_service_port.protocol, tenant_service_port.port_alias)
             if code != 200:
                 return JSONResponse(general_message(412, "open outer fail", "关闭对外端口失败"), status_code=412)
-        return JSONResponse(general_message(200, "close outer success", "关闭对外端口成功"), status_code=200)
+        return JSONResponse(general_message("0", "close outer success", "关闭对外端口成功"), status_code=200)
 
     # 校验要依赖的组件是否开启了对外端口
     open_outer_services = port_repo.get_service_ports_is_outer_service(session,
@@ -123,7 +123,7 @@ async def open_topological_port(
                 port_list[0]), "open_outer", tenant_service_port.protocol, tenant_service_port.port_alias)
             if code != 200:
                 return JSONResponse(general_message(412, "open outer fail", "打开对外端口失败"), status_code=412)
-            return JSONResponse(general_message(200, "open outer success", "开启成功"), status_code=200)
+            return JSONResponse(general_message("0", "open outer success", "开启成功"), status_code=200)
         else:
             # 多个端口需要用户选择后开启
             return JSONResponse(
@@ -154,7 +154,7 @@ async def get_topological_internet_info(
         code = 200
         no_service_list = service_info_repo.get_no_group_service_status_by_group_id(
             session=session, tenant_env=env, region_name=response_region, tenant_env_id=env.env_id)
-        result = general_message(200, "query success", "应用获取成功", list=no_service_list)
+        result = general_message("0", "query success", "应用获取成功", list=no_service_list)
     else:
         code = 200
         if group_id is None or not group_id.isdigit():

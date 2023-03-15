@@ -60,6 +60,7 @@ class GroupappsMigrateService(object):
 
         app = application_service.create_app(session=session, tenant_env=tenant_env, region_name=region,
                                              app_name=new_group_name,
+                                             team_code=tenant_env.tenant_name,
                                              note="备份创建")
         new_app = application_repo.get_group_by_id(session, app["ID"])
         return new_app
@@ -67,6 +68,7 @@ class GroupappsMigrateService(object):
     def __create_new_group_by_group_name(self, session: SessionClass, tenant_env, region, old_group_id):
         new_group_name = '_'.join(["备份应用", make_uuid()[-4:]])
         app = application_service.create_app(session=session, tenant_env=tenant_env, region_name=region,
+                                             team_code=tenant_env.tenant_name,
                                              app_name=new_group_name)
         new_app = application_repo.get_group_by_id(session, app["ID"])
         return new_app
@@ -214,7 +216,7 @@ class GroupappsMigrateService(object):
         ts.service_id = new_service_id
         ts.service_alias = new_servie_alias
         ts.service_region = region
-        ts.creater = user.user_id
+        ts.creater = user.nick_name
         ts.tenant_env_id = tenant_env.env_id
         ts.create_status = "creating"
         ts.service_cname = ts.service_cname + "-copy"

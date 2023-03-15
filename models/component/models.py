@@ -60,7 +60,7 @@ class Component(Base):
     # deprecated
     code_version = Column(String(100), comment="代码版本", nullable=True)
     service_type = Column(String(50), comment="组件类型", nullable=True)
-    creater = Column(String(32), comment="组件创建者", nullable=False, default="1")
+    creater = Column(String(64), comment="组件创建者", nullable=False, default="admin")
     language = Column(String(40), comment="代码语言", nullable=True)
     # deprecated
     protocol = Column(String(15), comment="服务协议：http,stream", nullable=False, default='')
@@ -516,7 +516,7 @@ class TeamComponentInfoDelete(Base):
     code_version = Column(String(100), nullable=True, comment="代码版本")
     service_type = Column(String(50), nullable=True, comment="组件类型:web,mysql,redis,mongodb,phpadmin")
     delete_time = Column(DateTime(), default=datetime.now, comment="删除时间", nullable=True)
-    creater = Column(String(32), comment="组件创建者", default="1")
+    creater = Column(String(64), comment="组件创建者", default="admin")
     language = Column(String(40), nullable=True, comment="代码语言")
     protocol = Column(String(15), comment="服务协议：http,stream")
     total_memory = Column(Integer, comment="内存使用M", default=0)
@@ -642,7 +642,7 @@ class ComponentRecycleBin(Base):
     is_code_upload = Column(Boolean, default=False, comment="是否上传代码", nullable=False)
     code_version = Column(String(100), nullable=True, comment="代码版本")
     service_type = Column(String(50), nullable=True, comment="服务类型:web,mysql,redis,mongodb,phpadmin")
-    creater = Column(String(32), comment="服务创建者", default="1", nullable=False)
+    creater = Column(String(64), comment="服务创建者", default="admin", nullable=False)
     language = Column(String(40), nullable=True, comment="代码语言")
     protocol = Column(String(15), default='', comment="服务协议：http,stream", nullable=False)
     total_memory = Column(Integer, comment="内存使用M", default=0, nullable=False)

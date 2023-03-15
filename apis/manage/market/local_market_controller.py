@@ -316,7 +316,7 @@ async def get_app_import(event_id: Optional[str] = None,
     """
     try:
         record, apps_status = import_service.get_and_update_import_by_event_id(session, event_id)
-        result = general_message(200, 'success', "查询成功", bean=jsonable_encoder(record), list=apps_status)
+        result = general_message("0", 'success', "查询成功", bean=jsonable_encoder(record), list=apps_status)
     except Exception as e:
         raise e
     return JSONResponse(result, status_code=200)
@@ -474,7 +474,7 @@ async def import_app(
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     files = file_name.split(",")
     import_service.start_import_apps(session, scope, event_id, files, env)
-    result = general_message(200, 'success', "操作成功，正在导入")
+    result = general_message("0", 'success', "操作成功，正在导入")
     return JSONResponse(result, status_code=200)
 
 

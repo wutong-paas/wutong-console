@@ -37,7 +37,7 @@ async def team_app_group(
     features = region_services.get_region_license_features(session=session, tenant_env=env, region_name=region_name)
     # todo
     features.append({"code": 'GPU'})
-    result = general_message(200, 'query success', '集群授权功能获取成功', list=features)
+    result = general_message("0", 'query success', '集群授权功能获取成功', list=features)
     return JSONResponse(result, status_code=200)
 
 
@@ -213,7 +213,7 @@ async def get_protocol_info(request: Request,
         result = general_message("0", "success", "查询成功", list=list(set(p_list)))
     except Exception as e:
         logger.exception(e)
-        result = general_message(200, "", "查询成功", list=["http", "stream"])
+        result = general_message("0", "", "查询成功", list=["http", "stream"])
     return JSONResponse(result, 200)
 
 
@@ -232,7 +232,7 @@ async def get_region_key(
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     key = region_services.get_public_key(session, env, region_name)
-    result = general_message(200, 'query success', '数据中心key获取成功', bean=key)
+    result = general_message("0", 'query success', '数据中心key获取成功', bean=key)
     return JSONResponse(result, status_code=200)
 
 

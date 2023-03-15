@@ -292,7 +292,7 @@ async def get_share_record(plugin_id: Optional[str] = None,
             result = general_message(20021, "share record not complete", "分享流程未完成", bean=jsonable_encoder(share_record))
             return JSONResponse(result, status_code=200)
 
-    result = general_message(200, "not found uncomplete share record", "无未完成分享流程")
+    result = general_message("0", "not found uncomplete share record", "无未完成分享流程")
     return JSONResponse(result, status_code=200)
 
 

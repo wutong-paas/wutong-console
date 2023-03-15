@@ -125,7 +125,7 @@ async def get_share_info(
     data["share_service_list"] = service_info_list
     plugins = share_service.get_group_services_used_plugins(group_id=share_record.group_id, session=session)
     data["share_plugin_list"] = plugins
-    return JSONResponse(general_message(200, "query success", "获取成功", bean=jsonable_encoder(data)), status_code=200)
+    return JSONResponse(general_message("0", "query success", "获取成功", bean=jsonable_encoder(data)), status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/share/{share_id}/info", response_model=Response,
@@ -234,7 +234,7 @@ async def get_share_event(env_id: Optional[str] = None,
             plugin_event_map = jsonable_encoder(plugin_event)
             plugin_event_map["type"] = "plugin"
             result["event_list"].append(plugin_event_map)
-        result = general_message(200, "query success", "获取成功", bean=jsonable_encoder(result))
+        result = general_message("0", "query success", "获取成功", bean=jsonable_encoder(result))
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
         raise e
@@ -275,7 +275,7 @@ async def share_event(
         response_region = region.region_name
         record_event = share_service.sync_event(session, user, response_region, env, event)
         bean = jsonable_encoder(record_event) if record_event is not None else None
-        result = general_message(200, "sync share event", "分享完成", bean=bean)
+        result = general_message("0", "sync share event", "分享完成", bean=bean)
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
         raise e
@@ -313,10 +313,10 @@ async def get_share_info(
             result = general_message(404, "not exist", "分享事件不存在")
             return JSONResponse(result, status_code=404)
         if event.event_status == "success":
-            result = general_message(200, "get sync share event result", "查询成功", bean=jsonable_encoder(event))
+            result = general_message("0", "get sync share event result", "查询成功", bean=jsonable_encoder(event))
             return JSONResponse(result, status_code=200)
         bean = share_service.get_sync_event_result(session, response_region, env, event)
-        result = general_message(200, "get sync share event result", "查询成功", bean=jsonable_encoder(bean))
+        result = general_message("0", "get sync share event result", "查询成功", bean=jsonable_encoder(bean))
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
         raise e
@@ -362,7 +362,7 @@ async def delete_share_info(
         if app and not app.is_complete:
             share_service.delete_app(session=session, key=share_record.group_share_id)
         share_service.delete_record(session=session, ID=share_id, env_name=env.env_name)
-        result = general_message(200, "delete success", "放弃成功")
+        result = general_message("0", "delete success", "放弃成功")
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
         raise e
@@ -400,7 +400,7 @@ async def share_app(
         return JSONResponse(result, status_code=415)
     app_market_url = share_service.complete(session, env, user, share_record)
 
-    result = general_message(200, "share complete", "应用分享完成", bean=jsonable_encoder(share_record),
+    result = general_message("0", "share complete", "应用分享完成", bean=jsonable_encoder(share_record),
                              app_market_url=app_market_url)
     return JSONResponse(result, status_code=200)
 
@@ -432,7 +432,7 @@ async def get_object_log(
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     try:
         if event_id == "":
-            result = general_message(200, "error", "event_id is required")
+            result = general_message("0", "error", "event_id is required")
             return JSONResponse(result, status_code=result["code"])
         region = await region_services.get_region_by_request(session, request)
         if not region:
@@ -484,7 +484,7 @@ async def share_plugin(
     if not bean:
         result = general_message(400, "sync share event", "插件不存在无需发布")
     else:
-        result = general_message(200, "sync share event", "分享成功", bean=jsonable_encoder(bean))
+        result = general_message("0", "sync share event", "分享成功", bean=jsonable_encoder(bean))
     return JSONResponse(result, status_code=result["code"])
 
 
@@ -516,12 +516,12 @@ async def get_share_plugin(
         return JSONResponse(result, status_code=404)
 
     if plugin_events[0].event_status == "success":
-        result = general_message(200, "get sync share event result", "查询成功", bean=jsonable_encoder(plugin_events[0]))
+        result = general_message("0", "get sync share event result", "查询成功", bean=jsonable_encoder(plugin_events[0]))
         return JSONResponse(result, status_code=200)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     bean = share_service.get_sync_plugin_events(session, response_region, env, plugin_events[0])
-    result = general_message(200, "get sync share event result", "查询成功", bean=jsonable_encoder(bean))
+    result = general_message("0", "get sync share event result", "查询成功", bean=jsonable_encoder(bean))
     return JSONResponse(result, status_code=200)

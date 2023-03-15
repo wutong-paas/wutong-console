@@ -22,7 +22,7 @@ class TeamEnvInfo(Base):
     tenant_id = Column(String(33), comment="团队id", nullable=False)
     tenant_name = Column(String(31), comment="团队名称", nullable=False)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
-    creater = Column(String(32), nullable=False, default="1", comment="租户创建者")
+    creater = Column(String(64), nullable=False, default="admin", comment="租户创建者")
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
     update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     env_alias = Column(String(64), comment="环境别名", nullable=False)

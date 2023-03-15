@@ -24,6 +24,11 @@ class ApplicationRepository(BaseRepository[Application]):
                 Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
+    def get_groups_by_team_name(self, session, team_name):
+        sql = select(Application).where(Application.team_code == team_name).order_by(
+            Application.update_time.desc(), Application.order_index.desc())
+        return session.execute(sql).scalars().all()
+
     def get_hn_tenant_region_groups(self, session, env_id, query="", app_type=""):
         sql = select(Application).where(Application.tenant_env_id == env_id,
                                         Application.group_name.contains(query)).order_by(
@@ -74,27 +79,6 @@ class ApplicationRepository(BaseRepository[Application]):
         ).scalars().all()
         group_count = len(service_group_info)
         return group_count
-
-    def get_or_create_default_group(self, session, tenant_env_id, region_name):
-        # 查询是否有团队在当前数据中心是否有默认应用，没有创建
-        group = session.execute(
-            select(Application).where(Application.tenant_env_id == tenant_env_id,
-                                      Application.region_name == region_name,
-                                      Application.is_default == 1)).scalars().first()
-        if not group:
-            group = Application(
-                tenant_env_id=tenant_env_id,
-                region_name=region_name,
-                group_name="默认应用",
-                note="",
-                is_default=True,
-                username="",
-                update_time=datetime.now(),
-                create_time=datetime.now())
-            session.add(group)
-            session.flush()
-
-        return group
 
     def list_tenant_group_on_region(self, session, tenant_env, region_name):
         return session.query(Application).filter(

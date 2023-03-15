@@ -1014,7 +1014,7 @@ class AppManageService(object):
                                            service_id=service.service_id)
         kind = self.__get_service_kind(session=session, service=service)
         body["kind"] = kind
-        body["operator"] = str(user.nick_name)
+        body["operator"] = user
         body["configs"] = {}
         body["service_id"] = service.service_id
         # source type parameter
@@ -1287,7 +1287,7 @@ class AppManageService(object):
         service_alias = self.create_service_alias(session, service_id)
         component.service_id = service_id
         component.service_alias = service_alias
-        component.creater = user.user_id
+        component.creater = user.nick_name
         component.server_type = ''
         component.protocol = 'tcp'
         component.k8s_component_name = k8s_component_name if k8s_component_name else service_alias

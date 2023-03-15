@@ -54,7 +54,7 @@ async def update_maven_settings(
     try:
         data = await request.json()
         res, body = remote_build_client.update_maven_setting(session, region_name, name, data)
-        result = general_message(200, 'update success', '修改成功', bean=body.get("bean"))
+        result = general_message("0", 'update success', '修改成功', bean=body.get("bean"))
     except RegionApiBaseHttpClient.CallApiError as exc:
         if exc.message.get("httpcode") == 404:
             result = general_message(404, 'maven setting is not exist', '配置不存在')
@@ -78,7 +78,7 @@ async def delete_maven_settings(
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         res, body = remote_build_client.delete_maven_setting(session, region_name, name)
-        result = general_message(200, 'delete success', '删除成功', bean=body.get("bean"))
+        result = general_message("0", 'delete success', '删除成功', bean=body.get("bean"))
     except RegionApiBaseHttpClient.CallApiError as exc:
         if exc.message.get("httpcode") == 404:
             result = general_message(404, 'maven setting is not exist', '配置不存在')
@@ -103,7 +103,7 @@ async def add_maven_settings(
     try:
         data = await request.json()
         res, body = remote_build_client.add_maven_setting(session, region_name, data)
-        result = general_message(200, 'query success', '添加成功', bean=body.get("bean"))
+        result = general_message("0", 'query success', '添加成功', bean=body.get("bean"))
     except RegionApiBaseHttpClient.CallApiError as exc:
         if exc.message.get("httpcode") == 400:
             result = general_message(400, 'maven setting name is exist', '配置名称已存在')
@@ -133,7 +133,7 @@ async def get_mavens_ettings(
         for setting in redata:
             newdata.append({"name": setting["name"], "is_default": setting["is_default"]})
         redata = newdata
-    result = general_message(200, 'query success', '数据中心Maven获取成功', list=redata)
+    result = general_message("0", 'query success', '数据中心Maven获取成功', list=redata)
     return JSONResponse(result, status_code=200)
 
 

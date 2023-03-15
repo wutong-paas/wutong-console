@@ -102,7 +102,7 @@ async def delete_enterprise_backup(request: Request) -> Any:
     data = await request.json()
     name = data.get("name")
     if not name:
-        result = general_message(200, "backup file can not be empty", "备份文件名称不能为空")
+        result = general_message("0", "backup file can not be empty", "备份文件名称不能为空")
     else:
         platform_data_services.remove_backup(name)
         result = general_message("0", "success", "删除成功")
@@ -143,7 +143,7 @@ async def recovery_enterprise_backup(request: Request,
     if not user.check_password(password):
         return JSONResponse(general_message(400, "param error", "输入密码不正确"), status_code=400)
     if not name:
-        result = general_message(200, "backup file can not be empty", "备份文件名称不能为空")
+        result = general_message("0", "backup file can not be empty", "备份文件名称不能为空")
     else:
         platform_data_services.recover_platform_data(name)
         result = general_message("0", "success", "恢复成功")

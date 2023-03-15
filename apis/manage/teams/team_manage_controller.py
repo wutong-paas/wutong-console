@@ -159,7 +159,7 @@ async def env_services_event(
     total = pg.total
     event_page_list = pg.items
     event_list = [event for event in event_page_list]
-    result = general_message(200, 'success', "查询成功", list=event_list, total=total)
+    result = general_message("0", 'success', "查询成功", list=event_list, total=total)
     return JSONResponse(result, status_code=200)
 
 

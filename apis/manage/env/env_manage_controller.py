@@ -4,7 +4,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from core import deps
-from core.idaasapi import idaas_api
 from core.utils.return_message import general_message, error_message
 from core.utils.validation import is_qualified_name
 from database.session import SessionClass
@@ -100,12 +99,9 @@ async def delete_env(request: Request,
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if env.env_alias != env_alias:
         return JSONResponse(general_message(400, "env name error", "环境名不匹配"), status_code=400)
-    res = idaas_api.check_user_password(params={"userId": user.user_id, "password": password})
-    if not res:
-        return JSONResponse(general_message(400, "password error", "密码不正确"), status_code=400)
     try:
         env_services.delete_by_env_id(session=session, user=user, env=env)
-        result = general_message(200, "delete a team successfully", "删除环境成功")
+        result = general_message("0", "delete a team successfully", "删除环境成功")
         return JSONResponse(result, status_code=result["code"])
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)

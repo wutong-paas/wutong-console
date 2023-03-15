@@ -322,7 +322,7 @@ async def pod_detail(
                                                   service.service_region, env,
                                                   service.service_alias,
                                                   pod_name)
-        result = general_message(200, 'success', "查询成功", data.get("bean", None))
+        result = general_message("0", 'success', "查询成功", data.get("bean", None))
     except remote_component_client.CallApiError as e:
         logger.exception(e)
         result = error_message(e.message)
@@ -477,7 +477,7 @@ async def component_metrics(
     region_name = region.region_name
     metrics = monitor_service.get_monitor_metrics(
         session, region_name, env, "component", component_id=service.service_id)
-    return JSONResponse(general_message(200, "OK", "获取成功", list=metrics), status_code=200)
+    return JSONResponse(general_message("0", "OK", "获取成功", list=metrics), status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs", response_model=Response, name="添加组件图表")
@@ -620,7 +620,7 @@ async def get_check_detail(
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     services = multi_app_service.list_services(session, response_region, env, check_uuid)
-    result = general_message(200, "successfully entered the multi-service creation process", "成功进入多组件创建流程",
+    result = general_message("0", "successfully entered the multi-service creation process", "成功进入多组件创建流程",
                              list=services)
     return JSONResponse(result, status_code=200)
 
