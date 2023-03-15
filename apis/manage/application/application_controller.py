@@ -124,24 +124,6 @@ async def get_app_detail(
         raise ServiceHandleException(msg="not found region", msg_show="数据中心不存在", status_code=400)
     region_name = region.region_name
     app = application_service.get_app_detail(session=session, tenant_env=env, region_name=region_name, app_id=app_id)
-
-    # 访问记录
-    visit_app = application_visit_service.get_app_visit_record_by_user_app(session, user.user_id, app_id)
-    if visit_app:
-        application_visit_service.update_app_visit_record_by_user_app(session, user.user_id, app_id)
-    else:
-        visit_info = {
-            "user_id": user.user_id,
-            "app_id": app_id,
-            "app_alias": app["app_name"],
-            "app_name": app["k8s_app"],
-            "tenant_env_id": env.env_id,
-            "tenant_env_alias": env.env_alias,
-            "team_name": env.tenant_name,
-            "region_code": env.region_code
-        }
-        application_visit_service.create_app_visit_record(session, **visit_info)
-
     result = general_message("0", "success", "success", bean=jsonable_encoder(app))
     return JSONResponse(result, status_code=200)
 
@@ -939,6 +921,36 @@ async def get_pod_view(
     region_name = region.region_name
     pod = application_service.get_pod(session, env, region_name, pod_name)
     result = general_message("0", "success", "查询成功", bean=pod)
+    return JSONResponse(result, status_code=200)
+
+
+@router.post("/teams/{team_name}/env/{env_id}/app/{app_id}/add-visit", response_model=Response, name="新增访问记录")
+async def create_apps_vist(
+        app_id: Optional[str] = None,
+        user=Depends(deps.get_current_user),
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env)) -> Any:
+
+    app = application_repo.get_group_by_id(session, app_id)
+    if not app:
+        return JSONResponse(general_message(400, "query success", "该应用不存在"), status_code=400)
+    # 访问记录
+    visit_app = application_visit_service.get_app_visit_record_by_user_app(session, user.user_id, app_id)
+    if visit_app:
+        application_visit_service.update_app_visit_record_by_user_app(session, user.user_id, app_id)
+    else:
+        visit_info = {
+            "user_id": user.user_id,
+            "app_id": app_id,
+            "app_alias": app["app_name"],
+            "app_name": app["k8s_app"],
+            "tenant_env_id": env.env_id,
+            "tenant_env_alias": env.env_alias,
+            "team_name": env.tenant_name,
+            "region_code": env.region_code
+        }
+        application_visit_service.create_app_visit_record(session, **visit_info)
+    result = general_message("0", "success", "创建成功")
     return JSONResponse(result, status_code=200)
 
 
