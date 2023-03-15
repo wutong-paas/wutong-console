@@ -37,8 +37,8 @@ async def get_info(
 
 @router.get("/enterprise/regions/{region_id}", response_model=Response, name="查询集群配置信息")
 async def get_region_config(
-                            region_id: Optional[str] = None,
-                            session: SessionClass = Depends(deps.get_session)) -> Any:
+        region_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     data = region_services.get_enterprise_region(session, region_id, check_status=False)
     result = general_message("0", "success", "获取成功", bean=data)
     return JSONResponse(result, status_code=status.HTTP_200_OK)
@@ -149,8 +149,8 @@ async def modify_region_config(request: Request,
 
 @router.delete("/enterprise/regions/{region_id}", response_model=Response, name="删除集群")
 async def delete_region(
-                        region_id: Optional[str] = None,
-                        session: SessionClass = Depends(deps.get_session)) -> Any:
+        region_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     region = region_repo.get_region_by_region_id(session, region_id)
     if not region:
         raise ServiceHandleException(status_code=404, msg="集群已不存在")
@@ -176,11 +176,11 @@ async def get_env_memory_config(request: Request,
 
 @router.post("/enterprise/regions/{region_id}/tenants/{tenant_name}/env/{env_id}/limit",
              response_model=Response,
-             name="设置团队内存限额")
-async def set_team_memory_limit(request: Request,
-                                region_id: Optional[str] = None,
-                                env_id: Optional[str] = None,
-                                session: SessionClass = Depends(deps.get_session)) -> Any:
+             name="设置环境内存限额")
+async def set_env_memory_limit(request: Request,
+                               region_id: Optional[str] = None,
+                               env_id: Optional[str] = None,
+                               session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
@@ -212,3 +212,18 @@ async def set_region_config(request: Request,
     else:
         result = general_message(500, "failed", "创建失败")
         return JSONResponse(result, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@router.get("/enterprise/regions/{region_id}/tenants/envs", response_model=Response, name="获取环境内存配置信息")
+async def get_team_memory_config(request: Request,
+                                 region_id: Optional[str] = None,
+                                 session: SessionClass = Depends(deps.get_session)) -> Any:
+    page = request.query_params.get("page", 1)
+    page_size = request.query_params.get("pageSize", 10)
+    envs, total = env_repo.get_tenant_list_by_region(session, region_id, page, page_size)
+    result = general_message(
+        "0", "success", "获取成功", bean={
+            "envs": envs,
+            "total": total,
+        })
+    return JSONResponse(result, status_code=status.HTTP_200_OK)

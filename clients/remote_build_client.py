@@ -27,6 +27,19 @@ class RemoteBuildClient(ApiBaseHttpClient):
             self.default_headers.update({"Authorization": token})
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
+    def list_envs(self, session, region, page=1, page_size=10):
+        """list tenants"""
+        region_info = get_enterprise_region_info(region, session)
+        if not region_info:
+            raise ServiceHandleException("region not found")
+        url = region_info.url
+        url += "/v2/tenants/envs/?page={0}&pageSize={1}".format(page, page_size)
+        try:
+            res, body = self._get(session, url, self.default_headers, region=region_info.region_name)
+            return res, body
+        except ApiBaseHttpClient.CallApiError as e:
+            return {'status': e.message['httpcode']}, e.message['body']
+
     def service_source_check(self, session, region, tenant_env, body):
         """组件源检测"""
         url, token = get_region_access_info(region, session)

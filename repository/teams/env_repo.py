@@ -1,13 +1,10 @@
 """
-tenant repository
+env repository
 """
-import random
-import string
 from loguru import logger
 from sqlalchemy import select, delete
+from clients.remote_build_client import remote_build_client
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
-from models.region.models import EnvRegionInfo
 from models.teams import TeamEnvInfo, RegionConfig
 from models.component.models import Component
 from repository.base import BaseRepository
@@ -17,6 +14,38 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     """
     TenantRepository
     """
+
+    def get_tenant_list_by_region(self, session, region_id, page=1, page_size=10):
+        tenant_envs = self.get_all_envs(session)
+        env_maps = {}
+        if tenant_envs:
+            for env in tenant_envs:
+                env_maps[env.tenant_id] = env
+        res, body = remote_build_client.list_envs(session, region_id, page, page_size)
+        env_list = []
+        total = 0
+        if body.get("bean"):
+            envs = body.get("bean").get("list")
+            total = body.get("bean").get("total")
+            if envs:
+                for env in envs:
+                    env_alias = env_maps.get(env["UUID"]).tenant_alias if env_maps.get(env["UUID"]) else ''
+                    env_list.append({
+                        "env_id": env["UUID"],
+                        "env_name": env_alias,
+                        "env_code": env["Name"],
+                        "memory_request": env["memory_request"],
+                        "cpu_request": env["cpu_request"],
+                        "memory_limit": env["memory_limit"],
+                        "cpu_limit": env["cpu_limit"],
+                        "running_app_num": env["running_app_num"],
+                        "running_app_internal_num": env["running_app_internal_num"],
+                        "running_app_third_num": env["running_app_third_num"],
+                        "set_limit_memory": env["LimitMemory"],
+                    })
+        else:
+            logger.error(body)
+        return env_list, total
 
     def get_all_envs(self, session):
         return session.execute(select(TeamEnvInfo)).scalars().all()
