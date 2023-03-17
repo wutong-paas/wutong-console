@@ -135,6 +135,7 @@ async def update_app(request: Request,
                      session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     app_alias = data.get("app_alias", None)
+    k8s_app = data.get("k8s_app", None)
     project_id = data.get("project_id", None)
     project_name = data.get("project_name", None)
     note = data.get("note", "")
@@ -166,7 +167,8 @@ async def update_app(request: Request,
         overrides=overrides,
         version=version,
         revision=revision,
-        logo=logo)
+        logo=logo,
+        k8s_app=k8s_app)
     result = general_message("0", "success", "修改成功")
     return JSONResponse(result, status_code=200)
 
@@ -337,7 +339,7 @@ async def common_operation(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record", response_model=Response, name="应用发布")
+@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/share/record", response_model=Response, name="查询应用发布记录")
 async def app_share_record(
         page: int = Query(default=1, ge=1, le=9999),
         page_size: int = Query(default=10, ge=1, le=500),
@@ -760,132 +762,6 @@ async def get_check_uuid(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/check", response_model=Response, name="检测任务发送")
-async def send_check_task(
-        request: Request,
-        env_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
-
-    data = await request.json()
-    compose_id = data.get("compose_id", None)
-    if not compose_id:
-        return JSONResponse(general_message(400, "params error", "需要检测的compose ID "), status_code=400)
-
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-
-    response_region = region.region_name
-    code, msg, compose_bean = compose_service.check_compose(session, response_region, env, compose_id)
-    if code != 200:
-        return JSONResponse(general_message(code, "check compose error", msg))
-    result = general_message(code, "compose check task send success", "检测任务发送成功", bean=compose_bean)
-    return JSONResponse(result, status_code=result["code"])
-
-
-@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/check", response_model=Response, name="获取compose文件检测信息")
-async def get_compose_check_info(
-        request: Request,
-        env_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session),
-        user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
-    try:
-        check_uuid = request.query_params.get("check_uuid", None)
-        compose_id = request.query_params.get("compose_id", None)
-        if not check_uuid:
-            return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status_code=400)
-        if not compose_id:
-            return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status_code=400)
-
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
-
-        group_compose = compose_service.get_group_compose_by_compose_id(session, compose_id)
-        code, msg, data = component_check_service.get_service_check_info(session, env, response_region, check_uuid)
-        logger.debug("start save compose info ! {0}".format(group_compose.create_status))
-        save_code, save_msg, service_list = compose_service.save_compose_services(session,
-                                                                                  env, user,
-                                                                                  response_region, group_compose,
-                                                                                  data)
-        if save_code != 200:
-            data["check_status"] = "failure"
-            save_error = {
-                "error_type": "check info save error",
-                "solve_advice": "修改相关信息后重新尝试",
-                "error_info": "{}".format(save_msg)
-            }
-            if data["error_infos"]:
-                data["error_infos"].append(save_error)
-            else:
-                data["error_infos"] = [save_error]
-        compose_check_brief = compose_service.wrap_compose_check_info(data)
-        result = general_message("0", "success", "请求成功", bean=compose_check_brief,
-                                 list=[jsonable_encoder(s) for s in service_list])
-    except ResourceNotEnoughException as re:
-        raise re
-    except AccountOverdueException as re:
-        logger.exception(re)
-        return JSONResponse(general_message(10410, "resource is not enough", "失败"), status_code=412)
-    return JSONResponse(result, status_code=result["code"])
-
-
-@router.delete("/teams/{team_name}/env/{env_id}/groups/{group_id}/delete", response_model=Response,
-               name="放弃compose创建应用")
-async def delete_compose_create(
-        request: Request,
-        env_id: Optional[str] = None,
-        group_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    data = await request.json()
-    compose_id = data.get("compose_id", None)
-    try:
-        group_id = int(group_id)
-    except ValueError:
-        raise ServiceHandleException(msg="group id is invalid", msg_show="参数不合法")
-    if group_id:
-        if group_id < 1:
-            return JSONResponse(general_message(400, "params error", "所在组参数错误 "), status_code=400)
-    else:
-        return JSONResponse(general_message(400, "params error", "请指明需要删除的组标识 "), status_code=400)
-    if not compose_id:
-        return JSONResponse(general_message(400, "params error", "请指明需要删除的compose ID "), status_code=400)
-    compose_service.give_up_compose_create(session, env, group_id, compose_id)
-    result = general_message("0", "compose delete success", "删除成功")
-    return JSONResponse(result, status_code=200)
-
-
-@router.get("/teams/{team_name}/env/{env_id}/compose/{compose_id}/content", response_model=Response,
-            name="获取compose文件内容")
-async def get_compose_info(
-        compose_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    group_compose = compose_repo.get_group_compose_by_compose_id(session, compose_id)
-    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(group_compose))
-    return JSONResponse(result, status_code=200)
-
-
-@router.get("/teams/{team_name}/env/{env_id}/compose/{compose_id}/services", response_model=Response,
-            name="获取compose组下的组件")
-async def get_compose_services(
-        compose_id: Optional[str] = None,
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    services = compose_service.get_compose_services(session, compose_id)
-    s_list = [jsonable_encoder(s) for s in services]
-    result = general_message("0", "success", "查询成功", list=s_list)
-    return JSONResponse(result, status_code=200)
-
-
 @router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/install", response_model=Response, name="安装应用市场app")
 async def install_market_app(
         request: Request,
@@ -942,8 +818,8 @@ async def create_apps_vist(
         visit_info = {
             "user_id": user.user_id,
             "app_id": app_id,
-            "app_alias": app["app_name"],
-            "app_name": app["k8s_app"],
+            "app_alias": app.group_name,
+            "app_name": app.k8s_app,
             "tenant_env_id": env.env_id,
             "tenant_env_alias": env.env_alias,
             "team_name": env.tenant_name,

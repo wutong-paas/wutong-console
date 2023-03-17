@@ -106,7 +106,7 @@ class DevopsRepository:
                 # 添加组件部署关系
                 application_service.create_deploy_relation_by_service_id(session=session, service_id=service.service_id)
 
-            return general_message("0", "success", "部署成功", bean={"service_alias": service.service_alias})
+            return general_message(200, "success", "部署成功", bean={"service_alias": service.service_alias})
         except ApiBaseHttpClient.RemoteInvokeError as e:
             logger.exception(e)
             if e.status == 403:
@@ -146,7 +146,7 @@ class DevopsRepository:
             if not service_source_user:
                 service_source_info = {
                     "service_id": service.service_id,
-                    "team_id": service.tenant_env_id,
+                    "tenant_env_id": service.tenant_env_id,
                     "user_name": user_name,
                     "password": password,
                     "create_time": datetime.datetime.now().strftime('%Y%m%d%H%M%S')

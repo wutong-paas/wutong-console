@@ -153,6 +153,8 @@ class AppManageService(object):
             data.pop("server_type")
             data.pop("git_full_name")
             data.pop("gpu_type")
+            data.pop("is_delete")
+            data.pop("delete_operator")
         try:
             delete_service_repo.create_delete_service(session, **data)
         except Exception as e:
@@ -1014,7 +1016,7 @@ class AppManageService(object):
                                            service_id=service.service_id)
         kind = self.__get_service_kind(session=session, service=service)
         body["kind"] = kind
-        body["operator"] = user
+        body["operator"] = user.nick_name
         body["configs"] = {}
         body["service_id"] = service.service_id
         # source type parameter

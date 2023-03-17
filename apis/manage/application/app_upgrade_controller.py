@@ -172,7 +172,7 @@ async def get_upgrade_log(
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    record = upgrade_service.get_app_upgrade_record(session, env.tenant_name, region.region_name, record_id)
+    record = upgrade_service.get_app_upgrade_record(session, env, region.region_name, record_id)
     return JSONResponse(general_message("0", msg="success", msg_show="查询成功", bean=jsonable_encoder(record)),
                         status_code=200)
 

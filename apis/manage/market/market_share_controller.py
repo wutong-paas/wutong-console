@@ -483,9 +483,10 @@ async def share_plugin(
                                                    events[0])
     if not bean:
         result = general_message(400, "sync share event", "插件不存在无需发布")
+        return JSONResponse(result, status_code=result["code"])
     else:
         result = general_message("0", "sync share event", "分享成功", bean=jsonable_encoder(bean))
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/share/{share_id}/events/{event_id}/plugin", response_model=Response,

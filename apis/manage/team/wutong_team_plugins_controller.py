@@ -233,7 +233,7 @@ async def create_plugins(request: Request,
                                                                           env.env_id,
                                                                           tenant_plugin.plugin_id,
                                                                           plugin_build_version.build_version, True)
-    return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/build-history", response_model=Response,

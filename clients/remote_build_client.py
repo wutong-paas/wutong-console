@@ -33,7 +33,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         if not region_info:
             raise ServiceHandleException("region not found")
         url = region_info.url
-        url += "/v2/tenants/envs/?page={0}&pageSize={1}".format(page, page_size)
+        url += "/v2/tenants/envs?page={0}&pageSize={1}".format(page, page_size)
         try:
             res, body = self._get(session, url, self.default_headers, region=region_info.region_name)
             return res, body

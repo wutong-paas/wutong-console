@@ -277,7 +277,7 @@ class PropertyChanges(object):
                 add.append(new_probe)
                 continue
             # update old probe
-            old_probe = old_probe.to_dict()
+            old_probe = jsonable_encoder(old_probe)
             for k, v in list(new_probe.items()):
                 if k in list(old_probe.keys()) and old_probe[k] != v:
                     upd.append(new_probe)

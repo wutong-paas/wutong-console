@@ -558,6 +558,7 @@ class ApplicationService(object):
         new_service.docker_cmd = docker_cmd
         new_service.image = ""
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
+        new_service.service_region = tenant_env.region_code
 
         session.add(new_service)
         session.flush()
@@ -1308,13 +1309,13 @@ class ApplicationService(object):
 
     def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_env, status="all"):
         count = {
-            "running": 0,
-            "closed": 0,
-            "abnormal": 0,
-            "nil": 0,
-            "starting": 0,
-            "deployed": 0,
-            "unknown": 0,
+            "RUNNING": 0,
+            "CLOSED": 0,
+            "ABNORMAL": 0,
+            "NIL": 0,
+            "STARTING": 0,
+            "DEPLOYED": 0,
+            "UNKNOWN": 0,
             "": 0
         }
         app_list = application_repo.get_multi_app_info(session, app_ids)
@@ -1333,7 +1334,7 @@ class ApplicationService(object):
         for app in app_list:
             app_status = app_id_statuses.get(app.ID)
             if app_status:
-                count[app_status["status"].lower()] += 1
+                count[app_status["status"]] += 1
                 if status == "all" or app_status["status"] == status.upper():
                     apps[app.ID] = {
                         "group_id": app.ID,
@@ -1415,9 +1416,9 @@ class ApplicationService(object):
 
         return result
 
-    def get_team_groups(self, session: SessionClass, tenant_name):
+    def get_team_groups(self, session: SessionClass, tenant_name, env_id=None):
         result = []
-        groups = application_repo.get_groups_by_team_name(session, tenant_name)
+        groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id)
         for g in groups:
             bean = dict()
             bean["group_id"] = g.ID
@@ -1778,14 +1779,17 @@ class ApplicationService(object):
         data["k8s_app"] = bean["k8s_app"]
         application_repo.update(session, app_id, **data)
 
-    def get_apps_by_plat(self, session, env_id, project_id, app_name):
+    def get_apps_by_plat(self, session, team_code, env_id, project_id, app_name):
         sql = "select ID, group_name, k8s_app, note, logo, tenant_name, env_name, project_name " \
               "from service_group where 1"
         params = {
+            "team_code": team_code,
             "env_id": env_id,
             "project_id": project_id,
             "app_name": app_name
         }
+        if team_code:
+            sql += " and team_code like '%' :team_code '%'"
         if env_id:
             sql += " and tenant_env_id=:env_id"
         if project_id:
@@ -1812,7 +1816,7 @@ class ApplicationVisitService(object):
     def get_app_visit_record_by_user(self, session, user_id):
         return session.execute(select(ApplicationVisitRecord).where(
             ApplicationVisitRecord.user_id == user_id
-        ).order_by(ApplicationVisitRecord.visit_time.asc()).limit(5)).scalars().all()
+        ).order_by(ApplicationVisitRecord.visit_time.desc()).limit(5)).scalars().all()
 
     def get_app_visit_record_by_user_app(self, session, user_id, app_id):
         return session.execute(select(ApplicationVisitRecord).where(

@@ -1,5 +1,5 @@
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import select, BINARY
 from clients.remote_build_client import remote_build_client
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
@@ -22,38 +22,6 @@ class TenantEnvService(object):
         except RegionApiBaseHttpClient.CallApiError as e:
             logger.exception(e)
             raise ServiceHandleException(status_code=500, msg="", msg_show="设置租户限额失败")
-
-    def get_tenant_env_list_by_region(self, session, region_id, page=1, page_size=10):
-        envs = env_repo.get_all_envs(session)
-        env_maps = {}
-        if envs:
-            for env in envs:
-                env_maps[env.env_id] = env
-        res, body = remote_build_client.list_tenant_envs(session, region_id, page, page_size)
-        env_list = []
-        total = 0
-        if body.get("bean"):
-            region_envs = body.get("bean").get("list")
-            total = body.get("bean").get("total")
-            if region_envs:
-                for env in region_envs:
-                    env_alias = env_maps.get(env["UUID"]).tenant_alias if env_maps.get(env["UUID"]) else ''
-                    env_list.append({
-                        "tenant_env_id": env["UUID"],
-                        "env_alias": env_alias,
-                        "env_name": env["Name"],
-                        "memory_request": env["memory_request"],
-                        "cpu_request": env["cpu_request"],
-                        "memory_limit": env["memory_limit"],
-                        "cpu_limit": env["cpu_limit"],
-                        "running_app_num": env["running_app_num"],
-                        "running_app_internal_num": env["running_app_internal_num"],
-                        "running_app_third_num": env["running_app_third_num"],
-                        "set_limit_memory": env["LimitMemory"],
-                    })
-        else:
-            logger.error(body)
-        return env_list, total
 
     def get_env_by_env_id(self, session: SessionClass, env_id) -> TeamEnvInfo:
         env = env_repo.get_env_by_env_id(session=session, env_id=env_id)

@@ -11,7 +11,7 @@ class ApplicationRepository(BaseRepository[Application]):
             Application.tenant_env_id.in_(tenant_env_ids)).order_by(
             Application.update_time.desc(), Application.order_index.desc())).scalars().all()
 
-    def get_tenant_region_groups(self, session, env_id, region, query="", app_type=""):
+    def get_tenant_region_groups(self, session, env_id, region, query="", app_type="", project_id=None):
         sql = select(Application).where(Application.tenant_env_id == env_id,
                                         Application.region_name == region,
                                         Application.group_name.contains(query)).order_by(
@@ -22,11 +22,23 @@ class ApplicationRepository(BaseRepository[Application]):
                                             Application.app_type == app_type,
                                             Application.group_name.contains(query)).order_by(
                 Application.update_time.desc(), Application.order_index.desc())
+        if project_id:
+            sql = select(Application).where(Application.tenant_env_id == env_id,
+                                            Application.region_name == region,
+                                            Application.project_id == project_id,
+                                            Application.group_name.contains(query)).order_by(
+                Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
-    def get_groups_by_team_name(self, session, team_name):
-        sql = select(Application).where(Application.team_code == team_name).order_by(
-            Application.update_time.desc(), Application.order_index.desc())
+    def get_groups_by_team_name(self, session, team_name, env_id):
+        if not env_id:
+            sql = select(Application).where(Application.team_code == team_name).order_by(
+                Application.update_time.desc(), Application.order_index.desc())
+        else:
+            sql = select(Application).where(
+                Application.team_code == team_name,
+                Application.tenant_env_id == env_id).order_by(
+                Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
     def get_hn_tenant_region_groups(self, session, env_id, query="", app_type=""):

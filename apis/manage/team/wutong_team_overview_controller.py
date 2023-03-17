@@ -26,7 +26,7 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/env/{env_id}/service/group", response_model=Response, name="应用列表、状态展示")
+@router.get("/teams/{team_name}/env/{env_id}/service/group", response_model=Response, name="应用组件列表、状态展示")
 async def get_app_state(request: Request,
                         page: int = Query(default=1, ge=1, le=9999),
                         page_size: int = Query(default=10, ge=-1, le=999),
@@ -245,6 +245,7 @@ async def team_env_app_group(request: Request,
 @router.get("/teams/{team_name}/overview/groups", response_model=Response, name="团队应用列表")
 async def team_app_group(
         team_name: Optional[str] = None,
+        env_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
        团队下应用列表
@@ -261,7 +262,7 @@ async def team_app_group(
              type: string
              paramType: query
    """
-    groups_services = application_service.get_team_groups(session=session, tenant_name=team_name)
+    groups_services = application_service.get_team_groups(session=session, tenant_name=team_name, env_id=env_id)
     return general_message("0", "success", "查询成功", list=groups_services)
 
 

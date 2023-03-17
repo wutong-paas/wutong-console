@@ -10,7 +10,7 @@ from exceptions.bcode import ErrAppUpgradeDeployFailed
 from exceptions.main import ServiceHandleException
 from models.application.models import ApplicationUpgradeRecord, Application, ServiceUpgradeRecord
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar
-from models.component.models import TeamApplication, Component, ComponentSourceInfo, ComponentEnvVar, \
+from models.component.models import TeamApplication, Component as ComponentInfo, ComponentSourceInfo, ComponentEnvVar, \
     TeamComponentPort, ComponentExtendMethod, TeamComponentVolume, TeamComponentConfigurationFile, ComponentProbe, \
     ComponentMonitor, ComponentGraph, ComponentLabels, TeamComponentMountRelation
 from models.relate.models import TeamComponentRelation
@@ -176,7 +176,7 @@ class AppRestore(MarketApp):
 
     def _create_component(self, snap):
         # component
-        component = Component(**snap["service_base"])
+        component = ComponentInfo(**snap["service_base"])
         # component source
         component_source = ComponentSourceInfo(**snap["service_source"])
         # environment

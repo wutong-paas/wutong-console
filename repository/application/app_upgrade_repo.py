@@ -34,10 +34,11 @@ class AppUpgradeRepository(BaseRepository[ApplicationUpgradeRecord]):
 
     def get_app_not_upgrade_record(self, session, tenant_env_id, group_id, group_key):
         result = session.execute(
-            select(ApplicationUpgradeRecord).where(ApplicationUpgradeRecord.status < ApplicationUpgradeStatus.UPGRADED.value,
-                                                   ApplicationUpgradeRecord.tenant_env_id == tenant_env_id,
-                                                   ApplicationUpgradeRecord.group_id == group_id,
-                                                   ApplicationUpgradeRecord.group_key == group_key).order_by(
+            select(ApplicationUpgradeRecord).where(
+                ApplicationUpgradeRecord.status < ApplicationUpgradeStatus.UPGRADED.value,
+                ApplicationUpgradeRecord.tenant_env_id == tenant_env_id,
+                ApplicationUpgradeRecord.group_id == group_id,
+                ApplicationUpgradeRecord.group_key == group_key).order_by(
                 ApplicationUpgradeRecord.update_time.desc())).scalars().first()
         return result
 
@@ -55,23 +56,23 @@ class AppUpgradeRepository(BaseRepository[ApplicationUpgradeRecord]):
         return (session.execute(sql)).scalars().all()
 
     def get_last_upgrade_record(self, session, tenant_env_id, app_id, upgrade_group_id=None, record_type=None):
-        sql = select(ApplicationUpgradeRecord).where(
-            ApplicationUpgradeRecord.group_id == app_id,
-            ApplicationUpgradeRecord.tenant_env_id == tenant_env_id
-        ).order_by(ApplicationUpgradeRecord.update_time.desc())
+        sql = "select * from app_upgrade_record where group_id=:group_id and tenant_env_id=:tenant_env_id"
+        params = {
+            "group_id": app_id,
+            "tenant_env_id": tenant_env_id,
+            "upgrade_group_id": upgrade_group_id,
+            "record_type": record_type
+        }
         if upgrade_group_id:
-            sql = select(ApplicationUpgradeRecord).where(
-                ApplicationUpgradeRecord.group_id == app_id,
-                ApplicationUpgradeRecord.tenant_env_id == tenant_env_id,
-                ApplicationUpgradeRecord.upgrade_group_id == upgrade_group_id
-            ).order_by(ApplicationUpgradeRecord.update_time.desc())
+            sql += " and upgrade_group_id=:upgrade_group_id"
         if record_type:
-            sql = select(ApplicationUpgradeRecord).where(
-                ApplicationUpgradeRecord.group_id == app_id,
-                ApplicationUpgradeRecord.tenant_env_id == tenant_env_id,
-                ApplicationUpgradeRecord.record_type == record_type
-            ).order_by(ApplicationUpgradeRecord.update_time.desc())
-        return (session.execute(sql)).scalars().first()
+            sql += " and record_type=:record_type"
+
+        records = session.execute(sql, params).fetchall()
+        if records:
+            return records[0]
+        else:
+            return None
 
 
 upgrade_repo = AppUpgradeRepository(ApplicationUpgradeRecord)

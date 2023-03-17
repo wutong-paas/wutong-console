@@ -101,10 +101,10 @@ class UpgradeService(object):
             raise e
         self._update_component_records(session, record, failed_component_records.values(), events)
 
-    def get_app_upgrade_record(self, session, tenant_name, region_name, record_id):
+    def get_app_upgrade_record(self, session, tenant_env, region_name, record_id):
         record = upgrade_repo.get_by_record_id(session, record_id)
         if not record.is_finished():
-            self.sync_record(session, tenant_name, region_name, record)
+            self.sync_record(session, tenant_env, region_name, record)
         return self.serialized_upgrade_record(record)
 
     @staticmethod
@@ -198,7 +198,7 @@ class UpgradeService(object):
             raise AbortRequest("invalid app template", "该版本应用模板已损坏, 无法升级")
 
     def upgrade_component(self, session, tenant_env, region, user, app, component, version):
-        component_group = tenant_service_group_repo.get_component_group(session, component.upgrade_group_id)
+        component_group = tenant_service_group_repo.get_component_group(session, component.tenant_service_group_id)
         app_template_source = service_source_repo.get_service_source(session, component.tenant_env_id,
                                                                      component.service_id)
         app_template = self._app_template(session, component_group.group_key, version,

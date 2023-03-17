@@ -144,7 +144,7 @@ async def modify_region_config(request: Request,
     data = await request.json()
     region = region_services.update_enterprise_region(session, region_id, data)
     result = general_message("0", "success", "更新成功", bean=region)
-    return JSONResponse(result, status_code=result.get("code", 200))
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/enterprise/regions/{region_id}", response_model=Response, name="删除集群")
@@ -157,21 +157,6 @@ async def delete_region(
     region_repo.del_by_enterprise_region_id(session, region_id)
     result = general_message("0", "success", "删除成功")
     return JSONResponse(result, status_code=result.get("code", 200))
-
-
-@router.get("/enterprise/regions/{region_id}/envs", response_model=Response, name="获取环境内存配置信息")
-async def get_env_memory_config(request: Request,
-                                region_id: Optional[str] = None,
-                                session: SessionClass = Depends(deps.get_session)) -> Any:
-    page = request.query_params.get("page", 1)
-    page_size = request.query_params.get("pageSize", 10)
-    envs, total = env_services.get_tenant_env_list_by_region(session, region_id, page, page_size)
-    result = general_message(
-        200, "success", "获取成功", bean={
-            "envs": envs,
-            "total": total,
-        })
-    return JSONResponse(result, status_code=status.HTTP_200_OK)
 
 
 @router.post("/enterprise/regions/{region_id}/tenants/{tenant_name}/env/{env_id}/limit",

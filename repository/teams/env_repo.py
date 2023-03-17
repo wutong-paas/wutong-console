@@ -20,7 +20,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         env_maps = {}
         if tenant_envs:
             for env in tenant_envs:
-                env_maps[env.tenant_id] = env
+                env_maps[env.env_id] = env
         res, body = remote_build_client.list_envs(session, region_id, page, page_size)
         env_list = []
         total = 0
@@ -29,7 +29,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             total = body.get("bean").get("total")
             if envs:
                 for env in envs:
-                    env_alias = env_maps.get(env["UUID"]).tenant_alias if env_maps.get(env["UUID"]) else ''
+                    env_alias = env_maps.get(env["UUID"]).env_alias if env_maps.get(env["UUID"]) else ''
                     env_list.append({
                         "env_id": env["UUID"],
                         "env_name": env_alias,

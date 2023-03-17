@@ -59,8 +59,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
         url, token = get_region_access_info(region, session)
         
         url = url + "/v2/tenants/" + tenant_env.tenant_name + "/envs/" + tenant_env.env_name +\
-              "/envs/" + tenant_env.env_name + "/services/" \
-              + service_alias
+              "/services/" + service_alias
 
         self._set_headers(token)
         if not data:

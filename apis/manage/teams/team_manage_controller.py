@@ -67,14 +67,15 @@ async def overview_env_app_info(request: Request,
     """
     query = request.query_params.get("query", "")
     status = request.query_params.get("status", "all")
+    project_id = request.query_params.get("project_id", None)
     count = {
-        "running": 0,
-        "closed": 0,
-        "abnormal": 0,
-        "nil": 0,
-        "starting": 0,
-        "deployed": 0,
-        "unknown": 0,
+        "RUNNING": 0,
+        "CLOSED": 0,
+        "ABNORMAL": 0,
+        "NIL": 0,
+        "STARTING": 0,
+        "DEPLOYED": 0,
+        "UNKNOWN": 0,
         "": 0
     }
 
@@ -85,7 +86,7 @@ async def overview_env_app_info(request: Request,
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
-    groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query)
+    groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query, project_id=project_id)
     total = len(groups)
     app_num_dict = {"total": total}
     start = (page - 1) * page_size
@@ -95,7 +96,8 @@ async def overview_env_app_info(request: Request,
         group_ids = [group.ID for group in groups]
         apps, count = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids,
                                                                   region=region_name,
-                                                                  tenant_env=env, status=status)
+                                                                  tenant_env=env,
+                                                                  status=status)
 
     apps = apps[start:end]
     app_num_dict.update(count)
