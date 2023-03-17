@@ -69,10 +69,11 @@ class AppUpgradeRepository(BaseRepository[ApplicationUpgradeRecord]):
             sql += " and record_type=:record_type"
 
         records = session.execute(sql, params).fetchall()
-        if records:
-            return records[0]
-        else:
+        if not records:
             return None
+        data = dict(records[0])
+        records = ApplicationUpgradeRecord(**data)
+        return records
 
 
 upgrade_repo = AppUpgradeRepository(ApplicationUpgradeRecord)

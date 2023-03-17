@@ -79,7 +79,7 @@ def startup_event():
     app.state.redis = get_redis_pool()
 
     # 启动定时任务调度器
-    scheduler.start()
+    # scheduler.start()
 
 
 @app.on_event('shutdown')
