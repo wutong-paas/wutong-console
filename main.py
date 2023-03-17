@@ -1,6 +1,7 @@
 # 初始化app实例
+from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
@@ -8,17 +9,21 @@ from redis import StrictRedis
 from starlette.responses import JSONResponse
 
 from apis.apis import api_router
+from core import deps
 from core.nacos import register_nacos, beat
 from core.utils.return_message import general_message
+from database import session
 from database.session import engine, Base, settings
 from exceptions.main import ServiceHandleException
 from middleware import register_middleware
+from service.scheduler import recycle
 
 if settings.ENV == "PROD":
     # 生产关闭swagger
     app = FastAPI(title=settings.APP_NAME, docs_url=None, redoc_url=None)
 else:
     app = FastAPI(title=settings.APP_NAME, openapi_url=f"{settings.API_PREFIX}/openapi.json")
+
 
 # 微服务注册
 # register_nacos()
@@ -48,8 +53,20 @@ async def request_validation_exception_handler(request: Request, exception: Requ
 
 def get_redis_pool():
     redis = StrictRedis(host=settings.REDIS_HOST, port=int(settings.REDIS_PORT), db=int(settings.REDIS_DATABASE),
-                        password=settings.REDIS_PASSWORD, encoding="utf-8")
+                        # password=settings.REDIS_PASSWORD,
+                        encoding="utf-8")
     return redis
+
+
+scheduler = AsyncIOScheduler(jobstores={'default': RedisJobStore(db=int(settings.REDIS_DATABASE) + 1,
+                                                                 host=settings.REDIS_HOST,
+                                                                 # password=settings.REDIS_PASSWORD,
+                                                                 port=int(settings.REDIS_PORT))})
+
+
+@scheduler.scheduled_job('cron', second="0", minute='0', hour="0", day="*", month="*", year="*")
+def scheduler_cron_task_test():
+    recycle.recycle_delete_task(session=session.SessionClass())
 
 
 @app.on_event('startup')
@@ -61,9 +78,8 @@ def startup_event():
     Base.metadata.create_all(engine)
     app.state.redis = get_redis_pool()
 
-    # scheduler = AsyncIOScheduler()
-    # scheduler.add_job(beat, 'interval', seconds=20)
-    # scheduler.start()
+    # 启动定时任务调度器
+    scheduler.start()
 
 
 @app.on_event('shutdown')

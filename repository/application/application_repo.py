@@ -179,5 +179,10 @@ class ApplicationRepository(BaseRepository[Application]):
         ).values(**data))
         session.flush()
 
+    def get_logic_delete_records(self, session, delete_date):
+        return session.execute(
+            select(Application).where(Application.is_delete == True, Application.delete_time < delete_date)
+        ).scalars().all()
+
 
 application_repo = ApplicationRepository(Application)

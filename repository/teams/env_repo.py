@@ -134,5 +134,12 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             logger.exception(e)
             return "测试Region"
 
+    def get_logic_delete_records(self, session, delete_date):
+        return (
+            session.execute(
+                select(TeamEnvInfo).where(TeamEnvInfo.is_delete == True, TeamEnvInfo.delete_time < delete_date)
+            )
+        ).scalars().all()
+
 
 env_repo = EnvRepository(TeamEnvInfo)
