@@ -100,7 +100,7 @@ async def delete_env(request: Request,
     if env.env_alias != env_alias:
         return JSONResponse(general_message(400, "env name error", "环境名不匹配"), status_code=400)
     try:
-        env_services.delete_by_env_id(session=session, user=user, env=env)
+        env_services.delete_by_env_id(session=session, user_nickname=user.nick_name, env=env)
         result = general_message("0", "delete a team successfully", "删除环境成功")
         return JSONResponse(result, status_code=result["code"])
     except ServiceHandleException as e:

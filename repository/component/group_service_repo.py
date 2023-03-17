@@ -1,5 +1,8 @@
+from datetime import datetime
+
 from sqlalchemy import select, delete, not_, text
 from core.utils.status_translate import get_status_info_map
+from database.session import SessionClass
 from models.application.models import ComponentApplicationRelation
 from models.component.models import Component, ComponentSourceInfo
 from repository.base import BaseRepository
@@ -298,6 +301,13 @@ class ComponentRepository(BaseRepository[Component]):
         service.image = "{}:{}".format(ref_repo_name, tag)
         service.version = tag
         session.flush()
+
+    def get_logic_delete_records(self, session: SessionClass, delete_date: datetime):
+        return (
+            session.execute(
+                select(Component).where(Component.delete_time < delete_date, Component.is_delete == True)
+            )
+        ).scalars().all()
 
 
 service_info_repo = ComponentRepository(Component)

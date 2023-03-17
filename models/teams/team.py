@@ -29,6 +29,10 @@ class TeamEnvInfo(Base):
     namespace = Column(String(33), comment="环境的命名空间", nullable=False)
     desc = Column(String(255), comment="描述", nullable=True)
 
+    is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
+    delete_time = Column(DateTime(), nullable=True, comment="删除时间")
+    delete_operator = Column(String(100), comment="删除操作人", nullable=True)
+
     def __unicode__(self):
         return self.env_name
 

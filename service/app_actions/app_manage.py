@@ -113,7 +113,7 @@ class AppManageService(object):
     def delete_again(self, session, user, tenant_env, service):
 
         try:
-            self.really_delete_service(session, tenant_env, service, user)
+            self.really_delete_service(session, tenant_env, service, user.nick_name)
         except ServiceHandleException as e:
             raise e
         except Exception as e:
@@ -121,7 +121,7 @@ class AppManageService(object):
             raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias),
                                          msg_show="组件删除失败")
 
-    def really_delete_service(self, session: SessionClass, tenant_env, service, user=None, ignore_cluster_result=False,
+    def really_delete_service(self, session: SessionClass, tenant_env, service, user_nickname=None, ignore_cluster_result=False,
                               not_delete_from_cluster=False):
         ignore_delete_from_cluster = not_delete_from_cluster
         if not not_delete_from_cluster:
@@ -190,7 +190,7 @@ class AppManageService(object):
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(session=session,
                                                                             pk=service.tenant_service_group_id)
-        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service, user=user)
+        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service, user_nickname=user_nickname)
         return ignore_delete_from_cluster
 
     def delete_components(self, session: SessionClass, tenant_env, components, user=None):
@@ -339,7 +339,7 @@ class AppManageService(object):
             delete(ComponentMonitor).where(ComponentMonitor.service_id == service_id)
         )
 
-        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service, user=user)
+        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service, user_nickname=user)
         service_info_repo.delete_service(session, service.ID)
 
     def get_etcd_keys(self, session: SessionClass, tenant_env, service):
@@ -359,8 +359,8 @@ class AppManageService(object):
                 keys.append(event.region_share_id)
         return keys
 
-    def __create_service_delete_event(self, session: SessionClass, tenant_env, service, user):
-        if not user:
+    def __create_service_delete_event(self, session: SessionClass, tenant_env, service, user_nickname):
+        if not user_nickname:
             return None
         try:
             event_info = {
@@ -369,7 +369,7 @@ class AppManageService(object):
                 "tenant_env_id": tenant_env.env_id,
                 "type": "truncate",
                 "old_deploy_version": "",
-                "user_name": user.nick_name,
+                "user_name": user_nickname,
                 "start_time": datetime.datetime.now(),
                 "message": service.service_cname,
                 "final_status": "complete",

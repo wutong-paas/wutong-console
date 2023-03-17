@@ -273,7 +273,7 @@ class RegionService(object):
                 env_region.region_scope = region_config.scope
         return env_region
 
-    def delete_env_on_region(self, session: SessionClass, env, region_name, user):
+    def delete_env_on_region(self, session: SessionClass, env, region_name, user_nickname):
         env_region = region_repo.get_env_region_by_env_and_region(session, env.env_id, region_name)
         if not env_region:
             raise ServiceHandleException(msg="env not open cluster, not need close", msg_show="该环境未开通此集群，无需关闭")
@@ -305,7 +305,7 @@ class RegionService(object):
         not_delete_from_cluster = False
         for service in services:
             not_delete_from_cluster = app_manage_service.really_delete_service(session=session, tenant_env=env,
-                                                                               service=service, user=user,
+                                                                               service=service, user_nickname=user_nickname,
                                                                                ignore_cluster_result=ignore_cluster_resource,
                                                                                not_delete_from_cluster=not_delete_from_cluster)
         plugins = plugin_repo.get_tenant_plugins(session, env.env_id, region_name)

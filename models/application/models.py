@@ -42,6 +42,10 @@ class Application(Base):
     logo = Column(String(255), comment="应用logo", nullable=True)
     k8s_app = Column(String(64), comment="集群内应用名称", nullable=False, default='')
 
+    is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
+    delete_time = Column(DateTime(), nullable=True, comment="删除时间")
+    delete_operator = Column(String(100), comment="删除操作人", nullable=True)
+
     @property
     def app_id(self):
         return self.ID

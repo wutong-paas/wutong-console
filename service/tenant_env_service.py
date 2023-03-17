@@ -47,13 +47,13 @@ class TenantEnvService(object):
             select(TeamEnvInfo)).scalars().all()
         return envs
 
-    def delete_by_env_id(self, session: SessionClass, user, env):
+    def delete_by_env_id(self, session: SessionClass, user_nickname, env):
         env_regions = region_repo.get_env_regions_by_envid(session, env.env_id)
         for region in env_regions:
             try:
                 region_services.delete_env_on_region(session=session,
                                                      env=env, region_name=region.region_name,
-                                                     user=user)
+                                                     user_nickname=user_nickname)
             except ServiceHandleException as e:
                 raise e
             except Exception as e:

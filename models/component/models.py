@@ -7,8 +7,6 @@ from sqlalchemy.dialects.mysql import LONGTEXT
 from core.enum.component_enum import ComponentSource
 from database.session import Base
 
-user_origion = (("自主注册", "registration"), ("邀请注册", "invitation"))
-
 
 class Component(Base):
     """组件管理"""
