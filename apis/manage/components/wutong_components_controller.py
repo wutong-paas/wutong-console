@@ -11,20 +11,17 @@ from core import deps
 from core.enum.component_enum import is_support
 from core.utils.constants import PluginCategoryConstants
 from core.utils.reqparse import parse_argument, parse_item
-from core.utils.return_message import general_message, error_message
+from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
-    AccountOverdueException, AbortRequest, CallRegionAPIException, ErrInsufficientResource
+    AccountOverdueException, AbortRequest, CallRegionAPIException
 from models.component.models import ComponentEnvVar
 from repository.application.app_repository import service_webhooks_repo
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
-from schemas.user import UserInfo
-from service.app_actions.app_delete import component_delete_service
-from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.app_relation_service import dependency_service
 from service.app_config.port_service import port_service
@@ -32,10 +29,8 @@ from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_log_service
-from service.compose_service import compose_service
 from service.market_app_service import market_app_service
 from service.plugin.app_plugin_service import app_plugin_service
-from service.probe_service import probe_service
 from service.region_service import region_services
 from service.upgrade_service import upgrade_service
 
@@ -432,28 +427,15 @@ async def group_component(request: Request,
 async def delete_component(request: Request,
                            component_alias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
-                           # user=Depends(deps.get_current_user),
+                           user=Depends(deps.get_current_user),
                            env=Depends(deps.get_current_team_env)) -> Any:
-    service = service_info_repo.get_service(session, component_alias, env.env_id)
     data = await request.json()
-
-    # code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user)
-
-    user = {
-        "user_id": "",
-        "real_name": "system_test",
-        "nick_name": "system_test",
-        "email": "abc@123.com",
-        "phone": "13737713355",
-    }
-    # todo
-    user = UserInfo(**user)
-
-    code, msg = component_delete_service.logic_delete(session=session, tenant_env=env, service=service, user=user)
-    bean = {}
+    is_force = data.get("is_force", False)
+    service = service_info_repo.get_service(session, component_alias, env.env_id)
+    code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user)
     if code != 200:
-        return JSONResponse(general_message(code, "delete service error", msg, bean=bean), status_code=code)
-    result = general_message(code, "success", "操作成功", bean=bean)
+        return JSONResponse(general_message(code, "delete service error", msg), status_code=code)
+    result = general_message(code, "success", "操作成功")
     return JSONResponse(result, status_code=200)
 
 

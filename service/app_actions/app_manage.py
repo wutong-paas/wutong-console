@@ -121,7 +121,8 @@ class AppManageService(object):
             raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias),
                                          msg_show="组件删除失败")
 
-    def really_delete_service(self, session: SessionClass, tenant_env, service, user_nickname=None, ignore_cluster_result=False,
+    def really_delete_service(self, session: SessionClass, tenant_env, service, user_nickname=None,
+                              ignore_cluster_result=False,
                               not_delete_from_cluster=False):
         ignore_delete_from_cluster = not_delete_from_cluster
         if not not_delete_from_cluster:
@@ -190,7 +191,8 @@ class AppManageService(object):
             if count <= 1:
                 tenant_service_group_repo.delete_tenant_service_group_by_pk(session=session,
                                                                             pk=service.tenant_service_group_id)
-        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service, user_nickname=user_nickname)
+        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service,
+                                           user_nickname=user_nickname)
         return ignore_delete_from_cluster
 
     def delete_components(self, session: SessionClass, tenant_env, components, user=None):
@@ -339,7 +341,8 @@ class AppManageService(object):
             delete(ComponentMonitor).where(ComponentMonitor.service_id == service_id)
         )
 
-        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service, user_nickname=user)
+        self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service,
+                                           user_nickname=user.nick_name)
         service_info_repo.delete_service(session, service.ID)
 
     def get_etcd_keys(self, session: SessionClass, tenant_env, service):
