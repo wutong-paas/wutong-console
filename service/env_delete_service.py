@@ -22,14 +22,11 @@ from service.tenant_env_service import env_services
 
 def logic_delete_by_env_id(session, user, env, region_name):
     # 查询环境下全部应用，停用全部组件
-    stop_env_resource(session=session, env=env, region_name=region_name, user=user)
     # 环境、应用、组件 标记为逻辑删除
-    logic_delete_env(session=session, env=env, user_nickname=user_nickname)
-    logger.info("逻辑删除环境资源")
+    stop_env_resource(session=session, env=env, region_name=region_name, user=user)
 
 
 def stop_env_resource(session, env, region_name, user):
-
     action = "stop"
     apps = application_repo.get_tenant_region_groups(session, env.env_id, region_name)
     for app in apps:
@@ -37,7 +34,8 @@ def stop_env_resource(session, env, region_name, user):
         services = session.query(ComponentApplicationRelation).filter(
             ComponentApplicationRelation.group_id == group_id).all()
         if not services:
-            raise ServiceHandleException(400, "not service", "当前组内无组件，无法操作")
+            # raise ServiceHandleException(400, "not service", "当前组内无组件，无法操作")
+            continue
         service_ids = [service.service_id for service in services]
         # 去除掉第三方组件
         for service_id in service_ids:
@@ -68,10 +66,3 @@ def stop_env_resource(session, env, region_name, user):
     env.is_delete = True
     env.delete_time = datetime.datetime.now()
     env.delete_operator = user.nick_name
-
-
-
-def logic_delete_env(session, env, user_nickname):
-    # start delete
-    region_config = region_repo.get_enterprise_region_by_region_name(session, env.region_name)
-    ignore_cluster_resource = True
