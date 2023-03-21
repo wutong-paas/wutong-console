@@ -15,7 +15,6 @@ from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.component_repo import service_source_repo
-from repository.component.compose_repo import compose_repo, compose_relation_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import service_info_repo
@@ -154,20 +153,13 @@ class GroupAppBackupService(object):
 
     def get_group_app_metadata(self, session: SessionClass, group_id, tenant_env, region_name):
         all_data = dict()
-        compose_group_info = compose_repo.get_group_compose_by_group_id(session, group_id)
-        compose_service_relation = None
-        if compose_group_info:
-            compose_service_relation = compose_relation_repo.get_compose_service_relation_by_compose_id(
-                session, compose_group_info.compose_id)
         group_info = application_repo.get_group_by_id(session, group_id)
 
         service_group_relations = app_component_relation_repo.get_services_by_group(session, group_id)
         service_ids = [sgr.service_id for sgr in service_group_relations]
         services = service_info_repo.get_services_by_service_ids(session, service_ids)
-        all_data["compose_group_info"] = jsonable_encoder(compose_group_info) if compose_group_info else None
-        all_data["compose_service_relation"] = [jsonable_encoder(relation)
-                                                for relation in
-                                                compose_service_relation] if compose_service_relation else None
+        all_data["compose_group_info"] = None
+        all_data["compose_service_relation"] = None
         all_data["group_info"] = jsonable_encoder(group_info)
         all_data["service_group_relation"] = [jsonable_encoder(sgr) for sgr in service_group_relations]
         apps = []

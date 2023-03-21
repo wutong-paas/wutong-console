@@ -299,38 +299,6 @@ class ApplicationUpgradeSnapshot(Base):
     snapshot = Column(LONGTEXT, comment="快照", nullable=False)
 
 
-class ComposeGroup(Base):
-    """compose组"""
-
-    __tablename__ = "compose_group"
-
-    ID = Column(Integer, primary_key=True)
-    group_id = Column(Integer, comment="compose组关联的组id")
-    team_id = Column(String(32), comment="团队 id")
-    region = Column(String(64), comment="服务所属数据中心")
-    compose_content = Column(Text, nullable=False, comment="compose文件内容")
-    compose_id = Column(String(32), unique=True, comment="compose id")
-    create_status = Column(String(15), nullable=True, comment="compose组创建状态 creating|checking|checked|complete")
-    check_uuid = Column(String(36), nullable=True, default="", comment="compose检测ID")
-    check_event_id = Column(String(32), nullable=True, default="", comment="compose检测事件ID")
-    hub_user = Column(String(256), nullable=True, default="", comment="镜像仓库用户名称")
-    hub_pass = Column(String(256), nullable=True, default="", comment="镜像仓库用户密码，服务创建后给服务赋值")
-
-    create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
-
-
-class ComposeServiceRelation(Base):
-    """compose组和服务的关系"""
-
-    __tablename__ = "compose_service_relation"
-
-    ID = Column(Integer, primary_key=True)
-    tenant_env_id = Column(String(32), comment="环境id")
-    service_id = Column(String(32), comment="服务 id")
-    compose_id = Column(String(32), comment="compose id")
-    create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
-
-
 class ServiceUpgradeRecord(Base):
     """云市服务升级记录"""
 

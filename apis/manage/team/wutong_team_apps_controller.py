@@ -25,7 +25,6 @@ from repository.teams.team_plugin_repo import plugin_repo
 from schemas.response import Response
 from service.app_actions.app_log import ws_service, event_service
 from service.application_service import application_service
-from service.compose_service import compose_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
 from service.tenant_env_service import env_services
@@ -159,13 +158,6 @@ async def get_app_detail(request: Request,
                                         bean.update({"service": service_model})
         except Exception as e:
             logger.exception(e)
-
-    if service.service_source == AppConstants.DOCKER_COMPOSE:
-        if service.create_status != "complete":
-            compose_service_relation = compose_service.get_service_compose_id(session=session, service=service)
-            if compose_service_relation:
-                service_model["compose_id"] = compose_service_relation.compose_id
-                bean.update({"service": service_model})
     bean["is_third"] = False
     if service.service_source == "third_party":
         bean["is_third"] = True

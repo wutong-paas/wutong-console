@@ -18,9 +18,9 @@ from database.session import SessionClass
 from exceptions.bcode import ErrThirdComponentStartFailed
 from exceptions.exceptions import ErrChangeServiceType, TenantNotExistError
 from exceptions.main import AbortRequest, ServiceHandleException
-from models.application.models import ComponentApplicationRelation, ComposeServiceRelation, ConfigGroupService, \
+from models.application.models import ComponentApplicationRelation, ConfigGroupService, \
     ServiceShareRecordEvent, Application
-from models.component.models import ComponentEvent, ComponentCreateStep, ComponentAttachInfo, ComponentProbe, \
+from models.component.models import ComponentEvent, ComponentProbe, \
     TeamComponentInfoDelete, ComponentEnvVar, TeamComponentAuth, TeamComponentMountRelation, TeamComponentPort, \
     TeamComponentVolume, ComponentSourceInfo, ComponentLabels, TeamServiceBackup, \
     ComponentGraph, \
@@ -34,11 +34,10 @@ from repository.application.application_repo import application_repo
 from repository.application.config_group_repo import app_config_group_service_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
-from repository.component.compose_repo import compose_relation_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import dep_relation_repo, mnt_repo, auth_repo, \
-    port_repo, volume_repo, service_attach_repo, create_step_repo
+    port_repo, volume_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_group_relation_repo import service_group_relation_repo
 from repository.component.service_label_repo import service_label_repo
@@ -173,13 +172,10 @@ class AppManageService(object):
         port_repo.delete_service_port(session, tenant_env.env_id, service.service_id)
         volume_repo.delete_service_volumes(session, service.service_id)
         app_component_relation_repo.delete_relation_by_service_id(session, service.service_id)
-        service_attach_repo.delete_service_attach(session, service.service_id)
-        create_step_repo.delete_create_step(session, service.service_id)
         event_service.delete_service_events(session, service)
         probe_repo.delete_service_probe(session, service.service_id)
         service_source_repo.delete_service_source(session=session, env_id=tenant_env.env_id,
                                                   service_id=service.service_id)
-        compose_relation_repo.delete_relation_by_service_id(session, service.service_id)
         service_label_repo.delete_service_all_labels(session, service.service_id)
         component_share_repo.delete_tenant_service_plugin_relation(session, service.service_id)
         service_monitor_service.delete_by_service_id(session, service.service_id)
@@ -296,14 +292,6 @@ class AppManageService(object):
         )
 
         session.execute(
-            delete(ComponentAttachInfo).where(ComponentAttachInfo.service_id == service_id)
-        )
-
-        session.execute(
-            delete(ComponentCreateStep).where(ComponentCreateStep.service_id == service_id)
-        )
-
-        session.execute(
             delete(ComponentEvent).where(ComponentEvent.service_id == service_id)
         )
 
@@ -314,10 +302,6 @@ class AppManageService(object):
         session.execute(
             delete(ComponentSourceInfo).where(ComponentSourceInfo.tenant_env_id == tenant_env.env_id,
                                               ComponentSourceInfo.service_id == service_id)
-        )
-
-        session.execute(
-            delete(ComposeServiceRelation).where(ComposeServiceRelation.service_id == service_id)
         )
 
         session.execute(

@@ -93,7 +93,6 @@ async def delete_env(request: Request,
     """
     data = await request.json()
     env_alias = data.get("env_alias", "")
-    password = data.get("password", "")
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
@@ -102,7 +101,7 @@ async def delete_env(request: Request,
     try:
         env_services.delete_by_env_id(session=session, user_nickname=user.nick_name, env=env)
         result = general_message("0", "delete a team successfully", "删除环境成功")
-        return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
 

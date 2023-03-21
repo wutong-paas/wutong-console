@@ -5,7 +5,7 @@ from sqlalchemy import select, and_, or_, delete, func, not_, exists
 from models.application.models import ApplicationConfigGroup, ConfigGroupService
 from models.component.models import TeamComponentPort, ComponentExtendMethod, TeamComponentMountRelation, \
     TeamComponentVolume, TeamComponentConfigurationFile, TeamComponentAuth, TeamComponentEnv, \
-    ThirdPartyComponentEndpoints, ComponentCreateStep, ComponentAttachInfo
+    ThirdPartyComponentEndpoints
 from models.relate.models import TeamComponentRelation
 from models.teams import GatewayCustomConfiguration
 from repository.application.config_group_repo import app_config_group_service_repo
@@ -622,22 +622,6 @@ class CompileEnvRepository(BaseRepository[TeamComponentEnv]):
         session.merge(tse)
 
 
-class ServiceAttachInfoRepository(BaseRepository[ComponentAttachInfo]):
-
-    def delete_service_attach(self, session, service_id):
-        session.execute(
-            delete(ComponentAttachInfo).where(ComponentAttachInfo.service_id == service_id)
-        )
-
-
-class ServiceStepRepository(BaseRepository[ComponentCreateStep]):
-
-    def delete_create_step(self, session, service_id):
-        session.execute(
-            delete(ComponentCreateStep).where(ComponentCreateStep.service_id == service_id)
-        )
-
-
 app_config_group_repo = ApplicationConfigGroupRepository(ConfigGroupService)
 port_repo = TenantServicePortRepository(TeamComponentPort)
 
@@ -649,5 +633,3 @@ dep_relation_repo = TenantServiceRelationRepository(TeamComponentRelation)
 configuration_repo = GatewayCustom(GatewayCustomConfiguration)
 auth_repo = ServiceAuthRepository(TeamComponentAuth)
 compile_env_repo = CompileEnvRepository(TeamComponentEnv)
-service_attach_repo = ServiceAttachInfoRepository(ComponentAttachInfo)
-create_step_repo = ServiceStepRepository(ComponentCreateStep)

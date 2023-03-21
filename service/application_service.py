@@ -31,7 +31,6 @@ from repository.application.app_backup_repo import backup_record_repo
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.component_repo import service_source_repo
-from repository.component.compose_repo import compose_repo
 from repository.component.env_var_repo import env_var_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import app_config_group_repo, dep_relation_repo, \
@@ -456,11 +455,6 @@ class ApplicationService(object):
         res['principal'] = app.username
         res["create_status"] = "complete"
         res["compose_id"] = None
-        if app_id != -1:
-            compose_group = compose_repo.get_group_compose_by_group_id(session, app_id)
-            if compose_group:
-                res["create_status"] = compose_group.create_status
-                res["compose_id"] = compose_group.compose_id
 
         return res
 

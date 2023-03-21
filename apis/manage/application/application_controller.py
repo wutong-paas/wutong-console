@@ -14,10 +14,9 @@ from core.utils.return_message import general_message, error_message, general_da
 from core.utils.validation import is_qualified_name
 from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrApplicationNotFound
-from exceptions.main import ServiceHandleException, AbortRequest, ResourceNotEnoughException, AccountOverdueException
+from exceptions.main import ServiceHandleException, AbortRequest
 from models.application.models import ComponentApplicationRelation
 from repository.application.application_repo import application_repo
-from repository.component.compose_repo import compose_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo
@@ -30,8 +29,6 @@ from schemas.wutong_team_app import TeamAppCreateRequest
 from service.app_actions.app_manage import app_manage_service
 from service.app_config_group import app_config_group_service
 from service.application_service import application_service, application_visit_service
-from service.component_service import component_check_service
-from service.compose_service import compose_service
 from service.helm_app_service import helm_app_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
@@ -743,23 +740,6 @@ async def get_app_releases(
     region_name = region.region_name
     releases = application_service.list_releases(session, region_name, env, app_id)
     return JSONResponse(general_message("0", "success", "查询成功", list=releases), status_code=200)
-
-
-@router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/get_check_uuid", response_model=Response,
-            name="获取应用检测uuid")
-async def get_check_uuid(
-        request: Request,
-        session: SessionClass = Depends(deps.get_session),
-) -> Any:
-    compose_id = request.query_params.get("compose_id", None)
-    if not compose_id:
-        return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含compose ID"), status_code=400)
-    group_compose = compose_service.get_group_compose_by_compose_id(session, compose_id)
-    if group_compose:
-        result = general_message("0", "success", "获取成功", bean={"check_uuid": group_compose.check_uuid})
-    else:
-        result = general_message(404, "success", "compose不存在", bean={"check_uuid": ""})
-    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/install", response_model=Response, name="安装应用市场app")

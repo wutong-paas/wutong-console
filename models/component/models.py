@@ -435,38 +435,6 @@ class ComponentProbe(Base):
     is_used = Column(Boolean, default=1, comment="是否启用")
 
 
-class ComponentCreateStep(Base):
-    __tablename__ = 'service_create_step'
-    ID = Column(Integer, primary_key=True)
-
-    tenant_env_id = Column(String(32), comment="环境id")
-    service_id = Column(String(32), comment="组件id")
-    app_step = Column(Integer, default=1, comment="创建组件的步数")
-
-
-class ComponentAttachInfo(Base):
-    """组件配套信息"""
-
-    __tablename__ = 'service_attach_info'
-    ID = Column(Integer, primary_key=True)
-
-    tenant_env_id = Column(String(32), comment="环境id")
-    service_id = Column(String(32), comment="组件id")
-    # , ChoiceType=pay_method todo
-    memory_pay_method = Column(String(32))
-    # , ChoiceType=pay_method todo
-    disk_pay_method = Column(String(32))
-    min_memory = Column(Integer, comment="内存大小单位（M）", default=128)
-    min_node = Column(Integer, comment="节点个数", default=1)
-    disk = Column(Integer, comment='磁盘大小')
-    pre_paid_period = Column(Integer, comment="预付费项目购买时长(单位:月)", default=0)
-    pre_paid_money = Column(DECIMAL(10, 2), comment="预付费金额")
-    buy_start_time = Column(DateTime(), comment="购买开始时间")
-    buy_end_time = Column(DateTime(), comment="购买结束时间")
-    create_time = Column(DateTime(), default=datetime.now, comment="创建时间", nullable=False)
-    region = Column(String(64), comment="数据中心")
-
-
 class TeamComponentAuth(Base):
     __tablename__ = 'tenant_service_auth'
     ID = Column(Integer, primary_key=True)
