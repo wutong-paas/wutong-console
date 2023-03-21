@@ -156,9 +156,10 @@ class ComponentRepository(BaseRepository[Component]):
         return session.execute(select(Component).where(
             Component.service_id.in_(service_ids))).scalars().all()
 
-    def get_service_by_service_id(self, session, service_id):
+    def get_service_by_service_id(self, session, service_id, is_delete=False):
         return session.execute(select(Component).where(
-            Component.service_id == service_id)).scalars().first()
+            Component.service_id == service_id,
+            Component.is_delete == is_delete)).scalars().first()
 
     def get_group_service_by_group_id(self, session, group_id, region_name, tenant_env, query=""):
         # todo

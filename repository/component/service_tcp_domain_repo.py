@@ -23,9 +23,11 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
                                                            ServiceTcpDomain.container_port == container_port))
         ).scalars().first()
 
-    def get_service_tcpdomains(self, session, service_id):
+    def get_service_tcpdomains(self, session, service_id, is_delete=False):
         return session.execute(select(ServiceTcpDomain).where(
-            ServiceTcpDomain.service_id == service_id)).scalars().all()
+            ServiceTcpDomain.service_id == service_id,
+            ServiceTcpDomain.is_delete == is_delete
+        )).scalars().all()
 
     def get_service_tcpdomain_by_tcp_rule_id(self, session, tcp_rule_id):
         return (session.execute(select(ServiceTcpDomain).where(
@@ -135,6 +137,7 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
         left join service_group sg 
             on sgr.group_id = sg.id  
         where std.tenant_env_id=:tenant_env_id 
+            and std.is_delete = 0 
             and std.region_id=:region_id 
             and sgr.group_id=:group_id 
             and (std.end_point like :search_conditions 
@@ -165,6 +168,7 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
         left join service_group sg 
             on sgr.group_id = sg.id  
         where std.tenant_env_id=:tenant_env_id 
+            and std.is_delete = 0 
             and std.region_id=:region_id 
             and sgr.group_id=:group_id 
         order by type desc limit :start,:end

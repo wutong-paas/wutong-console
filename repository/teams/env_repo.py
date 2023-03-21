@@ -4,7 +4,6 @@ env repository
 from loguru import logger
 from sqlalchemy import select, delete
 from clients.remote_build_client import remote_build_client
-from database.session import SessionClass
 from models.teams import TeamEnvInfo, RegionConfig
 from models.component.models import Component
 from repository.base import BaseRepository
@@ -15,7 +14,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     TenantRepository
     """
 
-    def get_tenant_list_by_region(self, session, region_id, page=1, page_size=10):
+    def get_envs_list_by_region(self, session, region_id, page=1, page_size=10):
         tenant_envs = self.get_all_envs(session)
         env_maps = {}
         if tenant_envs:
@@ -50,26 +49,10 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     def get_all_envs(self, session):
         return session.execute(select(TeamEnvInfo)).scalars().all()
 
-    def get_tenant_by_env_name(self, session: SessionClass, env_name, exception=True):
-        """
-        get_tenant_by_tenant_name
-
-        :param session:
-        :return:
-        """
-        logger.info("get_tenant_by_tenant_name,param:{}", env_name)
-        env = session.execute(select(TeamEnvInfo).where(TeamEnvInfo.env_name == env_name)).scalars().first()
-        if not env and exception:
-            return None
-        return env
-
-    def get_env_by_env_id(self, session, env_id):
+    def get_env_by_env_id(self, session, env_id, is_delete=False):
         return session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id)).scalars().first()
-
-    def get_env_by_env_name(self, session, env_name):
-        return session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.env_name == env_name)).scalars().first()
+            select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id,
+                                      TeamEnvInfo.is_delete == is_delete)).scalars().first()
 
     def delete_by_env_id(self, session, env_id):
         row = session.execute(

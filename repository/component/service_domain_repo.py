@@ -48,9 +48,10 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
     def save_service_domain(self, session, service_domain):
         session.merge(service_domain)
 
-    def get_service_domains(self, session, service_id):
+    def get_service_domains(self, session, service_id, is_delete=False):
         return (session.execute(select(ServiceDomain).where(
-            ServiceDomain.service_id == service_id))).scalars().all()
+            ServiceDomain.service_id == service_id,
+            ServiceDomain.is_delete == is_delete))).scalars().all()
 
     def get_certificate_by_pk(self, session, pk):
         return (session.execute(select(ServiceDomainCertificate).where(
@@ -182,6 +183,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             left join service_group sg 
                 on sgr.group_id = sg.id 
         where sd.tenant_env_id=:tenant_env_id 
+            and sd.is_delete = 0 
             and sd.region_id=:region_id 
             and sgr.group_id=:group_id 
             and (sd.domain_name like :search_conditions 
@@ -207,6 +209,7 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             left join service_group sg 
                 on sgr.group_id = sg.id 
         where sd.tenant_env_id=:tenant_env_id 
+            and sd.is_delete = 0 
             and sd.region_id=:region_id 
             and sgr.group_id=:group_id 
         order by type desc
