@@ -223,7 +223,10 @@ async def update_tag(request: Request,
     except Exception as e:
         logger.debug(e)
         result = general_message(400, "fail", "创建失败")
-    return JSONResponse(result, status_code=result.get("code", 200))
+    code = result.get("code", 200)
+    if code == "0":
+        code = 200
+    return JSONResponse(result, status_code=code)
 
 
 @router.get("/enterprise/app-models/tag", response_model=Response, name="tag")
@@ -367,7 +370,7 @@ async def set_app_template(request: Request,
     }
     version = market_app_service.update_wutong_app_version_info(session, app_id, version, **body)
     result = general_message("0", "success", "更新成功", bean=jsonable_encoder(version))
-    return JSONResponse(result, status_code=result.get("code", 200))
+    return JSONResponse(result, status_code=200)
 
 
 @router.delete("/enterprise/app-model/{app_id}/version/{version}", response_model=Response,
@@ -378,7 +381,7 @@ async def delete_app_template(
                               session: SessionClass = Depends(deps.get_session)) -> Any:
     result = general_message("0", "success", "删除成功")
     market_app_service.delete_wutong_app_version(session, app_id, version)
-    return JSONResponse(result, status_code=result.get("code", 200))
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/enterprise/app-models/export", response_model=Response, name="获取应用导出状态")

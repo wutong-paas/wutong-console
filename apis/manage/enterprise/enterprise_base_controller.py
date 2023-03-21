@@ -156,7 +156,7 @@ async def delete_region(
         raise ServiceHandleException(status_code=404, msg="集群已不存在")
     region_repo.del_by_enterprise_region_id(session, region_id)
     result = general_message("0", "success", "删除成功")
-    return JSONResponse(result, status_code=result.get("code", 200))
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/enterprise/regions/{region_id}/tenants/{tenant_name}/env/{env_id}/limit",

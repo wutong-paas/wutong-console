@@ -438,7 +438,7 @@ async def app_share(request: Request,
         market_name = target.get("store_id")
         if market_name is None:
             result = general_message(400, "fail", "参数不全")
-            return JSONResponse(result, status_code=result.get("code", 200))
+            return JSONResponse(result, status_code=400)
     try:
         if group_id == "-1":
             code = 400
