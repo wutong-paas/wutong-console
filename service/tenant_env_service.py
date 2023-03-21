@@ -27,13 +27,10 @@ class TenantEnvService(object):
         env = env_repo.get_env_by_env_id(session=session, env_id=env_id)
         return env
 
-    def get_env_by_env_name(self, session: SessionClass, env_name) -> TeamEnvInfo:
-        env = env_repo.get_env_by_env_name(session=session, env_name=env_name)
-        return env
-
     def get_envs_by_tenant_name(self, session, tenant_name):
         envs = session.execute(
-            select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_name)).scalars().all()
+            select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == tenant_name,
+                                      TeamEnvInfo.is_delete == 0)).scalars().all()
         return envs
 
     def get_envs_by_tenant_id(self, session, tenant_id):
@@ -44,7 +41,9 @@ class TenantEnvService(object):
 
     def get_all_envs(self, session: SessionClass):
         envs = session.execute(
-            select(TeamEnvInfo)).scalars().all()
+            select(TeamEnvInfo).where(
+                TeamEnvInfo.is_delete == 0
+            )).scalars().all()
         return envs
 
     def delete_by_env_id(self, session: SessionClass, user_nickname, env):

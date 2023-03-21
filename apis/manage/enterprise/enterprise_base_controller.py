@@ -205,7 +205,7 @@ async def get_team_memory_config(request: Request,
                                  session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("pageSize", 10)
-    envs, total = env_repo.get_tenant_list_by_region(session, region_id, page, page_size)
+    envs, total = env_repo.get_envs_list_by_region(session, region_id, page, page_size)
     result = general_message(
         "0", "success", "获取成功", bean={
             "envs": envs,

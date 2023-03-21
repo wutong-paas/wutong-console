@@ -37,6 +37,7 @@ class BaseService:
                 LEFT JOIN service_group g ON r.group_id = g.ID
             WHERE
                 t.tenant_env_id = :env_id
+                AND t.is_delete = 0
                 AND t.service_region = :region_name
                 AND r.group_id = :group_id
                 AND t.service_cname like '%' :service_cname '%'
