@@ -12,6 +12,7 @@ from exceptions.main import ServiceHandleException
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
+from service.env_delete_service import stop_env_resource
 from service.region_service import region_services
 from service.tenant_env_service import env_services
 
@@ -99,7 +100,8 @@ async def delete_env(request: Request,
     if env.env_alias != env_alias:
         return JSONResponse(general_message(400, "env name error", "环境名不匹配"), status_code=400)
     try:
-        env_services.delete_by_env_id(session=session, user_nickname=user.nick_name, env=env)
+        # env_services.delete_by_env_id(session=session, user_nickname=user.nick_name, env=env)
+        stop_env_resource(session=session, user=user, env=env, region_name=env.region_code)
         result = general_message("0", "delete a team successfully", "删除环境成功")
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:

@@ -1804,18 +1804,27 @@ class ApplicationVisitService(object):
     def update_app_visit_record_by_user_app(self, session, user_id, app_id):
         session.execute(update(ApplicationVisitRecord).where(
             ApplicationVisitRecord.user_id == user_id,
-            ApplicationVisitRecord.app_id == app_id
+            ApplicationVisitRecord.app_id == app_id,
+            ApplicationVisitRecord.is_delete == 0
         ))
 
     def get_app_visit_record_by_user(self, session, user_id):
         return session.execute(select(ApplicationVisitRecord).where(
-            ApplicationVisitRecord.user_id == user_id
+            ApplicationVisitRecord.user_id == user_id,
+            ApplicationVisitRecord.is_delete == 0
         ).order_by(ApplicationVisitRecord.visit_time.desc()).limit(5)).scalars().all()
+
+    def get_app_visit_record_by_app_id(self, session, app_id):
+        return session.execute(select(ApplicationVisitRecord).where(
+            ApplicationVisitRecord.app_id == app_id,
+            ApplicationVisitRecord.is_delete == 0
+        )).scalars().all()
 
     def get_app_visit_record_by_user_app(self, session, user_id, app_id):
         return session.execute(select(ApplicationVisitRecord).where(
             ApplicationVisitRecord.user_id == user_id,
-            ApplicationVisitRecord.app_id == app_id
+            ApplicationVisitRecord.app_id == app_id,
+            ApplicationVisitRecord.is_delete == 0
         )).scalars().first()
 
 

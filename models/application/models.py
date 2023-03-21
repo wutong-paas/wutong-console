@@ -366,3 +366,7 @@ class ApplicationVisitRecord(Base):
     tenant_env_alias = Column(String(32), comment="环境名", nullable=False)
     user_id = Column(String(32), nullable=False, comment="用户id")
     visit_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="访问时间")
+
+    is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
+    delete_time = Column(DateTime(), nullable=True, comment="删除时间")
+    delete_operator = Column(String(100), comment="删除操作人", nullable=True)

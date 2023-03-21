@@ -1,23 +1,11 @@
 import datetime
-
-from loguru import logger
-
-from clients.remote_build_client import remote_build_client
-from clients.remote_tenant_client import remote_tenant_client
-from exceptions.main import ServiceHandleException
 from models.application.models import ComponentApplicationRelation
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
-from repository.region.region_info_repo import region_repo
-from repository.teams.env_repo import env_repo
-from repository.teams.team_plugin_repo import plugin_repo
 from service.app_actions.app_manage import app_manage_service
-from service.base_services import base_service
-from service.plugin_service import plugin_service
-from service.region_service import region_services
-from service.tenant_env_service import env_services
+from service.application_service import application_visit_service
 
 
 def logic_delete_by_env_id(session, user, env, region_name):
@@ -31,10 +19,21 @@ def stop_env_resource(session, env, region_name, user):
     apps = application_repo.get_tenant_region_groups(session, env.env_id, region_name)
     for app in apps:
         group_id = app.ID
+
+        # 应用访问记录删除
+        app_vists = application_visit_service.get_app_visit_record_by_app_id(session, group_id)
+        if app_vists:
+            for app_vist in app_vists:
+                app_vist.is_delete = True
+                app_vist.delete_time = datetime.datetime.now()
+                app_vist.delete_operator = user.nick_name
+
         services = session.query(ComponentApplicationRelation).filter(
             ComponentApplicationRelation.group_id == group_id).all()
         if not services:
-            # raise ServiceHandleException(400, "not service", "当前组内无组件，无法操作")
+            app.is_delete = True
+            app.delete_time = datetime.datetime.now()
+            app.delete_operator = user.nick_name
             continue
         service_ids = [service.service_id for service in services]
         # 去除掉第三方组件
