@@ -64,7 +64,7 @@ scheduler = AsyncIOScheduler(jobstores={'default': RedisJobStore(db=int(settings
                                                                  port=int(settings.REDIS_PORT))})
 
 
-@scheduler.scheduled_job('cron', second="0", minute='0', hour="0", day="*", month="*", year="*")
+@scheduler.scheduled_job('cron', second="0", minute='*', hour="*", day="*", month="*", year="*")
 def scheduler_cron_task_test():
     recycle.recycle_delete_task(session=session.SessionClass())
 

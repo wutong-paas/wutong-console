@@ -19,7 +19,7 @@ from apis.manage.proxy import wutong_proxy_controller
 from apis.manage.team import wutong_team_overview_controller, \
     wutong_team_plugins_controller, wutong_team_domain_controller, \
     wutong_team_region_controller, wutong_team_apps_controller, wutong_team_groupapp_controller
-from apis.manage.teams import team_manage_controller
+from apis.manage.teams import team_manage_controller, cube_team_controller
 from apis.manage.env import env_manage_controller
 
 api_router = APIRouter()
@@ -92,3 +92,5 @@ api_router.include_router(wutong_obs_controller.router, tags=["obs"])
 api_router.include_router(env_manage_controller.router, tags=["tenant env"])
 # plat manage
 api_router.include_router(plat_manage_controller.router, tags=["plat"])
+# cube
+api_router.include_router(cube_team_controller.router, tags=["cube-team"])
