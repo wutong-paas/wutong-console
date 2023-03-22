@@ -34,8 +34,7 @@ def _delete_check(session: SessionClass, tenant_env, service):
             return False
         status_info = remote_component_client.check_service_status(session,
                                                                    service.service_region, tenant_env,
-                                                                   service.service_alias,
-                                                                   tenant_env.enterprise_id)
+                                                                   service.service_alias)
         status = status_info["bean"]["cur_status"]
         if status in (
                 "running", "starting", "stopping", "failure", "unKnow", "unusual", "abnormal", "some_abnormal"):
@@ -54,7 +53,7 @@ def _delete_check(session: SessionClass, tenant_env, service):
             dep_service_names = ",".join(list(services))
             return False, "当前组件被{0}依赖,请先解除依赖关系".format(dep_service_names)
     # 判断组件是否被其他组件挂载
-    sms = mnt_repo.get_mount_current_service(session, tenant_env.tenant_env_id, service.service_id)
+    sms = mnt_repo.get_mount_current_service(session, tenant_env.env_id, service.service_id)
     if sms:
         sids = [sm.service_id for sm in sms]
         service_ids = service_info_repo.get_services_by_service_ids(session, sids)
