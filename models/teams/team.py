@@ -20,7 +20,7 @@ class TeamEnvInfo(Base):
     region_code = Column(String(33), comment="集群标识", nullable=False)
     env_name = Column(String(31), comment="环境名称", nullable=False)
     tenant_id = Column(String(33), comment="团队id", nullable=False)
-    tenant_name = Column(String(31), comment="团队名称", nullable=False)
+    tenant_name = Column(String(31), comment="团队标识", nullable=False)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     creater = Column(String(64), nullable=False, default="admin", comment="租户创建者")
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
