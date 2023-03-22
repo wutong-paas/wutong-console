@@ -109,6 +109,16 @@ class ComponentDeleteService(object):
             service.is_delete = True
             service.delete_time = datetime.datetime.now()
             service.delete_operator = user.nick_name
+            tcp_domains = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
+            for tcp_domain in tcp_domains:
+                tcp_domain.is_delete = True
+                tcp_domain.delete_time = datetime.datetime.now()
+                tcp_domain.delete_operator = user.nick_name
+            service_domains = domain_repo.get_service_domains(session, service.service_id)
+            for service_domain in service_domains:
+                service_domain.is_delete = True
+                service_domain.delete_time = datetime.datetime.now()
+                service_domain.delete_operator = user.nick_name
             service_info_repo.update_by_primary_key(session=session, update_model=service)
             # 组件从表标记删除 todo
             return 200, "删除成功"
