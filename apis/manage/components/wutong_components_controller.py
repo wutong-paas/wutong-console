@@ -22,6 +22,7 @@ from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
+from service.app_actions.app_delete import component_delete_service
 from service.app_actions.app_manage import app_manage_service
 from service.app_config.app_relation_service import dependency_service
 from service.app_config.port_service import port_service
@@ -432,7 +433,9 @@ async def delete_component(request: Request,
     data = await request.json()
     is_force = data.get("is_force", False)
     service = service_info_repo.get_service(session, component_alias, env.env_id)
-    code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user)
+    # code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user)
+    code, msg = component_delete_service.logic_delete(session=session, tenant_env=env, service=service, user=user,
+                                                      is_force=True)
     if code != 200:
         return JSONResponse(general_message(code, "delete service error", msg), status_code=code)
     result = general_message(code, "success", "操作成功")

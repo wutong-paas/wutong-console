@@ -46,6 +46,7 @@ from repository.component.service_share_repo import component_share_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.region.region_app_repo import region_app_repo
+from service.app_actions.app_delete import component_delete_service
 from service.app_actions.app_log import event_service
 from service.app_actions.exception import ErrVersionAlreadyExists
 from service.app_config.component_graph import component_graph_service
@@ -1160,7 +1161,9 @@ class AppManageService(object):
             return code, msg
 
         try:
-            code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
+            # code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
+            code, msg = component_delete_service.logic_delete(session=session, tenant_env=tenant_env, service=service,
+                                                              user=user, is_force=True)
             if code != 200:
                 return code, msg
             else:

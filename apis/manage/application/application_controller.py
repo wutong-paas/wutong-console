@@ -26,6 +26,7 @@ from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
 from schemas.wutong_application import CommonOperation
 from schemas.wutong_team_app import TeamAppCreateRequest
+from service import application_delete_service
 from service.app_actions.app_manage import app_manage_service
 from service.app_config_group import app_config_group_service
 from service.application_service import application_service, application_visit_service
@@ -175,6 +176,7 @@ async def delete_app(
         request: Request,
         env_id: Optional[str] = None,
         app_id: Optional[str] = None,
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     删除应用
@@ -206,8 +208,10 @@ async def delete_app(
 
     app_type = group.app_type
     try:
-        application_service.delete_app(session=session, tenant_env=env, region_name=region_name, app_id=app_id,
-                                       app_type=app_type)
+        # application_service.delete_app(session=session, tenant_env=env, region_name=region_name, app_id=app_id,
+        #                                app_type=app_type)
+        application_delete_service.logic_delete_application(session=session, app_id=app_id, region_name=region_name,
+                                                            user=user, env=env)
         result = general_message("0", "success", "删除成功")
     except AbortRequest as e:
         result = general_message(e.status_code, e.msg, e.msg_show)
@@ -786,7 +790,6 @@ async def create_apps_vist(
         user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
-
     app = application_repo.get_group_by_id(session, app_id)
     if not app:
         return JSONResponse(general_message(400, "query success", "该应用不存在"), status_code=400)

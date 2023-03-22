@@ -94,7 +94,8 @@ class ComponentDeleteService(object):
             raise ServiceHandleException(msg="delete component {} failure".format(service.service_alias),
                                          msg_show="组件删除失败")
 
-    def logic_delete(self, session: SessionClass, tenant_env, service, user, is_force):
+    @staticmethod
+    def logic_delete(session: SessionClass, tenant_env, service, user, is_force):
         logger.info("逻辑删除组件")
         # 前置条件判断
         if is_force:

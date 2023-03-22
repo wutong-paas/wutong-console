@@ -14,6 +14,7 @@ from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from schemas.team import CloseTeamAppParam
+from service.app_actions.app_delete import component_delete_service
 from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
@@ -58,10 +59,10 @@ def __sort_events(event1, event2):
 
 @router.get("/teams/{team_name}/env/{env_id}/apps", response_model=Response, name="总览环境应用信息")
 async def overview_env_app_info(request: Request,
-                                 page: int = Query(default=1, ge=1, le=9999),
-                                 page_size: int = Query(default=10, ge=1, le=500),
-                                 env_id: Optional[str] = None,
-                                 session: SessionClass = Depends(deps.get_session)) -> Any:
+                                page: int = Query(default=1, ge=1, le=9999),
+                                page_size: int = Query(default=10, ge=1, le=500),
+                                env_id: Optional[str] = None,
+                                session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     总览 团队应用信息
     """
@@ -179,6 +180,7 @@ async def again_delete_app(request: Request,
     data = await request.json()
     service_id = data.get("service_id", None)
     service = service_info_repo.get_service_by_service_id(session, service_id)
-    app_manage_service.delete_again(session, user, env, service)
+    # app_manage_service.delete_again(session, user, env, service)
+    component_delete_service.logic_delete(session=session, user=user, tenant_env=env, is_force=True, service=service)
     result = general_message("0", "success", "操作成功", bean={})
     return JSONResponse(result, status_code=200)
