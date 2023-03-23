@@ -1,5 +1,4 @@
 # 初始化app实例
-from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -55,16 +54,18 @@ def get_redis_pool():
     return redis
 
 
-scheduler = AsyncIOScheduler(jobstores={'default': RedisJobStore(db=int(settings.REDIS_DATABASE) + 1,
-                                                                 host=settings.REDIS_HOST,
-                                                                 password=settings.REDIS_PASSWORD,
-                                                                 port=int(settings.REDIS_PORT))})
+# jobstores={'default': RedisJobStore(db=int(settings.REDIS_DATABASE) + 1,
+#                                                                  host=settings.REDIS_HOST,
+#                                                                  password=settings.REDIS_PASSWORD,
+#                                                                  port=int(settings.REDIS_PORT))}
+scheduler = AsyncIOScheduler()
 
 
-@scheduler.scheduled_job('cron', second="0", minute='*', hour="*", day="*", month="*", year="*")
-def scheduler_cron_task_test():
+@scheduler.scheduled_job('cron', second="0", minute='0', hour="*", day="*", month="*", year="*")
+def scheduler_delete_task():
     scheduler_session = SessionClass()
     try:
+        logger.info("初始化定时清理回收站任务")
         recycle.recycle_delete_task(session=scheduler_session)
         scheduler_session.commit()
     except:
