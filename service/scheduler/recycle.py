@@ -21,7 +21,7 @@ def recycle_delete_task(session: SessionClass):
         for record in env_records:
             logger.info("开始清理环境信息:{},团队信息:{},删除操作人:{},删除操作时间:{}", record.env_name, record.tenant_name,
                         record.delete_operator, record.delete_time)
-            # env_services.delete_by_env_id(session=session, user_nickname=record.delete_operator, env=record)
+            env_services.delete_by_env_id(session=session, user_nickname=record.delete_operator, env=record)
             logger.info("环境清理完成")
 
     # 扫描待清理应用信息数据
@@ -34,9 +34,9 @@ def recycle_delete_task(session: SessionClass):
             # 查询env
             tenant_env = env_repo.get_env_by_env_id(session=session, env_id=record.tenant_env_id)
             if tenant_env:
-                # application_service.delete_app(session=session, tenant_env=tenant_env, region_name=record.region_name,
-                #                                app_id=record.ID,
-                #                                app_type=record.app_type)
+                application_service.delete_app(session=session, tenant_env=tenant_env, region_name=record.region_name,
+                                               app_id=record.ID,
+                                               app_type=record.app_type)
                 logger.info("应用清理完成")
 
     # 扫描待清理组件信息数据
@@ -49,6 +49,6 @@ def recycle_delete_task(session: SessionClass):
             # 查询env
             tenant_env = env_repo.get_env_by_env_id(session=session, env_id=record.tenant_env_id)
             if tenant_env:
-                # component_delete_service.delete(session=session, tenant_env=tenant_env, service=record,
-                #                                 user_nickname=record.delete_operator)
+                component_delete_service.delete(session=session, tenant_env=tenant_env, service=record,
+                                                user_nickname=record.delete_operator)
                 logger.info("组件清理完成")

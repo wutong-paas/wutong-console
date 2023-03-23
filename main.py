@@ -1,7 +1,7 @@
 # 初始化app实例
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
@@ -9,11 +9,8 @@ from redis import StrictRedis
 from starlette.responses import JSONResponse
 
 from apis.apis import api_router
-from core import deps
-from core.nacos import register_nacos, beat
 from core.utils.return_message import general_message
-from database import session
-from database.session import engine, Base, settings
+from database.session import engine, Base, settings, SessionClass
 from exceptions.main import ServiceHandleException
 from middleware import register_middleware
 from service.scheduler import recycle
@@ -53,20 +50,27 @@ async def request_validation_exception_handler(request: Request, exception: Requ
 
 def get_redis_pool():
     redis = StrictRedis(host=settings.REDIS_HOST, port=int(settings.REDIS_PORT), db=int(settings.REDIS_DATABASE),
-                        # password=settings.REDIS_PASSWORD,
+                        password=settings.REDIS_PASSWORD,
                         encoding="utf-8")
     return redis
 
 
 scheduler = AsyncIOScheduler(jobstores={'default': RedisJobStore(db=int(settings.REDIS_DATABASE) + 1,
                                                                  host=settings.REDIS_HOST,
-                                                                 # password=settings.REDIS_PASSWORD,
+                                                                 password=settings.REDIS_PASSWORD,
                                                                  port=int(settings.REDIS_PORT))})
 
 
 @scheduler.scheduled_job('cron', second="0", minute='*', hour="*", day="*", month="*", year="*")
 def scheduler_cron_task_test():
-    recycle.recycle_delete_task(session=session.SessionClass())
+    scheduler_session = SessionClass()
+    try:
+        recycle.recycle_delete_task(session=scheduler_session)
+        scheduler_session.commit()
+    except:
+        scheduler_session.rollback()
+    scheduler_session.expunge_all()
+    scheduler_session.close()
 
 
 @app.on_event('startup')
@@ -79,7 +83,7 @@ def startup_event():
     app.state.redis = get_redis_pool()
 
     # 启动定时任务调度器
-    # scheduler.start()
+    scheduler.start()
 
 
 @app.on_event('shutdown')
