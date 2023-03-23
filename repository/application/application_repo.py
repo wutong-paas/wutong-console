@@ -90,7 +90,8 @@ class ApplicationRepository(BaseRepository[Application]):
     def get_group_count_by_team_id_and_group_id(self, session, env_id, group_id):
         service_group_info = session.execute(
             select(Application).where(Application.tenant_env_id == env_id,
-                                      Application.ID == group_id)
+                                      Application.ID == group_id,
+                                      Application.is_delete == 0)
         ).scalars().all()
         group_count = len(service_group_info)
         return group_count

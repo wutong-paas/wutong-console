@@ -438,7 +438,7 @@ async def delete_component(request: Request,
                                                       is_force=True)
     if code != 200:
         return JSONResponse(general_message(code, "delete service error", msg), status_code=code)
-    result = general_message(code, "success", "操作成功")
+    result = general_message("0", "success", "操作成功")
     return JSONResponse(result, status_code=200)
 
 
