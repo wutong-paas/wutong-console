@@ -84,7 +84,7 @@ def startup_event():
     Base.metadata.create_all(engine)
     app.state.redis = get_redis_pool()
 
-    scheduler.add_job(beat, 'interval', seconds=10)
+    scheduler.add_job(beat, 'interval', seconds=5)
 
     # 启动定时任务调度器
     scheduler.start()
