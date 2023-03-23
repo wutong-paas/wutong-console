@@ -1,7 +1,8 @@
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete
 
 from models.application.models import ComponentApplicationRelation, Application
 from repository.base import BaseRepository
+from repository.component.group_service_repo import service_info_repo
 
 
 class ComponentApplicationRelationRepository(BaseRepository[ComponentApplicationRelation]):
@@ -45,9 +46,16 @@ class ComponentApplicationRelationRepository(BaseRepository[ComponentApplication
         :param app_id:
         :return:
         """
-        return (session.execute(
-            select(func.count(ComponentApplicationRelation.ID)).where(ComponentApplicationRelation.group_id == app_id)
-        )).first()[0]
+        count = 0
+        service_rels = session.execute(
+            select(ComponentApplicationRelation).where(ComponentApplicationRelation.group_id == app_id)
+        ).scalars().all()
+        for rel in service_rels:
+            service_id = rel.service_id
+            service = service_info_repo.get_service_by_service_id(session, service_id)
+            if service:
+                count += 1
+        return count
 
     def list_serivce_ids_by_app_id(self, session, tenant_env_id, region_name, app_id):
         service_ids = (

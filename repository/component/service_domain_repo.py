@@ -76,7 +76,8 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
     def count_by_service_ids(self, session, region_id, service_ids):
         return (session.execute(
             select(func.count(ServiceDomain.ID)).where(ServiceDomain.region_id == region_id,
-                                                       ServiceDomain.service_id.in_(service_ids))
+                                                       ServiceDomain.service_id.in_(service_ids),
+                                                       ServiceDomain.is_delete == 0)
         )).first()[0]
 
     def get_service_domain_by_container_port(self, session, service_id, container_port):

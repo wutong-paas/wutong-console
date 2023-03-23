@@ -64,7 +64,8 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
     def count_by_service_ids(self, session, region_id, service_ids):
         return (session.execute(
             select(func.count(ServiceTcpDomain.ID)).where(ServiceTcpDomain.region_id == region_id,
-                                                          ServiceTcpDomain.service_id.in_(service_ids))
+                                                          ServiceTcpDomain.service_id.in_(service_ids),
+                                                          ServiceTcpDomain.is_delete == 0)
         )).first()[0]
 
     def get_service_tcp_domains_by_service_id_and_port(self, session, service_id, container_port):
