@@ -1,4 +1,6 @@
 # 初始化app实例
+import atexit
+import fcntl
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -6,7 +8,6 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from redis import StrictRedis
 from starlette.responses import JSONResponse
-
 from apis.apis import api_router
 from core import nacos
 from core.nacos import register_nacos
@@ -73,9 +74,23 @@ def scheduler_delete_task():
 
 
 @scheduler.scheduled_job('interval', seconds=5)
-async def scheduler_nacos_beat():
-    logger.info("初始化Nacos心跳定时任务")
-    await nacos.beat()
+def scheduler_nacos_beat():
+    nacos.beat()
+
+
+def init():
+    f = open("scheduler.lock", "wb")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        scheduler.start()
+    except:
+        pass
+
+    def unlock():
+        fcntl.flock(f, fcntl.LOCK_UN)
+        f.close()
+
+    atexit.register(unlock)
 
 
 @app.on_event('startup')
@@ -89,7 +104,7 @@ def startup_event():
     # 微服务注册
     register_nacos()
     # 启动定时任务调度器
-    scheduler.start()
+    init()
 
 
 @app.on_event('shutdown')
@@ -99,6 +114,7 @@ def shutdown_event():
     :return:
     """
     app.state.redis.connection_pool.disconnect()
+    scheduler.shutdown()
 
 
 app.mount("/static", StaticFiles(directory="weavescope"), name="static")
