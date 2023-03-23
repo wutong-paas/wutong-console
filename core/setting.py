@@ -77,12 +77,12 @@ class Settings(BaseSettings):
 
     # nacos 配置
     ip_address = socket.gethostbyname(socket.gethostname())
-    NACOS_HOST = os.environ.get("NACOS_HOST", "192.168.213.195:8848")
-    SERVER_NAMESPACE_ID = os.environ.get("SERVER_NAMESPACE_ID", "TEST")
+    NACOS_HOST = os.environ.get("NACOS_HOST", "wtb1e507-8848.cube:8848")
+    SERVER_NAMESPACE_ID = os.environ.get("SERVER_NAMESPACE_ID", "CUBE")
     SERVICE_NAME = "paas-console"
     SERVICE_IP = ip_address
     SERVICE_PORT = "8888"
-    SERVICE_GROUP_NAME = os.environ.get("SERVICE_GROUP_NAME", "IDAAS")
+    SERVICE_GROUP_NAME = os.environ.get("SERVICE_GROUP_NAME", "CUBE")
 
     source_code_type = {
         "github": "",

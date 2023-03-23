@@ -8,6 +8,7 @@ from redis import StrictRedis
 from starlette.responses import JSONResponse
 
 from apis.apis import api_router
+from core.nacos import register_nacos, beat
 from core.utils.return_message import general_message
 from database.session import engine, Base, settings, SessionClass
 from exceptions.main import ServiceHandleException
@@ -22,7 +23,7 @@ else:
 
 
 # 微服务注册
-# register_nacos()
+register_nacos()
 
 
 @app.exception_handler(ServiceHandleException)
@@ -82,6 +83,8 @@ def startup_event():
     """
     Base.metadata.create_all(engine)
     app.state.redis = get_redis_pool()
+
+    scheduler.add_job(beat, 'interval', seconds=10)
 
     # 启动定时任务调度器
     scheduler.start()
