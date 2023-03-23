@@ -190,6 +190,7 @@ class AppManageService(object):
                                                                             pk=service.tenant_service_group_id)
         self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service,
                                            user_nickname=user_nickname)
+        service_info_repo.delete_service(session, service.ID)
         return ignore_delete_from_cluster
 
     def delete_components(self, session: SessionClass, tenant_env, components, user=None):
