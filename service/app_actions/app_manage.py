@@ -193,14 +193,14 @@ class AppManageService(object):
         service_info_repo.delete_service(session, service.ID)
         return ignore_delete_from_cluster
 
-    def delete_components(self, session: SessionClass, tenant_env, components, user=None):
+    def delete_components(self, session: SessionClass, tenant_env, components, user_nickname=None):
         # Batch delete considers that the preconditions have been met,
         # and no longer judge the preconditions
         for cpt in components:
-            self.truncate_service(session, tenant_env, cpt, user)
+            self.truncate_service(session, tenant_env, cpt, user_nickname=user_nickname)
 
     # todo 事物
-    def truncate_service(self, session: SessionClass, tenant_env, service, user=None):
+    def truncate_service(self, session: SessionClass, tenant_env, service, user_nickname=None):
         """彻底删除组件"""
         try:
             data = {"etcd_keys": self.get_etcd_keys(session=session, tenant_env=tenant_env, service=service)}
@@ -212,7 +212,7 @@ class AppManageService(object):
                 logger.exception(e)
                 return 500, "删除组件失败 {0}".format(e.message)
 
-        self._truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
+        self._truncate_service(session=session, tenant_env=tenant_env, service=service, user_nickname=user_nickname)
 
         # 如果这个组件属于应用, 则删除应用最后一个组件后同时删除应用
         # 如果这个组件属于模型安装应用, 则删除最后一个组件后同时删除安装应用关系。
@@ -229,7 +229,7 @@ class AppManageService(object):
 
         return 200, "success"
 
-    def _truncate_service(self, session: SessionClass, tenant_env, service, user=None):
+    def _truncate_service(self, session: SessionClass, tenant_env, service, user_nickname=None):
         if service.create_status == "complete":
             data = jsonable_encoder(service)
             data.pop("ID")
@@ -328,7 +328,7 @@ class AppManageService(object):
         )
 
         self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service,
-                                           user_nickname=user.nick_name)
+                                           user_nickname=user_nickname)
         service_info_repo.delete_service(session, service.ID)
 
     def get_etcd_keys(self, session: SessionClass, tenant_env, service):
@@ -931,7 +931,7 @@ class AppManageService(object):
             return True, mnt_service_names
         return False, ""
 
-    def delete(self, session: SessionClass, user, tenant_env, service):
+    def delete(self, session: SessionClass, user_nickname, tenant_env, service):
         # 判断组件是否是运行状态
         if self.__is_service_running(session=session, tenant_env=tenant_env,
                                      service=service) and service.service_source != "third_party":
@@ -947,7 +947,8 @@ class AppManageService(object):
             return 412, "当前组件有存储被{0}组件挂载, 不可删除".format(msg)
 
         try:
-            code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
+            code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service,
+                                              user_nickname=user_nickname)
             if code != 200:
                 return code, msg
             else:

@@ -1490,7 +1490,8 @@ class ApplicationService(object):
         )
         # avoid circular import
         from service.app_actions.app_manage import app_manage_service
-        app_manage_service.delete_components(session=session, tenant_env=tenant_env, components=components, user=user)
+        app_manage_service.delete_components(session=session, tenant_env=tenant_env, components=components,
+                                             user_nickname=user.nick_name)
         self._delete_app(session, tenant_env, region_name, app_id)
 
     def _delete_wutong_app(self, session: SessionClass, tenant_env, region_name, app_id):
