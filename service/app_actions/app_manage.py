@@ -155,6 +155,7 @@ class AppManageService(object):
             data.pop("git_full_name")
             data.pop("gpu_type")
             data.pop("is_delete")
+            data.pop("delete_time")
             data.pop("delete_operator")
         try:
             delete_service_repo.create_delete_service(session, **data)
@@ -243,6 +244,7 @@ class AppManageService(object):
             data.pop("git_full_name")
             data.pop("gpu_type")
             data.pop("is_delete")
+            data.pop("delete_time")
             data.pop("delete_operator")
         try:
             add_model: TeamComponentInfoDelete = TeamComponentInfoDelete(**data)
