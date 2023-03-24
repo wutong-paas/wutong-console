@@ -600,7 +600,7 @@ class GroupappsMigrateService(object):
         port_repo.bulk_all(session, new_configs)
 
     def __save_service_relations(self, session: SessionClass, tenant_env, service_relations_list, old_new_service_id_map,
-                                 same_team,
+                                 same_env,
                                  same_region):
         new_service_relation_list = []
         if service_relations_list:
@@ -611,7 +611,7 @@ class GroupappsMigrateService(object):
                 new_service_relation.service_id = old_new_service_id_map[relation["service_id"]]
                 if old_new_service_id_map.get(relation["dep_service_id"]):
                     new_service_relation.dep_service_id = old_new_service_id_map[relation["dep_service_id"]]
-                elif same_team and same_region:
+                elif same_env and same_region:
                     # check new app region is same as old app
                     new_service_relation.dep_service_id = relation["dep_service_id"]
                 else:
@@ -620,7 +620,7 @@ class GroupappsMigrateService(object):
             port_repo.bulk_all(session, new_service_relation_list)
 
     def __save_service_mnt_relation(self, session: SessionClass, tenant_env, service_mnt_relation_list,
-                                    old_new_service_id_map, same_team,
+                                    old_new_service_id_map, same_env,
                                     same_region):
         new_service_mnt_relation_list = []
         if service_mnt_relation_list:
@@ -631,7 +631,7 @@ class GroupappsMigrateService(object):
                 new_service_mnt.service_id = old_new_service_id_map[mnt["service_id"]]
                 if old_new_service_id_map.get(mnt["dep_service_id"]):
                     new_service_mnt.dep_service_id = old_new_service_id_map[mnt["dep_service_id"]]
-                elif same_team and same_region:
+                elif same_env and same_region:
                     new_service_mnt.dep_service_id = mnt["dep_service_id"]
                 else:
                     continue
@@ -646,7 +646,7 @@ class GroupappsMigrateService(object):
             changed_service_map,
             metadata,
             group_id,
-            same_team,
+            same_env,
             same_region,
             sync_flag=False,
     ):
@@ -760,11 +760,11 @@ class GroupappsMigrateService(object):
                                                   service_plugin_configs=app["service_plugin_config"])
         self.__save_service_relations(session=session, tenant_env=env,
                                       service_relations_list=service_relations_list,
-                                      old_new_service_id_map=old_new_service_id_map, same_team=same_team,
+                                      old_new_service_id_map=old_new_service_id_map, same_env=same_env,
                                       same_region=same_region)
         self.__save_service_mnt_relation(session=session, tenant_env=env,
                                          service_mnt_relation_list=service_mnt_list,
-                                         old_new_service_id_map=old_new_service_id_map, same_team=same_team,
+                                         old_new_service_id_map=old_new_service_id_map, same_env=same_env,
                                          same_region=same_region)
         # restore application config group
         self.__save_app_config_groups(session=session,

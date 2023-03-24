@@ -78,7 +78,7 @@ def scheduler_nacos_beat():
     nacos.beat()
 
 
-def init():
+def start_scheduler():
     f = open("scheduler.lock", "wb")
     try:
         fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -104,7 +104,7 @@ def startup_event():
     # 微服务注册
     register_nacos()
     # 启动定时任务调度器
-    init()
+    start_scheduler()
 
 
 @app.on_event('shutdown')

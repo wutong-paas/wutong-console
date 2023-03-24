@@ -336,19 +336,23 @@ async def app_copy(request: Request,
                    session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     services = data.get("services", [])
-    tar_env_name = data.get("tar_env_name")
+    tar_env_id = data.get("tar_env_id")
     tar_region_name = data.get("tar_region_name")
     tar_group_id = data.get("tar_group_id")
 
-    if not tar_env_name or not tar_region_name or not tar_group_id:
+    if not tar_env_id or not tar_region_name or not tar_group_id:
         raise ServiceHandleException(msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
-    tar_group = groupapp_copy_service.check_and_get_env_group(session, env.env_id, tar_group_id)
+
+    tar_env = env_repo.get_env_by_env_id(session, tar_env_id)
+    if not tar_env:
+        raise ServiceHandleException(msg_show="目标环境不存在", msg="not found tar env", status_code=404)
+    tar_group = groupapp_copy_service.check_and_get_env_group(session, tar_env_id, tar_group_id)
     try:
         region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
-        groupapp_copy_service.copy_group_services(session, user, region_name, env,
+        groupapp_copy_service.copy_group_services(session, user, env, region_name, tar_env,
                                                   tar_region_name,
                                                   tar_group, group_id, services)
         result = general_message(
@@ -356,7 +360,8 @@ async def app_copy(request: Request,
             "success",
             "复制成功",
             bean={
-                "tar_env_name": tar_env_name,
+                "tar_team_name": tar_env.tenant_name,
+                "tar_env_id": tar_env_id,
                 "tar_region_name": tar_region_name,
                 "tar_group_id": tar_group_id
             })
