@@ -1,5 +1,8 @@
 import datetime
+import json
 from typing import Any, Optional
+from urllib.parse import unquote
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -21,7 +24,8 @@ from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_config_service import plugin_config_service
 from service.plugin.plugin_version_service import plugin_version_service
 from service.plugin_service import plugin_service, allow_plugins
-from service.region_service import region_services
+from service.region_service import region_services, get_region_list_by_team_name
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -115,7 +119,8 @@ async def get_default_plugins(
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
-    default_plugin_dict = plugin_service.get_default_plugin_from_cache(session=session, region=region_name, tenant_env=env)
+    default_plugin_dict = plugin_service.get_default_plugin_from_cache(session=session, region=region_name,
+                                                                       tenant_env=env)
 
     return general_message("0", "success", "查询成功", list=[])
 
@@ -267,7 +272,8 @@ async def get_build_history(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/used_services", response_model=Response, name="获取插件被哪些当前团队哪些组件使用")
+@router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/used_services", response_model=Response,
+            name="获取插件被哪些当前团队哪些组件使用")
 async def get_used_services(request: Request,
                             plugin_id: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
@@ -283,7 +289,8 @@ async def get_used_services(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/share/record", response_model=Response, name="查询插件分享记录")
+@router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/share/record", response_model=Response,
+            name="查询插件分享记录")
 async def get_share_record(plugin_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session)) -> Any:
     share_record = component_share_repo.get_service_share_record_by_groupid(session, plugin_id)
@@ -296,7 +303,8 @@ async def get_share_record(plugin_id: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
+@router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config",
+            response_model=Response,
             name="获取某个插件的配置信息")
 async def get_plugin_config(
         request: Request,
@@ -411,7 +419,8 @@ async def modify_plugin_version(request: Request,
     except Exception as e:
         logger.exception(e)
         result = error_message("失败")
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/build",
@@ -460,10 +469,12 @@ async def build_plugin(
     except Exception as e:
         logger.exception(e)
         result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/status", response_model=Response,
+@router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/status",
+            response_model=Response,
             name="获取插件构建状态")
 async def get_build_status(
         request: Request,
@@ -508,7 +519,8 @@ async def get_build_log(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
+@router.post("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config",
+             response_model=Response,
              name="增加插件配置")
 async def add_plugin_config(
         request: Request,
@@ -539,7 +551,8 @@ async def add_plugin_config(
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
+@router.put("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config",
+            response_model=Response,
             name="修改插件配置")
 async def modify_plugin_config(request: Request,
                                plugin_id: Optional[str] = None,
@@ -579,7 +592,8 @@ async def modify_plugin_config(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config", response_model=Response,
+@router.delete("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}/config",
+               response_model=Response,
                name="删除插件配置")
 async def delete_plugin_config(
         request: Request,
@@ -717,7 +731,8 @@ async def plugin_share(request: Request,
     except Exception as e:
         logger.exception(e)
         result = general_message(500, "region invoke error", "构建失败，请查看镜像或源代码是否正确")
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/share/list", response_model=Response, name="团队共享插件列表")
@@ -726,3 +741,33 @@ async def plugin_share_list(session: SessionClass = Depends(deps.get_session),
     tenant_env_id = env.env_id
     plugins = plugin_service.get_by_share_plugins(session, tenant_env_id, "shared")
     return JSONResponse(general_message("0", "success", "查询成功", list=jsonable_encoder(plugins)), status_code=200)
+
+
+@router.get("/users/details", response_model=Response, name="获取用户详情")
+async def get_user_details(
+        team_codes: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
+    tenant_list = []
+    user_detail = dict()
+    user_detail["user_id"] = user.user_id
+    user_detail["user_name"] = user.user_name
+    user_detail["real_name"] = user.real_name
+    user_detail["nick_name"] = user.nick_name
+    user_detail["email"] = user.email
+    user_detail["phone"] = user.phone
+
+    if team_codes:
+        team_codes = json.loads(unquote(team_codes))
+        for team_code in team_codes:
+            envs = env_services.get_envs_by_tenant_name(session, team_code)
+            # 查询团队信息
+            tenant_info = dict()
+            team_region_list = get_region_list_by_team_name(session=session, envs=envs)
+            tenant_info["team_name"] = team_code
+            tenant_info["region"] = team_region_list
+            tenant_list.append(tenant_info)
+    user_detail["teams"] = tenant_list
+    result = general_message("0", "Obtain my details to be successful.", "获取我的详情成功", bean=jsonable_encoder(user_detail))
+
+    return JSONResponse(result, status_code=200)

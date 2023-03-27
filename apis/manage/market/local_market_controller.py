@@ -259,7 +259,7 @@ async def create_center_app(*,
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/enterprise/app-models/import", response_model=Response, name="创建新的导入记录")
+@router.post("/enterprise/app-models/create/import", response_model=Response, name="创建新的导入记录")
 async def add_app_models(
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user)) -> Any:

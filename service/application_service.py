@@ -1410,9 +1410,9 @@ class ApplicationService(object):
 
         return result
 
-    def get_team_groups(self, session: SessionClass, tenant_name, env_id=None):
+    def get_env_groups(self, session: SessionClass, tenant_name, env_id=None, app_name=None):
         result = []
-        groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id)
+        groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id, app_name)
         for g in groups:
             bean = dict()
             bean["group_id"] = g.ID
@@ -1775,8 +1775,8 @@ class ApplicationService(object):
         application_repo.update(session, app_id, **data)
 
     def get_apps_by_plat(self, session, team_code, env_id, project_id, app_name):
-        sql = "select ID, group_name, k8s_app, note, logo, tenant_name, env_name, project_name " \
-              "from service_group where 1"
+        sql = "select ID, group_name, k8s_app, note, logo, tenant_name, env_name, project_name, " \
+              "region_name as region_code, tenant_env_id as env_id, team_code from service_group where 1"
         params = {
             "team_code": team_code,
             "env_id": env_id,

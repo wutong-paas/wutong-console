@@ -33,16 +33,18 @@ class ApplicationRepository(BaseRepository[Application]):
                 Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
-    def get_groups_by_team_name(self, session, team_name, env_id):
-        if not env_id:
-            sql = select(Application).where(Application.team_code == team_name).order_by(
-                Application.update_time.desc(), Application.order_index.desc())
-        else:
-            sql = select(Application).where(
-                Application.team_code == team_name,
-                Application.tenant_env_id == env_id).order_by(
-                Application.update_time.desc(), Application.order_index.desc())
-        return session.execute(sql).scalars().all()
+    def get_groups_by_team_name(self, session, team_name, env_id, app_name):
+        params = {
+            "team_code": team_name,
+            "env_id": env_id,
+            "app_name": app_name
+        }
+        sql = "select * from service_group where team_code = :team_code"
+        if env_id:
+            sql += " and tenant_env_id = :env_id order by update_time desc"
+        if app_name:
+            sql += " and group_name like '%' :app_name '%'"
+        return session.execute(sql, params).fetchall()
 
     def get_hn_tenant_region_groups(self, session, env_id, query="", app_type=""):
         sql = select(Application).where(Application.tenant_env_id == env_id,

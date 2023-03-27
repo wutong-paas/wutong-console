@@ -18,16 +18,21 @@ from service.base_services import base_service
 from service.plugin_service import plugin_service
 
 
-def get_region_list_by_env_name(session: SessionClass, env_name):
+def get_region_list_by_team_name(session: SessionClass, envs):
     """
-    :param session:
+
     :param team_name:
     :return:
     """
-    regions = team_region_repo.get_active_region_by_env_name(session=session, env_name=env_name)
-    if regions:
-        region_name_list = []
-        for region in regions:
+    region_name_list = []
+    team_region_name_list = []
+    if envs:
+        for env in envs:
+            region = team_region_repo.get_active_region_by_env(session=session, tenant_env=env)
+            region_name = region.region_name
+            if region_name in team_region_name_list:
+                continue
+            team_region_name_list.append(region.region_name)
             region_config = team_region_repo.get_region_by_region_name(session, region.region_name)
             if region_config and region_config.status in ("1", "3"):
                 region_info = {
@@ -35,7 +40,8 @@ def get_region_list_by_env_name(session: SessionClass, env_name):
                     "is_active": region.is_active,
                     "region_status": region_config.status,
                     "team_region_alias": region_config.region_alias,
-                    "region_tenant_env_id": region.region_tenant_env_id,
+                    "region_env_id": region.region_env_id,
+                    "region_tenant_id": env.tenant_id,
                     "team_region_name": region.region_name,
                     "region_scope": region_config.scope,
                     "region_create_time": region_config.create_time,

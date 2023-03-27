@@ -242,13 +242,14 @@ async def team_env_app_group(request: Request,
     return general_message("0", "success", "查询成功", list=groups_services)
 
 
-@router.get("/teams/{team_name}/overview/groups", response_model=Response, name="团队应用列表")
+@router.get("/teams/{team_name}/overview/groups", response_model=Response, name="环境应用列表")
 async def team_app_group(
         team_name: Optional[str] = None,
         env_id: Optional[str] = None,
+        app_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
-       团队下应用列表
+       环境下应用列表
        ---
        parameters:
            - name: team_name
@@ -262,7 +263,8 @@ async def team_app_group(
              type: string
              paramType: query
    """
-    groups_services = application_service.get_team_groups(session=session, tenant_name=team_name, env_id=env_id)
+    groups_services = application_service.get_env_groups(session=session, tenant_name=team_name, env_id=env_id,
+                                                          app_name=app_name)
     return general_message("0", "success", "查询成功", list=groups_services)
 
 
