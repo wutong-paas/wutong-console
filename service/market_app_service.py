@@ -531,7 +531,7 @@ class MarketAppService(object):
                 'app_model_name': app_model.app_name,
                 'app_model_id': app_model_key,
                 'share_user': app_model.create_user,
-                'share_team': app_model.create_team,
+                'share_env': app_model.create_team,
                 'tenant_service_group_id': app_model.app_id,
                 'pic': app_model.pic,
                 'source': app_model.source,
