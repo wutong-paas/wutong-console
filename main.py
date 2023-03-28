@@ -1,13 +1,14 @@
 # 初始化app实例
 import atexit
 import fcntl
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
-from redis import StrictRedis
 from starlette.responses import JSONResponse
+
 from apis.apis import api_router
 from core import nacos
 from core.nacos import register_nacos
@@ -44,13 +45,6 @@ async def request_validation_exception_handler(request: Request, exception: Requ
                  request.query_params.items())
     logger.exception(exception)
     return JSONResponse(general_message(400, "validation error", "参数异常"), status_code=400)
-
-
-def get_redis_pool():
-    redis = StrictRedis(host=settings.REDIS_HOST, port=int(settings.REDIS_PORT), db=int(settings.REDIS_DATABASE),
-                        password=settings.REDIS_PASSWORD,
-                        encoding="utf-8")
-    return redis
 
 
 # jobstores={'default': RedisJobStore(db=int(settings.REDIS_DATABASE) + 1,
@@ -100,7 +94,6 @@ def startup_event():
     :return:
     """
     Base.metadata.create_all(engine)
-    app.state.redis = get_redis_pool()
     # 微服务注册
     register_nacos()
     # 启动定时任务调度器

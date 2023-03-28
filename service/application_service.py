@@ -1600,7 +1600,7 @@ class ApplicationService(object):
                                                                                   group_id)
         return gsr
 
-    def sync_envs(self, session, tenant_name, region_name, region_app_id, components, envs):
+    def sync_envs(self, session, tenant_env, region_name, region_app_id, components, envs):
         # make sure attr_value is string.
         for env in envs:
             if type(env.attr_value) != str:
@@ -1630,7 +1630,7 @@ class ApplicationService(object):
         body = {
             "components": new_components,
         }
-        remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
+        remote_app_client.sync_components(session, tenant_env, region_name, region_app_id, body)
 
     def update_governance_mode(self, session, tenant_env, region_name, app_id, governance_mode):
         # update the value of host env. eg. MYSQL_HOST
@@ -1663,7 +1663,7 @@ class ApplicationService(object):
         application_repo.update_governance_mode(session, tenant_env.env_id, region_name, app_id, governance_mode)
 
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-        self.sync_envs(session, tenant_env.tenant_name, region_name, region_app_id, components.values(), envs)
+        self.sync_envs(session, tenant_env, region_name, region_app_id, components.values(), envs)
         remote_app_client.update_app(session, region_name, tenant_env, region_app_id,
                                      {"governance_mode": governance_mode})
 

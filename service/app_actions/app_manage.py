@@ -1340,18 +1340,18 @@ class AppManageService(object):
         }
 
     @staticmethod
-    def _sync_third_components(session, tenant_name, region_name, region_app_id, component_bodies):
+    def _sync_third_components(session, tenant_env, region_name, region_app_id, component_bodies):
         body = {
             "components": component_bodies,
         }
-        remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
+        remote_app_client.sync_components(session, tenant_env, region_name, region_app_id, body)
 
     @staticmethod
-    def _rollback_third_components(session, tenant_name, region_name, region_app_id, components: [Component]):
+    def _rollback_third_components(session, tenant_env, region_name, region_app_id, components: [Component]):
         body = {
             "delete_component_ids": [component.service_id for component in components],
         }
-        remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
+        remote_app_client.sync_components(session, tenant_env, region_name, region_app_id, body)
 
     @staticmethod
     def _save_third_components(session, components, relations, third_endpoints, ports, envs):
@@ -1429,12 +1429,12 @@ class AppManageService(object):
 
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app.app_id)
 
-        self._sync_third_components(session, tenant_env.tenant_name, region_name, region_app_id, component_bodies)
+        self._sync_third_components(session, tenant_env, region_name, region_app_id, component_bodies)
 
         try:
             self._save_third_components(session, components, relations, endpoints, new_ports, envs)
         except Exception as e:
-            self._rollback_third_components(session, tenant_env.tenant_name, region_name, region_app_id, components)
+            self._rollback_third_components(session, tenant_env, region_name, region_app_id, components)
             raise e
 
         return components

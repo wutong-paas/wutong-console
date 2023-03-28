@@ -980,7 +980,7 @@ class AppPortService:
             if port.service_id != k8s_service["service_id"] or port.container_port != k8s_service["port"]:
                 raise ErrK8sServiceNameExists
 
-    def sync_ports(self, session, tenant_name, region_name, region_app_id, components, ports, envs):
+    def sync_ports(self, session, tenant_env, region_name, region_app_id, components, ports, envs):
         # make sure attr_value is string.
         for env in envs:
             if type(env.attr_value) != str:
@@ -1011,7 +1011,7 @@ class AppPortService:
         body = {
             "components": new_components,
         }
-        remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
+        remote_app_client.sync_components(session, tenant_env, region_name, region_app_id, body)
 
     def update_by_k8s_services(self, session, tenant_env, region_name, app: Application, k8s_services):
         """
@@ -1050,7 +1050,7 @@ class AppPortService:
         # sync ports and envs
         components = service_info_repo.list_by_ids(session=session, service_ids=component_ids)
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app.app_id)
-        self.sync_ports(session, tenant_env.tenant_name, region_name, region_app_id, components, ports, new_envs)
+        self.sync_ports(session, tenant_env, region_name, region_app_id, components, ports, new_envs)
 
 
 class EndpointService(object):
