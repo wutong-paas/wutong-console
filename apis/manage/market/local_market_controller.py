@@ -1,6 +1,7 @@
 import json
 import re
 from typing import Any, Optional
+from urllib.parse import unquote
 
 from fastapi import APIRouter, Path, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
@@ -188,7 +189,7 @@ async def app_models(request: Request,
     app_name = request.query_params.get("app_name", None)
 
     if tags:
-        tags = json.loads(tags)
+        tags = json.loads(unquote(tags))
 
     if app_name:
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
