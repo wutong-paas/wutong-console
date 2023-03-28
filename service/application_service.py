@@ -1776,7 +1776,7 @@ class ApplicationService(object):
 
     def get_apps_by_plat(self, session, team_code, env_id, project_id, app_name):
         sql = "select ID, group_name, k8s_app, note, logo, tenant_name, env_name, project_name, " \
-              "region_name as region_code, tenant_env_id as env_id, team_code from service_group where 1"
+              "region_name as region_code, tenant_env_id as env_id, team_code from service_group where is_delete=0"
         params = {
             "team_code": team_code,
             "env_id": env_id,
@@ -1784,13 +1784,15 @@ class ApplicationService(object):
             "app_name": app_name
         }
         if team_code:
-            sql += " and team_code like '%' :team_code '%'"
+            sql += " and team_code=:team_code"
         if env_id:
             sql += " and tenant_env_id=:env_id"
         if project_id:
             sql += " and project_id=:project_id"
         if app_name:
             sql += " and group_name like '%' :app_name '%'"
+
+        sql += " ORDER BY create_time desc"
 
         apps = session.execute(sql, params).fetchall()
         return apps

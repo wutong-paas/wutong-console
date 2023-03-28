@@ -743,11 +743,12 @@ async def plugin_share_list(session: SessionClass = Depends(deps.get_session),
     return JSONResponse(general_message("0", "success", "查询成功", list=jsonable_encoder(plugins)), status_code=200)
 
 
-@router.get("/users/details", response_model=Response, name="获取用户详情")
+@router.post("/users/details", response_model=Response, name="获取用户详情")
 async def get_user_details(
-        team_codes: Optional[str] = None,
+        request: Request,
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user)) -> Any:
+    team_codes = await request.json()
     tenant_list = []
     user_detail = dict()
     user_detail["user_id"] = user.user_id
@@ -758,7 +759,6 @@ async def get_user_details(
     user_detail["phone"] = user.phone
 
     if team_codes:
-        team_codes = json.loads(unquote(team_codes))
         for team_code in team_codes:
             envs = env_services.get_envs_by_tenant_name(session, team_code)
             # 查询团队信息

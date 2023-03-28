@@ -39,11 +39,12 @@ class ApplicationRepository(BaseRepository[Application]):
             "env_id": env_id,
             "app_name": app_name
         }
-        sql = "select * from service_group where team_code = :team_code"
+        sql = "select * from service_group where team_code = :team_code and is_delete=0"
         if env_id:
             sql += " and tenant_env_id = :env_id order by update_time desc"
         if app_name:
             sql += " and group_name like '%' :app_name '%'"
+        sql += ""
         return session.execute(sql, params).fetchall()
 
     def get_hn_tenant_region_groups(self, session, env_id, query="", app_type=""):
