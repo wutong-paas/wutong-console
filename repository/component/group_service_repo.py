@@ -109,10 +109,18 @@ class ComponentRepository(BaseRepository[Component]):
         ).scalars().first()
 
     def get_team_service_num_by_team_id(self, session, env_id, region_name):
-        count = (session.execute(select(ComponentApplicationRelation).where(
-            ComponentApplicationRelation.tenant_env_id == env_id,
-            ComponentApplicationRelation.region_name == region_name))).scalars().all()
-        return len(count)
+        count = 0
+        service_rels = session.execute(
+            select(ComponentApplicationRelation).where(
+                ComponentApplicationRelation.tenant_env_id == env_id,
+                ComponentApplicationRelation.region_name == region_name)
+        ).scalars().all()
+        for rel in service_rels:
+            service_id = rel.service_id
+            service = service_info_repo.get_service_by_service_id(session, service_id)
+            if service:
+                count += 1
+        return count
 
     def get_hn_team_service_num_by_team_id(self, session, env_id):
         count = (session.execute(select(ComponentApplicationRelation).where(
@@ -126,7 +134,7 @@ class ComponentRepository(BaseRepository[Component]):
         from tenant_service svc
             left join service_group_relation sgr on svc.service_id = sgr.service_id
             left join service_group sg on sg.id = sgr.group_id
-        where sg.id in :ids;
+        where sg.id in :ids and svc.is_delete=0;
         """
         sql = text(sql).bindparams(ids=tuple(ids.split(",")))
 

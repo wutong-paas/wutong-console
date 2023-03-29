@@ -60,7 +60,8 @@ class ApplicationRepository(BaseRepository[Application]):
 
     def get_tenant_region_groups_count(self, session, env_id, region):
         sql = select(Application).where(Application.tenant_env_id == env_id,
-                                        Application.region_name == region)
+                                        Application.region_name == region,
+                                        Application.is_delete == 0)
         count = len((session.execute(sql)).scalars().all())
         return count
 
