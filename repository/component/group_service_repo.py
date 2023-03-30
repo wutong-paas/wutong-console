@@ -169,6 +169,10 @@ class ComponentRepository(BaseRepository[Component]):
             Component.service_id == service_id,
             Component.is_delete == is_delete)).scalars().first()
 
+    def delete_service_by_service_id(self, session, service_id):
+        return session.execute(select(Component).where(
+            Component.service_id == service_id)).scalars().first()
+
     def get_group_service_by_group_id(self, session, group_id, region_name, tenant_env, query=""):
         # todo
         group_services_list = base_service.get_group_services_list(session=session, env_id=tenant_env.env_id,
@@ -278,7 +282,8 @@ class ComponentRepository(BaseRepository[Component]):
 
     def get_services_by_service_ids(self, session, service_ids):
         return session.execute(
-            select(Component).where(Component.service_id.in_(service_ids))).scalars().all()
+            select(Component).where(Component.service_id.in_(service_ids),
+                                    Component.is_delete == 0)).scalars().all()
 
     def get_services_by_service_ids_tenant_env_id(self, session, service_ids, tenant_env_id):
         return session.execute(

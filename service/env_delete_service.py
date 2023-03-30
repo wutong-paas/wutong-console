@@ -38,7 +38,7 @@ def stop_env_resource(session, env, region_name, user):
         service_ids = [service.service_id for service in services]
         # 去除掉第三方组件
         for service_id in service_ids:
-            service_obj = service_info_repo.get_service_by_service_id(session, service_id)
+            service_obj = service_info_repo.delete_service_by_service_id(session, service_id)
             service_obj.is_delete = True
             service_obj.delete_time = datetime.datetime.now()
             service_obj.delete_operator = user.nick_name
