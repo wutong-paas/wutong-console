@@ -312,12 +312,14 @@ class ApplicationService(object):
         exist_app = application_repo.get_group_by_unique_key(session=session, tenant_env_id=env_id,
                                                              region_name=region_name, group_name=group_name)
         app_id = app.app_id if app else 0
-        if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
-            raise ErrK8sAppExists
         if not exist_app:
+            if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
+                raise ErrK8sAppExists
             return
         if not app or exist_app.app_id != app.app_id:
             raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
+        if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
+            raise ErrK8sAppExists
 
     def create_app(self, session: SessionClass,
                    tenant_env,
@@ -1742,15 +1744,17 @@ class ApplicationService(object):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
+
+        app = application_repo.get_group_by_id(session, app_id)
+
         data = {
             "note": note,
             "logo": logo,
-            "project_id": project_id,
-            "project_name": project_name
+            "project_id": app.project_id if not project_id else project_id,
+            "project_name": app.project_name if not project_name else project_name
         }
         if username:
             data["username"] = username
-        app = application_repo.get_group_by_id(session, app_id)
 
         # check app name
         if app_alias:

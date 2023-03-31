@@ -386,7 +386,7 @@ async def delete_app_template(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/enterprise/app-models/export", response_model=Response, name="获取应用导出状态")
+@router.get("/enterprise/export/app-models", response_model=Response, name="获取应用导出状态")
 async def get_app_export_status(
         request: Request,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -418,7 +418,7 @@ async def get_app_export_status(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/enterprise/app-models/export", response_model=Response, name="导出应用市场应用")
+@router.post("/enterprise/export/app-models", response_model=Response, name="导出应用市场应用")
 async def export_app_models(
         request: Request,
         session: SessionClass = Depends(deps.get_session)) -> Any:

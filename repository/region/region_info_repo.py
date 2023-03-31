@@ -72,17 +72,17 @@ class RegionRepo(BaseRepository[RegionConfig]):
 
     def get_team_opened_region_name(self, session: SessionClass, env_name, region_names, is_init=None):
         """获取团队已开通的数据中心"""
-        tenant = env_repo.get_team_by_env_name(session, env_name)
-        if not tenant:
+        tenant_env = env_repo.get_team_by_env_name(session, env_name)
+        if not tenant_env:
             return None
         if not is_init:
             results = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.region_env_id == tenant.tenant_env_id,
+                EnvRegionInfo.region_env_id == tenant_env.env_id,
                 EnvRegionInfo.region_name.in_(region_names),
                 EnvRegionInfo.is_init == 1))
         else:
             results = session.execute(select(EnvRegionInfo).where(
-                EnvRegionInfo.region_env_id == tenant.tenant_env_id,
+                EnvRegionInfo.region_env_id == tenant_env.env_id,
                 EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 

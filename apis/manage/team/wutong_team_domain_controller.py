@@ -52,7 +52,7 @@ async def get_domain_query(request: Request,
             where sd.tenant_env_id=:tenant_env_id and sd.region_id=:region_id \
                 and (sd.domain_name like '%' :search_conditions '%' \
                     or sd.service_alias like '%' :search_conditions '%' \
-                    or sg.group_name like '%' :search_conditions '%');"
+                    or sg.group_name like '%' :search_conditions '%') and sd.is_delete=0;"
         res = session.execute(sql, parms)
         domain_count = res.fetchall()
 
@@ -83,14 +83,15 @@ async def get_domain_query(request: Request,
                     and sd.region_id=:region_id \
                     and (sd.domain_name like '%' :search_conditions '%' \
                         or sd.service_alias like '%' :search_conditions '%' \
-                        or sg.group_name like '%' :search_conditions '%') \
+                        or sg.group_name like '%' :search_conditions '%') and sd.is_delete=0 \
                 order by type desc LIMIT :start,:end;"
             tenant_tuples = session.execute(sql, parms).fetchall()
     else:
         # 获取总数
         domain_count = (session.execute(
             select(func.count(ServiceDomain.ID)).where(ServiceDomain.tenant_env_id == env.env_id,
-                                                       ServiceDomain.region_id == region.region_id))).first()
+                                                       ServiceDomain.region_id == region.region_id,
+                                                       ServiceDomain.is_delete == 0))).first()
 
         total = domain_count[0]
         start = (page - 1) * page_size
@@ -104,9 +105,10 @@ async def get_domain_query(request: Request,
             tenant_tuples = (session.execute("""select domain_name, type, is_senior, certificate_id, service_alias, protocol,
                 service_name, container_port, http_rule_id, service_id, domain_path, domain_cookie,
                 domain_heander, the_weight, is_outer_service, path_rewrite, rewrites from service_domain where tenant_env_id='{0}'
-                and region_id='{1}' order by type desc LIMIT {2},{3};""".format(env.env_id, region.region_id,
-                                                                                start,
-                                                                                end))).fetchall()
+                and region_id='{1}' and is_delete=0 order by type desc LIMIT {2},{3};""".format(env.env_id,
+                                                                                                region.region_id,
+                                                                                                start,
+                                                                                                end))).fetchall()
     # 拼接展示数据
     domain_list = list()
     for tenant_tuple in tenant_tuples:
@@ -280,7 +282,7 @@ async def get_domain_query(request: Request,
                         where std.tenant_env_id=:tenant_env_id and std.region_id=:region_id \
                             and (std.end_point like '%' :search_conditions '%' \
                                 or std.service_alias like '%' :search_conditions '%' \
-                                or sg.group_name like '%' :search_conditions '%');"
+                                or sg.group_name like '%' :search_conditions '%') and std.is_delete=0;"
             domain_count = session.execute(sql, parms).fetchall()
 
             total = domain_count[0][0]
@@ -300,14 +302,15 @@ async def get_domain_query(request: Request,
                         where std.tenant_env_id=:tenant_env_id and std.region_id=:region_id \
                             and (std.end_point like '%' :search_conditions '%' \
                                 or std.service_alias like '%' :search_conditions '%' \
-                                or sg.group_name like '%' :search_conditions '%') \
+                                or sg.group_name like '%' :search_conditions '%') and std.is_delete = 0 \
                         order by type desc LIMIT :start,:end;"
             tenant_tuples = session.execute(sql, parms).fetchall()
         else:
             # 获取总数
             domain_count = (session.execute(
                 select(func.count(ServiceTcpDomain.ID)).where(ServiceTcpDomain.tenant_env_id == env.env_id,
-                                                              ServiceTcpDomain.region_id == region.region_id))).first()
+                                                              ServiceTcpDomain.region_id == region.region_id,
+                                                              ServiceTcpDomain.is_delete == 0))).first()
 
             total = domain_count[0]
             start = (page - 1) * page_size
@@ -323,7 +326,7 @@ async def get_domain_query(request: Request,
                             tcp_rule_id, service_id,
                             is_outer_service
                             from service_tcp_domain
-                            where tenant_env_id='{0}' and region_id='{1}' order by type desc
+                            where tenant_env_id='{0}' and region_id='{1}' and is_delete=0 order by type desc
                             LIMIT {2},{3};
                         """.format(env.env_id, region.region_id, start, end))).fetchall()
     except Exception as e:

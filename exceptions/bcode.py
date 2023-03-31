@@ -229,7 +229,7 @@ class ErrServiceAddressNotFound(ServiceHandleException):
 class ErrK8sAppExists(ServiceHandleException):
     def __init__(self):
         super(ErrK8sAppExists, self).__init__(
-            msg="k8s app exists", msg_show="应用英文名已存在", status_code=400, error_code=21003)
+            msg="k8s app exists", msg_show="应用标识已存在", status_code=400, error_code=21003)
 
 
 class ErrNamespaceExists(ServiceHandleException):

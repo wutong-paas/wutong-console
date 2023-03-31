@@ -51,7 +51,7 @@ class ServiceHandleException(Exception):
 
     @property
     def response(self):
-        return MessageResponse(self.msg, msg_show=self.msg_show, status_code=self.status_code,
+        return MessageResponse(self.msg_show, msg_show=self.msg, status_code=self.status_code,
                                error_code=self.error_code)
 
 

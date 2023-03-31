@@ -167,11 +167,11 @@ class PropertiesChanges(object):
         if not service_monitors:
             return None
         add = []
-        old_monitors = service_monitor_service.list_by_service_ids(session, self.tenant.tenant_env_id,
+        old_monitors = service_monitor_service.list_by_service_ids(session, self.tenant.env_id,
                                                                    [self.service.service_id])
         old_monitor_names = [monitor.name for monitor in old_monitors if old_monitors]
         for monitor in service_monitors:
-            tenant_monitor = service_monitor_service.get_tenant_service_monitor(session, self.tenant.tenant_env_id,
+            tenant_monitor = service_monitor_service.get_tenant_service_monitor(session, self.tenant.env_id,
                                                                                 monitor["name"])
             if not tenant_monitor and monitor["name"] not in old_monitor_names:
                 add.append(monitor)

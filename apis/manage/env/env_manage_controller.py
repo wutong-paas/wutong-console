@@ -48,12 +48,12 @@ async def add_env(request: Request,
 
     env = env_repo.env_is_exists_by_env_name(session, tenant_id, env_alias)
     if env:
-        result = general_message(400, "env name is exist", "该环境名已存在")
+        result = general_message(400, "env name is exist", "环境名称已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_namespace(session, tenant_id, env_name)
+    env = env_repo.env_is_exists_by_namespace(session, env_name)
     if env:
-        result = general_message(400, "env namespace is exist", "该环境标识已存在")
+        result = general_message(400, "env namespace is exist", "环境标识已存在")
         return JSONResponse(status_code=400, content=result)
 
     env = env_repo.create_env(session, user, region.region_alias, region_name, env_name, env_alias, tenant_id,

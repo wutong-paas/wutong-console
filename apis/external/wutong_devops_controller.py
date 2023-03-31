@@ -283,6 +283,9 @@ async def deploy_component(
         if code != 200:
             session.rollback()
             return JSONResponse(general_message(code, "deploy app error", msg, bean=bean), status_code=code)
+        service.is_delete = 0
+        service.delete_time = None
+        service.delete_operator = None
         result = general_message(code, "success", "操作成功", bean=bean)
     except ErrServiceSourceNotFound as e:
         logger.exception(e)
