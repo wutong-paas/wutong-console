@@ -106,7 +106,6 @@ def shutdown_event():
     关闭
     :return:
     """
-    app.state.redis.connection_pool.disconnect()
     scheduler.shutdown()
 
 

@@ -1745,6 +1745,9 @@ class ApplicationService(object):
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
 
+        if len(logo) > 255:
+            raise ServiceHandleException(msg="logo err", msg_show="logo格式错误")
+
         app = application_repo.get_group_by_id(session, app_id)
 
         data = {

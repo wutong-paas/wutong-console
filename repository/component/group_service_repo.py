@@ -225,7 +225,8 @@ class ComponentRepository(BaseRepository[Component]):
         return (
             session.execute(
                 select(Component).where(Component.service_id.in_(component_ids),
-                                        Component.tenant_service_group_id.in_(service_group_ids)))
+                                        Component.tenant_service_group_id.in_(service_group_ids),
+                                        Component.is_delete == 0))
         ).scalars().all()
 
     def get_no_group_service_status_by_group_id(self, session, tenant_env, tenant_env_id, region_name):
