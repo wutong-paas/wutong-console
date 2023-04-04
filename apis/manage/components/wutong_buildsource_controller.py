@@ -7,10 +7,14 @@ from loguru import logger
 from core import deps
 from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
+from exceptions.bcode import ErrK8sComponentNameExists
+from exceptions.main import ResourceNotEnoughException, AccountOverdueException
 from repository.component.component_repo import service_source_repo
 from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
+from service.application_service import application_service
 from service.base_services import base_service
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -114,4 +118,79 @@ async def modify_build_source(request: Request,
     except Exception as e:
         logger.exception(e)
         result = error_message("failed")
+    return JSONResponse(result, status_code=200)
+
+
+@router.post("/teams/{team_name}/env/{env_id}/apps/source_code", response_model=Response, name="源码创建组件")
+async def code_create_component(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env)) -> Any:
+    data = await request.json()
+    group_id = data.get("group_id", -1)
+    service_code_from = data.get("code_from", None)
+    service_cname = data.get("service_cname", None)
+    service_code_clone_url = data.get("git_url", None)
+    git_password = data.get("password", None)
+    git_user_name = data.get("username", None)
+    service_code_id = data.get("git_project_id", None)
+    service_code_version = data.get("code_version", "master")
+    check_uuid = data.get("check_uuid")
+    event_id = data.get("event_id")
+    server_type = data.get("server_type", "git")
+    oauth_service_id = data.get("service_id")
+    git_full_name = data.get("full_name")
+    k8s_component_name = data.get("k8s_component_name", "")
+    if k8s_component_name and application_service.is_k8s_component_name_duplicate(session, group_id,
+                                                                                  k8s_component_name):
+        raise ErrK8sComponentNameExists
+    try:
+        if not service_code_clone_url:
+            return JSONResponse(general_message(400, "code url is null", "仓库地址未指明"), status_code=400)
+        if not service_code_from:
+            return JSONResponse(general_message(400, "params error", "参数service_code_from未指明"), status_code=400)
+        if not server_type:
+            return JSONResponse(general_message(400, "params error", "仓库类型未指明"), status_code=400)
+        # 创建源码组件
+        if service_code_clone_url:
+            service_code_clone_url = service_code_clone_url.strip()
+
+        region = await region_services.get_region_by_request(session, request)
+        if not region:
+            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+        response_region = region.region_name
+        code, msg_show, new_service = application_service.create_source_code_app(
+            session,
+            response_region,
+            env,
+            user,
+            service_code_from,
+            service_cname,
+            service_code_clone_url,
+            service_code_id,
+            service_code_version,
+            server_type,
+            check_uuid,
+            event_id,
+            oauth_service_id,
+            git_full_name,
+            k8s_component_name=k8s_component_name)
+        if code != 200:
+            return JSONResponse(general_message(code, "service create fail", msg_show), status_code=code)
+        # 添加username,password信息
+        if git_password or git_user_name:
+            application_service.create_service_source_info(session, env, new_service, git_user_name, git_password)
+        code, msg_show = application_service.add_service_to_group(session, env, response_region, group_id,
+                                                                  new_service.service_id)
+
+        if code != 200:
+            logger.debug("service.create", msg_show)
+        bean = jsonable_encoder(new_service)
+        result = general_message("0", "success", "创建成功", bean=bean)
+    except ResourceNotEnoughException as re:
+        raise re
+    except AccountOverdueException as re:
+        logger.exception(re)
+        return JSONResponse(general_message(10410, "resource is not enough", "失败"), status_code=412)
     return JSONResponse(result, status_code=200)

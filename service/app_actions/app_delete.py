@@ -31,7 +31,7 @@ def _delete_check(session: SessionClass, tenant_env, service):
     # 判断组件是否是运行状态
     try:
         if service.create_status != "complete":
-            return False
+            return True, ""
         status_info = remote_component_client.check_service_status(session,
                                                                    service.service_region, tenant_env,
                                                                    service.service_alias)
