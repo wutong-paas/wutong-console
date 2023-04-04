@@ -194,13 +194,15 @@ async def overview_team_env_info(region_name: Optional[str] = None,
     overview_detail["team_alias"] = env.tenant_name
     if source:
         try:
+            service_running_num = int(source.get("service_running_num", 0))
             overview_detail["region_health"] = True
             overview_detail["team_service_memory_count"] = int(source["memory"])
             overview_detail["team_service_total_disk"] = int(source["disk"])
             overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
             overview_detail["team_service_total_memory"] = int(source["limit_memory"])
             overview_detail["team_service_use_cpu"] = int(source["cpu"])
-            overview_detail["running_component_num"] = int(source.get("service_running_num", 0))
+            overview_detail[
+                "running_component_num"] = team_app_num if service_running_num > team_app_num else service_running_num
             overview_detail["cpu_usage"] = round(int(source["cpu"]) / 1000, 2)
             overview_detail["memory_usage"] = round(int(source["memory"]) / 1024, 2)
         except Exception as e:
@@ -264,7 +266,7 @@ async def team_app_group(
              paramType: query
    """
     groups_services = application_service.get_env_groups(session=session, tenant_name=team_name, env_id=env_id,
-                                                          app_name=app_name)
+                                                         app_name=app_name)
     return general_message("0", "success", "查询成功", list=groups_services)
 
 
