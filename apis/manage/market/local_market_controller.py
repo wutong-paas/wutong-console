@@ -459,7 +459,6 @@ async def export_app_models(
              name="应用包导入")
 async def import_app(
         request: Request,
-        env_id: Optional[str] = None,
         event_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
@@ -474,11 +473,8 @@ async def import_app(
         raise AbortRequest(msg="file name is null", msg_show="请选择要导入的文件")
     if not event_id:
         raise AbortRequest(msg="event is not found", msg_show="参数错误，未提供事件ID")
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     files = file_name.split(",")
-    import_service.start_import_apps(session, scope, event_id, files, env)
+    import_service.start_import_apps(session, scope, event_id, files, team_name)
     result = general_message("0", 'success', "操作成功，正在导入")
     return JSONResponse(result, status_code=200)
 

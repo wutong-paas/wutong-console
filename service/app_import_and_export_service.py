@@ -30,13 +30,13 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(session, event_id)
 
-    def start_import_apps(self, session, scope, event_id, file_names, tenant_env):
+    def start_import_apps(self, session, scope, event_id, file_names, team_name):
         import_record = app_import_record_repo.get_import_record_by_event_id(session, event_id)
         if not import_record:
             raise RecordNotFound("import_record not found")
         import_record.scope = scope
-        if tenant_env.tenant_name:
-            import_record.team_name = tenant_env.team_name
+        if team_name:
+            import_record.team_name = team_name
 
         service_image = app_store.get_app_hub_info(session=session)
         data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
@@ -44,7 +44,7 @@ class AppImportService(object):
             remote_migrate_client_api.import_app_2_enterprise(session, import_record.region,
                                                               data)
         else:
-            res, body = remote_migrate_client_api.import_app(session, import_record.region, tenant_env, data)
+            res, body = remote_migrate_client_api.import_app(session, import_record.region, data)
         import_record.status = "importing"
         # import_record.save()
 

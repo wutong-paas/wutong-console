@@ -167,7 +167,7 @@ class AppUpgrade(MarketApp):
                     "type": "upgrade",
                     'current_version': current_version,
                     'can_upgrade': original_cpt is not None,
-                    'have_change': True if upgrade_info and current_version != self.version else False
+                    'have_change': True if upgrade_info else False
                 },
                 "upgrade_info": upgrade_info,
             })

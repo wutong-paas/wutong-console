@@ -49,7 +49,7 @@ class RemoteMigrateClient(ApiBaseHttpClient):
         res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(data))
         return res, body
 
-    def import_app(self, session, region, tenant_env, data):
+    def import_app(self, session, region, data):
         """导入应用"""
         url, token = get_region_access_info(region, session)
         url += "/v2/app/import"

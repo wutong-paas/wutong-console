@@ -51,7 +51,7 @@ class CenterAppVersion(Base):
     app_template = Column(LONGTEXT, comment="全量应用与插件配置信息", nullable=False)
     template_version = Column(String(10), default="v2", comment="模板版本", nullable=False)
     create_time = Column(DateTime(), default=datetime.now, nullable=True, comment="创建时间")
-    update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now, nullable=True, comment="更新时间")
+    update_time = Column(DateTime(), default=datetime.now, nullable=True, comment="更新时间")
     upgrade_time = Column(String(30), default="", comment="升级时间", nullable=False)
     install_number = Column(Integer, default=0, comment='安装次数', nullable=False)
     is_official = Column(Boolean(), default=False, comment='是否官方认证', nullable=False)
