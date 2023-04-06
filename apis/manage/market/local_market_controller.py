@@ -141,9 +141,13 @@ async def app_models(request: Request,
     scope = request.query_params.get("scope", None)
     tags = request.query_params.get("tags", [])
     app_name = request.query_params.get("app_name", None)
+    teams = request.query_params.get("teams", [])
 
     if tags:
         tags = json.loads(unquote(tags))
+
+    if teams:
+        teams = json.loads(unquote(teams))
 
     if app_name:
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
@@ -153,7 +157,7 @@ async def app_models(request: Request,
                                 next_page=int(page) + 1),
                 status_code=200)
 
-    apps, count = market_app_service.get_visiable_apps(session, user, scope, app_name, tags, is_complete,
+    apps, count = market_app_service.get_visiable_apps(session, user, scope, app_name, teams, tags, is_complete,
                                                        page,
                                                        page_size, need_install)
 

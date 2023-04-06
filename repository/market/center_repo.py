@@ -56,11 +56,12 @@ class CenterRepository(BaseRepository[CenterApp]):
                                               session,
                                               scope,
                                               app_name,
+                                              teams=None,
                                               tag_names=None,
                                               page=1,
                                               page_size=10,
                                               need_install="false"):
-        return self._prepare_get_wutong_app_by_query_sql(session, scope, app_name, None, tag_names, page,
+        return self._prepare_get_wutong_app_by_query_sql(session, scope, app_name, teams, tag_names, page,
                                                          page_size,
                                                          need_install)
 

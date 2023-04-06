@@ -164,12 +164,13 @@ class MarketAppService(object):
                           user,
                           scope,
                           app_name,
+                          teams=None,
                           tag_names=None,
                           is_complete=True,
                           page=1,
                           page_size=10,
                           need_install="false"):
-        apps = center_app_repo.get_wutong_app_in_enterprise_by_query(session, scope, app_name, tag_names,
+        apps = center_app_repo.get_wutong_app_in_enterprise_by_query(session, scope, app_name, teams, tag_names,
                                                                      page,
                                                                      page_size,
                                                                      need_install)
