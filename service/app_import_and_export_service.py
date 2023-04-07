@@ -107,6 +107,7 @@ class AppImportService(object):
             if app:
                 app.scope = import_record.scope
                 app.describe = app_describe
+                app.create_team = import_record.team_name
                 # app.save()
                 app_version = app_repo.get_wutong_app_version_by_app_id_and_version(
                     session, app.app_id, app_template["group_version"])
