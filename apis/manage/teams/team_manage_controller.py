@@ -128,7 +128,7 @@ async def env_services_event(
     if region_list:
         for region in region_list:
             try:
-                events, event_count, has_next = event_service.get_target_events(session=session, target="tenant",
+                events, event_count, has_next = event_service.get_target_events(session=session, target="tenant_env",
                                                                                 target_id=env.env_id,
                                                                                 tenant_env=env,
                                                                                 region=region.region_name,

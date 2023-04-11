@@ -6,6 +6,10 @@ from repository.base import BaseRepository
 
 class ApplicationRepository(BaseRepository[Application]):
 
+    def get_groups_by_project_id(self, session, project_id):
+        return session.execute(select(Application).where(
+            Application.project_id == project_id)).scalars().all()
+
     def get_groups_by_tenant_env_ids(self, session, tenant_env_ids):
         return session.execute(select(Application).where(
             Application.tenant_env_id.in_(tenant_env_ids)).order_by(
