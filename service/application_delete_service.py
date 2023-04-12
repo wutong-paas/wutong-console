@@ -9,6 +9,7 @@ from models.application.models import Application, ComponentApplicationRelation
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from service.app_actions.app_manage import app_manage_service
+from service.application_service import application_visit_service
 
 
 def logic_delete_application(session, app_id, region_name, user, env):
@@ -25,6 +26,12 @@ def _stop_app(session, app_id, region_name, user, env):
     app.is_delete = True
     app.delete_time = datetime.datetime.now()
     app.delete_operator = user.nick_name
+
+    visit_app = application_visit_service.get_app_visit_record_by_user_app(session, user.user_id, app_id, False)
+    if visit_app:
+        visit_app.is_delete = True
+        visit_app.delete_time = datetime.datetime.now()
+        visit_app.delete_operator = user.nick_name
 
     services = session.query(ComponentApplicationRelation).filter(
         ComponentApplicationRelation.group_id == app_id).all()

@@ -1830,12 +1830,22 @@ class ApplicationVisitService(object):
             ApplicationVisitRecord.is_delete == 0
         )).scalars().all()
 
-    def get_app_visit_record_by_user_app(self, session, user_id, app_id):
-        return session.execute(select(ApplicationVisitRecord).where(
+    def get_app_visit_record_by_user_app(self, session, user_id, app_id, is_delete=None):
+        if is_delete:
+            return session.execute(select(ApplicationVisitRecord).where(
+                ApplicationVisitRecord.user_id == user_id,
+                ApplicationVisitRecord.app_id == app_id,
+                ApplicationVisitRecord.is_delete == is_delete
+            )).scalars().first()
+        visit = session.execute(select(ApplicationVisitRecord).where(
             ApplicationVisitRecord.user_id == user_id,
-            ApplicationVisitRecord.app_id == app_id,
-            ApplicationVisitRecord.is_delete == 0
+            ApplicationVisitRecord.app_id == app_id
         )).scalars().first()
+        if visit:
+            visit.is_delete = False
+            visit.delete_time = None
+            visit.delete_operator = None
+        return visit
 
 
 application_service = ApplicationService()

@@ -822,17 +822,17 @@ async def get_apps_vist(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/app/project/cancel-rel", response_model=Response, name="取消应用项目关联")
-async def get_apps_vist(
-        request: Request,
+@router.get("/app/project/cancel-rel", response_model=Response, name="取消应用项目关联")
+async def cancel_project_app(
+        project_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
 
-    data = await request.json()
-    project_id = data.get("project_id", None)
     if project_id:
         apps = application_repo.get_groups_by_project_id(session, project_id)
         for app in apps:
             app.project_id = None
             app.project_name = None
+    else:
+        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
     result = general_message("0", "success", "取消成功")
     return JSONResponse(result, status_code=200)
