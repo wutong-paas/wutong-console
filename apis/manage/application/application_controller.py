@@ -826,7 +826,6 @@ async def get_apps_vist(
 async def cancel_project_app(
         project_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     if project_id:
         apps = application_repo.get_groups_by_project_id(session, project_id)
         for app in apps:
@@ -835,4 +834,19 @@ async def cancel_project_app(
     else:
         return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
     result = general_message("0", "success", "取消成功")
+    return JSONResponse(result, status_code=200)
+
+
+@router.get("/app/project/update", response_model=Response, name="更新应用项目信息")
+async def cancel_project_app(
+        project_id: Optional[str] = None,
+        project_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    if project_id and project_name:
+        apps = application_repo.get_groups_by_project_id(session, project_id)
+        for app in apps:
+            app.project_name = project_name
+    else:
+        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
+    result = general_message("0", "success", "更新成功")
     return JSONResponse(result, status_code=200)

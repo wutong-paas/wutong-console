@@ -299,7 +299,7 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
     service.create_status = "checked"
 
     session.merge(service)
-    return JSONResponse(result, status_code=200)
+    return JSONResponse(result, status_code=result["code"])
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/pods/{pod_name}/detail", response_model=Response,
