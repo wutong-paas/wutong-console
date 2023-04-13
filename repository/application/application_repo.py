@@ -15,7 +15,7 @@ class ApplicationRepository(BaseRepository[Application]):
             Application.tenant_env_id.in_(tenant_env_ids)).order_by(
             Application.update_time.desc(), Application.order_index.desc())).scalars().all()
 
-    def get_tenant_region_groups(self, session, env_id, region, query="", app_type="", project_id=None):
+    def get_tenant_region_groups(self, session, env_id, region, query="", app_type="", project_ids=None):
         sql = select(Application).where(Application.tenant_env_id == env_id,
                                         Application.region_name == region,
                                         Application.is_delete == 0,
@@ -28,10 +28,10 @@ class ApplicationRepository(BaseRepository[Application]):
                                             Application.is_delete == 0,
                                             Application.group_name.contains(query)).order_by(
                 Application.update_time.desc(), Application.order_index.desc())
-        if project_id:
+        if project_ids:
             sql = select(Application).where(Application.tenant_env_id == env_id,
                                             Application.region_name == region,
-                                            Application.project_id == project_id,
+                                            Application.project_id.in_(project_ids),
                                             Application.is_delete == 0,
                                             Application.group_name.contains(query)).order_by(
                 Application.update_time.desc(), Application.order_index.desc())

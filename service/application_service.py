@@ -42,6 +42,7 @@ from repository.component.service_share_repo import component_share_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_service_env_var_repo import env_var_repo as team_env_var_repo
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
@@ -1417,6 +1418,7 @@ class ApplicationService(object):
         groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id, app_name)
         for g in groups:
             bean = dict()
+            env = env_repo.get_env_by_env_id(session, g.tenant_env_id)
             bean["group_id"] = g.ID
             bean["group_name"] = g.group_name
             bean["env_name"] = g.env_name
@@ -1424,6 +1426,7 @@ class ApplicationService(object):
             bean["env_id"] = g.tenant_env_id
             bean["region_code"] = g.region_name
             bean["region_name"] = g.region_alias
+            bean["env_namespace"] = env.namespace
             result.append(bean)
         return result
 

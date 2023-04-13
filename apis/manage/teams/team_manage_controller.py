@@ -1,5 +1,8 @@
+import json
 from functools import cmp_to_key
 from typing import Any, Optional
+from urllib.parse import unquote
+
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -68,7 +71,10 @@ async def overview_env_app_info(request: Request,
     """
     query = request.query_params.get("query", "")
     status = request.query_params.get("status", "all")
-    project_id = request.query_params.get("project_id", None)
+    project_ids = request.query_params.get("project_ids", None)
+    if project_ids:
+        project_ids = json.loads(unquote(project_ids))
+
     count = {
         "RUNNING": 0,
         "CLOSED": 0,
@@ -87,7 +93,7 @@ async def overview_env_app_info(request: Request,
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
-    groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query, project_id=project_id)
+    groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query, project_ids=project_ids)
     total = len(groups)
     app_num_dict = {"total": total}
     start = (page - 1) * page_size
