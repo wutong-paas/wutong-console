@@ -6,12 +6,12 @@ from repository.teams.env_repo import env_repo
 
 
 class CertService(object):
-    def get_team_usable_regions(self, session, env_name):
+    def get_team_usable_regions(self, session, env_namespace):
         usable_regions = region_repo.get_usable_cert_regions(session)
         region_names = [r.region_name for r in usable_regions]
-        team_opened_regions = region_repo.get_team_opened_region(session, env_name)
+        team_opened_regions = region_repo.get_team_opened_region(session, env_namespace)
         if team_opened_regions:
-            tenant_env = env_repo.get_team_by_env_name(session, env_name)
+            tenant_env = env_repo.get_env_by_env_namespace(session, env_namespace)
             team_opened_regions = session.execute(select(EnvRegionInfo).where(
                 EnvRegionInfo.region_env_id == tenant_env.env_id,
                 EnvRegionInfo.is_init == 1,

@@ -1,8 +1,5 @@
 import datetime
-import json
 from typing import Any, Optional
-from urllib.parse import unquote
-
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -24,7 +21,7 @@ from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_config_service import plugin_config_service
 from service.plugin.plugin_version_service import plugin_version_service
 from service.plugin_service import plugin_service, allow_plugins
-from service.region_service import region_services, get_region_list_by_team_name
+from service.region_service import region_services, get_region_list_by_team_name, get_team_env_list
 from service.tenant_env_service import env_services
 
 router = APIRouter()
@@ -764,8 +761,10 @@ async def get_user_details(
             # 查询团队信息
             tenant_info = dict()
             team_region_list = get_region_list_by_team_name(session=session, envs=envs)
+            team_env_list = get_team_env_list(envs=envs)
             tenant_info["team_name"] = team_code
             tenant_info["region"] = team_region_list
+            tenant_info["envs"] = team_env_list
             tenant_list.append(tenant_info)
     user_detail["teams"] = tenant_list
     result = general_message("0", "Obtain my details to be successful.", "获取我的详情成功", bean=jsonable_encoder(user_detail))

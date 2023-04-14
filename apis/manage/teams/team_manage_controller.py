@@ -129,7 +129,7 @@ async def env_services_event(
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     total = 0
-    region_list = region_repo.get_team_opened_region(session, env.env_name)
+    region_list = region_repo.get_team_opened_region(session, env.namespace)
     event_service_dynamic_list = []
     if region_list:
         for region in region_list:

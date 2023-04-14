@@ -54,6 +54,26 @@ def get_region_list_by_team_name(session: SessionClass, envs):
         return []
 
 
+def get_team_env_list(envs):
+    """
+    :param envs:
+    :return:
+    """
+    team_env_list = []
+    if envs:
+        for env in envs:
+            env_info = {
+                "env_id": env.env_id,
+                "env_code": env.env_name,
+                "env_namespace": env.namespace,
+                "env_name": env.env_alias
+            }
+            team_env_list.append(env_info)
+        return team_env_list
+    else:
+        return []
+
+
 class RegionService(object):
 
     async def get_region_by_request(self, session, request):
@@ -265,7 +285,8 @@ class RegionService(object):
                                                         namespace)
             if res["status"] != 200 and body['msg'] != 'env name {} is exist'.format(env.env_name):
                 logger.error(res)
-                raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")
+                logger.error(body)
+                raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化环境失败")
             env_region.is_active = True
             env_region.is_init = True
             env_region.region_env_id = env.env_id

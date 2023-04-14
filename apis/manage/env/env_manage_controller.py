@@ -51,7 +51,7 @@ async def add_env(request: Request,
         result = general_message(400, "env name is exist", "环境名称已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_namespace(session, env_name)
+    env = env_repo.env_is_exists_by_namespace(session, namespace)
     if env:
         result = general_message(400, "env namespace is exist", "环境标识已存在")
         return JSONResponse(status_code=400, content=result)
@@ -68,8 +68,11 @@ async def add_env(request: Request,
         exist_namespace_region_names.append(region_name)
     except ServiceHandleException as e:
         logger.error(e)
+        session.rollback()
+        return JSONResponse(general_message(400, e.msg, e.msg_show), status_code=400)
     except Exception as e:
         logger.error(e)
+        session.rollback()
         return JSONResponse(general_message(400, "failed", "环境在数据中心创建失败"), status_code=400)
     if len(exist_namespace_region_names) > 0:
         exist_namespace_region = ""

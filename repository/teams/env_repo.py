@@ -72,9 +72,9 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             TeamEnvInfo.env_alias == env_alias,
             TeamEnvInfo.tenant_id == team_id)).scalars().first()
 
-    def env_is_exists_by_namespace(self, session, env_name):
+    def env_is_exists_by_namespace(self, session, namespace):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.env_name == env_name)).scalars().first()
+            TeamEnvInfo.namespace == namespace)).scalars().first()
 
     def create_env(self, session, user, region_name, region_code, env_name, env_alias, team_id, team_name, namespace="",
                    desc=""):
@@ -97,9 +97,9 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         session.flush()
         return add_team
 
-    def get_team_by_env_name(self, session, env_name):
+    def get_env_by_env_namespace(self, session, namespace):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.env_name == env_name)).scalars().first()
+            TeamEnvInfo.namespace == namespace)).scalars().first()
 
     def get_region_alias(self, session, region_name):
         try:
