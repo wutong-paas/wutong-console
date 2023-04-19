@@ -4,6 +4,7 @@ import pickle
 import random
 import re
 import string
+import uuid
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
@@ -294,7 +295,7 @@ class ApplicationService(object):
 
     @staticmethod
     def check_app_name(session: SessionClass, env_id, region_name, group_name, app: Application = None,
-                       k8s_app=""):
+                       k8s_app="", app_code=""):
         """
         检查应用名称
         :param tenant:
@@ -314,13 +315,18 @@ class ApplicationService(object):
                                                              region_name=region_name, group_name=group_name)
         app_id = app.app_id if app else 0
         if not exist_app:
-            if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
+            if application_repo.is_app_code_duplicate(session, env_id, region_name, app_code, app_id):
                 raise ErrK8sAppExists
-            return
+            if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
+                return True
+            return False
         if not app or exist_app.app_id != app.app_id:
             raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
-        if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
+        if application_repo.is_app_code_duplicate(session, env_id, region_name, app_code, app_id):
             raise ErrK8sAppExists
+        if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
+            return True
+        return False
 
     def create_app(self, session: SessionClass,
                    tenant_env,
@@ -337,6 +343,7 @@ class ApplicationService(object):
                    app_template_name="",
                    version="",
                    logo="",
+                   app_code="",
                    k8s_app=""):
         """
         创建团队应用
@@ -350,9 +357,17 @@ class ApplicationService(object):
         :param app_template_name:
         :param version:
         :param logo:
+        :param app_code:
+        :param k8s_app:
         :return:
         """
-        self.check_app_name(session, tenant_env.env_id, region_name, app_name, k8s_app=k8s_app)
+        is_k8s_app_dup = self.check_app_name(session, tenant_env.env_id, region_name, app_name, k8s_app=k8s_app,
+                                             app_code=app_code)
+        logger.info("is_k8s_app_dup ========== {0} k8s_app ======= {1}".format(is_k8s_app_dup, k8s_app))
+        if is_k8s_app_dup:
+            index = str(uuid.uuid1())
+            k8s_app = k8s_app + "-" + index[:8]
+
         # check parameter for helm app
         app_type = AppType.wutong.name
         if app_store_name or app_template_name or version:
@@ -387,6 +402,7 @@ class ApplicationService(object):
             app_template_name=app_template_name,
             version=version,
             logo=logo,
+            app_code=app_code,
             k8s_app=k8s_app
         )
         application_repo.create(session=session, model=app)
