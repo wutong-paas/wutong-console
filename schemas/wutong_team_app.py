@@ -17,6 +17,7 @@ class TeamAppCreateRequest(BaseModel):
     app_template_name: Optional[str] = None
     version: Optional[str] = None
     region_name: Optional[str] = None
+    app_code: Optional[str] = None
     k8s_app: Optional[str] = None
     project_id: Optional[str] = None
 

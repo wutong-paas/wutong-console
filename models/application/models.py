@@ -40,6 +40,7 @@ class Application(Base):
     app_template_name = Column(String(255), comment="应用模板名称", nullable=True)
     version = Column(String(255), comment="Helm 应用版本", nullable=True)
     logo = Column(String(255), comment="应用logo", nullable=True)
+    app_code = Column(String(64), comment="应用标识", nullable=False, default='')
     k8s_app = Column(String(64), comment="集群内应用名称", nullable=False, default='')
 
     is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)

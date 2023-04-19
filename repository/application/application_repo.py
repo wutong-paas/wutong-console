@@ -1,5 +1,7 @@
 from datetime import datetime
-from sqlalchemy import select, update, not_, delete
+
+from loguru import logger
+from sqlalchemy import select, update, not_, delete, bindparam
 from models.application.models import Application, ComponentApplicationRelation
 from repository.base import BaseRepository
 
@@ -132,6 +134,24 @@ class ApplicationRepository(BaseRepository[Application]):
         """
         session.add(model)
         session.flush()
+
+    def is_app_code_duplicate(self, session, env_id, region_name, app_code, app_id=None):
+        if not app_code:
+            return False
+        params = {
+            "env_id": env_id,
+            "region_name": region_name,
+            "app_id": app_id,
+            "app_code": app_code
+        }
+        sql = "select * from service_group where tenant_env_id = :env_id and region_name = :region_name " \
+              "and binary app_code = :app_code"
+        if app_id:
+            sql = sql + " and not ID = :app_id"
+            service_groups = session.execute(sql, params).fetchall()
+            return len(service_groups) > 0
+        service_groups = session.execute(sql, params).fetchall()
+        return len(service_groups) > 0
 
     def is_k8s_app_duplicate(self, session, env_id, region_name, k8s_app, app_id=None):
         if not k8s_app:

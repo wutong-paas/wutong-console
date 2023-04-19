@@ -1,3 +1,4 @@
+import uuid
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
@@ -32,11 +33,13 @@ async def add_env(request: Request,
     env_alias = from_data["env_alias"]
     region_name = from_data["region_name"]
     env_name = from_data["env_name"]
-    namespace = team_name + "-" + env_name
     tenant_id = from_data["tenant_id"]
     desc = from_data.get("desc", "")
     if not is_qualified_name(env_name):
-        raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只能由小写字母、数字或“-”组成，“-”不能位于开头结尾")
+        raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只支持英文、数字、中横线、下划线组合，只能以英文开头且中横线、下划线不能位于首尾")
+
+    env_ns = env_name.lower().replace("_", "-")
+    namespace = team_name + "-" + env_ns
 
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
@@ -51,10 +54,15 @@ async def add_env(request: Request,
         result = general_message(400, "env name is exist", "环境名称已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_namespace(session, namespace)
+    env = env_repo.env_is_exists_by_env_code(session, tenant_id, env_name)
     if env:
         result = general_message(400, "env namespace is exist", "环境标识已存在")
         return JSONResponse(status_code=400, content=result)
+
+    env = env_repo.env_is_exists_by_namespace(session, tenant_id, namespace)
+    if env:
+        index = str(uuid.uuid1())
+        namespace = namespace + "-" + index[:8]
 
     env = env_repo.create_env(session, user, region.region_alias, region_name, env_name, env_alias, tenant_id,
                               team_name, namespace, desc)

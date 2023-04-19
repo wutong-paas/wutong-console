@@ -70,11 +70,13 @@ async def create_app(params: TeamAppCreateRequest,
         result = general_message(400, "node too long", "应用备注长度限制2048")
         return JSONResponse(result, status_code=result["code"])
 
-    k8s_app = params.k8s_app
-    if not k8s_app and params.app_alias:
-        k8s_app = params.app_alias
-    if k8s_app and not is_qualified_name(k8s_app):
-        raise ErrQualifiedName(msg_show="应用英文名称只能由小写字母、数字或“-”组成，“-”不能位于开头结尾")
+    app_code = params.app_code
+    if not app_code and params.app_alias:
+        app_code = params.app_alias
+    if app_code and not is_qualified_name(app_code):
+        raise ErrQualifiedName(msg_show="应用标识只支持字母、数字和-_组合,并且必须以字母开始、以数字或字母结尾")
+
+    k8s_app = app_code.lower().replace("_", "-")
 
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
@@ -95,6 +97,7 @@ async def create_app(params: TeamAppCreateRequest,
             version=params.version,
             logo=params.logo,
             k8s_app=k8s_app,
+            app_code=app_code,
             team_code=team_name,
             tenant_name=params.team_alias,
             project_name=params.project_alias
@@ -133,11 +136,12 @@ async def update_app(request: Request,
                      session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     app_alias = data.get("app_alias", None)
-    k8s_app = data.get("k8s_app", None)
+    app_code = data.get("app_code", None)
     project_id = data.get("project_id", None)
     project_name = data.get("project_name", None)
     note = data.get("note", "")
     logo = data.get("logo", "")
+    k8s_app = app_code.lower().replace("_", "-")
     if note and len(note) > 2048:
         return JSONResponse(general_message(400, "node too long", "应用备注长度限制2048"), status_code=400)
     env = env_repo.get_env_by_env_id(session, env_id)
@@ -166,6 +170,7 @@ async def update_app(request: Request,
         version=version,
         revision=revision,
         logo=logo,
+        app_code=app_code,
         k8s_app=k8s_app)
     result = general_message("0", "success", "修改成功")
     return JSONResponse(result, status_code=200)

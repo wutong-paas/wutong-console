@@ -74,7 +74,7 @@ def validate_name(name):
 # Verification k8s resource name, refer to:
 # https://github.com/kubernetes/kubernetes/blob/b0bc8adbc2178e15872f9ef040355c51c45d04bb/staging/src/k8s.io/apimachinery/pkg/util/validation/validation.go#L43
 def is_qualified_name(name):
-    # 只支持字母、数字和-组合,并且必须以数字或字母开始、以数字或字母结尾
-    if re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', name):
+    # 只支持字母、数字和-_组合,并且必须以字母开始、以数字或字母结尾
+    if re.match(r'^[A-Za-z]([-_A-Za-z0-9]*[A-Za-z0-9])?$', name):
         return True
     return False
