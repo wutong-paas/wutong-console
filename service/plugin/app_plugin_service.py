@@ -242,6 +242,47 @@ class AppPluginService(object):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
+
+                env_name = "OTEL_EXPORTER_OTLP_ENDPOINT"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+                if env:
+                    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
+                                                             env_id=env.ID,
+                                                             user_name=user.nick_name)
+
+                env_name = "OTEL_TRACES_EXPORTER"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+                if env:
+                    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
+                                                             env_id=env.ID,
+                                                             user_name=user.nick_name)
+
+                env_name = "OTEL_METRICS_EXPORTER"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+                if env:
+                    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
+                                                             env_id=env.ID,
+                                                             user_name=user.nick_name)
+
+                env_name = "OTEL_RESOURCE_ATTRIBUTES"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+                if env:
+                    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
+                                                             env_id=env.ID,
+                                                             user_name=user.nick_name)
+
                 env_name = "JAVA_TOOL_OPTIONS"
                 env = session.execute(select(ComponentEnvVar).where(
                     ComponentEnvVar.attr_name == env_name,
@@ -705,14 +746,38 @@ class AppPluginService(object):
                     ComponentEnvVar.service_id == service.service_id
                 )).scalars().first()
 
+                options = "-javaagent:/agent/agent.jar"
+                attributes = "service.name=" + service.k8s_component_name + ",namespace=" + tenant_env.namespace
+                agent = settings.PLUGIN_AGENT_SERVER_ADDRESS
+
+                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
+                                                        container_port=0, name="OTEL_RESOURCE_ATTRIBUTES", attr_name="OTEL_RESOURCE_ATTRIBUTES",
+                                                        attr_value=attributes,
+                                                        is_change=True, scope="inner",
+                                                        user_name=user.nick_name)
+                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
+                                                        container_port=0, name="OTEL_TRACES_EXPORTER", attr_name="OTEL_TRACES_EXPORTER",
+                                                        attr_value="otlp",
+                                                        is_change=True, scope="inner",
+                                                        user_name=user.nick_name)
+                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
+                                                        container_port=0, name="OTEL_METRICS_EXPORTER", attr_name="OTEL_METRICS_EXPORTER",
+                                                        attr_value="none",
+                                                        is_change=True, scope="inner",
+                                                        user_name=user.nick_name)
+                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
+                                                        container_port=0, name="OTEL_EXPORTER_OTLP_ENDPOINT", attr_name="OTEL_EXPORTER_OTLP_ENDPOINT",
+                                                        attr_value=agent,
+                                                        is_change=True, scope="inner",
+                                                        user_name=user.nick_name)
                 if not env:
                     env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
                                                         container_port=0, name=env_name, attr_name=env_name,
-                                                        attr_value=settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name,
+                                                        attr_value=options,
                                                         is_change=True, scope="inner",
                                                         user_name=user.nick_name)
                 else:
-                    attr_value = settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name + " " + env.attr_value
+                    attr_value = options + " " + env.attr_value
                     env.attr_value = attr_value
 
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):

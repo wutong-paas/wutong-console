@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
-    SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
-    # SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@127.0.0.1:3306/console'
+    # SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+    SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@127.0.0.1:3306/console'
 
     # 日志级别
     # CRITICAL = 50
@@ -59,8 +59,8 @@ class Settings(BaseSettings):
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_DAY = 15
 
-    INIT_AGENT_PLUGIN_ENV = os.getenv("JAVA_TOOL_OPTIONS",
-                                      "-javaagent:/agent/agent.jar -Dotel.exporter.jaeger.endpoint=http://grafana-labs-traces-agent.wutong-obs:14250 -Dotel.traces.exporter=jaeger -Dotel.metrics.exporter=none -Dotel.resource.attributes=service.name=")
+    PLUGIN_AGENT_SERVER_ADDRESS = os.getenv("AGENT_SERVER_ADDRESS",
+                                      "http://wutong-obs-system-trace-agent.wutong-obs:14250")
 
     EVENT_WEBSOCKET_URL = {
         'cloudbang': 'auto',
