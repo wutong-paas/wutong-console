@@ -136,11 +136,12 @@ async def update_app(request: Request,
                      session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     app_alias = data.get("app_alias", None)
-    k8s_app = data.get("k8s_app", None)
+    app_code = data.get("app_code", None)
     project_id = data.get("project_id", None)
     project_name = data.get("project_name", None)
     note = data.get("note", "")
     logo = data.get("logo", "")
+    k8s_app = app_code.lower().replace("_", "-")
     if note and len(note) > 2048:
         return JSONResponse(general_message(400, "node too long", "应用备注长度限制2048"), status_code=400)
     env = env_repo.get_env_by_env_id(session, env_id)
@@ -169,6 +170,7 @@ async def update_app(request: Request,
         version=version,
         revision=revision,
         logo=logo,
+        app_code=app_code,
         k8s_app=k8s_app)
     result = general_message("0", "success", "修改成功")
     return JSONResponse(result, status_code=200)

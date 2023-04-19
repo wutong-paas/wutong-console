@@ -1759,6 +1759,7 @@ class ApplicationService(object):
                      version="",
                      revision=0,
                      logo="",
+                     app_code="",
                      k8s_app=""):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
@@ -1780,8 +1781,12 @@ class ApplicationService(object):
 
         # check app name
         if app_alias:
-            self.check_app_name(session, tenant_env.env_id, region_name, app_alias, app,
-                                k8s_app=k8s_app)
+            is_k8s_app_dup = self.check_app_name(session, tenant_env.env_id, region_name, app_alias, app,
+                                                 app_code=app_code, k8s_app=k8s_app)
+            if is_k8s_app_dup:
+                index = str(uuid.uuid1())
+                k8s_app = k8s_app + "-" + index[:8]
+
         if overrides:
             overrides = self._parse_overrides(overrides)
 
@@ -1798,6 +1803,7 @@ class ApplicationService(object):
             "k8s_app": k8s_app
         })
         data["k8s_app"] = bean["k8s_app"]
+        data["app_code"] = app_code
         application_repo.update(session, app_id, **data)
 
     def get_apps_by_plat(self, session, team_code, env_id, project_id, app_name):
