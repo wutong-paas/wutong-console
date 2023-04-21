@@ -106,10 +106,12 @@ async def overview_env_app_info(request: Request,
                                                                   tenant_env=env,
                                                                   status=status)
 
+    total = len(apps)
     apps = apps[start:end]
     app_num_dict.update(count)
-    return JSONResponse(general_message("0", "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict),
-                        status_code=200)
+    return JSONResponse(
+        general_message("0", "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict, total=total),
+        status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/services/event", response_model=Response, name="应用事件动态")

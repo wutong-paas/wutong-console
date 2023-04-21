@@ -126,7 +126,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
         overview_detail["region_health"] = False
-        return general_message("0", "success", "查询成功", bean=overview_detail)
+        return JSONResponse(general_message("0", "success", "查询成功", bean=overview_detail), status_code=200)
 
     # 同步应用到集群
     groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name)
@@ -241,7 +241,7 @@ async def team_env_app_group(request: Request,
     app_type = request.query_params.get("app_type", "")
     groups_services = application_service.get_groups_and_services(session=session, tenant_env=env, region=region_name,
                                                                   query=query, app_type=app_type)
-    return general_message("0", "success", "查询成功", list=groups_services)
+    return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 
 @router.get("/teams/{team_name}/overview/groups", response_model=Response, name="环境应用列表")
@@ -267,7 +267,7 @@ async def team_app_group(
    """
     groups_services = application_service.get_env_groups(session=session, tenant_name=team_name, env_id=env_id,
                                                          app_name=app_name)
-    return general_message("0", "success", "查询成功", list=groups_services)
+    return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/overview/service/over", response_model=Response, name="团队应用信息")
@@ -319,8 +319,8 @@ async def team_app_group(
                         service["min_memory"] = 0
                     result.append(service)
                 else:
-                    if status_cache.get(service.service_id) == service_status:
-                        service["status"] = status_cache.get(service.service_id, "unknow")
+                    if status_cache.get(service["service_id"]) == service_status:
+                        service["status"] = status_cache.get(service["service_id"], "unknow")
                         service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
                         if service["status"] == "closed" or service["status"] == "undeploy":
                             service["min_memory"] = 0
