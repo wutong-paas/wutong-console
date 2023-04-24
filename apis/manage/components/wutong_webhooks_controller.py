@@ -19,6 +19,7 @@ from repository.teams.team_component_repo import team_component_repo
 from schemas.response import Response
 from schemas.user import UserInfo
 from service.app_actions.app_manage import app_manage_service
+from service.application_service import application_service
 from service.tenant_env_service import env_services
 
 router = APIRouter()
@@ -299,10 +300,10 @@ async def update_deploy_mode(
 
         service_info_repo.change_service_image_tag(session, service_obj, tag)
         # 获取组件状态
-        service_webhook = service_webhooks_repo.get_or_create_service_webhook(session, service_id, "api_webhooks")
-        status = service_webhook.state
+        status_map = application_service.get_service_status(session, env, service_obj)
+        status = status_map.get("status", None)
         user_obj = service_obj.creater
-        if status != 0:
+        if status != "closed":
             return app_manage_service.deploy_service(
                 session=session, tenant_obj=tenant_obj, service_obj=service_obj, user=user_obj)
         else:
@@ -337,11 +338,14 @@ async def update_deploy_mode(
     }
     user_obj = UserInfo(**user_obj)
     service_webhook = service_webhooks_repo.get_or_create_service_webhook(session, service_id, "api_webhooks")
-    status = service_webhook.state
-    logger.debug(status)
-    if status != 0:
+    if not service_webhook.state:
+        result = general_message(400, "failed", "组件关闭了自动构建")
+        return JSONResponse(result, status_code=400)
+    status_map = application_service.get_service_status(session, env_obj, service_obj)
+    status = status_map.get("status", None)
+    if status != "closed":
         return app_manage_service.deploy_service(
             session=session, tenant_env=env_obj, service_obj=service_obj, user=user_obj)
     else:
-        result = general_message(200, "component is closed, not support", "组件状态不支持")
+        result = general_message(200, "component is closed, not support", "组件状态处于关闭中，不支持自动构建")
         return JSONResponse(result, status_code=400)
