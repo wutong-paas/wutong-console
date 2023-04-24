@@ -3,12 +3,25 @@ import pickle
 import random
 import string
 
+from sqlalchemy import select
+
 from database.session import SessionClass
 from models.component.models import DeployRelation
 from repository.base import BaseRepository
 
 
 class DeployRepo(BaseRepository[DeployRelation]):
+
+    def get_secret_key_by_service_id(self, session, service_id):
+        deploy_obj = session.execute(
+            select(DeployRelation).where(
+                DeployRelation.service_id == service_id
+            )
+        ).scalars().first()
+        if not deploy_obj:
+            return None
+        else:
+            return deploy_obj.secret_key
 
     def get_service_key_by_service_id(self, session: SessionClass, service_id):
         return session.query(DeployRelation).filter(
