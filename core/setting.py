@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     SERVER_NAMESPACE_ID = os.environ.get("SERVER_NAMESPACE_ID", "CUBE")
     SERVICE_NAME = "paas-console"
     SERVICE_IP = os.environ.get("SERVICE_IP", ip_address)
-    SERVICE_PORT = os.environ.get("SERVICE_PORT", "30600")
+    SERVICE_PORT = os.environ.get("SERVICE_PORT", "8888")
     SERVICE_GROUP_NAME = os.environ.get("SERVICE_GROUP_NAME", "CUBE")
 
     source_code_type = {
