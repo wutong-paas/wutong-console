@@ -60,7 +60,7 @@ async def get_auto_url(request: Request,
                                                                               deployment_way)
 
         # api处发自动部署
-        if deployment_way == "api_webhooks":
+        if deployment_way == "api_webhooks" or deployment_way == "code_webhooks":
             # 生成秘钥
             deploy = deploy_repo.get_deploy_relation_by_service_id(session=session, service_id=service_id)
             secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")

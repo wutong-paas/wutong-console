@@ -232,7 +232,7 @@ async def app_migrate(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     if not migrate_env_id:
-        return JSONResponse(general_message(400, "team is null", "请指明要迁移的团队"), status_code=400)
+        return JSONResponse(general_message(400, "team is null", "请指明要迁移的环境"), status_code=400)
     migrate_env = env_repo.get_env_by_env_id(session, migrate_env_id)
     if not migrate_env:
         return JSONResponse(general_message(404, "team is not found", "需要迁移的环境不存在"), status_code=404)
