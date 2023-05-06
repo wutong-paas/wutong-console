@@ -153,6 +153,7 @@ class ComponentRepository(BaseRepository[Component]):
         return (session.execute(select(Component).where(
             Component.service_region == region,
             Component.tenant_env_id == tenant_env_id,
+            Component.is_delete == 0,
             not_(Component.service_id == service_id)))).scalars().all()
 
     def get_service(self, session, service_alias, env_id):
