@@ -12,7 +12,7 @@ class TeamRegionRepository(BaseRepository[EnvRegionInfo]):
     TenantRegionRepository
     """
 
-    def get_env_region_info_by_env_id_and_region_name(self, session: SessionClass, env_id, region_name):
+    def get_region_info_by_region_name(self, session: SessionClass, env_id, region_name):
         """
 
         :param tenant_env_id:
@@ -22,8 +22,7 @@ class TeamRegionRepository(BaseRepository[EnvRegionInfo]):
 
         logger.info("get_env_region_info_by_tenant_env_id_and_region,param-tenant_env_id:{},param-region:{}", env_id,
                     region_name)
-        sql = select(EnvRegionInfo).where(EnvRegionInfo.region_env_id == env_id,
-                                          EnvRegionInfo.region_name == region_name)
+        sql = select(RegionConfig).where(RegionConfig.region_name == region_name)
         results = session.execute(sql)
         data = results.scalars().first()
         return data

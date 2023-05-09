@@ -47,7 +47,8 @@ class AppUpgrade(MarketApp):
                  record: ApplicationUpgradeRecord = None,
                  component_keys=None,
                  is_deploy=False,
-                 is_upgrade_one=False):
+                 is_upgrade_one=False,
+                 create_type="market"):
         """
         components_keys: component keys that the user select.
         """
@@ -88,7 +89,7 @@ class AppUpgrade(MarketApp):
         self.property_changes = PropertyChanges(session, self.original_app.components(), plugins, self.app_template,
                                                 self.support_labels)
 
-        self.new_app = self._create_new_app(session)
+        self.new_app = self._create_new_app(session, create_type)
         self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
 
         super(AppUpgrade, self).__init__(session, self.original_app, self.new_app)
@@ -303,7 +304,7 @@ class AppUpgrade(MarketApp):
         self.save_new_app(session)
         self._update_upgrade_record(ApplicationUpgradeStatus.UPGRADING.value, snapshot)
 
-    def _create_new_app(self, session):
+    def _create_new_app(self, session, create_type):
         # new components
         new_components = NewComponents(
             session,
@@ -316,6 +317,7 @@ class AppUpgrade(MarketApp):
             self.version,
             self.install_from_cloud,
             self.component_keys,
+            create_type,
             self.market_name,
             self.is_deploy,
             support_labels=self.support_labels).components

@@ -1,5 +1,7 @@
 import re
 from typing import Any, Optional
+
+import yaml
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -32,10 +34,12 @@ from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_check_service
+from service.market_app_service import market_app_service
 from service.monitor_service import monitor_service
 from service.multi_app_service import multi_app_service
 from service.region_service import region_services
 from service.tenant_env_service import env_services
+from service.yaml.yaml_service import yaml_service
 
 router = APIRouter()
 
@@ -103,7 +107,8 @@ async def docker_run(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/get_check_uuid", response_model=Response, name="组件构建检测")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/get_check_uuid", response_model=Response,
+            name="组件构建检测")
 async def get_check_uuid(service_alias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
                          env=Depends(deps.get_current_team_env)) -> Any:
@@ -407,14 +412,16 @@ async def component_graphs(service_alias: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response, name="查询组件内部图表")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response,
+            name="查询组件内部图表")
 async def component_graphs() -> Any:
     graphs = component_graph_service.list_internal_graphs()
     result = general_message("0", "success", "查询成功", list=graphs)
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response, name="一键导入内部图表")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response,
+             name="一键导入内部图表")
 async def import_component_graphs(request: Request,
                                   service_alias: Optional[str] = None,
                                   session: SessionClass = Depends(deps.get_session),
@@ -427,7 +434,8 @@ async def import_component_graphs(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor", response_model=Response, name="查询组件监控点")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor", response_model=Response,
+            name="查询组件监控点")
 async def component_monitor(service_alias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             env=Depends(deps.get_current_team_env)) -> Any:
@@ -575,7 +583,8 @@ async def get_history_log(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response, name="删除组件图表")
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response,
+               name="删除组件图表")
 async def delete_component_graphs(
         service_alias: Optional[str] = None,
         graph_id: Optional[str] = None,
@@ -588,7 +597,8 @@ async def delete_component_graphs(
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response, name="修改组件图表")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response,
+            name="修改组件图表")
 async def modify_component_graphs(
         request: Request,
         service_alias: Optional[str] = None,
@@ -666,3 +676,46 @@ async def multi_create(
         })
 
     return JSONResponse(result, status_code=200)
+
+
+@router.post("/teams/{team_name}/env/{env_id}/apps/yaml", response_model=Response, name="yaml安装组件")
+async def yaml_install(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env)) -> Any:
+    data = await request.json()
+    group_id = data.get("group_id")
+    yaml_dirs = data.get("yaml_dirs")
+    yaml_data = []
+
+    if not yaml_dirs or not group_id:
+        return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
+
+    for yaml_dir in yaml_dirs:
+        yaml_file = open(yaml_dir, "r", encoding='utf-8')
+        file_data = yaml_file.read()
+        yaml_file.close()
+        try:
+            yaml_data += list(yaml.safe_load_all(file_data))
+        except yaml.YAMLError as exc:
+            if hasattr(exc, 'problem_mark'):
+                mark = exc.problem_mark
+                err_msg = "Error parsing Yaml file at line %s, column %s." % (mark.line, mark.column + 1)
+            else:
+                err_msg = "Something went wrong while parsing yaml file"
+            file_name = yaml_dir.split("\\")[-1]
+            err_msg = {file_name: err_msg}
+            return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", bean=err_msg),
+                                status_code=200)
+
+    yaml_service.install_yaml_service(session=session,
+                                      user=user,
+                                      env=env,
+                                      app_id=group_id,
+                                      version="1.0",
+                                      region_name=env.region_code,
+                                      is_deploy=False,
+                                      install_from_cloud=False,
+                                      yaml_data=yaml_data)
+    return JSONResponse(general_message(200, "success", msg_show="安装成功"), status_code=200)
