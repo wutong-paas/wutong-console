@@ -262,7 +262,7 @@ class AppExportService(object):
         response.close()
         return image_base64_string
 
-    def __get_app_metata(self, app, app_version):
+    def __get_app_metata(self, app, app_version, helm_chart_parameter):
         picture_path = app.pic
         suffix = picture_path.split('.')[-1]
         describe = app.describe
@@ -280,6 +280,9 @@ class AppExportService(object):
             "version_info": app_version.app_version_info,
             "version_alias": app_version.version_alias,
         }
+        app_template["helm_chart"] = {
+            "image_handle": helm_chart_parameter["image_handle"],
+        }
         return json.dumps(app_template, cls=MyEncoder)
 
     def select_handle_region(self, session):
@@ -290,7 +293,7 @@ class AppExportService(object):
                     return region_services.get_region_by_region_id(session, data[0]["region_id"])
         raise RegionNotFound("暂无可用的集群，应用导出功能不可用")
 
-    def export_app(self, session, app_id, version, export_format, is_export_image):
+    def export_app(self, session, app_id, version, export_format, is_export_image, helm_chart_parameter):
         app, app_version = center_app_repo.get_wutong_app_and_version(session, app_id, version)
         if not app or not app_version:
             raise RbdAppNotFound("未找到该应用")
@@ -313,7 +316,7 @@ class AppExportService(object):
             "group_key": app.app_id,
             "version": app_version.version,
             "format": export_format,
-            "group_metadata": self.__get_app_metata(app, app_version),
+            "group_metadata": self.__get_app_metata(app, app_version, helm_chart_parameter),
             "with_image_data": is_export_image
         }
 
@@ -351,6 +354,12 @@ class AppExportService(object):
             "is_export_before": False,
         }
         docker_compose_init_data = {
+            "is_export_before": False,
+        }
+        helm_chart_init_data = {
+            "is_export_before": False,
+        }
+        yaml_init_data = {
             "is_export_before": False,
         }
 
@@ -401,8 +410,32 @@ class AppExportService(object):
                                                                     "/v2", "")),
                         "is_export_image": True if export_record.is_export_image else False
                     })
+                if export_record.format == "helm-chart":
+                    helm_chart_init_data.update({
+                        "is_export_before":
+                            True,
+                        "status":
+                            export_record.status,
+                        "file_path":
+                            self._wrapper_director_download_url(session, export_record.region_name,
+                                                                export_record.file_path.replace(
+                                                                    "/v2", ""))
+                    })
+                if export_record.format == "yaml":
+                    yaml_init_data.update({
+                        "is_export_before":
+                            True,
+                        "status":
+                            export_record.status,
+                        "file_path":
+                            self._wrapper_director_download_url(session,
+                                                                export_record.region_name,
+                                                                export_record.file_path.replace(
+                                                                    "/v2", ""))
+                    })
 
-        result = {"wutong_app": wutong_app_init_data, "docker_compose": docker_compose_init_data}
+        result = {"wutong_app": wutong_app_init_data, "docker_compose": docker_compose_init_data,
+                  "helm_chart": helm_chart_init_data, "yaml": yaml_init_data}
         return result
 
 

@@ -112,8 +112,8 @@ async def update_app_template(params: Optional[MarketAppTemplateUpdateParam] = M
 
 @router.delete("/enterprise/app-model/{app_id}", response_model=Response, name="删除应用模版")
 async def delete_app_template(
-                              app_id: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session)) -> Any:
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     market_app_service.delete_wutong_app_all_info_by_id(session, app_id)
     return JSONResponse(general_message("0", "success", None), status_code=200)
 
@@ -265,8 +265,8 @@ async def create_center_app(*,
 
 @router.post("/enterprise/app-models/create/import", response_model=Response, name="创建新的导入记录")
 async def add_app_models(
-                         session: SessionClass = Depends(deps.get_session),
-                         user=Depends(deps.get_current_user)) -> Any:
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     """
     查询导入记录，如果有未完成的记录返回未完成的记录，如果没有，创建新的导入记录
     ---
@@ -382,9 +382,9 @@ async def set_app_template(request: Request,
 @router.delete("/enterprise/app-model/{app_id}/version/{version}", response_model=Response,
                name="删除应用模版")
 async def delete_app_template(
-                              app_id: Optional[str] = None,
-                              version: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session)) -> Any:
+        app_id: Optional[str] = None,
+        version: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     result = general_message("0", "success", "删除成功")
     market_app_service.delete_wutong_app_version(session, app_id, version)
     return JSONResponse(result, status_code=200)
@@ -446,13 +446,16 @@ async def export_app_models(
     app_versions = data.get("app_versions", [])
     export_format = data.get("format", None)
     is_export_image = data.get("is_export_image", False)
+    image_handle = data.get("image_handle", "")
     if not app_id or not app_versions:
         return JSONResponse(general_message(400, "app id is null", "请指明需要导出的应用"), status_code=400)
-    if not export_format or export_format not in ("wutong-app", "docker-compose"):
+    if not export_format or export_format not in ("wutong-app", "docker-compose", "helm_chart", "yaml"):
         return JSONResponse(general_message(400, "export format is illegal", "请指明导出格式"), status_code=400)
 
     new_export_record_list = []
-    record = export_service.export_app(session, app_id, app_versions[0], export_format, is_export_image)
+    helm_chart_parameter = {"image_handle": image_handle}
+    record = export_service.export_app(session, app_id, app_versions[0], export_format, is_export_image,
+                                       helm_chart_parameter)
     new_export_record_list.append(jsonable_encoder(record))
 
     result = general_message("0", "success", "操作成功，正在导出", list=new_export_record_list)
