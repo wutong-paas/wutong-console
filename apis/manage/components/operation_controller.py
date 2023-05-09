@@ -700,8 +700,10 @@ async def yaml_install(
             yaml_data += list(yaml.safe_load_all(file_data))
         except yaml.YAMLError as exc:
             if hasattr(exc, 'problem_mark'):
-                mark = exc.problem_mark
-                err_msg = "Error parsing Yaml file at line %s, column %s." % (mark.line, mark.column + 1)
+                if exc.context_mark != None:
+                    err_msg = str(exc.context_mark) + '\nPlease correct data and retry.'
+                else:
+                    err_msg = str(exc.problem_mark) + '\n  ' + str(exc.problem) + '\nPlease correct data and retry.'
             else:
                 err_msg = "Something went wrong while parsing yaml file"
             file_name = yaml_dir.split("\\")[-1]
