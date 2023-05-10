@@ -38,8 +38,10 @@ class Settings(BaseSettings):
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
-    SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
-    # SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@127.0.0.1:3306/console'
+    if not DEBUG:
+        SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+    else:
+        SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@127.0.0.1:3306/console'
 
     # 日志级别
     # CRITICAL = 50

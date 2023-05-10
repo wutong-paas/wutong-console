@@ -1,4 +1,7 @@
 # 初始化app实例
+import atexit
+import fcntl
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -51,7 +54,7 @@ async def request_validation_exception_handler(request: Request, exception: Requ
 scheduler = AsyncIOScheduler()
 
 
-@scheduler.scheduled_job('cron', second="0", minute='30', hour="*", day="*", month="*", year="*")
+@scheduler.scheduled_job('cron', second="0", minute='0', hour="*", day="*", month="*", year="*")
 def scheduler_delete_task():
     scheduler_session = SessionClass()
     try:
@@ -71,7 +74,18 @@ def scheduler_nacos_beat():
 
 
 def start_scheduler():
-    scheduler.start()
+    f = open("scheduler.lock", "wb")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        scheduler.start()
+    except:
+        pass
+
+    def unlock():
+        fcntl.flock(f, fcntl.LOCK_UN)
+        f.close()
+
+    atexit.register(unlock)
 
 
 @app.on_event('startup')
