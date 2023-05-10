@@ -9,6 +9,7 @@ logger.remove()
 
 
 class Settings(BaseSettings):
+    DEBUG = False
     ENV = os.environ.get("wutong_env", "DEV")
     APP_NAME = "wutong-console"
     API_PREFIX = "/console"
@@ -19,6 +20,8 @@ class Settings(BaseSettings):
     DATA_DIR = os.getenv("DATA_DIR", DATA_DIR)
     MEDIA_URL = '/data/media/'
     MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
+    YAML_URL = '/data/file/'
+    YAML_ROOT = os.path.join(DATA_DIR, 'file')
 
     # 跨域白名单
     BACKEND_CORS_ORIGINS: List = ['*']
@@ -70,7 +73,7 @@ class Settings(BaseSettings):
     PORT = os.environ.get("PORT", 8888)
 
     # 是否热加载
-    RELOAD = True
+    RELOAD = False
 
     SSO_LOGIN = True
     TENANT_VALID_TIME = 7
