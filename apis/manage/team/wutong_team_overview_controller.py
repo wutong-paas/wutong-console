@@ -179,8 +179,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
                     running_app_num += 1
     except Exception as e:
         logger.exception(e)
-    env_apps = service_info_repo.get_services_by_env_and_region(session, env.env_id, region_name)
-    team_app_num = len(env_apps)
+    team_app_num = application_repo.get_tenant_region_groups_count(session, env.env_id, region_name)
     overview_detail["team_app_num"] = team_app_num
     overview_detail["team_service_num"] = team_service_num
     overview_detail["team_service_memory_count"] = 0
@@ -203,7 +202,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
             overview_detail["team_service_total_memory"] = int(source["limit_memory"])
             overview_detail["team_service_use_cpu"] = int(source["cpu"])
             overview_detail[
-                "running_component_num"] = team_app_num if service_running_num > team_app_num else service_running_num
+                "running_component_num"] = team_service_num if service_running_num > team_service_num else service_running_num
             overview_detail["cpu_usage"] = round(int(source["cpu"]) / 1000, 2)
             overview_detail["memory_usage"] = round(int(source["memory"]) / 1024, 2)
         except Exception as e:
