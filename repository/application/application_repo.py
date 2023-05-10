@@ -64,13 +64,6 @@ class ApplicationRepository(BaseRepository[Application]):
                 Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
-    def get_tenant_region_groups_count(self, session, env_id, region):
-        sql = select(Application).where(Application.tenant_env_id == env_id,
-                                        Application.region_name == region,
-                                        Application.is_delete == 0)
-        count = len((session.execute(sql)).scalars().all())
-        return count
-
     def get_apps_in_multi_team(self, session, env_ids, region_names):
         return (
             session.execute(

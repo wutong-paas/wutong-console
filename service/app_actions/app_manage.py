@@ -1215,7 +1215,7 @@ class AppManageService(object):
     def close_all_component_in_tenant(self, session: SessionClass, tenant_env, region_name, user):
         try:
             # list components
-            components = service_info_repo.get_services_by_team_and_region(session, tenant_env.env_id, region_name)
+            components = service_info_repo.get_services_by_env_and_region(session, tenant_env.env_id, region_name)
             component_ids = [cpt.service_id for cpt in components]
             self.batch_operations(session=session, tenant_env=tenant_env, region_name=region_name, user=user,
                                   action="stop",

@@ -211,10 +211,11 @@ class ComponentRepository(BaseRepository[Component]):
             result.append(service)
         return result
 
-    def get_services_by_team_and_region(self, session, env_id, region_name):
+    def get_services_by_env_and_region(self, session, env_id, region_name):
         return session.execute(select(Component).where(
             Component.service_region == region_name,
-            Component.tenant_env_id == env_id)).scalars().all()
+            Component.tenant_env_id == env_id),
+            Component.is_delete == 0).scalars().all()
 
     def delete_services_by_team_and_region(self, session, env_id, region_name):
         session.execute(delete(Component).where(

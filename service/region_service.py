@@ -315,7 +315,7 @@ class RegionService(object):
             # check cluster api health
             if not info or info["rbd_version"] == "":
                 ignore_cluster_resource = True
-        services = service_info_repo.get_services_by_team_and_region(session, env.env_id, region_name)
+        services = service_info_repo.get_services_by_env_and_region(session, env.env_id, region_name)
         if not ignore_cluster_resource and services and len(services) > 0:
             # check component status
             service_ids = [service.service_id for service in services]
