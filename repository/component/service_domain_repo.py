@@ -85,19 +85,15 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             ServiceDomain.service_id == service_id,
             ServiceDomain.container_port == container_port))).scalars().all()
 
-    def get_domain_by_name_and_port_and_protocol(self, session, service_id, container_port, domain_name, protocol,
+    def get_domain_by_name_and_port_and_protocol(self, session, domain_name, protocol,
                                                  domain_path=None):
         if domain_path:
             return (session.execute(select(ServiceDomain).where(
-                ServiceDomain.service_id == service_id,
-                ServiceDomain.container_port == container_port,
                 ServiceDomain.domain_name == domain_name,
                 ServiceDomain.protocol == protocol,
                 ServiceDomain.domain_path == domain_path))).scalars().first()
         else:
             return (session.execute(select(ServiceDomain).where(
-                ServiceDomain.service_id == service_id,
-                ServiceDomain.container_port == container_port,
                 ServiceDomain.domain_name == domain_name,
                 ServiceDomain.protocol == protocol))).scalars().first()
 
@@ -247,6 +243,15 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
     def get_service_domain_by_http_rule_id(self, session, http_rule_id):
         return (session.execute(select(ServiceDomain).where(
             ServiceDomain.http_rule_id == http_rule_id))).scalars().first()
+
+    def get_domain_by_name_and_path_and_protocol(self, session, domain_name, domain_path, protocol):
+        if domain_path:
+            return (session.execute(select(ServiceDomain).where(
+                ServiceDomain.domain_name == domain_name,
+                ServiceDomain.domain_path == domain_path,
+                ServiceDomain.protocol == protocol))).scalars().all()
+        else:
+            return None
 
     def get_domain_by_name_and_path_and_protocol(self, session, domain_name, domain_path, protocol):
         if domain_path:

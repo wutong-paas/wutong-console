@@ -94,7 +94,6 @@ async def get_dependency_component(request: Request,
 
     # 判断策略是否存在
     service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(session,
-                                                                          service.service_id, container_port,
                                                                           domain_name, protocol)
     if service_domain:
         result = general_message(400, "failed", "策略已存在")
