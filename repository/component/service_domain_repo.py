@@ -19,7 +19,8 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         return session.execute(select(ServiceDomain).where(
             ServiceDomain.certificate_id == certificate_id)).scalars().all()
 
-    def add_certificate(self, session, tenant_env_id, alias, certificate_id, certificate, private_key, certificate_type):
+    def add_certificate(self, session, tenant_env_id, alias, certificate_id, certificate, private_key,
+                        certificate_type):
         service_domain_certificate = dict()
         service_domain_certificate["tenant_env_id"] = tenant_env_id
         service_domain_certificate["certificate_id"] = certificate_id
@@ -95,7 +96,8 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         else:
             return (session.execute(select(ServiceDomain).where(
                 ServiceDomain.domain_name == domain_name,
-                ServiceDomain.protocol == protocol))).scalars().first()
+                ServiceDomain.protocol == protocol,
+                ServiceDomain.domain_path == '/'))).scalars().first()
 
     def get_domain_by_domain_name(self, session, domain_name):
         return (session.execute(select(ServiceDomain).where(
@@ -167,7 +169,8 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
         result = session.execute(sql).fetchall()
         return result
 
-    def get_tenant_tuples_search_conditions(self, session, tenant_env_id, region_id, search_conditions, start, end, app_id):
+    def get_tenant_tuples_search_conditions(self, session, tenant_env_id, region_id, search_conditions, start, end,
+                                            app_id):
 
         sql = """
         select sd.domain_name, sd.type, sd.is_senior, sd.certificate_id, sd.service_alias, 
@@ -243,15 +246,6 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
     def get_service_domain_by_http_rule_id(self, session, http_rule_id):
         return (session.execute(select(ServiceDomain).where(
             ServiceDomain.http_rule_id == http_rule_id))).scalars().first()
-
-    def get_domain_by_name_and_path_and_protocol(self, session, domain_name, domain_path, protocol):
-        if domain_path:
-            return (session.execute(select(ServiceDomain).where(
-                ServiceDomain.domain_name == domain_name,
-                ServiceDomain.domain_path == domain_path,
-                ServiceDomain.protocol == protocol))).scalars().all()
-        else:
-            return None
 
     def get_domain_by_name_and_path_and_protocol(self, session, domain_name, domain_path, protocol):
         if domain_path:
