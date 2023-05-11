@@ -92,12 +92,14 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             return (session.execute(select(ServiceDomain).where(
                 ServiceDomain.domain_name == domain_name,
                 ServiceDomain.protocol == protocol,
-                ServiceDomain.domain_path == domain_path))).scalars().first()
+                ServiceDomain.domain_path == domain_path,
+                ServiceDomain.is_delete == 0))).scalars().first()
         else:
             return (session.execute(select(ServiceDomain).where(
                 ServiceDomain.domain_name == domain_name,
                 ServiceDomain.protocol == protocol,
-                ServiceDomain.domain_path == '/'))).scalars().first()
+                ServiceDomain.domain_path == '/',
+                ServiceDomain.is_delete == 0))).scalars().first()
 
     def get_domain_by_domain_name(self, session, domain_name):
         return (session.execute(select(ServiceDomain).where(
@@ -252,7 +254,8 @@ class ServiceDomainRepository(BaseRepository[ServiceDomain]):
             return (session.execute(select(ServiceDomain).where(
                 ServiceDomain.domain_name == domain_name,
                 ServiceDomain.domain_path == domain_path,
-                ServiceDomain.protocol == protocol))).scalars().all()
+                ServiceDomain.protocol == protocol,
+                ServiceDomain.is_delete == 0))).scalars().all()
         else:
             return None
 
