@@ -446,16 +446,13 @@ async def export_app_models(
     app_versions = data.get("app_versions", [])
     export_format = data.get("format", None)
     is_export_image = data.get("is_export_image", False)
-    image_handle = data.get("image_handle", "")
     if not app_id or not app_versions:
         return JSONResponse(general_message(400, "app id is null", "请指明需要导出的应用"), status_code=400)
     if not export_format or export_format not in ("wutong-app", "docker-compose", "helm_chart", "yaml"):
         return JSONResponse(general_message(400, "export format is illegal", "请指明导出格式"), status_code=400)
 
     new_export_record_list = []
-    helm_chart_parameter = {"image_handle": image_handle}
-    record = export_service.export_app(session, app_id, app_versions[0], export_format, is_export_image,
-                                       helm_chart_parameter)
+    record = export_service.export_app(session, app_id, app_versions[0], export_format, is_export_image)
     new_export_record_list.append(jsonable_encoder(record))
 
     result = general_message("0", "success", "操作成功，正在导出", list=new_export_record_list)
