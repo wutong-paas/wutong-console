@@ -687,37 +687,61 @@ async def yaml_install(
     data = await request.json()
     group_id = data.get("group_id")
     yaml_dirs = data.get("yaml_dirs")
-    yaml_data = []
+
+    yaml_datas = []
+    data = {}
+    err_msg = {}
 
     if not yaml_dirs or not group_id:
         return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
 
     for yaml_dir in yaml_dirs:
-        yaml_file = open(yaml_dir, "r", encoding='utf-8')
-        file_data = yaml_file.read()
-        yaml_file.close()
         try:
-            yaml_data += list(yaml.safe_load_all(file_data))
+            yaml_file = open(yaml_dir, "r", encoding='utf-8')
+            file_data = yaml_file.read()
+            yaml_file.close()
+            yaml_datas += list(yaml.safe_load_all(file_data))
+        except FileNotFoundError as exc:
+            msg = yaml_dir + " 文件未找到"
+            file_name = yaml_dir.split("\\")[-1]
+            err_msg.update({file_name: msg})
         except yaml.YAMLError as exc:
             if hasattr(exc, 'problem_mark'):
                 if exc.context_mark != None:
-                    err_msg = str(exc.context_mark) + '\nPlease correct data and retry.'
+                    msg = str(exc.context_mark)
                 else:
-                    err_msg = str(exc.problem_mark) + '\n  ' + str(exc.problem) + '\nPlease correct data and retry.'
+                    msg = str(exc.problem_mark) + '\n  ' + str(exc.problem)
             else:
-                err_msg = "Something went wrong while parsing yaml file"
+                msg = "Something went wrong while parsing yaml file"
             file_name = yaml_dir.split("\\")[-1]
-            err_msg = {file_name: err_msg}
-            return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", bean=err_msg),
-                                status_code=200)
+            err_msg.update({file_name: msg})
+        except:
+            return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败"), status_code=400)
+
+    if err_msg:
+        return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", bean=err_msg),
+                            status_code=400)
+
+    for yaml_data in yaml_datas:
+        if yaml_data:
+            work_load = yaml_data["kind"]
+            work_load_data = data.get(work_load)
+            if work_load_data:
+                work_load_data.append(yaml_data)
+                data.update({work_load: work_load_data})
+            else:
+                data.update({work_load: [yaml_data]})
+    deployment_data = data.get("Deployment", [])
+    stateful_set_data = data.get("StatefulSet", [])
+    services = deployment_data + stateful_set_data
+    if len(services) == 0:
+        return JSONResponse(general_message(400, "not found Deployment、StatefulSet", msg_show="未识别到组件信息"),
+                            status_code=400)
 
     yaml_service.install_yaml_service(session=session,
                                       user=user,
                                       env=env,
                                       app_id=group_id,
-                                      version="1.0",
                                       region_name=env.region_code,
-                                      is_deploy=False,
-                                      install_from_cloud=False,
-                                      yaml_data=yaml_data)
+                                      yaml_data=data)
     return JSONResponse(general_message(200, "success", msg_show="安装成功"), status_code=200)
