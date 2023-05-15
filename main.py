@@ -10,6 +10,7 @@ from loguru import logger
 from starlette.responses import JSONResponse
 
 from apis.apis import api_router
+from common.api_base_http_client import ApiBaseHttpClient
 from core import nacos
 from core.nacos import register_nacos
 from core.utils.return_message import general_message
@@ -23,6 +24,19 @@ if settings.ENV == "PROD":
     app = FastAPI(title=settings.APP_NAME, docs_url=None, redoc_url=None)
 else:
     app = FastAPI(title=settings.APP_NAME, openapi_url=f"{settings.API_PREFIX}/openapi.json")
+
+
+@app.exception_handler(ApiBaseHttpClient.CallApiError)
+async def exception_handler(request: Request, exc: ApiBaseHttpClient.CallApiError):
+    """
+    捕获请求参数
+    :param request:
+    :param exc:
+    :return:
+    """
+    logger.error("catch exception,request:{},error_message:{}", request.url, exc.body.msg)
+    return JSONResponse(general_message(exc.message["http_code"], exc.body.msg, exc.body.msg),
+                        status_code=exc.message["http_code"])
 
 
 @app.exception_handler(ServiceHandleException)
