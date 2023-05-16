@@ -3,7 +3,7 @@ import base64
 from sqlalchemy import select
 
 from core.utils.crypt import make_uuid
-from exceptions.main import AbortRequest, ServiceHandleException
+from exceptions.main import AbortRequest
 from models.application.models import Application
 from repository.teams.team_region_repo import team_region_repo
 from service.autoscaler_service import autoscaler_service
@@ -38,10 +38,10 @@ class YamlService(object):
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
-        yaml_apps, autoscaler_datas = self.get_all_yaml_info(yaml_data)
-        app_template = {"plugins": None}
-        app_template["app_config_groups"] = []
-        app_template["template_version"] = "v1"
+        yaml_apps, autoscaler_datas, err_msg = self.get_all_yaml_info(yaml_data)
+        if err_msg:
+            return err_msg
+        app_template = {"plugins": None, "app_config_groups": [], "template_version": "v1"}
         app_template.update({"apps": yaml_apps})
         region = team_region_repo.get_region_info_by_region_name(session, env.env_id, region_name)
 
@@ -67,10 +67,11 @@ class YamlService(object):
             autoscaler_service.create_autoscaler_rule(session, region_name, env,
                                                       "wt" + autoscaler_data["service_id"][-6:],
                                                       autoscaler_data)
-        return ""
+        return None
 
     def get_all_yaml_info(self, data):
 
+        err_msg = []
         svc_data = []
         autoscaler_data = []
 
@@ -159,8 +160,11 @@ class YamlService(object):
 
             dup_port = self.is_resource_dup(new_ports, "container_port")
             if dup_port:
-                raise ServiceHandleException(msg="port already exists", msg_show="存在相同端口 " + str(dup_port),
-                                             status_code=400)
+                err_msg.append({
+                    "file_name": commpoent_data["file_name"],
+                    "resource_name": commpoent_data["kind"],
+                    "err_msg": "存在相同端口 " + str(dup_port)
+                })
 
             for env in envs:
                 attr_name = env.get("name")
@@ -195,8 +199,11 @@ class YamlService(object):
 
             dup_env = self.is_resource_dup(envs, "attr_name")
             if dup_env:
-                raise ServiceHandleException(msg="env already exists", msg_show="存在相同环境名 " + str(dup_env),
-                                             status_code=400)
+                err_msg.append({
+                    "file_name": commpoent_data["file_name"],
+                    "resource_name": commpoent_data["kind"],
+                    "err_msg": "存在相同环境变量 " + str(dup_env)
+                })
 
             if volume_mounts:
                 for volume_mount in volume_mounts:
@@ -260,8 +267,11 @@ class YamlService(object):
 
             dup_volume = self.is_resource_dup(volume_mounts, "volume_name")
             if dup_volume:
-                raise ServiceHandleException(msg="volume already exists", msg_show="存在相同存储名 " + str(dup_volume),
-                                             status_code=400)
+                err_msg.append({
+                    "file_name": commpoent_data["file_name"],
+                    "resource_name": commpoent_data["kind"],
+                    "err_msg": "存在相同存储名 " + str(dup_volume)
+                })
 
             for horizontal_pod_auto_scaler in horizontal_pod_auto_scaler_data:
                 scaler_spec = horizontal_pod_auto_scaler["spec"]
@@ -324,7 +334,7 @@ class YamlService(object):
             helm_data.update({"service_share_uuid": my_uuid})
             svc_data.append(helm_data)
 
-        return svc_data, autoscaler_data
+        return svc_data, autoscaler_data, err_msg
 
 
 yaml_service = YamlService()

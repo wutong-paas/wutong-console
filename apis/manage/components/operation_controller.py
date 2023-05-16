@@ -690,21 +690,30 @@ async def yaml_install(
 
     yaml_datas = []
     data = {}
-    err_msg = {}
+    err_msg = []
 
     if not yaml_dirs or not group_id:
         return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
 
     for yaml_dir in yaml_dirs:
         try:
+            file_name = yaml_dir.split("\\")[-1]
             yaml_file = open(yaml_dir, "r", encoding='utf-8')
             file_data = yaml_file.read()
             yaml_file.close()
-            yaml_datas += list(yaml.safe_load_all(file_data))
+            yaml_file_datas = list(yaml.safe_load_all(file_data))
+            for yaml_file_data in yaml_file_datas:
+                if yaml_file_data:
+                    yaml_file_data.update({"file_name": file_name})
+            yaml_datas += yaml_file_datas
         except FileNotFoundError as exc:
             msg = yaml_dir + " 文件未找到"
             file_name = yaml_dir.split("\\")[-1]
-            err_msg.update({file_name: msg})
+            err_msg.append({
+                "file_name": file_name,
+                "resource_name": "",
+                "err_msg": msg
+            })
         except yaml.YAMLError as exc:
             if hasattr(exc, 'problem_mark'):
                 if exc.context_mark != None:
@@ -714,12 +723,21 @@ async def yaml_install(
             else:
                 msg = "Something went wrong while parsing yaml file"
             file_name = yaml_dir.split("\\")[-1]
-            err_msg.update({file_name: msg})
+            err_msg.append({
+                "file_name": file_name,
+                "resource_name": "",
+                "err_msg": msg
+            })
         except:
-            return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败"), status_code=400)
+            file_name = yaml_dir.split("\\")[-1]
+            err_msg.append({
+                "file_name": file_name,
+                "resource_name": "",
+                "err_msg": "未知错误"
+            })
 
     if err_msg:
-        return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", bean=err_msg),
+        return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", list=err_msg),
                             status_code=400)
 
     for yaml_data in yaml_datas:
@@ -738,10 +756,12 @@ async def yaml_install(
         return JSONResponse(general_message(400, "not found Deployment、StatefulSet", msg_show="未识别到组件信息"),
                             status_code=400)
 
-    yaml_service.install_yaml_service(session=session,
-                                      user=user,
-                                      env=env,
-                                      app_id=group_id,
-                                      region_name=env.region_code,
-                                      yaml_data=data)
-    return JSONResponse(general_message(200, "success", msg_show="安装成功"), status_code=200)
+    err_msg = yaml_service.install_yaml_service(session=session,
+                                                user=user,
+                                                env=env,
+                                                app_id=group_id,
+                                                region_name=env.region_code,
+                                                yaml_data=data)
+    if err_msg:
+        return JSONResponse(general_message(400, "failed", msg_show="yaml解析失败", list=err_msg), status_code=400)
+    return JSONResponse(general_message("0", "success", msg_show="安装成功"), status_code=200)
