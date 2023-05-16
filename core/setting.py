@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import sys
 from typing import List
@@ -76,7 +77,7 @@ class Settings(BaseSettings):
 
     # 是否热加载
     RELOAD = False
-
+    WORKERS = os.environ.get("WORKERS", multiprocessing.cpu_count() * 2 + 1)
     SSO_LOGIN = True
     TENANT_VALID_TIME = 7
 

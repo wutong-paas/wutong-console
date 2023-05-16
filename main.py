@@ -142,5 +142,6 @@ if __name__ == '__main__':
         app="main:app",
         host='0.0.0.0',
         port=int(settings.PORT),
-        reload=settings.RELOAD
+        reload=settings.RELOAD,
+        workers=settings.WORKERS
     )
