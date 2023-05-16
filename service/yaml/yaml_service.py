@@ -162,7 +162,7 @@ class YamlService(object):
             if dup_port:
                 err_msg.append({
                     "file_name": commpoent_data["file_name"],
-                    "resource_name": commpoent_data["kind"],
+                    "resource_name": svc_name,
                     "err_msg": "存在相同端口 " + str(dup_port)
                 })
 
@@ -201,7 +201,7 @@ class YamlService(object):
             if dup_env:
                 err_msg.append({
                     "file_name": commpoent_data["file_name"],
-                    "resource_name": commpoent_data["kind"],
+                    "resource_name": svc_name,
                     "err_msg": "存在相同环境变量 " + str(dup_env)
                 })
 
@@ -269,7 +269,7 @@ class YamlService(object):
             if dup_volume:
                 err_msg.append({
                     "file_name": commpoent_data["file_name"],
-                    "resource_name": commpoent_data["kind"],
+                    "resource_name": svc_name,
                     "err_msg": "存在相同存储名 " + str(dup_volume)
                 })
 

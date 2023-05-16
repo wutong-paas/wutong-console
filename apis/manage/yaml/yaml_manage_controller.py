@@ -44,7 +44,7 @@ async def get_yaml_data(
     file_data = yaml_file.read()
     yaml_file.close()
     context = {"context": file_data}
-    return JSONResponse(general_message(200, "success", msg_show="获取成功", bean=context), status_code=200)
+    return JSONResponse(general_message("0", "success", msg_show="获取成功", bean=context), status_code=200)
 
 
 @router.put("/teams/apps/yaml", response_model=Response, name="修改yaml内容")
@@ -62,7 +62,7 @@ async def put_yaml_data(
     with open(save_filename, "w", encoding='utf-8') as file:
         file.write(context)
         file.close()
-    return JSONResponse(general_message(200, "success", msg_show="修改成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", msg_show="修改成功"), status_code=200)
 
 
 @router.post("/teams/apps/yaml", response_model=Response, name="添加yaml文件")
@@ -81,7 +81,7 @@ async def add_yaml_data(
     yaml_file = open(save_filename, "w+", encoding='utf-8')
     yaml_file.write(context)
     yaml_file.close()
-    return JSONResponse(general_message(200, "success", msg_show="添加成功", bean={"file_url": query_filename}), status_code=200)
+    return JSONResponse(general_message("0", "success", msg_show="添加成功", bean={"file_url": query_filename}), status_code=200)
 
 
 @router.delete("/teams/apps/yaml", response_model=Response, name="删除yaml文件")
@@ -97,4 +97,4 @@ async def delete_yaml_data(
     except Exception as e:
         logger.exception(e)
         return JSONResponse(general_message(400, "failed", msg_show="删除失败"), status_code=400)
-    return JSONResponse(general_message(200, "success", msg_show="删除成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", msg_show="删除成功"), status_code=200)

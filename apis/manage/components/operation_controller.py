@@ -1,3 +1,4 @@
+import os
 import re
 from typing import Any, Optional
 
@@ -686,31 +687,30 @@ async def yaml_install(
         env=Depends(deps.get_current_team_env)) -> Any:
     data = await request.json()
     group_id = data.get("group_id")
-    yaml_dirs = data.get("yaml_dirs")
+    yaml_names = data.get("yaml_names")
 
     yaml_datas = []
     data = {}
     err_msg = []
 
-    if not yaml_dirs or not group_id:
+    if not yaml_names or not group_id:
         return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
 
-    for yaml_dir in yaml_dirs:
+    for yaml_name in yaml_names:
         try:
-            file_name = yaml_dir.split("\\")[-1]
+            yaml_dir = os.path.join(settings.YAML_ROOT, 'yamls/{0}'.format(yaml_name))
             yaml_file = open(yaml_dir, "r", encoding='utf-8')
             file_data = yaml_file.read()
             yaml_file.close()
             yaml_file_datas = list(yaml.safe_load_all(file_data))
             for yaml_file_data in yaml_file_datas:
                 if yaml_file_data:
-                    yaml_file_data.update({"file_name": file_name})
+                    yaml_file_data.update({"file_name": yaml_name})
             yaml_datas += yaml_file_datas
         except FileNotFoundError as exc:
-            msg = yaml_dir + " 文件未找到"
-            file_name = yaml_dir.split("\\")[-1]
+            msg = yaml_name + " 文件未找到"
             err_msg.append({
-                "file_name": file_name,
+                "file_name": yaml_name,
                 "resource_name": "",
                 "err_msg": msg
             })
