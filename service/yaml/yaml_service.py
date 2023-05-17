@@ -13,14 +13,14 @@ from service.market_app_service import market_app_service
 
 class YamlService(object):
 
-    def is_resource_dup(self, ports, type):
-        ports_temp = []
-        for port in ports:
-            container_port = port.get(type)
-            if container_port in ports_temp:
-                return container_port
+    def is_resource_dup(self, resources, type):
+        resource_temp = []
+        for resource in resources:
+            container = resource.get(type)
+            if container in resource_temp:
+                return container
             else:
-                ports_temp.append(container_port)
+                resource_temp.append(container)
                 continue
         return None
 
@@ -106,8 +106,6 @@ class YamlService(object):
             for port in ports:
                 outer_enable = False
                 inner_enable = False
-                service_name = None
-                service_port = None
                 protocol = "tcp"
                 port_name = port.get("name", None)
                 deployment_port = port.get("containerPort")
@@ -129,23 +127,29 @@ class YamlService(object):
                                             if node_port:
                                                 outer_enable = True
                                                 port.update({"outer_url": "0:0:0:0:" + str(node_port)})
-                                            inner_enable = True
-                                            port.update({"inner_url": "127.0.0.1:" + str(port_service_target_port)})
-                                            break
-                    if ingress_data:
-                        for ingress in ingress_data:
-                            rules = ingress["spec"]["rules"]
-                            for rule in rules:
-                                paths = rule["http"]["paths"]
-                                host = rule["host"]
-                                for path in paths:
-                                    path_url = path["path"]
-                                    target_service_name = path["backend"]["serviceName"]
-                                    target_service_port = path["backend"]["servicePort"]
-                                    if target_service_name == service_name and target_service_port == service_port:
-                                        protocol = "http"
-                                        outer_enable = True
-                                        port.update({"outer_url": host + path_url})
+                                            if ingress_data:
+                                                for ingress in ingress_data:
+                                                    rules = ingress["spec"]["rules"]
+                                                    for rule in rules:
+                                                        paths = rule["http"]["paths"]
+                                                        host = rule["host"]
+                                                        for path in paths:
+                                                            path_url = path["path"]
+                                                            target_service_name = path["backend"]["service"]["name"]
+                                                            target_service_port = path["backend"]["service"]["port"][
+                                                                "number"]
+                                                            if target_service_name == service_name and target_service_port == service_port:
+                                                                protocol = "http"
+                                                                outer_enable = True
+                                                                port.update({"outer_url": host + path_url})
+                                                if not outer_enable:
+                                                    inner_enable = True
+                                                    port.update({"inner_url": "127.0.0.1:" + str(
+                                                        port_service_target_port)})
+                                            else:
+                                                inner_enable = True
+                                                port.update({"inner_url": "127.0.0.1:" + str(
+                                                    port_service_target_port)})
                 container_port = port.get("containerPort")
                 port_alias = "wt" + my_uuid[-6:] + str(container_port)
                 k8s_name = "wt" + my_uuid[-6:] + '-' + str(container_port)
@@ -158,13 +162,14 @@ class YamlService(object):
                 port.pop("containerPort")
                 new_ports.append(port)
 
-            dup_port = self.is_resource_dup(new_ports, "container_port")
-            if dup_port:
-                err_msg.append({
-                    "file_name": commpoent_data["file_name"],
-                    "resource_name": svc_name,
-                    "err_msg": "存在相同端口 " + str(dup_port)
-                })
+            if new_ports:
+                dup_port = self.is_resource_dup(new_ports, "container_port")
+                if dup_port:
+                    err_msg.append({
+                        "file_name": commpoent_data["file_name"],
+                        "resource_name": svc_name,
+                        "err_msg": "存在相同端口 " + str(dup_port)
+                    })
 
             for env in envs:
                 attr_name = env.get("name")
@@ -197,13 +202,14 @@ class YamlService(object):
                 if not env.get("attr_value"):
                     env.update({"attr_value": ""})
 
-            dup_env = self.is_resource_dup(envs, "attr_name")
-            if dup_env:
-                err_msg.append({
-                    "file_name": commpoent_data["file_name"],
-                    "resource_name": svc_name,
-                    "err_msg": "存在相同环境变量 " + str(dup_env)
-                })
+            if envs:
+                dup_env = self.is_resource_dup(envs, "attr_name")
+                if dup_env:
+                    err_msg.append({
+                        "file_name": commpoent_data["file_name"],
+                        "resource_name": svc_name,
+                        "err_msg": "存在相同环境变量 " + str(dup_env)
+                    })
 
             if volume_mounts:
                 for volume_mount in volume_mounts:
@@ -265,13 +271,13 @@ class YamlService(object):
                     volume_mount.update({"mode": 755})
                     volume_mount.update({"volume_path": volume_mount.get("mountPath")})
 
-            dup_volume = self.is_resource_dup(volume_mounts, "volume_name")
-            if dup_volume:
-                err_msg.append({
-                    "file_name": commpoent_data["file_name"],
-                    "resource_name": svc_name,
-                    "err_msg": "存在相同存储名 " + str(dup_volume)
-                })
+                dup_volume = self.is_resource_dup(volume_mounts, "volume_name")
+                if dup_volume:
+                    err_msg.append({
+                        "file_name": commpoent_data["file_name"],
+                        "resource_name": svc_name,
+                        "err_msg": "存在相同存储名 " + str(dup_volume)
+                    })
 
             for horizontal_pod_auto_scaler in horizontal_pod_auto_scaler_data:
                 scaler_spec = horizontal_pod_auto_scaler["spec"]

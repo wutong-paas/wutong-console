@@ -1,13 +1,13 @@
 import os
 import re
 from typing import Any, Optional
-
 import yaml
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from sqlalchemy import select
+
 from clients.remote_component_client import remote_component_client
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
@@ -35,7 +35,6 @@ from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.component_service import component_check_service
-from service.market_app_service import market_app_service
 from service.monitor_service import monitor_service
 from service.multi_app_service import multi_app_service
 from service.region_service import region_services
@@ -715,23 +714,21 @@ async def yaml_install(
                 "err_msg": msg
             })
         except yaml.YAMLError as exc:
-            if hasattr(exc, 'problem_mark'):
-                if exc.context_mark != None:
-                    msg = str(exc.context_mark)
-                else:
-                    msg = str(exc.problem_mark) + '\n  ' + str(exc.problem)
+            if exc.context_mark:
+                msg = str(exc.context_mark)
             else:
-                msg = "Something went wrong while parsing yaml file"
-            file_name = yaml_dir.split("\\")[-1]
+                if hasattr(exc, 'problem_mark'):
+                    msg = str(exc.problem_mark) + '\n  ' + str(exc.problem)
+                else:
+                    msg = "Something went wrong while parsing yaml file"
             err_msg.append({
-                "file_name": file_name,
+                "file_name": yaml_name,
                 "resource_name": "",
                 "err_msg": msg
             })
         except:
-            file_name = yaml_dir.split("\\")[-1]
             err_msg.append({
-                "file_name": file_name,
+                "file_name": yaml_name,
                 "resource_name": "",
                 "err_msg": "未知错误"
             })
