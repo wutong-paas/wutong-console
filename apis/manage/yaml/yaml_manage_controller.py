@@ -14,10 +14,10 @@ from service.upload_service import upload_service
 router = APIRouter()
 
 
-@router.post("/yaml-files/upload", response_model=Response, name="文件上传")
+@router.post("/yaml-files/upload", response_model=Response, name="yaml文件上传")
 async def file_upload(file: UploadFile = File(...)) -> Any:
     """
-    文件上传
+    yaml文件上传
 
     :param file:
     :return:
@@ -30,7 +30,8 @@ async def file_upload(file: UploadFile = File(...)) -> Any:
     if not file_url:
         result = general_message(400, "upload file error", "上传失败")
     else:
-        result = general_message("0", "file upload success", "上传成功", bean={"file_url": file_url})
+        result = general_message("0", "file upload success", "上传成功", bean={"file_url": file_url,
+                                                                           "real_name": file.filename})
     return JSONResponse(result, status_code=200)
 
 
@@ -81,7 +82,9 @@ async def add_yaml_data(
     yaml_file = open(save_filename, "w+", encoding='utf-8')
     yaml_file.write(context)
     yaml_file.close()
-    return JSONResponse(general_message("0", "success", msg_show="添加成功", bean={"file_url": query_filename}), status_code=200)
+    return JSONResponse(general_message("0", "success", msg_show="添加成功", bean={"file_url": query_filename,
+                                                                               "real_name": yaml_name}),
+                        status_code=200)
 
 
 @router.delete("/teams/apps/yaml", response_model=Response, name="删除yaml文件")
