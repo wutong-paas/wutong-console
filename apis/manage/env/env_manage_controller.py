@@ -38,8 +38,8 @@ async def add_env(request: Request,
     if not is_qualified_name(env_name):
         raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只支持英文、数字、中横线、下划线组合，只能以英文开头且中横线、下划线不能位于首尾")
 
-    env_ns = env_name.lower().replace("_", "-")
-    namespace = team_name + "-" + env_ns
+    namespace = team_name + "-" + env_name
+    namespace = namespace.lower().replace("_", "-")
 
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
