@@ -66,8 +66,8 @@ async def create_app(params: TeamAppCreateRequest,
     :param params:
     :return:
     """
-    if len(params.note) > 2048:
-        result = general_message(400, "node too long", "应用备注长度限制2048")
+    if len(params.note) > 255:
+        result = general_message(400, "node too long", "应用描述长度限制255")
         return JSONResponse(result, status_code=result["code"])
 
     if len(params.app_code) > 32:
@@ -146,8 +146,8 @@ async def update_app(request: Request,
     note = data.get("note", "")
     logo = data.get("logo", "")
     k8s_app = app_code.lower().replace("_", "-")
-    if note and len(note) > 2048:
-        return JSONResponse(general_message(400, "node too long", "应用备注长度限制2048"), status_code=400)
+    if note and len(note) > 255:
+        return JSONResponse(general_message(400, "node too long", "应用描述长度限制255"), status_code=400)
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
