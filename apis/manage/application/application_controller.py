@@ -70,6 +70,10 @@ async def create_app(params: TeamAppCreateRequest,
         result = general_message(400, "node too long", "应用备注长度限制2048")
         return JSONResponse(result, status_code=result["code"])
 
+    if len(params.app_code) > 32:
+        result = general_message(400, "app_code too long", "应用标识长度限制32")
+        return JSONResponse(result, status_code=result["code"])
+
     app_code = params.app_code
     if not app_code and params.app_alias:
         app_code = params.app_alias

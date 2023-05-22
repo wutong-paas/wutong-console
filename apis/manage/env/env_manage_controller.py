@@ -35,6 +35,11 @@ async def add_env(request: Request,
     env_name = from_data["env_name"]
     tenant_id = from_data["tenant_id"]
     desc = from_data.get("desc", "")
+
+    if len(env_name) > 31:
+        result = general_message(400, "env_code too long", "环境标识长度限制31")
+        return JSONResponse(result, status_code=result["code"])
+
     if not is_qualified_name(env_name):
         raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只支持英文、数字、中横线、下划线组合，只能以英文开头且中横线、下划线不能位于首尾")
 
