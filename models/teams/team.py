@@ -26,7 +26,7 @@ class TeamEnvInfo(Base):
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
     update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     env_alias = Column(String(64), comment="环境别名", nullable=False)
-    namespace = Column(String(33), comment="环境的命名空间", nullable=False)
+    namespace = Column(String(63), comment="环境的命名空间", nullable=False)
     desc = Column(String(255), comment="描述", nullable=True)
 
     is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
