@@ -366,7 +366,10 @@ class ApplicationService(object):
         logger.info("is_k8s_app_dup ========== {0} k8s_app ======= {1}".format(is_k8s_app_dup, k8s_app))
         if is_k8s_app_dup:
             index = str(uuid.uuid1())
-            k8s_app = k8s_app + "-" + index[:8]
+            k8s_app_temp = k8s_app + "-" + index[:8]
+            if len(k8s_app_temp) > 32:
+                k8s_app_temp = k8s_app[:-9] + "-" + index[:8]
+            k8s_app = k8s_app_temp
 
         # check parameter for helm app
         app_type = AppType.wutong.name
@@ -1785,7 +1788,10 @@ class ApplicationService(object):
                                                  app_code=app_code, k8s_app=k8s_app)
             if is_k8s_app_dup:
                 index = str(uuid.uuid1())
-                k8s_app = k8s_app + "-" + index[:8]
+                k8s_app_temp = k8s_app + "-" + index[:8]
+                if len(k8s_app_temp) > 32:
+                    k8s_app_temp = k8s_app[:-9] + "-" + index[:8]
+                k8s_app = k8s_app_temp
 
         if overrides:
             overrides = self._parse_overrides(overrides)
