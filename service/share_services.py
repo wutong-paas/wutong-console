@@ -425,7 +425,10 @@ class ShareService(object):
 
         if last_shared:
             last_shared_app_info = (
-                session.execute(select(CenterApp).where(CenterApp.app_id == last_shared.app_id))
+                session.execute(select(CenterApp).where(and_(CenterApp.app_id == last_shared.app_id,
+                                                             or_(
+                                                                 CenterApp.create_team == tenant_env.tenant_name,
+                                                                 CenterApp.scope == "enterprise"))))
             ).scalars().first()
 
             if last_shared_app_info:
