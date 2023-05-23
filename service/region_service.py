@@ -56,6 +56,7 @@ def get_region_list_by_team_name(session: SessionClass, envs):
 
 def get_team_env_list(envs):
     """
+    :param session:
     :param envs:
     :return:
     """
@@ -66,7 +67,9 @@ def get_team_env_list(envs):
                 "env_id": env.env_id,
                 "env_code": env.env_name,
                 "env_namespace": env.namespace,
-                "env_name": env.env_alias
+                "env_name": env.env_alias,
+                "region_name": env.region_name,
+                "region_code": env.region_code
             }
             team_env_list.append(env_info)
         return team_env_list
