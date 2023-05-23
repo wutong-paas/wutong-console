@@ -370,7 +370,7 @@ class ShareService(object):
                 version_alias=version_alias,
                 template_type=template_type,
                 record_id=share_record.ID,
-                share_user=share_user.user_id,
+                share_user=share_user.nick_name,
                 share_env=share_env.env_name,
                 group_id=share_record.group_id,
                 source="local",

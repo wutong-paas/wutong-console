@@ -311,8 +311,6 @@ class MarketAppService(object):
                 app_release = True
 
             version.release_user = ""
-            version.share_user_id = version.share_user
-            version.share_user = version.share_user_id
 
             app_with_versions[version.version] = version
             if version.version not in apv_ver_nums:
