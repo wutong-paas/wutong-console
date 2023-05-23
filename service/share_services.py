@@ -5,7 +5,7 @@ import time
 
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from sqlalchemy import select, or_, text, delete
+from sqlalchemy import select, or_, text, delete, and_
 
 from appstore.app_store import app_store
 from clients.remote_build_client import remote_build_client
@@ -459,10 +459,10 @@ class ShareService(object):
         else:
             apps = (
                 session.execute(select(CenterApp).where(
-                    CenterApp.source == "local",
-                    or_(CenterApp.create_team == team_name,
-                        CenterApp.scope.in_(
-                            ["team", "enterprise"]))).order_by(
+                    or_(
+                        and_(CenterApp.create_team == team_name,
+                             CenterApp.scope == "team"),
+                        (CenterApp.scope == "enterprise"))).order_by(
                     CenterApp.create_time.desc()))
             ).scalars().all()
 
