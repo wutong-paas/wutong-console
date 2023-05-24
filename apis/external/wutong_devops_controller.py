@@ -135,7 +135,7 @@ async def deploy_business_component(
             return JSONResponse(general_message(400, "not found app at team", "应用不属于该团队"), status_code=400)
 
         user_dict = {
-            "nick_name": "admin"
+            "nick_name": "超级管理员"
         }
         user = UserInfo(**user_dict)
         code, msg_show, new_service = application_service.create_docker_run_app(session=session,
