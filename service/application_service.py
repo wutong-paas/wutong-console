@@ -330,11 +330,11 @@ class ApplicationService(object):
 
     def create_app(self, session: SessionClass,
                    tenant_env,
-                   project_id,
                    region_name,
                    app_name,
                    tenant_name,
                    team_code,
+                   project_id=None,
                    project_name="",
                    note="",
                    username="",
