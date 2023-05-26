@@ -171,7 +171,7 @@ class MarketAppService(object):
                                                                      page,
                                                                      page_size,
                                                                      need_install)
-        count = center_app_repo.get_wutong_app_total_count(session, scope, None, app_name, tag_names,
+        count = center_app_repo.get_wutong_app_total_count(session, scope, teams, app_name, tag_names,
                                                            need_install)
         if not apps:
             return [], count
