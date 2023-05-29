@@ -31,6 +31,7 @@ class ApplicationRepository(BaseRepository[Application]):
             sql += " and project_id in ({0})".format(
                 ", ".join("'{0}'".format(project_id) for project_id in project_ids))
         sql += " ORDER BY order_index,update_time DESC"
+        logger.info("sql =============== {}".format(sql))
         return session.execute(sql, params).fetchall()
 
     def get_groups_by_team_name(self, session, team_name, env_id, app_name):
