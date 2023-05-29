@@ -18,26 +18,21 @@ class ApplicationRepository(BaseRepository[Application]):
             Application.update_time.desc(), Application.order_index.desc())).scalars().all()
 
     def get_tenant_region_groups(self, session, env_id, region, query="", app_type="", project_ids=None):
-        sql = select(Application).where(Application.tenant_env_id == env_id,
-                                        Application.region_name == region,
-                                        Application.is_delete == 0,
-                                        Application.group_name.contains(query)).order_by(
-            Application.update_time.desc(), Application.order_index.desc())
+        params = {
+            "region_name": region,
+            "env_id": env_id,
+            "group_name": query,
+            "app_type": app_type,
+            "project_ids": project_ids,
+        }
+        sql = "select * from service_group where tenant_env_id = :env_id and is_delete=0 and " \
+              "region_name = :region_name and group_name like '%' :group_name '%'"
         if app_type:
-            sql = select(Application).where(Application.tenant_env_id == env_id,
-                                            Application.region_name == region,
-                                            Application.app_type == app_type,
-                                            Application.is_delete == 0,
-                                            Application.group_name.contains(query)).order_by(
-                Application.update_time.desc(), Application.order_index.desc())
+            sql += " and app_type = :app_type"
         if project_ids:
-            sql = select(Application).where(Application.tenant_env_id == env_id,
-                                            Application.region_name == region,
-                                            Application.project_id.in_(project_ids),
-                                            Application.is_delete == 0,
-                                            Application.group_name.contains(query)).order_by(
-                Application.update_time.desc(), Application.order_index.desc())
-        return session.execute(sql).scalars().all()
+            sql += " and project_id in (:project_ids)"
+        sql += ""
+        return session.execute(sql, params).fetchall()
 
     def get_groups_by_team_name(self, session, team_name, env_id, app_name):
         params = {
