@@ -71,6 +71,8 @@ async def get_backup_info(request: Request,
     note = data.get("note", None)
     if not note:
         return JSONResponse(general_message(400, "note is null", "请填写备份信息"), status_code=400)
+    if len(note) > 255:
+        return JSONResponse(general_message(400, "note is to long", "备份信息长度过长"), status_code=400)
     mode = data.get("mode", None)
     if not mode:
         return JSONResponse(general_message(400, "mode is null", "请选择备份模式"), status_code=400)
