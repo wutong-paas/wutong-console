@@ -32,6 +32,7 @@ class ApplicationRepository(BaseRepository[Application]):
         if project_ids:
             sql += " and project_id in (:project_ids)"
         sql += ""
+        logger.info("sql ============== {}".format(sql))
         return session.execute(sql, params).fetchall()
 
     def get_groups_by_team_name(self, session, team_name, env_id, app_name):
