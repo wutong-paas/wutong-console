@@ -21,16 +21,16 @@ class ApplicationRepository(BaseRepository[Application]):
         params = {
             "region_name": region,
             "env_id": env_id,
-            "group_name": query,
-            "app_type": app_type,
-            "project_ids": project_ids,
+            "group_name": query
         }
         sql = "select * from service_group where tenant_env_id = :env_id and is_delete=0 and " \
               "region_name = :region_name and group_name like '%' :group_name '%'"
         if app_type:
             sql += " and app_type = :app_type"
         if project_ids:
-            sql += " and project_id in ({0})".format(",".join("'{0}'".format(project_id) for project_id in project_ids))
+            sql += " and project_id in ({0})".format(
+                ", ".join("'{0}'".format(project_id) for project_id in project_ids))
+        sql += " ORDER BY order_index,update_time DESC"
         return session.execute(sql, params).fetchall()
 
     def get_groups_by_team_name(self, session, team_name, env_id, app_name):
