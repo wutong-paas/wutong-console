@@ -65,15 +65,17 @@ async def overview_env_app_info(request: Request,
                                 page: int = Query(default=1, ge=1, le=9999),
                                 page_size: int = Query(default=10, ge=1, le=500),
                                 env_id: Optional[str] = None,
+                                status: Optional[str] = "all",
+                                project_ids: Optional[str] = None,
+                                query: Optional[str] = "",
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     总览 团队应用信息
     """
-    query = request.query_params.get("query", "")
-    status = request.query_params.get("status", "all")
-    project_ids = request.query_params.get("project_ids", None)
     if project_ids:
         project_ids = json.loads(unquote(project_ids))
+
+    query = unquote(query)
 
     count = {
         "RUNNING": 0,
