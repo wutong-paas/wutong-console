@@ -101,6 +101,7 @@ async def overview_env_app_info(request: Request,
     apps = []
     if groups:
         group_ids = [group.ID for group in groups]
+        logger.info("group_ids ============= {}".format(group_ids))
         apps, count = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids,
                                                                   region=region_name,
                                                                   tenant_env=env,
