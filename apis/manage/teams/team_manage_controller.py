@@ -101,17 +101,20 @@ async def overview_env_app_info(request: Request,
     apps = []
     if groups:
         group_ids = [group.ID for group in groups]
-        logger.info("group_ids ============= {}".format(group_ids))
         apps, count = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids,
                                                                   region=region_name,
                                                                   tenant_env=env,
                                                                   status=status)
 
     total = len(apps)
+    pages = int(total / page_size)
+    if pages == 0:
+        pages = 1
     apps = apps[start:end]
     app_num_dict.update(count)
     return JSONResponse(
-        general_message("0", "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict, total=total),
+        general_message("0", "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict, total=total,
+                        current=page, pages=pages, size=page_size),
         status_code=200)
 
 

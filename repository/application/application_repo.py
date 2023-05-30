@@ -23,6 +23,8 @@ class ApplicationRepository(BaseRepository[Application]):
             "env_id": env_id,
             "group_name": query
         }
+        logger.info("params ================= {}".format(params))
+        logger.info("project_ids ================= {}".format(project_ids))
         sql = "select * from service_group where tenant_env_id = :env_id and is_delete=0 and " \
               "region_name = :region_name and group_name like '%' :group_name '%'"
         if app_type:
