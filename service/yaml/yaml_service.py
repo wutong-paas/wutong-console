@@ -38,6 +38,7 @@ class YamlService(object):
         if not app:
             raise AbortRequest("app not found", "应用不存在", status_code=404, error_code=404)
 
+        # 将yaml文件内容解析为平台资源
         yaml_apps, autoscaler_datas, err_msg = self.get_all_yaml_info(yaml_data)
         if err_msg:
             return err_msg
@@ -63,6 +64,7 @@ class YamlService(object):
             create_type="yaml")
         app_upgrade.install(session)
 
+        # 录入伸缩数据
         for autoscaler_data in autoscaler_datas:
             autoscaler_service.create_autoscaler_rule(session, region_name, env,
                                                       "wt" + autoscaler_data["service_id"][-6:],
@@ -71,10 +73,14 @@ class YamlService(object):
 
     def get_all_yaml_info(self, data):
 
+        # 错误消息
         err_msg = []
+        # 解析后的组件数据
         svc_data = []
+        # 解析后的伸缩数据
         autoscaler_data = []
 
+        # 获取各类kind资源数据
         deployment_data = data.get("Deployment", [])
         stateful_set_data = data.get("StatefulSet", [])
         service_data = data.get("Service", None)
@@ -83,32 +89,55 @@ class YamlService(object):
         configmap_data = data.get("ConfigMap", None)
         persistent_volume_claim_data = data.get("PersistentVolumeClaim", [])
         horizontal_pod_auto_scaler_data = data.get("HorizontalPodAutoscaler", [])
-        commpoent_datas = deployment_data + stateful_set_data
 
+        # Deployment、StatefulSet数据整合为组件数据
+        commpoent_datas = deployment_data + stateful_set_data
         for commpoent_data in commpoent_datas:
-            helm_data = {}
+            yaml_data = {}
             new_ports = []
-            my_uuid = make_uuid()
-            svc_name = commpoent_data["metadata"]["name"]
-            match_labels = commpoent_data["spec"]["selector"]["matchLabels"]
-            keys = match_labels.keys()
-            spec = commpoent_data["spec"]["template"]["spec"]
-            volume_claim_templates = commpoent_data["spec"].get("volumeClaimTemplates", None)
-            containers = spec["containers"]
-            container = containers[0]
-            ports = container.get("ports", [])
-            envs = container.get("env", [])
-            env_froms = container.get("envFrom", None)
-            image = container.get("image", None)
-            resources = container.get("resources")
-            volume_mounts = container.get("volumeMounts")
-            volumes = spec.get("volumes", [])
+            service_id = make_uuid()
+            svc_name = None
+            try:
+                svc_name = commpoent_data["metadata"]["name"]
+                match_labels = commpoent_data["spec"]["selector"]["matchLabels"]
+                keys = match_labels.keys()
+                spec = commpoent_data["spec"]["template"]["spec"]
+                volume_claim_templates = commpoent_data["spec"].get("volumeClaimTemplates", None)
+                containers = spec["containers"]
+                container = containers[0]
+                container_name = container.get("name", "")
+                ports = container.get("ports", [])
+                envs = container.get("env", [])
+                env_froms = container.get("envFrom", None)
+                image = container.get("image", None)
+                resources = container.get("resources")
+                volume_mounts = container.get("volumeMounts")
+                volumes = spec.get("volumes", [])
+            except Exception as e:
+                err_msg.append({
+                    "file_name": commpoent_data["file_name"],
+                    "resource_name": svc_name if svc_name else "",
+                    "err_msg": "解析失败，请检查是否缺失关键字段"
+                })
+                break
+
+            # 镜像源检测
+            if not image:
+                err_msg.append({
+                    "file_name": commpoent_data["file_name"],
+                    "resource_name": svc_name,
+                    "err_msg": "未解析到{}容器镜像源".format(container_name)
+                })
+                break
+
+            # 端口解析
             for port in ports:
                 outer_enable = False
                 inner_enable = False
                 protocol = "tcp"
                 port_name = port.get("name", None)
                 deployment_port = port.get("containerPort")
+                # Service解析
                 if service_data:
                     for service in service_data:
                         service_name = service["metadata"]["name"]
@@ -127,6 +156,7 @@ class YamlService(object):
                                             if node_port:
                                                 outer_enable = True
                                                 port.update({"outer_url": "0:0:0:0:" + str(node_port)})
+                                            # Ingress解析
                                             if ingress_data:
                                                 for ingress in ingress_data:
                                                     rules = ingress["spec"]["rules"]
@@ -151,8 +181,8 @@ class YamlService(object):
                                                 port.update({"inner_url": "127.0.0.1:" + str(
                                                     port_service_target_port)})
                 container_port = port.get("containerPort")
-                port_alias = "wt" + my_uuid[-6:] + str(container_port)
-                k8s_name = "wt" + my_uuid[-6:] + '-' + str(container_port)
+                port_alias = "wt" + service_id[-6:] + str(container_port)
+                k8s_name = "wt" + service_id[-6:] + '-' + str(container_port)
                 port.update({"port_alias": port_alias.upper()})
                 port.update({"k8s_service_name": k8s_name.lower()})
                 port.update({"container_port": container_port})
@@ -162,6 +192,7 @@ class YamlService(object):
                 port.pop("containerPort")
                 new_ports.append(port)
 
+            # port重复判断
             if new_ports:
                 dup_port = self.is_resource_dup(new_ports, "container_port")
                 if dup_port:
@@ -171,6 +202,7 @@ class YamlService(object):
                         "err_msg": "存在相同端口 " + str(dup_port)
                     })
 
+            # 环境变量解析
             for env in envs:
                 attr_name = env.get("name")
                 env.update({"attr_name": attr_name})
@@ -202,6 +234,7 @@ class YamlService(object):
                 if not env.get("attr_value"):
                     env.update({"attr_value": ""})
 
+            # env重复判断
             if envs:
                 dup_env = self.is_resource_dup(envs, "attr_name")
                 if dup_env:
@@ -211,6 +244,7 @@ class YamlService(object):
                         "err_msg": "存在相同环境变量 " + str(dup_env)
                     })
 
+            # volume解析
             if volume_mounts:
                 for volume_mount in volume_mounts:
                     v_name = volume_mount.get("name")
@@ -271,6 +305,7 @@ class YamlService(object):
                     volume_mount.update({"mode": 755})
                     volume_mount.update({"volume_path": volume_mount.get("mountPath")})
 
+                # volume重复判断
                 dup_volume = self.is_resource_dup(volume_mounts, "volume_name")
                 if dup_volume:
                     err_msg.append({
@@ -279,6 +314,7 @@ class YamlService(object):
                         "err_msg": "存在相同存储名 " + str(dup_volume)
                     })
 
+            # 伸缩数据解析
             for horizontal_pod_auto_scaler in horizontal_pod_auto_scaler_data:
                 scaler_spec = horizontal_pod_auto_scaler["spec"]
                 if scaler_spec:
@@ -302,7 +338,7 @@ class YamlService(object):
                                 })
 
                         autoscaler_data.append({
-                            "service_id": my_uuid,
+                            "service_id": service_id,
                             "xpa_type": "hpa",
                             "enable": True,
                             "min_replicas": min_replicas if min_replicas else 1,
@@ -316,12 +352,12 @@ class YamlService(object):
                 requests = resources.get("requests")
                 limits = resources.get("limits")
 
-            helm_data.update({"service_cname": svc_name})
-            helm_data.update({"port_map_list": new_ports})
-            helm_data.update({"service_env_map_list": envs})
-            helm_data.update({"service_connect_info_map_list": []})
-            helm_data.update({"image": image})
-            helm_data.update({"extend_method_map": {
+            yaml_data.update({"service_cname": svc_name})
+            yaml_data.update({"port_map_list": new_ports})
+            yaml_data.update({"service_env_map_list": envs})
+            yaml_data.update({"service_connect_info_map_list": []})
+            yaml_data.update({"image": image})
+            yaml_data.update({"extend_method_map": {
                 "max_memory": int(limits.get("memory")[:-2]) * 1024 if limits else 0,
                 "min_memory": int(limits.get("memory")[:-2]) * 1024 if limits else 0,
                 "init_memory": int(requests.get("memory")[:-2]) * 1024 if requests else 0,
@@ -332,13 +368,13 @@ class YamlService(object):
                 "step_node": 1,
                 "is_restart": 1
             }})
-            helm_data.update({"service_volume_map_list": volume_mounts})
-            helm_data.update({"extend_method": "stateless"})
-            helm_data.update({"version": ''.join(image.split(":")[-1:])})
-            helm_data.update({"service_key": my_uuid})
-            helm_data.update({"service_id": my_uuid})
-            helm_data.update({"service_share_uuid": my_uuid})
-            svc_data.append(helm_data)
+            yaml_data.update({"service_volume_map_list": volume_mounts})
+            yaml_data.update({"extend_method": "stateless"})
+            yaml_data.update({"version": ''.join(image.split(":")[-1:])})
+            yaml_data.update({"service_key": service_id})
+            yaml_data.update({"service_id": service_id})
+            yaml_data.update({"service_share_uuid": service_id})
+            svc_data.append(yaml_data)
 
         return svc_data, autoscaler_data, err_msg
 

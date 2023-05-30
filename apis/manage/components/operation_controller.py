@@ -695,6 +695,7 @@ async def yaml_install(
     if not yaml_names or not group_id:
         return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
 
+    # 解析yaml文件
     for yaml_name in yaml_names:
         try:
             yaml_dir = os.path.join(settings.YAML_ROOT, 'yamls/{0}'.format(yaml_name))
@@ -737,6 +738,7 @@ async def yaml_install(
         return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", list=err_msg),
                             status_code=400)
 
+    # 文件内容kind分类
     for yaml_data in yaml_datas:
         if yaml_data:
             work_load = yaml_data["kind"]
@@ -753,6 +755,7 @@ async def yaml_install(
         return JSONResponse(general_message(400, "not found Deployment、StatefulSet", msg_show="未识别到组件信息"),
                             status_code=400)
 
+    # 安装yaml组件
     err_msg = yaml_service.install_yaml_service(session=session,
                                                 user=user,
                                                 env=env,
