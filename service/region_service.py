@@ -84,6 +84,8 @@ class RegionService(object):
             data = await request.json()
         except:
             data = {}
+        if isinstance(data, list):
+            data = data[0]
         response_region = data.get("region_name", None)
         if not response_region:
             response_region = request.query_params.get("region_name", None)
