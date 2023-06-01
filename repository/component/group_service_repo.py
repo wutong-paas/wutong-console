@@ -5,7 +5,9 @@ from core.utils.status_translate import get_status_info_map
 from database.session import SessionClass
 from models.application.models import ComponentApplicationRelation
 from models.component.models import Component, ComponentSourceInfo
+from models.teams import ServiceDomain, ServiceTcpDomain
 from repository.base import BaseRepository
+from repository.region.region_info_repo import region_repo
 from service.base_services import base_service
 
 
@@ -196,6 +198,24 @@ class ComponentRepository(BaseRepository[Component]):
                 Component.service_id == service["service_id"])).scalars().first()
             if service_obj:
                 service["service_source"] = service_obj.service_source
+
+            service["service_domain"] = []
+            # http服务
+            service_domains = session.execute(select(ServiceDomain).where(
+                ServiceDomain.service_id == service["service_id"])).scalars().all()
+            if service_domains:
+                for service_domain in service_domains:
+                    service["service_domain"].append(service_domain.domain_name)
+            # tcp服务
+            service_tcp_domains = session.execute(select(ServiceTcpDomain).where(
+                ServiceTcpDomain.service_id == service["service_id"])).scalars().all()
+            if service_tcp_domains:
+                for service_tcp_domain in service_tcp_domains:
+                    end_point = service_tcp_domain.end_point
+                    ip, port = end_point.split(":")
+                    region = region_repo.get_region_by_region_name(session, region_name)
+                    service["service_domain"].append(region.tcpdomain + ":" + port)
+
             service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
             status = status_cache.get(service["service_id"], "unknow")
 
