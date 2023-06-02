@@ -1,7 +1,10 @@
 import base64
+import os
 
+import yaml
 from sqlalchemy import select
 
+from core.setting import settings
 from core.utils.crypt import make_uuid
 from exceptions.main import AbortRequest
 from models.application.models import Application
@@ -13,10 +16,71 @@ from service.market_app_service import market_app_service
 
 class YamlService(object):
 
-    def is_resource_dup(self, resources, type):
+    # 文件内容根据kind分类
+    @staticmethod
+    def yaml_classify_by_kind(yaml_datas):
+        data = {}
+        for yaml_data in yaml_datas:
+            if yaml_data:
+                work_load = yaml_data["kind"]
+                work_load_data = data.get(work_load)
+                if work_load_data:
+                    work_load_data.append(yaml_data)
+                    data.update({work_load: work_load_data})
+                else:
+                    data.update({work_load: [yaml_data]})
+        return data
+
+    # yaml文件解析
+    @staticmethod
+    def yaml_resolution(yaml_names):
+        yaml_datas = []
+        err_msg = []
+        for yaml_name in yaml_names:
+            try:
+                yaml_dir = os.path.join(settings.YAML_ROOT, 'yamls/{0}'.format(yaml_name))
+                yaml_file = open(yaml_dir, "r", encoding='utf-8')
+                file_data = yaml_file.read()
+                yaml_file.close()
+                yaml_file_datas = list(yaml.safe_load_all(file_data))
+                for yaml_file_data in yaml_file_datas:
+                    if yaml_file_data:
+                        yaml_file_data.update({"file_name": yaml_name})
+                yaml_datas += yaml_file_datas
+            except FileNotFoundError as exc:
+                msg = yaml_name + " 文件未找到"
+                err_msg.append({
+                    "file_name": yaml_name,
+                    "resource_name": "",
+                    "err_msg": msg
+                })
+            except yaml.YAMLError as exc:
+                if exc.context_mark:
+                    msg = str(exc.context_mark)
+                else:
+                    if hasattr(exc, 'problem_mark'):
+                        msg = str(exc.problem_mark) + '\n  ' + str(exc.problem)
+                    else:
+                        msg = "Something went wrong while parsing yaml file"
+                err_msg.append({
+                    "file_name": yaml_name,
+                    "resource_name": "",
+                    "err_msg": msg
+                })
+            except:
+                err_msg.append({
+                    "file_name": yaml_name,
+                    "resource_name": "",
+                    "err_msg": "未知错误"
+                })
+        return yaml_datas, err_msg
+
+    # 判断资源是否重复
+    @staticmethod
+    def is_resource_dup(resources, resources_type):
         resource_temp = []
         for resource in resources:
-            container = resource.get(type)
+            container = resource.get(resources_type)
             if container in resource_temp:
                 return container
             else:

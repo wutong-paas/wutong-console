@@ -1,7 +1,6 @@
-import os
 import re
 from typing import Any, Optional
-import yaml
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -684,72 +683,42 @@ async def yaml_install(
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         env=Depends(deps.get_current_team_env)) -> Any:
-    data = await request.json()
-    group_id = data.get("group_id")
-    yaml_names = data.get("yaml_names")
+    """
+    yaml安装组件
+    ---
+    parameters:
+        - name: team_name
+          description: 团队code
+          required: true
+          type: string
+          paramType: path
+        - name: env_id
+          description: 环境id
+          required: true
+          type: string
+          paramType: path
+    """
 
-    yaml_datas = []
-    data = {}
-    err_msg = []
+    request_data = await request.json()
+    group_id = request_data.get("group_id")
+    yaml_names = request_data.get("yaml_names")
 
     if not yaml_names or not group_id:
         return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
 
     # 解析yaml文件
-    for yaml_name in yaml_names:
-        try:
-            yaml_dir = os.path.join(settings.YAML_ROOT, 'yamls/{0}'.format(yaml_name))
-            yaml_file = open(yaml_dir, "r", encoding='utf-8')
-            file_data = yaml_file.read()
-            yaml_file.close()
-            yaml_file_datas = list(yaml.safe_load_all(file_data))
-            for yaml_file_data in yaml_file_datas:
-                if yaml_file_data:
-                    yaml_file_data.update({"file_name": yaml_name})
-            yaml_datas += yaml_file_datas
-        except FileNotFoundError as exc:
-            msg = yaml_name + " 文件未找到"
-            err_msg.append({
-                "file_name": yaml_name,
-                "resource_name": "",
-                "err_msg": msg
-            })
-        except yaml.YAMLError as exc:
-            if exc.context_mark:
-                msg = str(exc.context_mark)
-            else:
-                if hasattr(exc, 'problem_mark'):
-                    msg = str(exc.problem_mark) + '\n  ' + str(exc.problem)
-                else:
-                    msg = "Something went wrong while parsing yaml file"
-            err_msg.append({
-                "file_name": yaml_name,
-                "resource_name": "",
-                "err_msg": msg
-            })
-        except:
-            err_msg.append({
-                "file_name": yaml_name,
-                "resource_name": "",
-                "err_msg": "未知错误"
-            })
+    yaml_datas, err_msg = yaml_service.yaml_resolution(yaml_names)
 
     if err_msg:
         return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", list=err_msg),
                             status_code=400)
 
-    # 文件内容kind分类
-    for yaml_data in yaml_datas:
-        if yaml_data:
-            work_load = yaml_data["kind"]
-            work_load_data = data.get(work_load)
-            if work_load_data:
-                work_load_data.append(yaml_data)
-                data.update({work_load: work_load_data})
-            else:
-                data.update({work_load: [yaml_data]})
-    deployment_data = data.get("Deployment", [])
-    stateful_set_data = data.get("StatefulSet", [])
+    # 使用kind对yaml数据分类
+    kind_data = yaml_service.yaml_classify_by_kind(yaml_datas)
+
+    # 仅识别Deployment、StatefulSet为组件
+    deployment_data = kind_data.get("Deployment", [])
+    stateful_set_data = kind_data.get("StatefulSet", [])
     services = deployment_data + stateful_set_data
     if len(services) == 0:
         return JSONResponse(general_message(400, "not found Deployment、StatefulSet", msg_show="未识别到组件信息"),
@@ -761,7 +730,7 @@ async def yaml_install(
                                                 env=env,
                                                 app_id=group_id,
                                                 region_name=env.region_code,
-                                                yaml_data=data)
+                                                yaml_data=kind_data)
     if err_msg:
         return JSONResponse(general_message(400, "failed", msg_show="yaml解析失败", list=err_msg), status_code=400)
     return JSONResponse(general_message("0", "success", msg_show="安装成功"), status_code=200)
