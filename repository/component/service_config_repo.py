@@ -475,7 +475,8 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
             session.execute(delete(TeamComponentRelation).where(
                 TeamComponentRelation.service_id.in_(component_ids)
             ))
-            session.add_all(component_deps)
+            for dep in component_deps:
+                session.merge(dep)
 
     def check_db_dep_by_eid(self, session):
         """
