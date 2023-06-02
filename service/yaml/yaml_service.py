@@ -16,9 +16,18 @@ from service.market_app_service import market_app_service
 
 class YamlService(object):
 
-    # 文件内容根据kind分类
     @staticmethod
     def yaml_classify_by_kind(yaml_datas):
+        """
+        文件内容根据kind分类
+        ---
+        parameters:
+        - name: yaml_datas
+          description: yaml数据
+          required: true
+          type: list[string]
+          paramType: data
+        """
         data = {}
         for yaml_data in yaml_datas:
             if yaml_data:
@@ -31,9 +40,18 @@ class YamlService(object):
                     data.update({work_load: [yaml_data]})
         return data
 
-    # yaml文件解析
     @staticmethod
     def yaml_resolution(yaml_names):
+        """
+        yaml文件解析
+        ---
+        parameters:
+        - name: yaml_names
+          description: yaml文件名
+          required: true
+          type: list[string]
+          paramType: name
+        """
         yaml_datas = []
         err_msg = []
         for yaml_name in yaml_names:
@@ -51,7 +69,7 @@ class YamlService(object):
                 msg = yaml_name + " 文件未找到"
                 err_msg.append({
                     "file_name": yaml_name,
-                    "resource_name": "",
+                    "resource_name": "文件未找到",
                     "err_msg": msg
                 })
             except yaml.YAMLError as exc:
@@ -64,20 +82,34 @@ class YamlService(object):
                         msg = "Something went wrong while parsing yaml file"
                 err_msg.append({
                     "file_name": yaml_name,
-                    "resource_name": "",
+                    "resource_name": "文件格式错误",
                     "err_msg": msg
                 })
             except:
                 err_msg.append({
                     "file_name": yaml_name,
-                    "resource_name": "",
+                    "resource_name": "文件格式错误",
                     "err_msg": "未知错误"
                 })
         return yaml_datas, err_msg
 
-    # 判断资源是否重复
     @staticmethod
     def is_resource_dup(resources, resources_type):
+        """
+        判断资源是否重复
+        ---
+        parameters:
+        - name: resources
+          description: 资源数据
+          required: true
+          type: list[string]
+          paramType: data
+        - name: resources_type
+          description: 资源类型
+          required: true
+          type: string
+          paramType: type
+        """
         resource_temp = []
         for resource in resources:
             container = resource.get(resources_type)
@@ -95,6 +127,9 @@ class YamlService(object):
                              app_id,
                              region_name,
                              yaml_data):
+        """
+        安装yaml组件
+        """
         app = (
             session.execute(select(Application).where(Application.ID == app_id))
         ).scalars().first()

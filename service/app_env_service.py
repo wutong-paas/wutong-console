@@ -120,6 +120,9 @@ class AppEnvVarService(object):
         return True, "success"
 
     def delete_env_by_container_port(self, session: SessionClass, tenant_env, service, container_port, user_name=''):
+        """
+        根据端口删除环境变量
+        """
         envs = env_var_repo.get_service_env_by_port(session, tenant_env.env_id, service.service_id, container_port)
         if service.create_status == "complete":
             for env in envs:
@@ -220,6 +223,7 @@ class AppEnvVarService(object):
         return 200, "success", env
 
     def create_port_env(self, port: TeamComponentPort, name, attr_name_suffix, attr_value):
+        """创建端口环境变量"""
         return ComponentEnvVar(
             tenant_env_id=port.tenant_env_id,
             service_id=port.service_id,
