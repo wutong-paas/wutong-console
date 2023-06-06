@@ -357,7 +357,6 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
             mnt_dir=mnt_dir  # this dir is source app's volume path
         )
         session.add(tsr)
-        session.commit()
         return tsr
 
 
