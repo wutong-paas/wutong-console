@@ -392,7 +392,7 @@ async def modify_plugin_version(request: Request,
             else:
                 image_tag = "latest"
 
-        plugin.image = image
+        plugin.image = image + ":" + image_tag
         plugin.code_repo = code_repo
         plugin.username = username
         plugin.password = password
