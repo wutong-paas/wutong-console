@@ -184,7 +184,7 @@ async def create_plugins(request: Request,
             "plugin_alias": plugin_alias,
             "category": category,
             "build_source": build_source,
-            "image": image,
+            "image": image + ":" + image_tag,
             "code_repo": code_repo,
             "username": username,
             "password": password
