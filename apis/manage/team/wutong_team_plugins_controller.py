@@ -343,8 +343,6 @@ async def get_plugin_version(
                                                                              tenant_env_id=env.env_id,
                                                                              plugin_id=plugin_id)
     base_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
-    if base_info.image and base_info.build_source == "image":
-        base_info.image = base_info.image + ":" + plugin_version.image_tag
     data = jsonable_encoder(base_info)
     data.update(jsonable_encoder(plugin_version))
     plugin_version_service.update_plugin_build_status(session, response_region, env)
