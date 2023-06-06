@@ -107,10 +107,12 @@ class AppRepo(object):
         if query:
             sql = select(Component).where(Component.tenant_env_id == tenant_env_id,
                                           Component.service_region == region,
-                                          Component.service_cname.contains(query))
+                                          Component.service_cname.contains(query),
+                                          Component.is_delete == 0)
         else:
             sql = select(Component).where(Component.tenant_env_id == tenant_env_id,
-                                          Component.service_region == region)
+                                          Component.service_region == region,
+                                          Component.is_delete == 0)
         return session.execute(sql).scalars().all()
 
 
