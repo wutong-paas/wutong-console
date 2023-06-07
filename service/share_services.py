@@ -17,7 +17,7 @@ from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException, RbdAppNotFound
 from models.application.models import ServiceShareRecord, ServiceShareRecordEvent
 from models.application.plugin import TeamComponentPluginRelation, TeamPlugin, ComponentPluginConfigVar, \
-    PluginShareRecordEvent
+    PluginShareRecordEvent, PluginBuildVersion
 from models.component.models import TeamComponentConfigurationFile, TeamComponentPort, Component, \
     ComponentEnvVar, TeamComponentVolume, TeamComponentMountRelation, ComponentProbe, ComponentMonitor, ComponentGraph, \
     ComponentLabels, ComponentEvent
@@ -577,10 +577,14 @@ class ShareService(object):
             tenant_plugin = (
                 session.execute(select(TeamPlugin).where(TeamPlugin.plugin_id == spr.plugin_id))
             ).scalars().first()
+            plugin_build_version = (
+                session.execute(select(PluginBuildVersion).where(PluginBuildVersion.plugin_id == spr.plugin_id))
+            ).scalars().first()
 
             plugin_dict = tenant_plugin.__dict__
 
             plugin_dict["build_version"] = spr.build_version
+            plugin_dict["build_cmd"] = plugin_build_version.build_cmd
             plugin_list.append(plugin_dict)
             temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
