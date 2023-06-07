@@ -720,7 +720,7 @@ class AppUpgrade(MarketApp):
                 code_repo=plugin_tmpl["code_repo"],
                 username=username,
                 password=passwd,
-                origin="sys",
+                origin="tenant",
                 origin_share_id=plugin_tmpl["plugin_key"],
                 plugin_name=plugin_tmpl["plugin_name"])
 
@@ -756,7 +756,8 @@ class AppUpgrade(MarketApp):
             min_cpu=min_cpu,
             image_tag=image_tag,
             plugin_version_status="fixed",
-            update_info=plugin_tmpl.get('desc')
+            update_info=plugin_tmpl.get('desc'),
+            build_cmd=plugin_tmpl.get('build_cmd'),
         )
 
     @staticmethod
