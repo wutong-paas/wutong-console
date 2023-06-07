@@ -316,7 +316,8 @@ class AppExportService(object):
             "group_metadata": self.__get_app_metata(app, app_version),
             "with_image_data": is_export_image
         }
-
+        logger.info("app_template ============== {}".format(app_version.app_template))
+        logger.info("group_metadata ============= {}".format(data["group_metadata"]))
         try:
             remote_migrate_client_api.export_app(session, region_name, data)
         except remote_migrate_client_api.CallApiError as e:

@@ -220,8 +220,6 @@ class ShareService(object):
                 p["plugin_key"] = make_uuid()
             else:
                 p["plugin_key"] = p["origin_share_id"]
-            logger.info("build_cmd ============ {}".format(p["build_cmd"]))
-            p["build_cmd"] = "123456"
             rt_list.append(p)
         return rt_list
 
