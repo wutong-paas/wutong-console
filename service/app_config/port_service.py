@@ -152,6 +152,11 @@ class AppPortService:
                                                           "operation": "close",
                                                           "operator": user_name
                                                       })
+
+        # 删除原有环境变量
+        env_var_service.delete_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
+                                                     container_port=deal_port.container_port)
+
         # component port change, will change entrance network governance plugin configuration
         if service.create_status == "complete":
             plugin_service.update_config_if_have_entrance_plugin(session=session, tenant_env=tenant_env, service=service)
