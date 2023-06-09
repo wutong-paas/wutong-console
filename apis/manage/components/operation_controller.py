@@ -704,14 +704,14 @@ async def yaml_install(
     yaml_names = request_data.get("yaml_names")
 
     if not yaml_names or not group_id:
-        return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
+        return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=200)
 
     # 解析yaml文件
     yaml_datas, err_msg = yaml_service.yaml_resolution(yaml_names)
 
     if err_msg:
         return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", list=err_msg),
-                            status_code=400)
+                            status_code=200)
 
     # 使用kind对yaml数据分类
     kind_data = yaml_service.yaml_classify_by_kind(yaml_datas)
@@ -722,7 +722,7 @@ async def yaml_install(
     services = deployment_data + stateful_set_data
     if len(services) == 0:
         return JSONResponse(general_message(400, "not found Deployment、StatefulSet", msg_show="未识别到组件信息"),
-                            status_code=400)
+                            status_code=200)
 
     # 安装yaml组件
     err_msg = yaml_service.install_yaml_service(session=session,
@@ -732,5 +732,5 @@ async def yaml_install(
                                                 region_name=env.region_code,
                                                 yaml_data=kind_data)
     if err_msg:
-        return JSONResponse(general_message(400, "failed", msg_show="yaml解析失败", list=err_msg), status_code=400)
+        return JSONResponse(general_message(400, "failed", msg_show="yaml解析失败", list=err_msg), status_code=200)
     return JSONResponse(general_message("0", "success", msg_show="安装成功"), status_code=200)
