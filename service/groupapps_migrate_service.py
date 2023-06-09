@@ -55,12 +55,15 @@ class GroupappsMigrateService(object):
         old_group = application_repo.get_group_by_id(session, old_group_id)
         if old_group:
             new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
+            new_app_code = '_'.join([old_group.app_code, make_uuid()[-4:]])
         else:
             new_group_name = make_uuid()[:8]
+            new_app_code = make_uuid()[:8]
 
         app = application_service.create_app(session=session, tenant_env=tenant_env, region_name=region,
                                              app_name=new_group_name,
                                              team_code=tenant_env.tenant_name,
+                                             app_code=new_app_code,
                                              tenant_name=tenant_name,
                                              note="备份创建")
         new_app = application_repo.get_group_by_id(session, app["ID"])
@@ -505,7 +508,8 @@ class GroupappsMigrateService(object):
     def __save_service_monitors(self, session: SessionClass, tenant_env, service, service_monitors):
         if not service_monitors:
             return
-        service_monitor_service.bulk_create_component_service_monitors(session=session, tenant_env=tenant_env, service=service,
+        service_monitor_service.bulk_create_component_service_monitors(session=session, tenant_env=tenant_env,
+                                                                       service=service,
                                                                        service_monitors=service_monitors)
 
     def __save_component_graphs(self, session: SessionClass, service, component_graphs):
@@ -605,7 +609,8 @@ class GroupappsMigrateService(object):
             new_configs.append(new_cfg)
         port_repo.bulk_all(session, new_configs)
 
-    def __save_service_relations(self, session: SessionClass, tenant_env, service_relations_list, old_new_service_id_map,
+    def __save_service_relations(self, session: SessionClass, tenant_env, service_relations_list,
+                                 old_new_service_id_map,
                                  same_env,
                                  same_region):
         new_service_relation_list = []
@@ -778,7 +783,8 @@ class GroupappsMigrateService(object):
                                       region_name=migrate_region, app_id=group_id,
                                       changed_service_map=changed_service_map)
 
-    def get_and_save_migrate_status(self, session: SessionClass, migrate_env, user, restore_id, current_env_name, current_region):
+    def get_and_save_migrate_status(self, session: SessionClass, migrate_env, user, restore_id, current_env_name,
+                                    current_region):
         migrate_record = migrate_repo.get_by_restore_id(session=session, restore_id=restore_id)
         if not migrate_record:
             return None
