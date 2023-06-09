@@ -79,14 +79,18 @@ async def add_yaml_data(
     if not context or not yaml_name:
         return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
 
-    filename = 'yamls/{0}.{1}'.format(make_uuid(), "yaml")
+    yaml_uuid = make_uuid()
+    filename = 'yamls/{0}.{1}'.format(yaml_uuid, "yaml")
     save_filename = os.path.join(settings.YAML_ROOT, filename)
     query_filename = os.path.join(settings.YAML_URL, filename)
     yaml_file = open(save_filename, "w+", encoding='utf-8')
     yaml_file.write(context)
     yaml_file.close()
-    return JSONResponse(general_message("0", "success", msg_show="添加成功", bean={"file_url": query_filename,
-                                                                               "real_name": yaml_name}),
+    return JSONResponse(general_message("0", "success", msg_show="添加成功",
+                                        bean={
+                                            "file_url": query_filename,
+                                            "real_name": '{0}.{1}'.format(yaml_uuid, "yaml"),
+                                            "nick_name": yaml_name}),
                         status_code=200)
 
 
