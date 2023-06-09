@@ -54,7 +54,7 @@ class YamlService(object):
         """
         yaml_datas = []
         err_msg = []
-        for yaml_name in yaml_names:
+        for yaml_name in yaml_names.keys():
             try:
                 yaml_dir = os.path.join(settings.YAML_ROOT, 'yamls/{0}'.format(yaml_name))
                 yaml_file = open(yaml_dir, "r", encoding='utf-8')
@@ -63,12 +63,14 @@ class YamlService(object):
                 yaml_file_datas = list(yaml.safe_load_all(file_data))
                 for yaml_file_data in yaml_file_datas:
                     if yaml_file_data:
-                        yaml_file_data.update({"file_name": yaml_name})
+                        yaml_file_data.update({"real_name": yaml_name,
+                                               "nick_name": yaml_names.get(yaml_name)})
                 yaml_datas += yaml_file_datas
             except FileNotFoundError as exc:
                 msg = yaml_name + " 文件未找到"
                 err_msg.append({
-                    "file_name": yaml_name,
+                    "real_name": yaml_name,
+                    "nick_name": yaml_names.get(yaml_name),
                     "resource_name": "文件未找到",
                     "err_msg": msg
                 })
@@ -81,13 +83,15 @@ class YamlService(object):
                     else:
                         msg = "Something went wrong while parsing yaml file"
                 err_msg.append({
-                    "file_name": yaml_name,
+                    "real_name": yaml_name,
+                    "nick_name": yaml_names.get(yaml_name),
                     "resource_name": "文件格式错误",
                     "err_msg": msg
                 })
             except:
                 err_msg.append({
-                    "file_name": yaml_name,
+                    "real_name": yaml_name,
+                    "nick_name": yaml_names.get(yaml_name),
                     "resource_name": "文件格式错误",
                     "err_msg": "未知错误"
                 })
@@ -214,7 +218,8 @@ class YamlService(object):
                 volumes = spec.get("volumes", [])
             except Exception as e:
                 err_msg.append({
-                    "file_name": commpoent_data["file_name"],
+                    "real_name": commpoent_data["real_name"],
+                    "nick_name": commpoent_data["nick_name"],
                     "resource_name": svc_name if svc_name else "",
                     "err_msg": "解析失败，请检查是否缺失关键字段"
                 })
@@ -223,7 +228,8 @@ class YamlService(object):
             # 镜像源检测
             if not image:
                 err_msg.append({
-                    "file_name": commpoent_data["file_name"],
+                    "real_name": commpoent_data["real_name"],
+                    "nick_name": commpoent_data["nick_name"],
                     "resource_name": svc_name,
                     "err_msg": "未解析到{}容器镜像源".format(container_name)
                 })
@@ -296,7 +302,8 @@ class YamlService(object):
                 dup_port = self.is_resource_dup(new_ports, "container_port")
                 if dup_port:
                     err_msg.append({
-                        "file_name": commpoent_data["file_name"],
+                        "real_name": commpoent_data["real_name"],
+                        "nick_name": commpoent_data["nick_name"],
                         "resource_name": svc_name,
                         "err_msg": "存在相同端口 " + str(dup_port)
                     })
@@ -338,7 +345,8 @@ class YamlService(object):
                 dup_env = self.is_resource_dup(envs, "attr_name")
                 if dup_env:
                     err_msg.append({
-                        "file_name": commpoent_data["file_name"],
+                        "real_name": commpoent_data["real_name"],
+                        "nick_name": commpoent_data["nick_name"],
                         "resource_name": svc_name,
                         "err_msg": "存在相同环境变量 " + str(dup_env)
                     })
@@ -408,7 +416,8 @@ class YamlService(object):
                 dup_volume = self.is_resource_dup(volume_mounts, "volume_name")
                 if dup_volume:
                     err_msg.append({
-                        "file_name": commpoent_data["file_name"],
+                        "real_name": commpoent_data["real_name"],
+                        "nick_name": commpoent_data["nick_name"],
                         "resource_name": svc_name,
                         "err_msg": "存在相同存储名 " + str(dup_volume)
                     })
