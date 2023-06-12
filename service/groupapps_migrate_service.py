@@ -11,6 +11,7 @@ from core.utils.constants import AppMigrateType
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.exceptions import ErrBackupRecordNotFound, ErrNeedAllServiceCloesed
+from exceptions.main import ServiceHandleException
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar
 from models.component.models import Component, TeamComponentPort, ComponentEnvVar, \
     TeamComponentConfigurationFile, TeamComponentVolume, TeamComponentEnv, ComponentLabels, ComponentProbe, \
@@ -783,15 +784,18 @@ class GroupappsMigrateService(object):
                                       region_name=migrate_region, app_id=group_id,
                                       changed_service_map=changed_service_map)
 
-    def get_and_save_migrate_status(self, session: SessionClass, migrate_env, user, restore_id, current_env_name,
+    def get_and_save_migrate_status(self, session: SessionClass, user, restore_id, current_env_name,
                                     current_region):
         migrate_record = migrate_repo.get_by_restore_id(session=session, restore_id=restore_id)
         if not migrate_record:
             return None
+        target_env = env_repo.get_env_by_env_code(session, migrate_record.migrate_env)
+        if not target_env:
+            raise ServiceHandleException(msg="not found env", msg_show="环境不存在", status_code=400)
         if migrate_record.status == "starting":
             data = remote_migrate_client_api.get_apps_migrate_status(session,
                                                                      migrate_record.migrate_region,
-                                                                     migrate_env,
+                                                                     target_env,
                                                                      migrate_record.backup_id, restore_id)
             bean = data["bean"]
             status = bean["status"]
@@ -801,7 +805,7 @@ class GroupappsMigrateService(object):
                 metadata = bean["metadata"]
                 try:
                     self.save_data(session,
-                                   migrate_env, migrate_record.migrate_region, user, service_change,
+                                   target_env, migrate_record.migrate_region, user, service_change,
                                    json.loads(metadata),
                                    migrate_record.group_id, migrate_record.migrate_env == current_env_name,
                                    migrate_record.migrate_region == current_region, True)
@@ -816,10 +820,10 @@ class GroupappsMigrateService(object):
                         region_app_id = region_app_repo.get_region_app_id(session,
                                                                           migrate_record.migrate_region,
                                                                           migrate_record.group_id)
-                        application_service.sync_app_services(migrate_env, session, migrate_record.migrate_region,
+                        application_service.sync_app_services(target_env, session, migrate_record.migrate_region,
                                                               migrate_record.group_id)
                         remote_component_client.change_application_volumes(session,
-                                                                           migrate_env,
+                                                                           target_env,
                                                                            migrate_record.migrate_region,
                                                                            region_app_id)
                 except Exception as e:
@@ -827,8 +831,8 @@ class GroupappsMigrateService(object):
                     status = "failed"
                 migrate_record.status = status
         migrate_record = jsonable_encoder(migrate_record)
-        migrate_record.update({"migrate_env_id": migrate_env.env_id,
-                               "migrate_team": migrate_env.tenant_name})
+        migrate_record.update({"migrate_env_id": target_env.env_id,
+                               "migrate_team": target_env.tenant_name})
         return migrate_record
 
     def update_migrate_original_group_id(self, session: SessionClass, old_original_group_id, new_original_group_id):

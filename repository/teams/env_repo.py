@@ -77,6 +77,10 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             TeamEnvInfo.tenant_id == team_id,
             TeamEnvInfo.env_name == env_code)).scalars().first()
 
+    def get_env_by_env_code(self, session, env_code):
+        return session.execute(select(TeamEnvInfo).where(
+            TeamEnvInfo.env_name == env_code)).scalars().first()
+
     def env_is_exists_by_namespace(self, session, team_id, namespace):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.tenant_id == team_id,

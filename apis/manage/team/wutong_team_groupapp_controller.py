@@ -272,7 +272,6 @@ async def get_app_migrate_state(request: Request,
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     migrate_record = migrate_service.get_and_save_migrate_status(session=session,
-                                                                 migrate_env=env,
                                                                  user=user, restore_id=restore_id,
                                                                  current_env_name=env.env_name,
                                                                  current_region=response_region)
