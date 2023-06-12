@@ -278,7 +278,7 @@ async def get_app_migrate_state(request: Request,
                                                                  current_region=response_region)
     if not migrate_record:
         return JSONResponse(general_message(404, "not found record", "记录不存在"), status_code=404)
-    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(migrate_record))
+    result = general_message("0", "success", "查询成功", bean=migrate_record)
     return JSONResponse(result, status_code=200)
 
 

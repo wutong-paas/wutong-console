@@ -826,6 +826,9 @@ class GroupappsMigrateService(object):
                     logger.exception(e)
                     status = "failed"
                 migrate_record.status = status
+        migrate_record = jsonable_encoder(migrate_record)
+        migrate_record.update({"migrate_env_id": migrate_env.env_id,
+                               "migrate_team": migrate_env.tenant_name})
         return migrate_record
 
     def update_migrate_original_group_id(self, session: SessionClass, old_original_group_id, new_original_group_id):
