@@ -96,33 +96,6 @@ class GroupappsMigrateService(object):
         else:
             new_group = self.create_new_group(session=session, tenant_env=migrate_env, region=migrate_region,
                                               old_group_id=origin_backup_record.group_id, tenant_name=tenant_name)
-        if restore_mode != AppMigrateType.CURRENT_REGION_CURRENT_TENANT:
-            # 获取原有数据中心数据
-            original_data = remote_migrate_client_api.get_backup_status_by_backup_id(session,
-                                                                                     current_region,
-                                                                                     tenant_env,
-                                                                                     origin_backup_record.backup_id)
-
-            new_event_id = make_uuid()
-            new_group_uuid = make_uuid()
-            new_data = original_data["bean"]
-            new_data["event_id"] = new_event_id
-            new_data["group_id"] = new_group_uuid
-            # 存入其他数据中心
-            body = remote_migrate_client_api.copy_backup_data(session,
-                                                              migrate_region, tenant_env, new_data)
-            bean = body["bean"]
-            params = jsonable_encoder(origin_backup_record)
-            params.pop("ID")
-            params["tenant_env_id"] = migrate_env.env_id
-            params["event_id"] = new_event_id
-            params["group_id"] = new_group.ID
-            params["group_uuid"] = new_group_uuid
-            params["region"] = migrate_region
-            params["backup_id"] = bean["backup_id"]
-            # create a new backup record in the new region
-            new_backup_record = backup_record_repo.create_backup_records(session, **params)
-            return new_group, new_backup_record
         return new_group, None
 
     def __get_restore_type(self, current_env, current_region, migrate_env, migrate_region):
