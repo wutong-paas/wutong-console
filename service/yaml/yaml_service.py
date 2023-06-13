@@ -2,6 +2,7 @@ import base64
 import os
 
 import yaml
+from loguru import logger
 from sqlalchemy import select
 
 from core.setting import settings
@@ -62,6 +63,14 @@ class YamlService(object):
                 yaml_file.close()
                 yaml_file_datas = list(yaml.safe_load_all(file_data))
                 for yaml_file_data in yaml_file_datas:
+                    if not isinstance(yaml_file_data, dict):
+                        err_msg.append({
+                            "real_name": yaml_name,
+                            "nick_name": yaml_names.get(yaml_name),
+                            "resource_name": "文件格式错误",
+                            "err_msg": "yaml文件格式错误"
+                        })
+                        continue
                     if yaml_file_data:
                         yaml_file_data.update({"real_name": yaml_name,
                                                "nick_name": yaml_names.get(yaml_name)})
@@ -88,7 +97,8 @@ class YamlService(object):
                     "resource_name": "文件格式错误",
                     "err_msg": msg
                 })
-            except:
+            except Exception as exc:
+                logger.error(exc)
                 err_msg.append({
                     "real_name": yaml_name,
                     "nick_name": yaml_names.get(yaml_name),
