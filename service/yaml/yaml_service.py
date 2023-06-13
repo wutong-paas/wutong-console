@@ -228,9 +228,9 @@ class YamlService(object):
 
             # 状态实例判断
             if kind == "Deployment":
-                extend_method = "state_multiple"
-            else:
                 extend_method = "stateless_multiple"
+            else:
+                extend_method = "state_multiple"
 
             # 镜像源检测
             if not image:
