@@ -158,7 +158,7 @@ class NewComponents(object):
         component.tenant_env_id = env_id
         component.service_id = service_id if service_id else make_uuid()
         component.service_cname = template.get("service_cname", "default-name")
-        component.service_alias = "wt" + component.service_id[-6:]
+        component.service_alias = component.service_cname + "-" + component.service_id[-6:]
         component.creater = self.user.nick_name
         component.image = template.get("share_image", template["image"])
         component.cmd = template.get("cmd", "")

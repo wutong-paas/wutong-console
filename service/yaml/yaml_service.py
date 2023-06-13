@@ -201,6 +201,7 @@ class YamlService(object):
             service_id = make_uuid()
             svc_name = None
             try:
+                kind = commpoent_data["kind"]
                 svc_name = commpoent_data["metadata"]["name"]
                 match_labels = commpoent_data["spec"]["selector"]["matchLabels"]
                 keys = match_labels.keys()
@@ -224,6 +225,12 @@ class YamlService(object):
                     "err_msg": "解析失败，请检查是否缺失关键字段"
                 })
                 break
+
+            # 状态实例判断
+            if kind == "Deployment":
+                extend_method = "state_multiple"
+            else:
+                extend_method = "stateless_multiple"
 
             # 镜像源检测
             if not image:
@@ -477,7 +484,7 @@ class YamlService(object):
                 "is_restart": 1
             }})
             yaml_data.update({"service_volume_map_list": volume_mounts})
-            yaml_data.update({"extend_method": "stateless"})
+            yaml_data.update({"extend_method": extend_method})
             yaml_data.update({"version": ''.join(image.split(":")[-1:])})
             yaml_data.update({"service_key": service_id})
             yaml_data.update({"service_id": service_id})
