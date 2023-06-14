@@ -540,7 +540,7 @@ async def get_config_groups(request: Request,
     acg, total = app_config_group_service.list_config_groups(session=session, region_name=region_name, app_id=group_id,
                                                              page=page, page_size=page_size, query=query)
     return JSONResponse(
-        general_message(msg="success", msg_show="成功", list=jsonable_encoder(acg), total=total, code=200),
+        general_message(msg="success", msg_show="成功", list=jsonable_encoder(acg), total=total, code="0"),
         status_code=200)
 
 
@@ -564,7 +564,8 @@ async def add_config_group(request: Request,
                                                        deploy_type=params["deploy_type"], enable=params["enable"],
                                                        service_ids=service_ids,
                                                        region_name=params["region_name"], tenant_env=env)
-    return JSONResponse(general_data(bean=jsonable_encoder(acg)), status_code=200)
+    return JSONResponse(general_data(code="0", msg="success", msg_show="创建成功", bean=jsonable_encoder(acg)),
+                        status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/configgroups/{name}", response_model=Response,
@@ -584,7 +585,7 @@ async def get_config_group(
     region_name = region.region_name
     acg = app_config_group_service.get_config_group(session=session, region_name=region_name, app_id=group_id,
                                                     config_group_name=name)
-    return JSONResponse(general_data(bean=jsonable_encoder(acg)), status_code=200)
+    return JSONResponse(general_data(code="0", msg="success", msg_show="获取成功", bean=jsonable_encoder(acg)), status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/groups/{group_id}/configgroups/{name}", response_model=Response,
@@ -607,7 +608,7 @@ async def modify_config_group(request: Request,
                                                        config_group_name=name, config_items=params["config_items"],
                                                        enable=params["enable"], service_ids=params["service_ids"],
                                                        tenant_env=env)
-    return JSONResponse(general_data(bean=jsonable_encoder(acg)), status_code=200)
+    return JSONResponse(general_data(code="0", msg="success", msg_show="修改成功", bean=jsonable_encoder(acg)), status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/groups/{group_id}/configgroups/{name}", response_model=Response,
@@ -627,7 +628,7 @@ async def delete_config_group(
     region_name = region.region_name
     acg = app_config_group_service.delete_config_group(session=session, region_name=region_name, team_env=env,
                                                        app_id=group_id, config_group_name=name)
-    return JSONResponse(general_data(bean=acg), status_code=200)
+    return JSONResponse(general_data(code="0", msg="success", msg_show="删除成功", bean=acg), status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/groups/{app_id}/governancemode", response_model=Response, name="切换治理模式")
