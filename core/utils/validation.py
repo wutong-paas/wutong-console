@@ -78,3 +78,11 @@ def is_qualified_name(name):
     if re.match(r'^[A-Za-z]([-_A-Za-z0-9]*[A-Za-z0-9])?$', name):
         return True
     return False
+
+
+# 验证组件英文名称
+def is_qualified_component_name(name):
+    # 只支持小写字母、数字或“-”，并且必须以字母开始、以数字或字母结尾
+    if re.match(r'^[a-z]([-a-z0-9]*[a-z0-9])?$', name):
+        return True
+    return False
