@@ -68,7 +68,7 @@ async def get_app_state(request: Request,
             params = Params(page=page, size=page_size)
             pg = paginate(no_group_service_list, params)
             total = pg.total
-            result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=total)
+            result = general_message("0", "query success", "应用查询成功", list=no_group_service_list, total=total)
             return JSONResponse(result, status_code=code)
 
         group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, env_id=env_id,
@@ -90,7 +90,7 @@ async def get_app_state(request: Request,
         params = Params(page=page, size=page_size)
         pg = paginate(group_service_list, params)
         total = pg.total
-        result = general_message(code, "query success", "应用查询成功", list=jsonable_encoder(pg.items),
+        result = general_message("0", "query success", "应用查询成功", list=jsonable_encoder(pg.items),
                                  total=total)
         return JSONResponse(result, status_code=200)
     except GroupNotExistError as e:

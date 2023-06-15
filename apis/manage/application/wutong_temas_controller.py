@@ -223,7 +223,7 @@ async def add_http_domain(request: Request,
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show),
                             status_code=e.status_code)
-    result = general_message(201, "success", "策略添加成功", bean=data)
+    result = general_message("0", "success", "策略添加成功", bean=data)
     return JSONResponse(result, status_code=status.HTTP_201_CREATED)
 
 
