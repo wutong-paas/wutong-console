@@ -613,18 +613,6 @@ class DomainService(object):
             if rule_extensions:
                 data["rule_extensions"] = rule_extensions
 
-        # rewrites参数解析
-        if "rewrites" in list(update_data.keys()):
-            if domain_info["rewrites"]:
-                data["rewrites"] = domain_info["rewrites"]
-        else:
-            try:
-                rewrites = eval(domain_info["rewrites"])
-            except Exception:
-                rewrites = []
-            if rewrites:
-                data["rewrites"] = rewrites
-
         # 证书信息
         data["certificate"] = ""
         data["private_key"] = ""
@@ -636,6 +624,7 @@ class DomainService(object):
             data["certificate_name"] = certificate_info.alias
             data["certificate_id"] = certificate_info.certificate_id
         data["path_rewrite"] = domain_info["path_rewrite"]
+        data["rewrites"] = domain_info["rewrites"]
         try:
             # 给数据中心传送数据更新域名
             remote_domain_client_api.update_http_domain(session, service.service_region, tenant_env, data)
@@ -653,19 +642,6 @@ class DomainService(object):
                 rule_extensions_str += rule["key"] + ":" + rule["value"] + ","
         else:
             rule_extensions_str = domain_info["rule_extensions"]
-
-        # rewrites参数解析
-        if "rewrites" in list(update_data.keys()):
-            rewrites_str = ""
-            # 拼接字符串，存入数据库
-            for rewrite in update_data["rewrites"]:
-                last_index = len(update_data["rewrites"]) - 1
-                if last_index == update_data["rewrites"].index(rewrite):
-                    rewrites_str += rewrite["key"] + ":" + rewrite["value"]
-                    continue
-                rewrites_str += rewrite["key"] + ":" + rewrite["value"] + ","
-        else:
-            rewrites_str = domain_info["rewrites"]
         domain_info["rule_extensions"] = rule_extensions_str
         if domain_info["domain_path"] and domain_info["domain_path"] != "/" or \
                 domain_info["domain_cookie"] or domain_info["domain_heander"]:
@@ -683,7 +659,7 @@ class DomainService(object):
         if not domain_info["rewrites"]:
             domain_info["rewrites"] = None
         else:
-            domain_info["rewrites"] = rewrites_str
+            domain_info["rewrites"] = json.dumps(domain_info["rewrites"])
         model_data = ServiceDomain(**domain_info)
         domain_repo.save_service_domain(session, model_data)
         if re_model:
