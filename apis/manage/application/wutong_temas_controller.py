@@ -197,7 +197,7 @@ async def add_http_domain(request: Request,
             return JSONResponse(general_message(code, "change port fail", msg), status_code=code)
     tenant_service_port = port_service.get_service_port_by_port(session=session, service=service, port=container_port)
     if not tenant_service_port.is_outer_service:
-        return JSONResponse(general_message("0", "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
+        return JSONResponse(general_message(400, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
                             status_code=200)
 
     # 绑定端口(添加策略)
@@ -453,7 +453,7 @@ async def add_tcp_domain(request: Request,
     tenant_service_port = port_service.get_service_port_by_port(session=session, service=service, port=container_port)
 
     if not tenant_service_port.is_outer_service:
-        return JSONResponse(general_message("0", "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
+        return JSONResponse(general_message(400, "not outer port", "没有开启对外端口", bean={"is_outer_service": False}),
                             status_code=200)
 
     # 添加tcp策略
