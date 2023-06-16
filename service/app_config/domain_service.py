@@ -714,11 +714,7 @@ class DomainService(object):
         tenant_service_port = port_repo.get_service_port_by_port(session, service.tenant_env_id, service.service_id,
                                                                  container_port)
         if tenant_service_port:
-            protocol = tenant_service_port.protocol
-        else:
-            protocol = ''
-        if protocol:
-            domain_info["protocol"] = protocol
+            domain_info["protocol"] = tenant_service_port.protocol
         else:
             domain_info["protocol"] = 'tcp'
         domain_info["end_point"] = end_point
