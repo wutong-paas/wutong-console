@@ -93,11 +93,13 @@ async def get_pods_info(
         total_cpu_rate = 0
         if pods_info:
             for value in pods_info.values():
-                total_memory_usage += round(value["memory_usage"], 2)
-                total_usage_rate += round(value["memory_rate"], 2)
-                total_cpu_usage += round(value["cpu_usage"], 2)
-                total_cpu_rate += round(value["cpu_rate"], 2)
-        pod_dict = {"memory_usage": total_memory_usage, "memory_rate": total_usage_rate, "cpu_usage": total_cpu_usage,
-                    "cpu_rate": total_cpu_rate}
+                total_memory_usage += value["memory_usage"]
+                total_usage_rate += value["memory_rate"]
+                total_cpu_usage += value["cpu_usage"]
+                total_cpu_rate += value["cpu_rate"]
+        pod_dict = {"memory_usage": round(total_memory_usage, 2),
+                    "memory_rate": round(total_usage_rate, 2),
+                    "cpu_usage": round(total_cpu_usage, 2),
+                    "cpu_rate": round(total_cpu_rate, 2)}
         result = general_message("0", "success", "操作成功", bean=pod_dict)
     return JSONResponse(result, status_code=200)
