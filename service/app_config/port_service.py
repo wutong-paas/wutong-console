@@ -482,7 +482,8 @@ class AppPortService:
                 for p in svc_ports[svc.service_id]["stream_outer_port"]:
                     port_dict = p.__dict__
                     if port_and_urls:
-                        port_dict["access_urls"] = port_and_urls[p.container_port] if port_and_urls[p.container_port] else []
+                        container_port = port_and_urls.get(p.container_port)
+                        port_dict["access_urls"] = container_port if container_port else []
                     port_dict["service_cname"] = svc.service_cname
                     accesses[svc.service_id]["access_info"].append(port_dict)
                 continue
