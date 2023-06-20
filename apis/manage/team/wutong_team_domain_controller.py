@@ -149,7 +149,7 @@ async def get_domain_query(request: Request,
         domain_list.append(domain_dict)
     bean = dict()
     bean["total"] = total
-    return general_message("0", "success", "查询成功", list=domain_list, bean=bean)
+    return JSONResponse(general_message("0", "success", "查询成功", list=domain_list, bean=bean), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/domain/get_port", response_model=Response, name="获取可用的port")
@@ -363,7 +363,7 @@ async def get_domain_query(request: Request,
         domain_list.append(domain_dict)
     bean = dict()
     bean["total"] = total
-    return general_message("0", "success", "查询成功", list=domain_list, bean=bean)
+    return JSONResponse(general_message("0", "success", "查询成功", list=domain_list, bean=bean), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/certificates", response_model=Response, name="网关证书管理")
