@@ -225,6 +225,8 @@ class AppPluginService(object):
                 port = port_service.get_port_by_container_port(session, service, container_port)
                 if not port:
                     return
+
+                # 关闭对内端口
                 code, msg, data = port_service.manage_port(session=session, tenant_env=tenant_env, service=service,
                                                            region_name=response_region, container_port=container_port,
                                                            action="close_inner",
@@ -234,6 +236,17 @@ class AppPluginService(object):
                 if code != 200:
                     logger.debug("close file manager inner error", msg)
 
+                # 关闭对外端口
+                code, msg, data = port_service.manage_port(session=session, tenant_env=tenant_env, service=service,
+                                                           region_name=response_region, container_port=container_port,
+                                                           action="close_outer",
+                                                           protocol="http", port_alias=None,
+                                                           k8s_service_name="", user_name=user.nick_name)
+
+                if code != 200:
+                    logger.debug("close file manager outer error", msg)
+
+                # 删除端口
                 port_service.delete_port_by_container_port(session=session, tenant_env=tenant_env, service=service,
                                                            container_port=container_port,
                                                            user_name=user.nick_name)
