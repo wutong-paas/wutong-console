@@ -360,7 +360,8 @@ class MarketAppService(object):
                     install_from_cloud,
                     is_deploy=False):
         app = (
-            session.execute(select(Application).where(Application.ID == app_id))
+            session.execute(select(Application).where(Application.ID == app_id,
+                                                      Application.is_delete == 0))
         ).scalars().first()
 
         if not app:
