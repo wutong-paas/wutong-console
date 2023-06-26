@@ -18,7 +18,7 @@ class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
     def overwrite_by_component_ids(self, session, component_ids, plugin_deps):
         plugin_deps = [plugin_dep for plugin_dep in plugin_deps if plugin_dep.service_id in component_ids]
         for plugin_dep in plugin_deps:
-            session.execute(update(TeamComponentPluginRelation).values(jsonable_encoder(plugin_dep)))
+            session.merge(plugin_dep)
             session.flush()
 
     def list_by_component_ids(self, session, service_ids):
