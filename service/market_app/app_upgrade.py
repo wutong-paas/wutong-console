@@ -693,14 +693,13 @@ class AppUpgrade(MarketApp):
             if original_plugin:
                 continue
 
-            image = None
+            image_and_tag = None
             username = None
             passwd = None
             plugin_image = None
             if "share_image" in plugin_tmpl:
                 if plugin_tmpl["share_image"]:
                     image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
-                    image = image_and_tag[0]
 
             if "plugin_image" in plugin_tmpl:
                 plugin_image = plugin_tmpl["plugin_image"]
@@ -716,7 +715,7 @@ class AppUpgrade(MarketApp):
                 plugin_alias=plugin_tmpl["plugin_alias"],
                 category=plugin_tmpl["category"],
                 build_source="image",
-                image=image,
+                image=image_and_tag,
                 code_repo=plugin_tmpl["code_repo"],
                 username=username,
                 password=passwd,
