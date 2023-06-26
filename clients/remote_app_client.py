@@ -385,7 +385,7 @@ class RemoteAppClient(ApiBaseHttpClient):
             else:
                 proxy_response_headers.update({key: value})
 
-        proxy_response_headers.update({"content-security-policy": "upgrade-insecure-requests"})
+        # proxy_response_headers.update({"content-security-policy": "upgrade-insecure-requests"})
 
         proxy_response = Response(response.data, headers=proxy_response_headers, status_code=response.status)
         return proxy_response
