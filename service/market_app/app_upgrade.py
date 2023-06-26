@@ -699,7 +699,7 @@ class AppUpgrade(MarketApp):
             plugin_image = None
             if "share_image" in plugin_tmpl:
                 if plugin_tmpl["share_image"]:
-                    image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
+                    image_and_tag = plugin_tmpl["share_image"]
 
             if "plugin_image" in plugin_tmpl:
                 plugin_image = plugin_tmpl["plugin_image"]
