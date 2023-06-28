@@ -128,6 +128,7 @@ class ComponentDeleteService(object):
             logger.error(e)
             return 500, "删除失败"
         # 不满足删除前提
+        logger.info(msg)
         return 500, msg
 
     def __really_delete_service(self, session: SessionClass, tenant_env, service, user_nickname=None,
