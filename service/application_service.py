@@ -1353,6 +1353,7 @@ class ApplicationService(object):
                 count[app_status["status"]] += 1
                 if status == "all" or app_status["status"] == status.upper():
                     apps[app.ID] = {
+                        "project_id": app.project_id,
                         "group_id": app.ID,
                         "update_time": app.update_time,
                         "create_time": app.create_time,
@@ -1813,7 +1814,7 @@ class ApplicationService(object):
         application_repo.update(session, app_id, **data)
 
     def get_apps_by_plat(self, session, team_code, env_id, project_id, app_name):
-        sql = "select ID, group_name, k8s_app, note, logo, tenant_name, env_name, project_name, " \
+        sql = "select ID, project_id, group_name, k8s_app, note, logo, tenant_name, env_name, project_name, " \
               "region_name as region_code, tenant_env_id as env_id, team_code from service_group where is_delete=0"
         params = {
             "team_code": team_code,
