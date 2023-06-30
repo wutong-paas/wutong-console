@@ -1399,8 +1399,15 @@ class ApplicationService(object):
                 re_app_list.append(app)
         return re_app_list, count
 
-    def get_groups_and_services(self, session: SessionClass, tenant_env, region, query="", app_type=""):
-        groups = application_repo.get_tenant_region_groups(session, tenant_env.env_id, region, query, app_type)
+    def get_groups_and_services(self, session: SessionClass, tenant_env, region, query="", app_type="",
+                                project_id=None):
+        # 项目id需转换为list
+        if project_id:
+            project_ids = [project_id]
+        else:
+            project_ids = None
+        groups = application_repo.get_tenant_region_groups(session, tenant_env.env_id, region, query, app_type,
+                                                           project_ids)
         services = service_info_repo.get_tenant_region_services(session, region, tenant_env.env_id)
 
         sl = []

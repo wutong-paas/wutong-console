@@ -239,8 +239,10 @@ async def team_env_app_group(request: Request,
 
     query = request.query_params.get("query", "")
     app_type = request.query_params.get("app_type", "")
+    project_id = request.query_params.get("project_id", None)
     groups_services = application_service.get_groups_and_services(session=session, tenant_env=env, region=region_name,
-                                                                  query=query, app_type=app_type)
+                                                                  query=query, app_type=app_type,
+                                                                  project_id=project_id)
     return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 
