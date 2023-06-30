@@ -147,7 +147,7 @@ class ServiceTcpDomainRepository(BaseRepository[ServiceTcpDomain]):
         order by type desc limit :start,:end
         """
         sql = text(sql).bindparams(tenant_env_id=tenant_env_id, region_id=region_id, group_id=app_id,
-                                   search_conditions=search_conditions, start=start, end=end)
+                                   search_conditions="%" + search_conditions + "%", start=start, end=end)
         result = session.execute(sql).fetchall()
         return result
 
