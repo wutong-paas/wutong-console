@@ -58,7 +58,7 @@ class GroupappsMigrateService(object):
             new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
             new_app_code = '_'.join([old_group.app_code, make_uuid()[-4:]])
         else:
-            new_group_name = make_uuid()[:8]
+            new_group_name = '_'.join(["备份应用", make_uuid()[-4:]])
             new_app_code = make_uuid()[:8]
 
         app = application_service.create_app(session=session, tenant_env=tenant_env, region_name=region,
@@ -88,18 +88,9 @@ class GroupappsMigrateService(object):
                              migrate_region, migrate_type,
                              tenant_name, project_id):
         """拷贝备份数据"""
-        services = application_service.get_group_services(session=session, group_id=origin_backup_record.group_id)
-        if not services and migrate_type == "recover":
-            # restore on the original group
-            new_group = self.__create_new_group_by_group_name(session=session, tenant_env=migrate_env,
-                                                              region=migrate_region,
-                                                              old_group_id=origin_backup_record.group_id,
-                                                              tenant_name=tenant_name,
-                                                              project_id=project_id)
-        else:
-            new_group = self.create_new_group(session=session, tenant_env=migrate_env, region=migrate_region,
-                                              old_group_id=origin_backup_record.group_id, tenant_name=tenant_name,
-                                              project_id=project_id)
+        new_group = self.create_new_group(session=session, tenant_env=migrate_env, region=migrate_region,
+                                          old_group_id=origin_backup_record.group_id, tenant_name=tenant_name,
+                                          project_id=project_id)
         return new_group, None
 
     def __get_restore_type(self, current_env, current_region, migrate_env, migrate_region):
