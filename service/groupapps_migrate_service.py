@@ -90,13 +90,11 @@ class GroupappsMigrateService(object):
         services = application_service.get_group_services(session=session, group_id=origin_backup_record.group_id)
         if not services and migrate_type == "recover":
             # restore on the original group
-            new_group = application_repo.get_group_by_id(session, origin_backup_record.group_id)
-            if not new_group:
-                new_group = self.__create_new_group_by_group_name(session=session, tenant_env=migrate_env,
-                                                                  region=migrate_region,
-                                                                  old_group_id=origin_backup_record.group_id,
-                                                                  tenant_name=tenant_name,
-                                                                  project_id=project_id)
+            new_group = self.__create_new_group_by_group_name(session=session, tenant_env=migrate_env,
+                                                              region=migrate_region,
+                                                              old_group_id=origin_backup_record.group_id,
+                                                              tenant_name=tenant_name,
+                                                              project_id=project_id)
         else:
             new_group = self.create_new_group(session=session, tenant_env=migrate_env, region=migrate_region,
                                               old_group_id=origin_backup_record.group_id, tenant_name=tenant_name,
