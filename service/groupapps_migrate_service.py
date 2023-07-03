@@ -78,6 +78,7 @@ class GroupappsMigrateService(object):
                                              team_code=tenant_env.tenant_name,
                                              tenant_name=tenant_name,
                                              app_name=new_group_name,
+                                             note="备份创建",
                                              project_id=project_id)
         new_app = application_repo.get_group_by_id(session, app["ID"])
         return new_app

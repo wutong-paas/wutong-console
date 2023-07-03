@@ -600,12 +600,12 @@ class ShareService(object):
                                                             service_ids=service_ids)
             for status in status_list:
                 if status["status"] == "running":
-                    data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
+                    data = {"code": 200, "success": True, "msg": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
                     return data
-            data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
+            data = {"code": 400, "success": False, "msg": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
             return data
         else:
-            data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
+            data = {"code": 400, "success": False, "msg": "当前应用内无组件", "list": list(), "bean": dict()}
             return data
 
     def create_service_share_record(self, session: SessionClass, **kwargs):

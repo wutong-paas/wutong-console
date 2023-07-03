@@ -216,7 +216,7 @@ async def rollback_upgrade(
     app_upgrade_record = upgrade_repo.get_by_record_id(session, record_id)
     application = application_repo.get_by_primary_key(session=session, primary_key=group_id)
     record, _ = upgrade_service.restore(session, env, region, user, application, app_upgrade_record)
-    return JSONResponse(general_message("0", msg="success", msg_show="部署成功", bean=jsonable_encoder(record)),
+    return JSONResponse(general_message("0", msg="success", msg_show="回滚成功", bean=jsonable_encoder(record)),
                         status_code=200)
 
 
