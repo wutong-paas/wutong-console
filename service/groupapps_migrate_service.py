@@ -61,6 +61,9 @@ class GroupappsMigrateService(object):
             new_group_name = '_'.join(["备份应用", make_uuid()[-4:]])
             new_app_code = make_uuid()[:8]
 
+        if len(new_group_name) > 32:
+            new_group_name = old_group.group_name[:-5] + "_" + make_uuid()[-4:]
+
         app = application_service.create_app(session=session, tenant_env=tenant_env, region_name=region,
                                              app_name=new_group_name,
                                              team_code=tenant_env.tenant_name,
