@@ -247,17 +247,16 @@ async def team_env_app_group(request: Request,
     query = request.query_params.get("query", "")
     app_type = request.query_params.get("app_type", "")
     project_id = request.query_params.get("project_id", None)
-    team_id = request.query_params.get("team_id", None)
     groups_services = application_service.get_groups_and_services(session=session, tenant_env=env, region=region_name,
                                                                   query=query, app_type=app_type,
-                                                                  project_id=project_id,
-                                                                  team_id=team_id)
+                                                                  project_id=project_id)
     return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 
 @router.get("/teams/{team_name}/overview/groups", response_model=Response, name="环境应用列表")
 async def team_app_group(
         team_name: Optional[str] = None,
+        team_id: Optional[str] = None,
         env_id: Optional[str] = None,
         app_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -277,7 +276,8 @@ async def team_app_group(
              paramType: query
    """
     groups_services = application_service.get_env_groups(session=session, tenant_name=team_name, env_id=env_id,
-                                                         app_name=app_name)
+                                                         app_name=app_name,
+                                                         team_id=team_id)
     return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 

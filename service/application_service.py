@@ -1400,7 +1400,7 @@ class ApplicationService(object):
         return re_app_list, count
 
     def get_groups_and_services(self, session: SessionClass, tenant_env, region, query="", app_type="",
-                                project_id=None, team_id=None):
+                                project_id=None):
         # 项目id需转换为list
         if project_id:
             project_ids = [project_id]
@@ -1436,13 +1436,11 @@ class ApplicationService(object):
             bean["group_id"] = g.ID
             bean["group_name"] = g.group_name
             bean["service_list"] = group_services_map.get(g.ID)
-            bean["project_id"] = g.project_id
-            bean["team_id"] = team_id
             result.insert(0, bean)
 
         return result
 
-    def get_env_groups(self, session: SessionClass, tenant_name, env_id=None, app_name=None):
+    def get_env_groups(self, session: SessionClass, tenant_name, env_id=None, app_name=None, team_id=None):
         result = []
         groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id, app_name)
         for g in groups:
@@ -1456,6 +1454,8 @@ class ApplicationService(object):
             bean["region_code"] = g.region_name
             bean["region_name"] = g.region_alias
             bean["env_namespace"] = env.namespace
+            bean["project_id"] = g.project_id
+            bean["team_id"] = team_id
             result.append(bean)
         return result
 
