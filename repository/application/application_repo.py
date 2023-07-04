@@ -58,10 +58,16 @@ class ApplicationRepository(BaseRepository[Application]):
                 Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
-    def get_tenant_region_groups_count(self, session, env_id, region):
-        sql = select(Application).where(Application.tenant_env_id == env_id,
-                                        Application.region_name == region,
-                                        Application.is_delete == 0)
+    def get_tenant_region_groups_count(self, session, env_id, region, project_id):
+        if project_id:
+            sql = select(Application).where(Application.tenant_env_id == env_id,
+                                            Application.region_name == region,
+                                            Application.is_delete == 0,
+                                            Application.project_id == project_id)
+        else:
+            sql = select(Application).where(Application.tenant_env_id == env_id,
+                                            Application.region_name == region,
+                                            Application.is_delete == 0)
         count = len((session.execute(sql)).scalars().all())
         return count
 
@@ -87,6 +93,24 @@ class ApplicationRepository(BaseRepository[Application]):
                 select(Application).where(Application.ID == group_id)
             )
         ).scalars().first()
+
+    def get_group_by_id_and_project_id(self, session, group_id, project_id):
+        if project_id:
+            return (
+                session.execute(
+                    select(Application).where(
+                        Application.ID == group_id,
+                        Application.project_id == project_id
+                    )
+                )
+            ).scalars().first()
+        else:
+            return (
+                session.execute(
+                    select(Application).where(
+                        Application.ID == group_id)
+                )
+            ).scalars().first()
 
     def delete_group_by_id(self, session, group_id):
         session.execute(delete(Application).where(Application.ID == group_id))
@@ -165,12 +189,20 @@ class ApplicationRepository(BaseRepository[Application]):
         )).scalars().all()
         return len(service_groups) > 0
 
-    def get_app_by_k8s_app(self, session, tenant_env_id, region_name, k8s_app):
-        return session.execute(select(Application).where(
-            Application.tenant_env_id == tenant_env_id,
-            Application.region_name == region_name,
-            Application.k8s_app == k8s_app
-        )).scalars().first()
+    def get_app_by_k8s_app(self, session, tenant_env_id, region_name, k8s_app, project_id):
+        if project_id:
+            return session.execute(select(Application).where(
+                Application.tenant_env_id == tenant_env_id,
+                Application.region_name == region_name,
+                Application.k8s_app == k8s_app,
+                Application.project_id == project_id
+            )).scalars().first()
+        else:
+            return session.execute(select(Application).where(
+                Application.tenant_env_id == tenant_env_id,
+                Application.region_name == region_name,
+                Application.k8s_app == k8s_app
+            )).scalars().first()
 
     def get_by_service_id(self, session, env_id, service_id):
         rel = (session.execute(

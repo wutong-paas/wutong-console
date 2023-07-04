@@ -127,8 +127,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
 
     overview_detail = dict()
     team_service_num = service_info_repo.get_team_service_num_by_team_id(
-        session=session, env_id=env_id, region_name=region_name)
-    source = common_services.get_current_region_used_resource(session=session, env=env, region_name=region_name)
+        session=session, env_id=env_id, region_name=region_name, project_id=project_id)
 
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
@@ -176,17 +175,26 @@ async def overview_team_env_info(region_name: Optional[str] = None,
             logger.exception(e)
 
     running_app_num = 0
+    service_running_num = 0
+    cpu_usage = 0
+    memory_usage = 0
     try:
         resp = remote_build_client.list_app_statuses_by_app_ids(session, env, region_name,
                                                                 {"app_ids": region_app_ids})
         app_statuses = resp.get("list", [])
         if app_statuses:
             for app_status in app_statuses:
-                if app_status.get("status") == "RUNNING":
-                    running_app_num += 1
+                k8s_app = app_status.get("k8s_app")
+                app = application_repo.get_app_by_k8s_app(session, env_id, region_name, k8s_app, project_id)
+                if app:
+                    if app_status.get("status") == "RUNNING":
+                        running_app_num += 1
+                    service_running_num += app_status.get("service_running_num")
+                    cpu_usage += app_status.get("cpu", 0)
+                    memory_usage += app_status.get("memory", 0)
     except Exception as e:
         logger.exception(e)
-    team_app_num = application_repo.get_tenant_region_groups_count(session, env.env_id, region_name)
+    team_app_num = application_repo.get_tenant_region_groups_count(session, env.env_id, region_name, project_id)
     overview_detail["team_app_num"] = team_app_num
     overview_detail["team_service_num"] = team_service_num
     overview_detail["team_service_memory_count"] = 0
@@ -199,24 +207,15 @@ async def overview_team_env_info(region_name: Optional[str] = None,
     overview_detail["running_app_num"] = running_app_num
     overview_detail["running_component_num"] = 0
     overview_detail["team_alias"] = env.tenant_name
-    if source:
-        try:
-            service_running_num = int(source.get("service_running_num", 0))
-            overview_detail["region_health"] = True
-            overview_detail["team_service_memory_count"] = int(source["memory"])
-            overview_detail["team_service_total_disk"] = int(source["disk"])
-            overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
-            overview_detail["team_service_total_memory"] = int(source["limit_memory"])
-            overview_detail["team_service_use_cpu"] = int(source["cpu"])
-            overview_detail[
-                "running_component_num"] = team_service_num if service_running_num > team_service_num else service_running_num
-            overview_detail["cpu_usage"] = round(int(source["cpu"]) / 1000, 2)
-            overview_detail["memory_usage"] = round(int(source["memory"]) / 1024, 2)
-        except Exception as e:
-            logger.debug(source)
-            logger.exception(e)
-    else:
-        overview_detail["region_health"] = False
+    try:
+        overview_detail["region_health"] = True
+        overview_detail["team_service_use_cpu"] = cpu_usage
+        overview_detail[
+            "running_component_num"] = team_service_num if service_running_num > team_service_num else service_running_num
+        overview_detail["cpu_usage"] = round(cpu_usage / 1000, 2)
+        overview_detail["memory_usage"] = round(memory_usage / 1024, 2)
+    except Exception as e:
+        logger.exception(e)
     return JSONResponse(general_message("0", "success", "查询成功", bean=overview_detail), status_code=200)
 
 

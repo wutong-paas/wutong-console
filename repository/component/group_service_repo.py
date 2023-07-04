@@ -6,6 +6,7 @@ from database.session import SessionClass
 from models.application.models import ComponentApplicationRelation
 from models.component.models import Component, ComponentSourceInfo
 from models.teams import ServiceDomain, ServiceTcpDomain
+from repository.application.application_repo import application_repo
 from repository.base import BaseRepository
 from repository.region.region_info_repo import region_repo
 from service.base_services import base_service
@@ -110,7 +111,7 @@ class ComponentRepository(BaseRepository[Component]):
                 select(Component).where(Component.service_alias == service_alias))
         ).scalars().first()
 
-    def get_team_service_num_by_team_id(self, session, env_id, region_name):
+    def get_team_service_num_by_team_id(self, session, env_id, region_name, project_id=None):
         count = 0
         service_rels = session.execute(
             select(ComponentApplicationRelation).where(
@@ -119,9 +120,12 @@ class ComponentRepository(BaseRepository[Component]):
         ).scalars().all()
         for rel in service_rels:
             service_id = rel.service_id
-            service = service_info_repo.get_service_by_service_id(session, service_id)
-            if service:
-                count += 1
+            group_id = rel.group_id
+            app = application_repo.get_group_by_id_and_project_id(session, group_id, project_id)
+            if app:
+                service = service_info_repo.get_service_by_service_id(session, service_id)
+                if service:
+                    count += 1
         return count
 
     def get_hn_team_service_num_by_team_id(self, session, env_id):
