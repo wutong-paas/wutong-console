@@ -1400,7 +1400,7 @@ class ApplicationService(object):
         return re_app_list, count
 
     def get_groups_and_services(self, session: SessionClass, tenant_env, region, query="", app_type="",
-                                project_id=None):
+                                project_id=None, team_id=None):
         # 项目id需转换为list
         if project_id:
             project_ids = [project_id]
@@ -1436,6 +1436,8 @@ class ApplicationService(object):
             bean["group_id"] = g.ID
             bean["group_name"] = g.group_name
             bean["service_list"] = group_services_map.get(g.ID)
+            bean["project_id"] = g.project_id
+            bean["team_id"] = team_id
             result.insert(0, bean)
 
         return result
