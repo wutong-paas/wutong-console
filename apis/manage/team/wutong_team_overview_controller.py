@@ -101,6 +101,7 @@ async def get_app_state(request: Request,
 @router.get("/teams/{team_name}/env/{env_id}/overview", response_model=Response, name="总览环境信息")
 async def overview_team_env_info(region_name: Optional[str] = None,
                                  env_id: Optional[str] = None,
+                                 project_id: Optional[str] = None,
                                  session: SessionClass = Depends(deps.get_session)
                                  ) -> Any:
     """
@@ -118,6 +119,12 @@ async def overview_team_env_info(region_name: Optional[str] = None,
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
 
+    # 项目id数组
+    if project_id:
+        project_ids = [project_id]
+    else:
+        project_ids = None
+
     overview_detail = dict()
     team_service_num = service_info_repo.get_team_service_num_by_team_id(
         session=session, env_id=env_id, region_name=region_name)
@@ -129,7 +136,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
         return JSONResponse(general_message("0", "success", "查询成功", bean=overview_detail), status_code=200)
 
     # 同步应用到集群
-    groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name)
+    groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name, project_ids=project_ids)
     batch_create_app_body = []
     region_app_ids = []
     if groups:
@@ -240,9 +247,11 @@ async def team_env_app_group(request: Request,
     query = request.query_params.get("query", "")
     app_type = request.query_params.get("app_type", "")
     project_id = request.query_params.get("project_id", None)
+    team_id = request.query_params.get("team_id", None)
     groups_services = application_service.get_groups_and_services(session=session, tenant_env=env, region=region_name,
                                                                   query=query, app_type=app_type,
-                                                                  project_id=project_id)
+                                                                  project_id=project_id,
+                                                                  team_id=team_id)
     return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 
