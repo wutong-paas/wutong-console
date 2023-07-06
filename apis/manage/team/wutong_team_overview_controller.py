@@ -257,6 +257,7 @@ async def team_app_group(
         team_name: Optional[str] = None,
         team_id: Optional[str] = None,
         env_id: Optional[str] = None,
+        project_id: Optional[str] = None,
         app_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -276,7 +277,8 @@ async def team_app_group(
    """
     groups_services = application_service.get_env_groups(session=session, tenant_name=team_name, env_id=env_id,
                                                          app_name=app_name,
-                                                         team_id=team_id)
+                                                         team_id=team_id,
+                                                         project_id=project_id)
     return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 

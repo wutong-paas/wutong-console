@@ -33,17 +33,20 @@ class ApplicationRepository(BaseRepository[Application]):
         sql += " ORDER BY order_index,update_time DESC"
         return session.execute(sql, params).fetchall()
 
-    def get_groups_by_team_name(self, session, team_name, env_id, app_name):
+    def get_groups_by_team_name(self, session, team_name, env_id, app_name, project_id):
         params = {
             "team_code": team_name,
             "env_id": env_id,
-            "app_name": app_name
+            "app_name": app_name,
+            "project_id": project_id
         }
         sql = "select * from service_group where team_code = :team_code and is_delete=0"
         if env_id:
             sql += " and tenant_env_id = :env_id order by update_time desc"
         if app_name:
             sql += " and group_name like '%' :app_name '%'"
+        if project_id:
+            sql += " and project_id = :project_id"
         sql += ""
         return session.execute(sql, params).fetchall()
 

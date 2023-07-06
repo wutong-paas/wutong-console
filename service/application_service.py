@@ -1440,9 +1440,10 @@ class ApplicationService(object):
 
         return result
 
-    def get_env_groups(self, session: SessionClass, tenant_name, env_id=None, app_name=None, team_id=None):
+    def get_env_groups(self, session: SessionClass, tenant_name, env_id=None, app_name=None, team_id=None,
+                       project_id=None):
         result = []
-        groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id, app_name)
+        groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id, app_name, project_id)
         for g in groups:
             bean = dict()
             env = env_repo.get_env_by_env_id(session, g.tenant_env_id)
