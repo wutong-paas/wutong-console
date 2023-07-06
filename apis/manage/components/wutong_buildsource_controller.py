@@ -107,10 +107,7 @@ async def modify_build_source(request: Request,
                     image = image + ":" + version
                 service.image = image
                 service.version = version
-            if service_source == "docker_run":
-                service.cmd = cmd
-            else:
-                service.cmd = ""
+            service.cmd = cmd
             service.server_type = server_type
             service.git_url = ""
             service.code_from = "image_manual"
