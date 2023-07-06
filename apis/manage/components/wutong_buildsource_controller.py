@@ -79,7 +79,6 @@ async def modify_build_source(request: Request,
         else:
             service_source_user.user_name = user_name
             service_source_user.password = password
-            # service_source_user.save()
         if service_source == "source_code":
             if code_version:
                 service.code_version = code_version
@@ -96,8 +95,8 @@ async def modify_build_source(request: Request,
             service.image = ""
             service.service_key = "application"
             # service_repo.save_service(service)
-        elif service_source == "docker_run":
-            service.service_source = "docker_run"
+        elif service_source == "docker_run" or service_source == "docker_image":
+            service.service_source = service_source
             if image:
                 image = image.strip()
                 image_list = image.split(':')
@@ -108,7 +107,10 @@ async def modify_build_source(request: Request,
                     image = image + ":" + version
                 service.image = image
                 service.version = version
-            service.cmd = cmd
+            if service_source == "docker_run":
+                service.cmd = cmd
+            else:
+                service.cmd = ""
             service.server_type = server_type
             service.git_url = ""
             service.code_from = "image_manual"
