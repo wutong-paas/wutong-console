@@ -52,7 +52,8 @@ class GroupappsMigrateService(object):
                     return False
             return True
 
-    def create_new_group(self, session: SessionClass, tenant_env, region, old_group_id, tenant_name, project_id):
+    def create_new_group(self, session: SessionClass, tenant_env, region, old_group_id, tenant_name, project_id,
+                         project_name):
         old_group = application_repo.get_group_by_id(session, old_group_id)
         if old_group:
             new_group_name = '_'.join([old_group.group_name, make_uuid()[-4:]])
@@ -70,7 +71,8 @@ class GroupappsMigrateService(object):
                                              app_code=new_app_code,
                                              tenant_name=tenant_name,
                                              note="备份创建",
-                                             project_id=project_id)
+                                             project_id=project_id,
+                                             project_name=project_name)
         new_app = application_repo.get_group_by_id(session, app["ID"])
         return new_app
 
@@ -89,11 +91,12 @@ class GroupappsMigrateService(object):
     def __copy_backup_record(self, session: SessionClass, restore_mode, origin_backup_record, tenant_env,
                              current_region, migrate_env,
                              migrate_region, migrate_type,
-                             tenant_name, project_id):
+                             tenant_name, project_id, project_name):
         """拷贝备份数据"""
         new_group = self.create_new_group(session=session, tenant_env=migrate_env, region=migrate_region,
                                           old_group_id=origin_backup_record.group_id, tenant_name=tenant_name,
-                                          project_id=project_id)
+                                          project_id=project_id,
+                                          project_name=project_name)
         return new_group, None
 
     def __get_restore_type(self, current_env, current_region, migrate_env, migrate_region):
@@ -123,7 +126,8 @@ class GroupappsMigrateService(object):
                       migrate_type, event_id,
                       restore_id,
                       tenant_name,
-                      project_id):
+                      project_id,
+                      project_name):
         backup_record = backup_record_repo.get_record_by_backup_id(session=session, env_id=tenant_env.env_id,
                                                                    backup_id=backup_id)
         if not backup_record:
@@ -147,7 +151,8 @@ class GroupappsMigrateService(object):
                                                                  migrate_region=migrate_region,
                                                                  migrate_type=migrate_type,
                                                                  tenant_name=tenant_name,
-                                                                 project_id=project_id)
+                                                                 project_id=project_id,
+                                                                 project_name=project_name)
         if not new_backup_record:
             new_backup_record = backup_record
 

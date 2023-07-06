@@ -227,6 +227,7 @@ async def app_migrate(request: Request,
     restore_id = data.get("restore_id", None)
     tenant_name = data.get("team_alias", None)
     project_id = data.get("project_id", None)
+    project_name = data.get("project_name", "")
 
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
@@ -250,7 +251,8 @@ async def app_migrate(request: Request,
                                                        event_id=event_id,
                                                        restore_id=restore_id,
                                                        tenant_name=tenant_name,
-                                                       project_id=project_id)
+                                                       project_id=project_id,
+                                                       project_name=project_name)
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
     result = general_message("0", "success", "操作成功，开始迁移应用", bean=jsonable_encoder(migrate_record))
