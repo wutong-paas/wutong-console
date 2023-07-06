@@ -36,8 +36,11 @@ from service.application_service import application_service
 
 class GroupAppBackupService(object):
     def get_group_back_up_info(self, session: SessionClass, tenant_env, region, group_id):
-        return backup_record_repo.get_group_backup_records(session=session, env_id=tenant_env.env_id,
-                                                           region_name=region, group_id=group_id)
+        backups = backup_record_repo.get_group_backup_records(session=session, env_id=tenant_env.env_id,
+                                                              region_name=region, group_id=group_id)
+        for backup in backups:
+            backup.create_time = str(backup.create_time)
+        return backups
 
     def check_backup_condition(self, session: SessionClass, tenant_env, region, group_id):
         """
