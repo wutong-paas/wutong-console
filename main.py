@@ -35,10 +35,7 @@ async def exception_handler(request: Request, exc: ApiBaseHttpClient.CallApiErro
     :return:
     """
     logger.error("catch exception,request:{},error_message:{}", request.url, exc.body.msg)
-    msg = exc.body.msg
-    if msg == "control plane not install":
-        msg = "集群未安装 Istio 网格治理框架，该模式暂不支持"
-    return JSONResponse(general_message(exc.message["http_code"], msg, msg),
+    return JSONResponse(general_message(exc.message["http_code"], exc.body.msg, exc.body.msg),
                         status_code=exc.message["http_code"])
 
 

@@ -673,8 +673,11 @@ async def app_governance_mode(request: Request,
     region_name = region.region_name
     try:
         application_service.check_governance_mode(session, env, region_name, app_id, governance_mode)
-    except ServiceHandleException as e:
-        return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
+    except ServiceHandleException as exc:
+        msg = exc.msg
+        if msg == "control plane not install":
+            msg = "集群未安装 Istio 网格治理框架，该模式暂不支持"
+        return JSONResponse(general_message(exc.status_code, msg, exc.msg_show), status_code=exc.status_code)
     result = general_message("0", "success", "更新成功", bean={"governance_mode": governance_mode})
     return JSONResponse(result, status_code=200)
 
