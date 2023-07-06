@@ -44,8 +44,15 @@ class UpgradeService(object):
 
     @staticmethod
     def list_rollback_record(session, upgrade_record: ApplicationUpgradeRecord):
+        data_list = []
         records = upgrade_repo.list_by_rollback_records(session, upgrade_record.ID)
-        return [record.to_dict() for record in records]
+        for record in records:
+            data = record.to_dict()
+            key = record.group_key
+            app = component_share_repo.get_app_by_key(session, key)
+            data.update({"app_model_name": app.app_name})
+            data_list.append(data)
+        return data_list
 
     def restore(self, session, tenant_env, region, user, app, record: ApplicationUpgradeRecord):
         if not record.can_rollback():
