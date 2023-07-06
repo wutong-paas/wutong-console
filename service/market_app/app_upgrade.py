@@ -205,10 +205,14 @@ class AppUpgrade(MarketApp):
     def _sync_plugins(self, session, plugins: [Plugin]):
         new_plugins = []
         for plugin in plugins:
+            if len(plugin.plugin.image.split(':')) > 1:
+                image_url = plugin.plugin.image
+            else:
+                image_url = "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag)
             new_plugins.append({
                 "build_model": plugin.plugin.build_source,
                 "git_url": plugin.plugin.code_repo,
-                "image_url": "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag),
+                "image_url": image_url,
                 "plugin_id": plugin.plugin.plugin_id,
                 "plugin_info": plugin.plugin.desc,
                 "plugin_model": plugin.plugin.category,
@@ -237,7 +241,10 @@ class AppUpgrade(MarketApp):
                 plugin_from = "ys"
             else:
                 plugin_from = None
-
+            if len(plugin.plugin.image.split(':')) > 1:
+                build_image = plugin.plugin.image
+            else:
+                build_image = "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag)
             new_plugins.append({
                 "plugin_id": plugin.plugin.plugin_id,
                 "build_version": plugin.build_version.build_version,
@@ -252,7 +259,7 @@ class AppUpgrade(MarketApp):
                 "password": plugin.plugin.password,  # git password
                 "tenant_env_id": self.tenant_env_id,
                 "ImageInfo": plugin.plugin_image,
-                "build_image": "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag),
+                "build_image": build_image,
                 "plugin_from": plugin_from,
             })
         body = {

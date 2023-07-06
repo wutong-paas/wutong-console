@@ -54,7 +54,10 @@ class PluginService(object):
         plugin_data = dict()
         plugin_data["build_model"] = tenant_plugin.build_source
         plugin_data["git_url"] = tenant_plugin.code_repo
-        plugin_data["image_url"] = "{0}:{1}".format(tenant_plugin.image, image_tag)
+        if len(tenant_plugin.image.split(':')) > 1:
+            plugin_data["build_image"] = tenant_plugin.image
+        else:
+            plugin_data["build_image"] = "{0}:{1}".format(tenant_plugin.image, image_tag)
         plugin_data["plugin_id"] = tenant_plugin.plugin_id
         plugin_data["plugin_info"] = tenant_plugin.desc
         plugin_data["plugin_model"] = tenant_plugin.category
