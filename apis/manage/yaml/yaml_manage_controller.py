@@ -57,16 +57,25 @@ async def put_yaml_data(
 ) -> Any:
     data = await request.json()
     yaml_name = data.get("yaml_name")
+    real_name = data.get("real_name")
     context = data.get("context")
     if not context or not yaml_name:
         return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=400)
 
-    filename = 'yamls/{0}'.format(yaml_name)
+    filename = 'yamls/{0}'.format(real_name)
+    query_filename = os.path.join(settings.YAML_URL, filename)
     save_filename = os.path.join(settings.YAML_ROOT, filename)
     with open(save_filename, "w", encoding='utf-8') as file:
         file.write(context)
         file.close()
-    return JSONResponse(general_message("0", "success", msg_show="修改成功"), status_code=200)
+
+    return JSONResponse(general_message("0", "success", msg_show="修改成功",
+                                        bean={
+                                            "file_url": query_filename,
+                                            "real_name": '{0}.{1}'.format(real_name, "yaml") if (
+                                                    len(real_name.split(".")) < 2) else real_name,
+                                            "nick_name": yaml_name}),
+                        status_code=200)
 
 
 @router.post("/teams/apps/yaml", response_model=Response, name="添加yaml文件")

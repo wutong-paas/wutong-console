@@ -280,8 +280,7 @@ class PluginService(object):
         data["build_model"] = tenant_plugin.build_source
         data["git_url"] = tenant_plugin.code_repo
         image = tenant_plugin.image
-        version = image.split(':')[-1]
-        if not version:
+        if len(image.split(':')) > 1:
             data["image_url"] = "{0}:{1}".format(tenant_plugin.image, plugin_build_version.image_tag)
         else:
             data["image_url"] = tenant_plugin.image
