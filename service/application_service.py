@@ -1787,8 +1787,8 @@ class ApplicationService(object):
         data = {
             "note": note,
             "logo": logo,
-            "project_id": app.project_id if not project_id else project_id,
-            "project_name": app.project_name if not project_name else project_name
+            "project_id": project_id,
+            "project_name": project_name
         }
         if username:
             data["username"] = username
