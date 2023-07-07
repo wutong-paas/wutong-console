@@ -59,7 +59,7 @@ def stop_env_resource(session, env, region_code, user):
                 service_domain.delete_operator = user.nick_name
 
         # 批量操作
-        app_manage_service.batch_operations(tenant_env=env, region_name=region_name, user=user, action=action,
+        app_manage_service.batch_operations(tenant_env=env, region_name=region_code, user=user, action=action,
                                             service_ids=service_ids, session=session)
         app.is_delete = True
         app.delete_time = datetime.datetime.now()
