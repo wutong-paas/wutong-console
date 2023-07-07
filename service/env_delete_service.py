@@ -1,5 +1,5 @@
 import datetime
-from models.application.models import ComponentApplicationRelation
+from models.application.models import ComponentApplicationRelation, Application
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
@@ -18,6 +18,7 @@ def stop_env_resource(session, env, region_name, user):
     action = "stop"
     apps = application_repo.get_tenant_region_groups(session, env.env_id, region_name)
     for app in apps:
+        app = Application(**app)
         group_id = app.ID
 
         # 应用访问记录删除
@@ -34,6 +35,7 @@ def stop_env_resource(session, env, region_name, user):
             app.is_delete = True
             app.delete_time = datetime.datetime.now()
             app.delete_operator = user.nick_name
+            session.merge(app)
             continue
         service_ids = [service.service_id for service in services]
         # 去除掉第三方组件
@@ -62,6 +64,7 @@ def stop_env_resource(session, env, region_name, user):
         app.is_delete = True
         app.delete_time = datetime.datetime.now()
         app.delete_operator = user.nick_name
+        session.merge(app)
     env.is_delete = True
     env.delete_time = datetime.datetime.now()
     env.delete_operator = user.nick_name
