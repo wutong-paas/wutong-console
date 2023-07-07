@@ -42,12 +42,14 @@ async def get_domain_info(request: Request,
         service_alias = service.service_alias if service else tenant_tuple[6]
         group_name = ''
         group_id = 0
+        project_id = None
         if service:
             gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''
                 group_id = int(gsr.group_id)
+                project_id = group.project_id if group else None
         domain_dict = dict()
         certificate_info = domain_repo.get_certificate_by_pk(session, int(tenant_tuple[3]))
         if not certificate_info:
@@ -71,6 +73,7 @@ async def get_domain_info(request: Request,
         domain_dict["path_rewrite"] = tenant_tuple[15]
         domain_dict["rewrites"] = tenant_tuple[16]
         domain_dict["group_id"] = group_id
+        domain_dict["project_id"] = project_id
         domain_list.append(domain_dict)
     bean = dict()
     bean["total"] = total
@@ -106,12 +109,14 @@ async def get_tcp_domain_info(request: Request,
         service_alias = service.service_cname if service else ''
         group_name = ''
         group_id = 0
+        project_id = None
         if service:
             gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
             if gsr:
                 group = application_repo.get_group_by_id(session, int(gsr.group_id))
                 group_name = group.group_name if group else ''
                 group_id = int(gsr.group_id)
+                project_id = group.project_id if group else None
         domain_dict = dict()
         domain_dict["end_point"] = tenant_tuple[0]
         domain_dict["type"] = tenant_tuple[1]
@@ -125,7 +130,7 @@ async def get_tcp_domain_info(request: Request,
         domain_dict["is_outer_service"] = tenant_tuple[8]
         domain_dict["group_id"] = group_id
         domain_dict["service_source"] = service.service_source if service else ''
-
+        domain_dict["project_id"] = project_id
         domain_list.append(domain_dict)
     bean = dict()
     bean["total"] = total
