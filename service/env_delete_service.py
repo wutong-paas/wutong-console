@@ -8,15 +8,15 @@ from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_visit_service
 
 
-def logic_delete_by_env_id(session, user, env, region_name):
+def logic_delete_by_env_id(session, user, env, region_code):
     # 查询环境下全部应用，停用全部组件
     # 环境、应用、组件 标记为逻辑删除
-    stop_env_resource(session=session, env=env, region_name=region_name, user=user)
+    stop_env_resource(session=session, env=env, region_code=region_code, user=user)
 
 
-def stop_env_resource(session, env, region_name, user):
+def stop_env_resource(session, env, region_code, user):
     action = "stop"
-    apps = application_repo.get_tenant_region_groups(session, env.env_id, region_name)
+    apps = application_repo.get_tenant_region_groups(session, env.env_id, region_code)
     for app in apps:
         app = Application(**app)
         group_id = app.ID
