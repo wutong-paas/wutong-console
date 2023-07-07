@@ -1861,10 +1861,19 @@ class ApplicationVisitService(object):
         ))
 
     def get_app_visit_record_by_user(self, session, user_id):
-        return session.execute(select(ApplicationVisitRecord).where(
+        data = []
+        app_records = session.execute(select(ApplicationVisitRecord).where(
             ApplicationVisitRecord.user_id == user_id,
             ApplicationVisitRecord.is_delete == 0
         ).order_by(ApplicationVisitRecord.visit_time.desc()).limit(5)).scalars().all()
+        for app_record in app_records:
+            record_dict = jsonable_encoder(app_record)
+            app_id = record_dict["app_id"]
+            app = application_repo.get_group_by_id(session, app_id)
+            project_id = app.project_id
+            record_dict.update({"project_id": project_id})
+            data.append(record_dict)
+        return data
 
     def get_app_visit_record_by_app_id(self, session, app_id):
         return session.execute(select(ApplicationVisitRecord).where(
