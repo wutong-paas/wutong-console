@@ -1352,6 +1352,8 @@ class ApplicationService(object):
             if app_status:
                 count[app_status["status"]] += 1
                 if status == "all" or app_status["status"] == status.upper():
+                    used_cpu = app_status.get("cpu", 0)
+                    used_mem = app_status.get("memory", 0)
                     apps[app.ID] = {
                         "project_id": app.project_id,
                         "group_id": app.ID,
@@ -1360,8 +1362,8 @@ class ApplicationService(object):
                         "group_name": app.group_name,
                         "group_note": app.note,
                         "service_list": [],
-                        "used_mem": app_status.get("memory", 0) if app_status else 0,
-                        "used_cpu": round(app_status.get("cpu", 0) / 1000, 2) if app_status else 0,
+                        "used_mem": used_mem if app_status and used_mem else 0,
+                        "used_cpu": round(used_cpu / 1000, 2) if app_status and used_cpu else 0,
                         "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
                         "logo": app.logo,
                         "accesses": [],
