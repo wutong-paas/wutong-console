@@ -190,8 +190,8 @@ async def overview_team_env_info(region_name: Optional[str] = None,
                     if app_status.get("status") == "RUNNING":
                         running_app_num += 1
                     service_running_num += app_status.get("service_running_num")
-                    cpu_usage += app_status.get("cpu", 0)
-                    memory_usage += app_status.get("memory", 0)
+                    cpu_usage += app_status.get("cpu", 0) if app_status.get("cpu", 0) else 0
+                    memory_usage += app_status.get("memory", 0) if app_status.get("memory", 0) else 0
     except Exception as e:
         logger.exception(e)
     team_app_num = application_repo.get_tenant_region_groups_count(session, env.env_id, region_name, project_id)
