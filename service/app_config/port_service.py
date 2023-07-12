@@ -364,7 +364,7 @@ class AppPortService:
                                                                  data)
                     except Exception as e:
                         logger.exception(e)
-                        tcp_domain_repo.delete_tcp_domain(tcp_rule_id)
+                        tcp_domain_repo.delete_tcp_domain(session, tcp_rule_id)
                         return 412, "数据中心添加策略失败"
 
         deal_port.is_outer_service = True
