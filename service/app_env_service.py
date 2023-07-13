@@ -5,10 +5,12 @@ from loguru import logger
 from sqlalchemy import select
 
 from clients.remote_component_client import remote_component_client
+from core.utils.return_message import general_message
 from database.session import SessionClass
 from exceptions.main import EnvAlreadyExist, InvalidEnvName, AbortRequest
 from models.component.models import ComponentEnvVar, TeamComponentPort
 from repository.teams.team_service_env_var_repo import env_var_repo
+from repository.component.env_var_repo import env_var_repo as service_env_var_repo
 
 
 class AppEnvVarService(object):
@@ -17,7 +19,8 @@ class AppEnvVarService(object):
                            'PATH',
                            'POD_NET_IP', 'LOG_MATCH')
 
-    def create_env_var(self, session, service, container_port, name, attr_name, attr_value, is_change=False, scope="outer"):
+    def create_env_var(self, session, service, container_port, name, attr_name, attr_value, is_change=False,
+                       scope="outer"):
         """
         raise: EnvAlreadyExist
         raise: InvalidEnvName
@@ -204,7 +207,8 @@ class AppEnvVarService(object):
                                error_code=400)
 
     def update_env_by_env_id(self, session: SessionClass, tenant_env, service, env_id, name, attr_value, user_name=''):
-        env_id = env_id.strip()
+        if not isinstance(env_id, int):
+            env_id = env_id.strip()
         attr_value = attr_value.strip()
         env = env_var_repo.get_by_primary_key(session=session, primary_key=env_id)
         if not env:
@@ -235,6 +239,52 @@ class AppEnvVarService(object):
             scope="outer",
             create_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         )
+
+    def batch_update_service_env(self, session, row_datas, env, service, is_change, scope, user):
+        attr_names = []
+        for row_data in row_datas:
+            if row_data:
+                attr_name, attr_value, name = row_data.split("|")
+                if attr_name:
+                    attr_names.append(attr_name)
+                    service_env_var = env_var_repo.get_service_env_by_attr_name(session=session,
+                                                                                tenant_env_id=env.env_id,
+                                                                                service_id=service.service_id,
+                                                                                attr_name=attr_name)
+                    if not service_env_var:
+                        code, msg, data = env_var_service.add_service_env_var(session=session, tenant_env=env,
+                                                                              service=service,
+                                                                              container_port=0, name=name,
+                                                                              attr_name=attr_name,
+                                                                              attr_value=attr_value,
+                                                                              is_change=is_change, scope=scope,
+                                                                              user_name=user.nick_name)
+                        if code != 200:
+                            return general_message(code, "add env error", msg)
+                    else:
+                        code, msg, service_env = env_var_service.update_env_by_env_id(session=session,
+                                                                                      tenant_env=env,
+                                                                                      service=service,
+                                                                                      env_id=service_env_var.ID,
+                                                                                      name=name,
+                                                                                      attr_value=attr_value,
+                                                                                      user_name=user.nick_name)
+                        if code != 200:
+                            raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
+                else:
+                    return general_message(400, "params error", "变量名不能为空")
+
+        # 删除操作
+        service_env_vars = service_env_var_repo.get_service_env_by_tenant_env_id_and_service_id(session=session,
+                                                                                                tenant_env_id=env.env_id,
+                                                                                                service_id=service.service_id)
+        for service_env_var in service_env_vars:
+            old_attr_name = service_env_var.attr_name
+            if not (old_attr_name in attr_names):
+                env_var_service.delete_env_by_env_id(session=session, tenant_env=env, service=service,
+                                                     env_id=service_env_var.ID,
+                                                     user_name=user.nick_name)
+        return None
 
 
 env_var_service = AppEnvVarService()

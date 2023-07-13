@@ -15,6 +15,87 @@ from service.app_env_service import env_var_service
 router = APIRouter()
 
 
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/batch_envs", response_model=Response,
+            name="批量获取组件的环境变量文本参数")
+async def batch_get_envs(request: Request,
+                         serviceAlias: Optional[str] = None,
+                         db: SessionClass = Depends(deps.get_session),
+                         env=Depends(deps.get_current_team_env)) -> Any:
+    """
+    批量获取组件的环境变量文本参数
+    """
+    env_type = request.query_params.get("env_type", None)
+    page = int(request.query_params.get("page", 1))
+    page_size = int(request.query_params.get("page_size", 10))
+    env_name = request.query_params.get("env_name", None)
+
+    service = service_info_repo.get_service(db, serviceAlias, env.env_id)
+
+    if not env_type:
+        return JSONResponse(general_message(400, "param error", "参数异常"), status_code=400)
+    if env_type not in ("inner", "outer"):
+        return JSONResponse(general_message(400, "param error", "参数异常"), status_code=400)
+    env_list = []
+    if env_name:
+        # 获取总数
+        env_count = (db.execute("select count(*) from tenant_service_env_var where tenant_env_id='{0}' and \
+                service_id='{1}' and scope='inner' and attr_name like '%{2}%';".format(
+            service.tenant_env_id, service.service_id, env_name))).fetchall()
+
+        total = env_count[0][0]
+        start = (page - 1) * page_size
+        remaining_num = total - (page - 1) * page_size
+        end = page_size
+        if remaining_num < page_size:
+            end = remaining_num
+
+        env_tuples = (db.execute("select ID, tenant_env_id, service_id, container_port, name, attr_name, \
+                attr_value, is_change, scope, create_time from tenant_service_env_var \
+                    where tenant_env_id='{0}' and service_id='{1}' and scope='inner' and \
+                        attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
+            service.tenant_env_id, service.service_id, env_name, start, end))).fetchall()
+    else:
+        env_count = (db.execute("select count(*) from tenant_service_env_var where tenant_env_id='{0}' and service_id='{1}'\
+                 and scope='inner';".format(service.tenant_env_id, service.service_id))).fetchall()
+
+        total = env_count[0][0]
+        start = (page - 1) * page_size
+        remaining_num = total - (page - 1) * page_size
+        end = page_size
+        if remaining_num < page_size:
+            end = remaining_num
+
+        env_tuples = (db.execute("select ID, tenant_env_id, service_id, container_port, name, attr_name, attr_value,\
+                 is_change, scope, create_time from tenant_service_env_var where tenant_env_id='{0}' \
+                     and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};".format(
+            service.tenant_env_id, service.service_id, start, end))).fetchall()
+    if len(env_tuples) > 0:
+        for env_tuple in env_tuples:
+            env_dict = dict()
+            env_dict["ID"] = env_tuple[0]
+            env_dict["tenant_env_id"] = env_tuple[1]
+            env_dict["service_id"] = env_tuple[2]
+            env_dict["container_port"] = env_tuple[3]
+            env_dict["name"] = env_tuple[4]
+            env_dict["attr_name"] = env_tuple[5]
+            env_dict["attr_value"] = env_tuple[6]
+            env_dict["is_change"] = env_tuple[7]
+            env_dict["scope"] = env_tuple[8]
+            env_dict["create_time"] = env_tuple[9]
+            env_list.append(env_dict)
+
+    data = ""
+    for env in env_list:
+        desc = env["name"]
+        attr_name = env["attr_name"]
+        attr_value = env["attr_value"]
+        content = "{0}|{1}|{2}\n".format(attr_name, attr_value, desc)
+        data += content
+
+    result = general_message("0", "success", "查询成功", content=data, total=total)
+    return JSONResponse(result, status_code=200)
+
+
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/envs", response_model=Response, name="获取组件的环境变量参数")
 async def get_env(request: Request,
                   serviceAlias: Optional[str] = None,
@@ -154,6 +235,41 @@ async def get_env(request: Request,
 
     result = general_message("0", "success", "查询成功", bean=bean, list=jsonable_encoder(env_list))
     return JSONResponse(result, status_code=200)
+
+
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/batch_envs", response_model=Response,
+             name="为组件批量添加环境变量")
+async def batch_add_envs(request: Request,
+                         env_id: Optional[str] = None,
+                         serviceAlias: Optional[str] = None,
+                         session: SessionClass = Depends(deps.get_session),
+                         user=Depends(deps.get_current_user)) -> Any:
+    """
+    为组件批量添加环境变量
+    """
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    data = await request.json()
+    content = data.get("content", "")
+    scope = data.get('scope', "inner")
+    is_change = data.get('is_change', True)
+    row_datas = content.split("\n")
+    service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+
+    if not scope:
+        return JSONResponse(general_message(400, "params error", "参数异常"), status_code=400)
+    if scope not in ("inner", "outer"):
+        return JSONResponse(general_message(400, "params error", "scope范围只能是inner或outer"), status_code=400)
+
+    # 批量更新、新增、删除操作
+    result = env_var_service.batch_update_service_env(session=session, row_datas=row_datas, env=env,
+                                                      service=service,
+                                                      is_change=is_change, scope=scope, user=user)
+    if result:
+        return JSONResponse(result, status_code=result["code"])
+
+    return JSONResponse(general_message(200, "success", "添加成功"), status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/envs", response_model=Response, name="为组件添加环境变量")

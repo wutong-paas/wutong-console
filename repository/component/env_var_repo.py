@@ -24,6 +24,12 @@ class ServiceEnvVarRepository(BaseRepository[ComponentEnvVar]):
             select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env_id,
                                           ComponentEnvVar.service_id == service_id))).scalars().all()
 
+    def get_service_env_by_attr_name(self, session, tenant_env_id, service_id, attr_name):
+        return (session.execute(
+            select(ComponentEnvVar).where(ComponentEnvVar.tenant_env_id == tenant_env_id,
+                                          ComponentEnvVar.service_id == service_id,
+                                          ComponentEnvVar.attr_name == attr_name))).scalars().first()
+
     def get_service_env(self, session, tenant_env_id, service_id, scopes, is_change,
                         attr_names, container_port, scope):
         return (session.execute(
