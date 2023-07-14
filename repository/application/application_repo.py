@@ -127,6 +127,14 @@ class ApplicationRepository(BaseRepository[Application]):
         group_count = len(service_group_info)
         return group_count
 
+    def get_group_num_by_env_id(self, session, env_id):
+        service_group_info = session.execute(
+            select(Application).where(Application.tenant_env_id == env_id,
+                                      Application.is_delete == 0)
+        ).scalars().all()
+        group_count = len(service_group_info)
+        return group_count
+
     def list_tenant_group_on_region(self, session, tenant_env, region_name):
         return session.query(Application).filter(
             Application.tenant_env_id == tenant_env.env_id,

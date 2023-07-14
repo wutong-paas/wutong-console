@@ -6,6 +6,7 @@ from sqlalchemy import select, delete
 from clients.remote_build_client import remote_build_client
 from models.teams import TeamEnvInfo, RegionConfig
 from models.component.models import Component
+from repository.application.application_repo import application_repo
 from repository.base import BaseRepository
 
 
@@ -29,8 +30,10 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             if envs:
                 for env in envs:
                     env_alias = env_maps.get(env["UUID"]).env_alias if env_maps.get(env["UUID"]) else ''
+                    env_id = env["UUID"]
+                    app_num = application_repo.get_group_num_by_env_id(session, env_id)
                     env_list.append({
-                        "env_id": env["UUID"],
+                        "env_id": env_id,
                         "env_name": env_alias,
                         "env_code": env["Name"],
                         "memory_request": env["memory_request"],
@@ -41,6 +44,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
                         "running_app_internal_num": env["running_app_internal_num"],
                         "running_app_third_num": env["running_app_third_num"],
                         "set_limit_memory": env["LimitMemory"],
+                        "app_num": app_num
                     })
         else:
             logger.error(body)
