@@ -91,25 +91,22 @@ async def regions(status: Optional[str] = "", check_status: Optional[str] = "",
         region_use_info = {}
         for env in envs:
             team_code = env.tenant_name
+            team_name = env.team_alias
             current_team_info = region_use_info.get(team_code, {})
             current_use_cpu = 0
             current_use_memory = 0
             if current_team_info:
                 current_use_cpu = current_team_info.get("use_cpu", 0)
                 current_use_memory = current_team_info.get("use_memory", 0)
-                current_team_name = current_team_info.get("team_name", 0)
-            else:
-                current_team_name = team_api.get_team_name_by_team_code(team_code, user.token)
-            if current_team_name:
-                env_info = common_services.get_current_region_used_resource(session, env, region_code)
-                if env_info:
-                    use_cpu = env_info.get("cpu", 0) / 1000
-                    use_memory = env_info.get("memory", 0) / 1024
-                    region_use_info.update({team_code: {
-                        "use_cpu": round(current_use_cpu + use_cpu, 2),
-                        "use_memory": round(current_use_memory + use_memory, 2),
-                        "team_name": current_team_name
-                    }})
+            env_info = common_services.get_current_region_used_resource(session, env, region_code)
+            if env_info:
+                use_cpu = env_info.get("cpu", 0) / 1000
+                use_memory = env_info.get("memory", 0) / 1024
+                region_use_info.update({team_code: {
+                    "use_cpu": round(current_use_cpu + use_cpu, 2),
+                    "use_memory": round(current_use_memory + use_memory, 2),
+                    "team_name": team_name
+                }})
         region_info.update({"region_team_info": region_use_info})
     result = general_message("0", "success", "获取成功", list=region_infos)
     return JSONResponse(result, status_code=200)

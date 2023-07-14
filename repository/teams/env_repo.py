@@ -96,7 +96,8 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             TeamEnvInfo.tenant_id == team_id,
             TeamEnvInfo.namespace == namespace)).scalars().first()
 
-    def create_env(self, session, user, region_name, region_code, env_name, env_alias, team_id, team_name, namespace="",
+    def create_env(self, session, user, region_name, region_code, env_name, env_alias, team_id, team_name, team_alias,
+                   namespace="",
                    desc=""):
         if not env_alias:
             env_alias = "{0}的环境".format(user.nick_name)
@@ -110,6 +111,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             "namespace": namespace,
             "tenant_id": team_id,
             "tenant_name": team_name,
+            "team_alias": team_alias,
             "desc": desc
         }
         add_team = TeamEnvInfo(**params)

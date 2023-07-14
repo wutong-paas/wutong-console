@@ -31,6 +31,7 @@ async def add_env(request: Request,
         result = general_message(400, "failed", "参数错误")
         return JSONResponse(status_code=403, content=result)
     env_alias = from_data["env_alias"]
+    team_alias = from_data["team_alias"]
     region_name = from_data["region_name"]
     env_name = from_data["env_name"]
     tenant_id = from_data["tenant_id"]
@@ -70,7 +71,7 @@ async def add_env(request: Request,
         namespace = namespace + "-" + index[:8]
 
     env = env_repo.create_env(session, user, region.region_alias, region_name, env_name, env_alias, tenant_id,
-                              team_name, namespace, desc)
+                              team_name, team_alias, namespace, desc)
     exist_namespace_region_names = []
 
     try:
