@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     YAML_URL = '/data/file/'
     YAML_ROOT = os.path.join(DATA_DIR, 'file')
 
+    # 团队API路由配置
+    TEAM_API_URL = os.environ.get("TEAM_API_URL", "wt044803-18099.cube:18099")
+
     # 跨域白名单
     BACKEND_CORS_ORIGINS: List = ['*']
 

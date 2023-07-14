@@ -36,6 +36,7 @@ async def get_current_user(request: Request, authorization: Optional[str] = Head
             "nick_name": parse.unquote(str(data.get(b"usernickname"), "utf-8")),
             "email": str(data.get(b"useremail"), "utf-8"),
             "phone": str(data.get(b"usermobile", b''), "utf-8"),
+            "token": authorization
         }
         user = UserInfo(**user)
         return user

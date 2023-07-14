@@ -1,5 +1,6 @@
 import requests
 
+from core.setting import settings
 from exceptions.main import ServiceHandleException
 
 
@@ -12,7 +13,7 @@ class TeamApi(object):
     def get_team_name_by_team_code(self, team_code, token):
         self.headers.update({"Authorization": token})
         params = {"teamCode": team_code}
-        response = requests.post("http://wt044803-18099.cube:18099/wutong-devops-platform/team/list",
+        response = requests.post("http://{0}/wutong-devops-platform/team/list".format(settings.TEAM_API_URL),
                                  json=params, headers=self.headers)
 
         data = response.json()
