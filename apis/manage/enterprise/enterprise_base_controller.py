@@ -238,9 +238,10 @@ async def export_team_memory_config(request: Request,
     sheet.title = '默认title'
     sheet.append(columns)
     for data in jsonable_encoder(envs):
-        wdata = [data["team_name"], data["env_name"], data["memory_limit"], data["cpu_limit"], data["set_limit_memory"],
-                 data["app_num"], data["running_app_num"]]
-        sheet.append(wdata)
+        if data["team_name"]:
+            wdata = [data["team_name"], data["env_name"], data["memory_limit"], data["cpu_limit"], data["set_limit_memory"],
+                     data["app_num"], data["running_app_num"]]
+            sheet.append(wdata)
 
     file_url = "data/export"
     file_name = '{}.xlsx'.format(datetime.datetime.now().strftime("%Y-%m-%d-%H_%M_%S"))
