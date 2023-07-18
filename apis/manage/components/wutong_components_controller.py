@@ -345,6 +345,9 @@ async def restart_component(serviceAlias: Optional[str] = None,
                             user=Depends(deps.get_current_user),
                             env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+    is_dep_running = app_manage_service.is_dep_service_running(session, env, service)
+    if not is_dep_running:
+        return JSONResponse(general_message(400, "dep service is not running", "该组件依赖服务未处于运行中"), status_code=400)
     code, msg = app_manage_service.restart(session=session, tenant_env=env, service=service, user=user)
     bean = {}
     if code != 200:
@@ -397,6 +400,9 @@ async def upgrade_component(serviceAlias: Optional[str] = None,
     更新
     """
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+    is_dep_running = app_manage_service.is_dep_service_running(session, env, service)
+    if not is_dep_running:
+        return JSONResponse(general_message(400, "dep service is not running", "该组件依赖服务未处于运行中"), status_code=400)
     try:
         code, msg, _ = app_manage_service.upgrade(session=session, tenant_env=env, service=service, user=user)
         bean = {}
