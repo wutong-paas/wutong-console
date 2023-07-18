@@ -49,13 +49,14 @@ from repository.region.region_app_repo import region_app_repo
 from service.app_actions.app_delete import component_delete_service
 from service.app_actions.app_log import event_service
 from service.app_actions.exception import ErrVersionAlreadyExists
+from service.app_config.app_relation_service import dependency_service
 from service.app_config.component_graph import component_graph_service
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
 from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
-from service.base_services import baseService
+from service.base_services import baseService, base_service
 from service.market_app_service import market_app_service
 
 
@@ -77,6 +78,17 @@ from service.market_app_service import market_app_service
 class AppManageService(object):
     def __init__(self):
         super().__init__()
+
+    def is_dep_service_running(self, session, env, service):
+        dependencies = dependency_service.get_service_dependencies(session=session, tenant_env=env, service=service)
+        if dependencies:
+            service_ids = [dep.service_id for dep in dependencies]
+            status_list = base_service.status_multi_service(session=session, region=env.region_code, tenant_env=env,
+                                                            service_ids=service_ids)
+            for status in status_list:
+                if status["status"] != 'running':
+                    return False
+        return True
 
     def deploy_service(self, session, tenant_env, service_obj, user):
         """重新构建"""
