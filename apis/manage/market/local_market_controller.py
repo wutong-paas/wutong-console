@@ -459,7 +459,7 @@ async def export_app_models(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/enterprise/env/{env_id}/app-models/import/{event_id}", response_model=Response,
+@router.post("/enterprise/app-models/import/{event_id}", response_model=Response,
              name="应用包导入")
 async def import_app(
         request: Request,
