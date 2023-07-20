@@ -92,6 +92,7 @@ async def docker_run(
                                                                                 service_cname=params.service_cname,
                                                                                 docker_cmd=params.docker_cmd,
                                                                                 image_type=params.image_type,
+                                                                                image_hub=params.image_hub,
                                                                                 k8s_component_name=params.k8s_component_name)
         if code != 200:
             return JSONResponse(general_message(code, "service create fail", msg_show), status_code=200)

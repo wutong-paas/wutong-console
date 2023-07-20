@@ -20,6 +20,7 @@ class DockerRunParams(BaseModel):
     password: Optional[str] = None
     user_name: Optional[str] = None
     k8s_component_name: Optional[str] = None
+    image_hub: Optional[str] = None
 
 
 class DeployBusinessParams(BaseModel):

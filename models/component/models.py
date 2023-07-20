@@ -35,6 +35,7 @@ class Component(Base):
     container_gpu = Column(Integer, comment="gpu显存数量", nullable=False, default=0)
     gpu_type = Column(String(32), comment="gpu类型", nullable=True)
     min_memory = Column(Integer, comment="内存大小单位（M）", nullable=False, default=256)
+    image_hub = Column(String(32), comment="镜像源类型", nullable=True)
 
     # deprecated
     setting = Column(String(200), comment="设置项", nullable=True)

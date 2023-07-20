@@ -557,7 +557,7 @@ class ApplicationService(object):
         return result
 
     def create_docker_run_app(self, session: SessionClass, region_name, tenant_env, user, service_cname, docker_cmd,
-                              image_type, k8s_component_name):
+                              image_type, image_hub, k8s_component_name):
         is_pass, msg = self.check_service_cname(service_cname=service_cname)
         if not is_pass:
             return 412, msg, None
@@ -575,6 +575,7 @@ class ApplicationService(object):
         new_service.image = ""
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.service_region = tenant_env.region_code
+        new_service.image_hub = image_hub
 
         session.add(new_service)
         session.flush()
