@@ -589,6 +589,32 @@ class ShareService(object):
             temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
+    def get_services_used_plugins(self, service_ids, session: SessionClass):
+        sprs = (
+            session.execute(
+                select(TeamComponentPluginRelation).where(TeamComponentPluginRelation.service_id.in_(service_ids)))
+        ).scalars().all()
+
+        plugin_list = []
+        temp_plugin_ids = []
+        for spr in sprs:
+            if spr.plugin_id in temp_plugin_ids:
+                continue
+            tenant_plugin = (
+                session.execute(select(TeamPlugin).where(TeamPlugin.plugin_id == spr.plugin_id))
+            ).scalars().first()
+            plugin_build_version = (
+                session.execute(select(PluginBuildVersion).where(PluginBuildVersion.plugin_id == spr.plugin_id))
+            ).scalars().first()
+
+            plugin_dict = tenant_plugin.__dict__
+
+            plugin_dict["build_version"] = spr.build_version
+            plugin_dict["build_cmd"] = plugin_build_version.build_cmd
+            plugin_list.append(plugin_dict)
+            temp_plugin_ids.append(spr.plugin_id)
+        return plugin_list
+
     def check_service_source(self, session: SessionClass, tenant_env, group_id, region_name):
         service_list = component_share_repo.get_service_list_by_group_id(session=session, tenant_env=tenant_env,
                                                                          group_id=group_id)

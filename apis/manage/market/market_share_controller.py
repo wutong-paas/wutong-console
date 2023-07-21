@@ -128,6 +128,17 @@ async def get_share_info(
     return JSONResponse(general_message("0", "query success", "获取成功", bean=jsonable_encoder(data)), status_code=200)
 
 
+@router.get("/plugin/share/info", response_model=Response, name="获取应用发布时插件信息")
+async def get_share_plugin_info(
+        service_ids: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    plugins = []
+    service_ids = service_ids.split(",")
+    if service_ids:
+        plugins = share_service.get_services_used_plugins(service_ids=service_ids, session=session)
+    return JSONResponse(general_message("0", "query success", "获取成功", list=jsonable_encoder(plugins)), status_code=200)
+
+
 @router.post("/teams/{team_name}/env/{env_id}/share/{share_id}/info", response_model=Response,
              name="生成分享应用实体，向数据中心发送分享任务")
 async def create_share_info(
