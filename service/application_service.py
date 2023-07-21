@@ -1450,17 +1450,18 @@ class ApplicationService(object):
         for g in groups:
             bean = dict()
             env = env_repo.get_env_by_env_id(session, g.tenant_env_id)
-            bean["group_id"] = g.ID
-            bean["group_name"] = g.group_name
-            bean["env_name"] = g.env_name
-            bean["team_code"] = tenant_name
-            bean["env_id"] = g.tenant_env_id
-            bean["region_code"] = g.region_name
-            bean["region_name"] = g.region_alias
-            bean["env_namespace"] = env.namespace
-            bean["project_id"] = g.project_id
-            bean["team_id"] = team_id
-            result.append(bean)
+            if env:
+                bean["group_id"] = g.ID
+                bean["group_name"] = g.group_name
+                bean["env_name"] = g.env_name
+                bean["team_code"] = tenant_name
+                bean["env_id"] = g.tenant_env_id
+                bean["region_code"] = g.region_name
+                bean["region_name"] = g.region_alias
+                bean["env_namespace"] = env.namespace
+                bean["project_id"] = g.project_id
+                bean["team_id"] = team_id
+                result.append(bean)
         return result
 
     @staticmethod

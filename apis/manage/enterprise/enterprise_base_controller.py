@@ -161,6 +161,9 @@ async def delete_region(
     region = region_repo.get_region_by_region_id(session, region_id)
     if not region:
         raise ServiceHandleException(status_code=404, msg="集群已不存在")
+    envs = env_repo.get_envs_by_region_code(session, region.region_name)
+    if envs:
+        return JSONResponse(general_message(400, "failed", "该集群内存在相关环境未删除"), status_code=400)
     region_repo.del_by_enterprise_region_id(session, region_id)
     result = general_message("0", "success", "删除成功")
     return JSONResponse(result, status_code=200)
