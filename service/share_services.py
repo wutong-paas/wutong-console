@@ -1123,8 +1123,8 @@ class ShareService(object):
                     new_apps.append(app)
             app_templetes["apps"] = new_apps
             app_version.app_template = json.dumps(app_templetes)
-            app_version.update_time = datetime.datetime.now()
-            session.flush()
+            # app_version.update_time = datetime.datetime.now()
+            # session.flush()
             return record_event
         except ServiceHandleException as e:
             logger.exception(e)
