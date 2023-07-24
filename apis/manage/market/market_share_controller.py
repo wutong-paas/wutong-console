@@ -323,7 +323,8 @@ async def get_share_info(
         if not event:
             result = general_message(404, "not exist", "分享事件不存在")
             return JSONResponse(result, status_code=404)
-        if event.event_status == "success":
+        region_share_id = event.region_share_id
+        if not region_share_id or event.event_status == "success":
             result = general_message("0", "get sync share event result", "查询成功", bean=jsonable_encoder(event))
             return JSONResponse(result, status_code=200)
         bean = share_service.get_sync_event_result(session, response_region, env, event)
