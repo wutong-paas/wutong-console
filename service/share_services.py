@@ -511,7 +511,7 @@ class ShareService(object):
     def get_multi_apps_tags(self, app_ids, session: SessionClass):
         if not app_ids:
             return None
-        app_ids = ",".join("'{0}'".format(app_id) for app_id in app_ids)
+        app_ids = ",".join("{0}".format(app_id) for app_id in app_ids)
 
         sql = """
         select
