@@ -120,7 +120,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         extend_where = ""
         join_version = ""
         if tag_names:
-            extend_where += " and tag.name in (:tag_param)"
+            extend_where += " and tag.name in :tag_param"
         if app_name:
             extend_where += " and app.app_name like :app_name"
         if need_install == "true":
@@ -155,8 +155,7 @@ class CenterRepository(BaseRepository[CenterApp]):
         # 参数
         sql = text(sql)
         if tag_names:
-            tag_param = ",".join("{0}".format(tag_name) for tag_name in tag_names)
-            sql = sql.bindparams(tag_param=tag_param)
+            sql = sql.bindparams(tag_param=tuple(tag_names))
         if app_name:
             sql = sql.bindparams(app_name="%" + app_name + "%")
         if scope == "team" and teams:
