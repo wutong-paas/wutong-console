@@ -6,7 +6,7 @@ class PutTagParam(BaseModel):
     tag_id: Optional[int] = None
     name: Optional[str] = None
     desc: Optional[str] = ""
-    sn: Optional[int] = 0
+    sn: Optional[int] = None
 
 
 class DeleteTagParam(BaseModel):
@@ -16,4 +16,4 @@ class DeleteTagParam(BaseModel):
 class AddTagParam(BaseModel):
     name: Optional[str] = None
     desc: Optional[str] = ""
-    sn: Optional[int] = 0
+    sn: Optional[int] = None

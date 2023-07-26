@@ -91,12 +91,7 @@ async def get_tag(
     :param name: 标签名
     """
 
-    if name:
-        app_tag_list = center_app_tag_repo.list_by_model(session=session,
-                                                         query_model=CenterAppTag(name=name))
-    else:
-        app_tag_list = center_app_tag_repo.list_by_model(session=session,
-                                                         query_model=CenterAppTag())
+    app_tag_list = app_tag_repo.get_tag(session, name)
     app_tags = jsonable_encoder(app_tag_list)
     for app_tag in app_tags:
         app_tag.update({"tag_id": app_tag["ID"]})

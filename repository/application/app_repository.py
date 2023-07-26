@@ -211,7 +211,16 @@ class AppTagRepository(object):
 
         return session.add_all(relation_list)
 
-    def create_tag(self, session, name, sn=0, desc=""):
+    def get_tag(self, session, name=None):
+        if name:
+            tags = session.execute(select(CenterAppTag).where(
+                CenterAppTag.name == name
+            ).order_by(CenterAppTag.sn.desc())).scalars().all()
+        else:
+            tags = session.execute(select(CenterAppTag).order_by(CenterAppTag.sn.desc())).scalars().all()
+        return tags
+
+    def create_tag(self, session, name, sn=None, desc=""):
         old_tag = session.execute(select(CenterAppTag).where(
             CenterAppTag.name == name
         )).scalars().all()
@@ -221,7 +230,7 @@ class AppTagRepository(object):
         session.add(wcat)
         return wcat
 
-    def update_tag(self, session, tag_id, name, sn=0, desc=""):
+    def update_tag(self, session, tag_id, name, sn=None, desc=""):
         session.execute(update(CenterAppTag).where(
             CenterAppTag.ID == tag_id).values({
             "name": name,
