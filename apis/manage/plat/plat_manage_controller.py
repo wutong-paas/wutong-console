@@ -57,7 +57,7 @@ async def add_tag(
     新增 tag
     :param name: 标签名
     :param desc: 标签描述
-    :param sn: 标签序列号
+    :param sn: 标签排序号
     """
 
     name = add_tag_param.name
@@ -109,7 +109,7 @@ async def update_tag(
     :param tag_id: 标签ID
     :param name: 标签名
     :param desc: 标签描述
-    :param sn: 标签序列号
+    :param sn: 标签排序号
     """
 
     tag_id = put_tag_params.tag_id
