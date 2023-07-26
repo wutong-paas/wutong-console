@@ -137,6 +137,7 @@ async def app_models(request: Request,
     tags = request.query_params.get("tags", [])
     app_name = request.query_params.get("app_name", None)
     teams = request.query_params.get("teams", [])
+    sort_type = request.query_params.get("sort_type", "publish")
 
     if tags:
         tags = json.loads(unquote(tags))
@@ -152,7 +153,8 @@ async def app_models(request: Request,
                                 next_page=int(page) + 1),
                 status_code=200)
 
-    apps, count = market_app_service.get_visiable_apps(session, user, scope, app_name, teams, tags, is_complete,
+    apps, count = market_app_service.get_visiable_apps(session, user, scope, app_name, sort_type, teams, tags,
+                                                       is_complete,
                                                        page,
                                                        page_size, need_install)
 

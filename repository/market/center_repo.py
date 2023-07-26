@@ -56,12 +56,13 @@ class CenterRepository(BaseRepository[CenterApp]):
                                               session,
                                               scope,
                                               app_name,
+                                              sort_type,
                                               teams=None,
                                               tag_names=None,
                                               page=1,
                                               page_size=10,
                                               need_install="false"):
-        return self._prepare_get_wutong_app_by_query_sql(session, scope, app_name, teams, tag_names, page,
+        return self._prepare_get_wutong_app_by_query_sql(session, scope, app_name, sort_type, teams, tag_names, page,
                                                          page_size,
                                                          need_install)
 
@@ -112,6 +113,7 @@ class CenterRepository(BaseRepository[CenterApp]):
                                              session,
                                              scope,
                                              app_name,
+                                             sort_type,
                                              teams=None,
                                              tag_names=None,
                                              page=1,
@@ -136,6 +138,17 @@ class CenterRepository(BaseRepository[CenterApp]):
             extend_where += " and app.scope='enterprise'"
         if extend_where[:5] == " and ":
             extend_where = extend_where[5:]
+
+        # 排序
+        if sort_type == "publish":
+            order_by = "order by app.create_time desc"
+        elif sort_type == "update":
+            order_by = "order by app.update_time desc"
+        elif sort_type == "install":
+            order_by = "order by app.install_number desc"
+        else:
+            order_by = "order by app.create_time desc"
+
         # sql
         sql = """
             select
@@ -149,9 +162,9 @@ class CenterRepository(BaseRepository[CenterApp]):
             {join_version}
             where
                 {extend_where}
-            order by app.update_time desc
+            {order_by}
             limit :offset, :rows
-            """.format(extend_where=extend_where, join_version=join_version)
+            """.format(extend_where=extend_where, join_version=join_version, order_by=order_by)
         # 参数
         sql = text(sql)
         if tag_names:
@@ -165,19 +178,6 @@ class CenterRepository(BaseRepository[CenterApp]):
 
         apps = session.execute(sql).fetchall()
         return apps
-
-    def get_wutong_app_in_teams_by_querey(self,
-                                          session,
-                                          scope,
-                                          teams,
-                                          app_name,
-                                          tag_names=None,
-                                          page=1,
-                                          page_size=10,
-                                          need_install="false"):
-        return self._prepare_get_wutong_app_by_query_sql(session, scope, app_name, teams, tag_names, page,
-                                                         page_size,
-                                                         need_install)
 
     def get_center_app_list(self,
                             session: SessionClass,
