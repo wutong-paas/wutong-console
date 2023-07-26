@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import select, delete, not_, text
 from core.utils.status_translate import get_status_info_map
 from database.session import SessionClass
+from exceptions.main import ServiceHandleException
 from models.application.models import ComponentApplicationRelation
 from models.component.models import Component, ComponentSourceInfo
 from models.teams import ServiceDomain, ServiceTcpDomain
@@ -163,9 +164,13 @@ class ComponentRepository(BaseRepository[Component]):
             not_(Component.service_id == service_id)))).scalars().all()
 
     def get_service(self, session, service_alias, env_id):
-        return session.execute(select(Component).where(
+        service = session.execute(select(Component).where(
             Component.service_alias == service_alias,
-            Component.tenant_env_id == env_id)).scalars().first()
+            Component.tenant_env_id == env_id,
+            Component.is_delete == 0)).scalars().first()
+        if not service:
+            raise ServiceHandleException(msg="not found service", msg_show="该组件不存在或已被删除", status_code=400)
+        return service
 
     def list_by_component_ids(self, session, service_ids: []):
         return session.execute(select(Component).where(
