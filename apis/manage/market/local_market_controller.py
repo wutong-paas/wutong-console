@@ -3,11 +3,11 @@ import re
 from typing import Any, Optional
 from urllib.parse import unquote
 
-from fastapi import APIRouter, Path, Depends, Request, Query
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-from sqlalchemy import select
+
 from core import deps
 from core.utils.crypt import make_uuid
 from core.utils.dependencies import DALGetter
@@ -15,21 +15,16 @@ from core.utils.return_message import general_message, error_message
 from core.utils.validation import validate_name
 from database.session import SessionClass
 from exceptions.main import RegionNotFound, AbortRequest
-from models.market.models import CenterAppTag
 from models.teams import RegionConfig
-from repository.application.app_repository import app_tag_repo
-from repository.market.center_app_tag_repo import center_app_tag_repo
 from repository.market.center_repo import CenterRepository
 from repository.region.region_config_repo import region_config_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.env_repo import env_repo
 from schemas import CenterAppCreate
 from schemas.market import MarketAppTemplateUpdateParam, MarketAppCreateParam
 from schemas.response import Response
 from service.app_import_and_export_service import import_service, export_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
-from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -211,39 +206,6 @@ async def add_app_models(request: Request,
     market_app_service.create_wutong_app(session, app_info, make_uuid())
 
     result = general_message("0", "success", None)
-    return JSONResponse(result, status_code=200)
-
-
-@router.post("/enterprise/app-models/tag", response_model=Response, name="tag")
-async def update_tag(request: Request,
-                     session: SessionClass = Depends(deps.get_session)) -> Any:
-    data = await request.json()
-    name = data.get("name", None)
-    result = general_message("0", "success", "创建成功")
-    if not name:
-        result = general_message(400, "fail", "参数不正确")
-    try:
-        rst = app_tag_repo.create_tag(session, name)
-        if not rst:
-            result = general_message(400, "fail", "标签已存在")
-    except Exception as e:
-        logger.debug(e)
-        result = general_message(400, "fail", "创建失败")
-    code = result.get("code", 200)
-    if code == "0":
-        code = 200
-    return JSONResponse(result, status_code=code)
-
-
-@router.get("/enterprise/app-models/tag", response_model=Response, name="tag")
-async def get_tag(session: SessionClass = Depends(deps.get_session)) -> Any:
-    data = []
-    app_tag_list = center_app_tag_repo.list_by_model(session=session,
-                                                     query_model=CenterAppTag(is_deleted=False))
-    if app_tag_list:
-        for app_tag in app_tag_list:
-            data.append({"name": app_tag.name, "tag_id": app_tag.ID})
-    result = general_message("0", "success", None, list=data)
     return JSONResponse(result, status_code=200)
 
 
