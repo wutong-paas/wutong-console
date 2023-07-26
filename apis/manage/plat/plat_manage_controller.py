@@ -97,7 +97,11 @@ async def get_tag(
     else:
         app_tag_list = center_app_tag_repo.list_by_model(session=session,
                                                          query_model=CenterAppTag())
-    result = general_message("0", "success", "获取成功", list=jsonable_encoder(app_tag_list))
+    app_tags = jsonable_encoder(app_tag_list)
+    for app_tag in app_tags:
+        app_tag.update({"tag_id": app_tag["ID"]})
+        app_tag.pop("ID")
+    result = general_message("0", "success", "获取成功", list=app_tags)
     return JSONResponse(result, status_code=200)
 
 
