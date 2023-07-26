@@ -1,6 +1,5 @@
 import datetime
 import json
-import os
 import time
 
 from fastapi.encoders import jsonable_encoder
@@ -10,7 +9,6 @@ from sqlalchemy import select, or_, text, delete, and_
 from appstore.app_store import app_store
 from clients.remote_build_client import remote_build_client
 from clients.remote_plugin_client import remote_plugin_client
-from common.api_base_http_client import ApiBaseHttpClient
 from core.enum.component_enum import is_singleton
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
@@ -24,6 +22,7 @@ from models.component.models import TeamComponentConfigurationFile, TeamComponen
 from models.market.models import CenterApp, CenterAppVersion
 from models.region.label import Labels
 from models.relate.models import TeamComponentRelation
+from repository.application.app_repository import app_tag_repo
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
 from repository.component.service_config_repo import app_config_group_repo, configuration_repo, port_repo
 from repository.component.service_domain_repo import domain_repo
@@ -31,7 +30,6 @@ from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo, app_export_record_repo
 from service.application_service import application_service
 from service.base_services import base_service
-from service.market_app_service import market_app_service
 from service.plugin.plugin_config_service import plugin_config_service
 
 
@@ -418,10 +416,6 @@ class ShareService(object):
             ).scalars().first()
 
         dt = {"app_model_list": [], "last_shared_app": {}, "scope": scope}
-        if scope == "market":
-            logger.info("")
-        else:
-            logger.info("")
 
         if last_shared:
             last_shared_app_info = (
@@ -496,7 +490,7 @@ class ShareService(object):
 
     def _patch_rainbond_apps_tag(self, apps, session: SessionClass):
         app_ids = [app["app_id"] for app in apps]
-        tags = self.get_multi_apps_tags(app_ids, session)
+        tags = app_tag_repo.get_multi_apps_tags(session, app_ids)
         if not tags:
             return
         app_with_tags = dict()
@@ -507,24 +501,6 @@ class ShareService(object):
 
         for app in apps:
             app["tags"] = app_with_tags.get(app["app_id"])
-
-    def get_multi_apps_tags(self, app_ids, session: SessionClass):
-        if not app_ids:
-            return None
-        app_ids = ",".join("{0}".format(app_id) for app_id in app_ids)
-
-        sql = """
-        select
-            atr.app_id, tag.*
-        from
-            center_app_tag_relation atr
-        left join center_app_tag tag on
-            atr.tag_id = tag.ID
-        where
-            atr.app_id in ({app_ids});
-        """.format(app_ids=app_ids)
-        result = (session.execute(text(sql))).fetchall()
-        return result
 
     def get_last_app_versions_by_app_id(self, app_id, session: SessionClass):
         sql = """
