@@ -1,7 +1,7 @@
 import time
 
 from loguru import logger
-from sqlalchemy import select, delete, text
+from sqlalchemy import select, delete, text, update
 
 from models.component.models import Component, ComponentWebhooks, ComponentRecycleBin, \
     ComponentRelationRecycleBin, TeamComponentInfoDelete, TeamComponentConfigurationFile
@@ -211,15 +211,36 @@ class AppTagRepository(object):
 
         return session.add_all(relation_list)
 
-    def create_tag(self, session, name):
+    def create_tag(self, session, name, sn=0, desc=""):
         old_tag = session.execute(select(CenterAppTag).where(
             CenterAppTag.name == name
         )).scalars().all()
         if old_tag:
             return False
-        wcat = CenterAppTag(name=name, is_deleted=False)
+        wcat = CenterAppTag(name=name, desc=desc, sn=sn)
         session.add(wcat)
         return wcat
+
+    def update_tag(self, session, tag_id, name, sn=0, desc=""):
+        session.execute(update(CenterAppTag).where(
+            CenterAppTag.ID == tag_id).values({
+            "name": name,
+            "sn": sn,
+            "desc": desc
+        }
+        ))
+
+    def delete_tag(self, session, name):
+        tag = session.execute(select(CenterAppTag).where(
+            CenterAppTag.name == name)).scalars().first()
+
+        # 删除依赖关系
+        session.execute(delete(CenterAppTagsRelation).where(
+            CenterAppTagsRelation.tag_id == tag.ID
+        ))
+        # 删除tag
+        session.execute(delete(CenterAppTag).where(
+            CenterAppTag.name == name))
 
 
 class ComponentConfigurationFileRepository(object):

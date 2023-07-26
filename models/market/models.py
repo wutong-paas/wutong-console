@@ -80,7 +80,8 @@ class CenterAppTag(Base):
 
     ID = Column(Integer, primary_key=True, comment="主键")
     name = Column(String(32), unique=True, comment="标签名称", nullable=False)
-    is_deleted = Column(Boolean(), default=False, comment="是否删除", nullable=False)
+    sn = Column(Integer, default=0, comment="排序号", nullable=False)
+    desc = Column(String(255), default="", comment="描述信息", nullable=True)
 
 
 class AppImportRecord(Base):
