@@ -23,10 +23,8 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
                 env_maps[env.env_id] = env
         res, body = remote_build_client.list_envs(session, region_id, page, page_size)
         env_list = []
-        total = 0
         if body.get("bean"):
             envs = body.get("bean").get("list")
-            total = 0
             if envs:
                 for env in envs:
                     show_enbale = False
@@ -38,7 +36,6 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
                             show_enbale = False
 
                     if show_enbale:
-                        total += 1
                         env_alias = env_maps.get(env["UUID"]).env_alias if env_maps.get(env["UUID"]) else ''
                         team_name = env_maps.get(env["UUID"]).team_alias if env_maps.get(env["UUID"]) else ''
                         app_num = application_repo.get_group_num_by_env_id(session, env_id)
@@ -59,7 +56,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
                         })
         else:
             logger.error(body)
-        return env_list, total
+        return env_list, len(env_list)
 
     def get_all_envs(self, session):
         return session.execute(select(TeamEnvInfo)).scalars().all()

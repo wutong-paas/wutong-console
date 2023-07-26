@@ -181,7 +181,7 @@ async def set_env_memory_limit(request: Request,
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     env_services.set_tenant_env_memory_limit(session, region_id, env, data)
-    return JSONResponse({}, status_code=status.HTTP_200_OK)
+    return JSONResponse(general_message("0", "success", "设置成功"), status_code=status.HTTP_200_OK)
 
 
 @router.post("/enterprise/regions", response_model=Response, name="集群配置")
