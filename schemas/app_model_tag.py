@@ -10,7 +10,7 @@ class PutTagParam(BaseModel):
 
 
 class DeleteTagParam(BaseModel):
-    name: Optional[str] = None
+    names: Optional[str] = None
 
 
 class AddTagParam(BaseModel):

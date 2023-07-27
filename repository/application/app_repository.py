@@ -244,17 +244,20 @@ class AppTagRepository(object):
         }
         ))
 
-    def delete_tag(self, session, name):
-        tag = session.execute(select(CenterAppTag).where(
-            CenterAppTag.name == name)).scalars().first()
+    def delete_tag(self, session, names):
+        tags = session.execute(select(CenterAppTag).where(
+            CenterAppTag.name.in_(names))).scalars().all()
 
-        # 删除依赖关系
-        session.execute(delete(CenterAppTagsRelation).where(
-            CenterAppTagsRelation.tag_id == tag.ID
-        ))
-        # 删除tag
-        session.execute(delete(CenterAppTag).where(
-            CenterAppTag.name == name))
+        if tags:
+            tag_ids = [tag.ID for tag in tags]
+
+            # 删除依赖关系
+            session.execute(delete(CenterAppTagsRelation).where(
+                CenterAppTagsRelation.tag_id.in_(tag_ids)
+            ))
+            # 删除tag
+            session.execute(delete(CenterAppTag).where(
+                CenterAppTag.name.in_(names)))
 
 
 class ComponentConfigurationFileRepository(object):

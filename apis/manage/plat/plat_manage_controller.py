@@ -139,14 +139,16 @@ async def delete_tag(
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     删除 tag
-    :param name: 标签名
+    :param names: 标签名
     """
-    name = delete_tag_param.name
+    names = delete_tag_param.names
     result = general_message("0", "success", "删除成功")
-    if not name:
+    if not names:
         return JSONResponse(general_message(400, "fail", "标签名不能为空"), status_code=400)
+
+    names = names.split(",")
     try:
-        app_tag_repo.delete_tag(session, name)
+        app_tag_repo.delete_tag(session, names)
     except Exception as e:
         logger.debug(e)
         result = general_message(400, "fail", "删除失败")
