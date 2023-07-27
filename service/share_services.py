@@ -22,7 +22,7 @@ from models.component.models import TeamComponentConfigurationFile, TeamComponen
 from models.market.models import CenterApp, CenterAppVersion
 from models.region.label import Labels
 from models.relate.models import TeamComponentRelation
-from repository.application.app_repository import app_tag_repo
+from repository.application.app_repository import app_tag_repo, app_repo
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
 from repository.component.service_config_repo import app_config_group_repo, configuration_repo, port_repo
 from repository.component.service_domain_repo import domain_repo
@@ -1017,6 +1017,9 @@ class ShareService(object):
 
     def delete_record(self, session, ID, env_name):
         return component_share_repo.delete_record(session=session, ID=ID, env_name=env_name)
+
+    def delete_version(self, session, record_id):
+        app_repo.delete_app_version_by_record_id(session, record_id)
 
     def create_publish_event(self, session, record_event, user_name, event_type):
         import datetime

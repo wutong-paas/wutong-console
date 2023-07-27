@@ -40,6 +40,11 @@ class AppRepo(object):
             CenterAppVersion.version == version
         ))
 
+    def delete_app_version_by_record_id(self, session, record_id):
+        session.execute(delete(CenterAppVersion).where(
+            CenterAppVersion.record_id == record_id
+        ))
+
     def update_app_version(self, session, app_id, version, **data):
         version = session.execute(select(CenterAppVersion).where(
             CenterAppVersion.app_id == app_id,
