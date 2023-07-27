@@ -219,7 +219,7 @@ class AppTagRepository(object):
     def get_tag(self, session, name=None):
         if name:
             tags = session.execute(select(CenterAppTag).where(
-                CenterAppTag.name == name
+                CenterAppTag.name.contains(name)
             ).order_by(CenterAppTag.sn.desc())).scalars().all()
         else:
             tags = session.execute(select(CenterAppTag).order_by(CenterAppTag.sn.desc())).scalars().all()
