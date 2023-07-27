@@ -313,6 +313,8 @@ class MarketAppService(object):
                 app_release = True
 
             version.release_user = ""
+            version.create_time = str(version.create_time)
+            version.update_time = str(version.update_time)
 
             app_with_versions[version.version] = version
             if version.version not in apv_ver_nums:
