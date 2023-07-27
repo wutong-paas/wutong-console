@@ -39,21 +39,22 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
                         env_alias = env_maps.get(env["UUID"]).env_alias if env_maps.get(env["UUID"]) else ''
                         team_name = env_maps.get(env["UUID"]).team_alias if env_maps.get(env["UUID"]) else ''
                         app_num = application_repo.get_group_num_by_env_id(session, env_id)
-                        env_list.append({
-                            "env_id": env["UUID"],
-                            "env_name": env_alias,
-                            "env_code": env["Name"],
-                            "memory_request": env["memory_request"],
-                            "cpu_request": env["cpu_request"],
-                            "memory_limit": env["memory_limit"],
-                            "cpu_limit": env["cpu_limit"],
-                            "running_app_num": env["running_app_num"],
-                            "running_app_internal_num": env["running_app_internal_num"],
-                            "running_app_third_num": env["running_app_third_num"],
-                            "set_limit_memory": env["LimitMemory"],
-                            "app_num": app_num,
-                            "team_name": team_name
-                        })
+                        if team_name:
+                            env_list.append({
+                                "env_id": env["UUID"],
+                                "env_name": env_alias,
+                                "env_code": env["Name"],
+                                "memory_request": env["memory_request"],
+                                "cpu_request": env["cpu_request"],
+                                "memory_limit": env["memory_limit"],
+                                "cpu_limit": env["cpu_limit"],
+                                "running_app_num": env["running_app_num"],
+                                "running_app_internal_num": env["running_app_internal_num"],
+                                "running_app_third_num": env["running_app_third_num"],
+                                "set_limit_memory": env["LimitMemory"],
+                                "app_num": app_num,
+                                "team_name": team_name
+                            })
         else:
             logger.error(body)
         return env_list, len(env_list)
