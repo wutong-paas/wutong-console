@@ -1,9 +1,11 @@
 # -*- coding: utf8 -*-
-import json
 import copy
+import json
 from datetime import datetime
+
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
+
 from clients.remote_plugin_client import remote_plugin_client
 from core.enum.enterprise_enum import ActionType
 from core.utils.crypt import make_uuid
@@ -14,9 +16,9 @@ from models.application.models import Application, ApplicationUpgradeRecord, App
     ApplicationConfigGroup, ApplicationUpgradeSnapshot, ConfigGroupItem, ConfigGroupService
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar, TeamPlugin, \
     PluginBuildVersion, PluginConfigItems, PluginConfigGroup
+from models.component.models import TeamComponentMountRelation
 from models.relate.models import TeamComponentRelation
 from models.teams import RegionConfig
-from models.component.models import TeamComponentMountRelation
 from repository.application.app_snapshot import app_snapshot_repo
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
 from repository.component.service_config_repo import app_config_group_repo
@@ -30,6 +32,7 @@ from service.market_app.original_app import OriginalApp
 from service.market_app.plugin import Plugin
 from service.market_app.property_changes import PropertyChanges
 from service.market_app.update_components import UpdateComponents
+from service.plugin_service import plugin_service
 
 
 class AppUpgrade(MarketApp):
@@ -83,7 +86,7 @@ class AppUpgrade(MarketApp):
 
         # plugins
         self.original_plugins = self.list_original_plugins(session)
-        self.new_plugins = self._create_new_plugins()
+        self.new_plugins = self._create_new_plugins(session, region.region_name, user)
         plugins = [plugin.plugin for plugin in self._plugins()]
 
         self.property_changes = PropertyChanges(session, self.original_app.components(), plugins, self.app_template,
@@ -205,24 +208,26 @@ class AppUpgrade(MarketApp):
     def _sync_plugins(self, session, plugins: [Plugin]):
         new_plugins = []
         for plugin in plugins:
-            if len(plugin.plugin.image.split(':')) > 1:
-                image_url = plugin.plugin.image
-            else:
-                image_url = "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag)
-            new_plugins.append({
-                "build_model": plugin.plugin.build_source,
-                "git_url": plugin.plugin.code_repo,
-                "image_url": image_url,
-                "plugin_id": plugin.plugin.plugin_id,
-                "plugin_info": plugin.plugin.desc,
-                "plugin_model": plugin.plugin.category,
-                "plugin_name": plugin.plugin.plugin_name,
-                "origin": plugin.plugin.origin
-            })
-        body = {
-            "plugins": new_plugins,
-        }
-        remote_plugin_client.sync_plugins(session, self.tenant_env, self.region_name, body)
+            origin = plugin.plugin.origin
+            if origin != "sys":
+                if len(plugin.plugin.image.split(':')) > 1:
+                    image_url = plugin.plugin.image
+                else:
+                    image_url = "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag)
+                new_plugins.append({
+                    "build_model": plugin.plugin.build_source,
+                    "git_url": plugin.plugin.code_repo,
+                    "image_url": image_url,
+                    "plugin_id": plugin.plugin.plugin_id,
+                    "plugin_info": plugin.plugin.desc,
+                    "plugin_model": plugin.plugin.category,
+                    "plugin_name": plugin.plugin.plugin_name,
+                    "origin": plugin.plugin.origin
+                })
+            body = {
+                "plugins": new_plugins,
+            }
+            remote_plugin_client.sync_plugins(session, self.tenant_env, self.region_name, body)
 
     def _install_deploy(self, session):
         try:
@@ -688,7 +693,7 @@ class AppUpgrade(MarketApp):
 
         return new_plugin_configs, False
 
-    def _create_new_plugins(self):
+    def _create_new_plugins(self, session, region_name, user):
         plugin_templates = self.app_template.get("plugins")
         if not plugin_templates:
             return []
@@ -696,6 +701,22 @@ class AppUpgrade(MarketApp):
         original_plugins = {plugin.plugin.origin_share_id: plugin.plugin for plugin in self.original_plugins}
         plugins = []
         for plugin_tmpl in plugin_templates:
+            plugin_id = make_uuid()
+            # 系统插件不额外创建
+            origin = plugin_tmpl.get("origin")
+            plugin_type = plugin_tmpl.get("origin_share_id")
+            if origin == "sys":
+                build_version = "1.0"
+                my_plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys", region_name)
+                if not my_plugins:
+                    plugin_id = plugin_service.add_default_plugin(session=session, user=user,
+                                                                  tenant_env=self.tenant_env,
+                                                                  region=region_name,
+                                                                  plugin_type=plugin_type, build_version=build_version)
+                else:
+                    for plugin in my_plugins:
+                        plugin_id = plugin.plugin_id
+
             original_plugin = original_plugins.get(plugin_tmpl.get("plugin_key"))
             if original_plugin:
                 continue
@@ -716,7 +737,7 @@ class AppUpgrade(MarketApp):
             plugin = TeamPlugin(
                 tenant_env_id=self.tenant_env.env_id,
                 region=self.region_name,
-                plugin_id=make_uuid(),
+                plugin_id=plugin_id,
                 create_user=self.user.user_id,
                 desc=plugin_tmpl["desc"],
                 plugin_alias=plugin_tmpl["plugin_alias"],
@@ -726,7 +747,7 @@ class AppUpgrade(MarketApp):
                 code_repo=plugin_tmpl["code_repo"],
                 username=username,
                 password=passwd,
-                origin="tenant",
+                origin=origin,
                 origin_share_id=plugin_tmpl["plugin_key"],
                 plugin_name=plugin_tmpl["plugin_name"])
 
