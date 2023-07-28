@@ -343,10 +343,12 @@ class MarketApp(object):
         config_groups = []
         config_items = []
         for plugin in self.new_app.new_plugins:
-            plugins.append(plugin.plugin)
-            build_versions.append(plugin.build_version)
-            config_groups.extend(plugin.config_groups)
-            config_items.extend(plugin.config_items)
+            origin = plugin.plugin.origin
+            if origin != "sys":
+                plugins.append(plugin.plugin)
+                build_versions.append(plugin.build_version)
+                config_groups.extend(plugin.config_groups)
+                config_items.extend(plugin.config_items)
 
         plugin_repo.bulk_create(session, plugins)
         session.add_all(build_versions)

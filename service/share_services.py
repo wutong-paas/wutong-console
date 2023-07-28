@@ -557,12 +557,13 @@ class ShareService(object):
                 session.execute(select(PluginBuildVersion).where(PluginBuildVersion.plugin_id == spr.plugin_id))
             ).scalars().first()
 
-            plugin_dict = tenant_plugin.__dict__
+            if tenant_plugin:
+                plugin_dict = jsonable_encoder(tenant_plugin)
 
-            plugin_dict["build_version"] = spr.build_version
-            plugin_dict["build_cmd"] = plugin_build_version.build_cmd
-            plugin_list.append(plugin_dict)
-            temp_plugin_ids.append(spr.plugin_id)
+                plugin_dict["build_version"] = spr.build_version
+                plugin_dict["build_cmd"] = plugin_build_version.build_cmd
+                plugin_list.append(plugin_dict)
+                temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
     def get_services_used_plugins(self, service_ids, session: SessionClass):
@@ -583,12 +584,13 @@ class ShareService(object):
                 session.execute(select(PluginBuildVersion).where(PluginBuildVersion.plugin_id == spr.plugin_id))
             ).scalars().first()
 
-            plugin_dict = tenant_plugin.__dict__
+            if tenant_plugin:
+                plugin_dict = tenant_plugin.__dict__
 
-            plugin_dict["build_version"] = spr.build_version
-            plugin_dict["build_cmd"] = plugin_build_version.build_cmd
-            plugin_list.append(plugin_dict)
-            temp_plugin_ids.append(spr.plugin_id)
+                plugin_dict["build_version"] = spr.build_version
+                plugin_dict["build_cmd"] = plugin_build_version.build_cmd
+                plugin_list.append(plugin_dict)
+                temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
     def check_service_source(self, session: SessionClass, tenant_env, group_id, region_name):
