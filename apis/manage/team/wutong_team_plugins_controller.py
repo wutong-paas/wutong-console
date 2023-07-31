@@ -346,7 +346,6 @@ async def get_plugin_version(
     data = jsonable_encoder(base_info)
     data.update(jsonable_encoder(plugin_version))
     plugin_version_service.update_plugin_build_status(session, response_region, env)
-    session.rollback()
     result = general_message("0", "success", "查询成功", bean=data)
     return JSONResponse(result, status_code=200)
 
