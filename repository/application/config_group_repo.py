@@ -19,7 +19,8 @@ class ApplicationConfigGroupServiceRepository(BaseRepository[ConfigGroupService]
         session.execute(delete(ConfigGroupService).where(
             ConfigGroupService.ID.in_(cgc_ids)
         ))
-        session.add_all(config_group_components)
+        for config_group_component in config_group_components:
+            session.merge(config_group_component)
 
     @staticmethod
     def list_by_app_id(session, app_id):
@@ -51,7 +52,8 @@ class ApplicationConfigGroupItemRepository(BaseRepository[ConfigGroupItem]):
         session.execute(delete(ConfigGroupItem).where(
             ConfigGroupItem.ID.in_(item_ids)
         ))
-        session.add_all(items)
+        for item in items:
+            session.merge(item)
 
     def list_by_app_id(self, session, app_id):
         return (session.execute(

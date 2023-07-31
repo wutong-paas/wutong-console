@@ -128,7 +128,8 @@ class ApplicationConfigGroupRepository(BaseRepository[ConfigGroupService]):
         session.execute(delete(ApplicationConfigGroup).where(
             ApplicationConfigGroup.config_group_id.in_(config_group_ids)
         ))
-        session.add_all(config_groups)
+        for config_group in config_groups:
+            session.merge(config_group)
 
     def list_by_service_ids(self, session, region_name, service_ids):
         config_groups = session.execute(
