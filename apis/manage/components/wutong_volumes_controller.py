@@ -191,6 +191,7 @@ async def modify_volume(request: Request,
     data = await request.json()
     new_volume_path = data.get("new_volume_path", None)
     new_file_content = data.get("new_file_content", None)
+    config_type = data.get("config_type", '')
     if not volume_id:
         return JSONResponse(general_message(400, "volume_id is null", "未指定需要编辑的配置文件存储"), status_code=400)
     volume = volume_repo.get_service_volume_by_pk(session, volume_id)
@@ -228,6 +229,7 @@ async def modify_volume(request: Request,
         if volume.volume_type == 'config-file':
             service_config.volume_name = volume.volume_name
             service_config.file_content = new_file_content
+            volume.config_type = config_type
         result = general_message("0", "success", "修改成功")
         return JSONResponse(result, status_code=200)
     return JSONResponse(general_message(405, "success", "修改失败"), status_code=405)
