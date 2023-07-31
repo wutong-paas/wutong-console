@@ -217,6 +217,7 @@ class TeamComponentVolume(Base):
     reclaim_policy = Column(String(100), comment="回收策略", nullable=True, default='')
     allow_expansion = Column(Boolean, comment="只是支持控制扩展，0：不支持；1：支持", nullable=True, default=False)
     mode = Column(Integer, comment="存储权限", nullable=True)
+    config_type = Column(String(32), comment="配置文件类型：single:单文件配置;multi：多文件配置", nullable=True, default='')
 
 
 class TeamComponentMountRelation(Base):

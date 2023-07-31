@@ -86,7 +86,8 @@ class AppVolumeService(object):
                            file_content=None,
                            settings=None,
                            user_name='',
-                           mode=None):
+                           mode=None,
+                           config_type=''):
 
         volume = self.create_service_volume(
             session,
@@ -97,6 +98,7 @@ class AppVolumeService(object):
             volume_name,
             settings,
             mode=mode,
+            config_type=config_type
         )
 
         # region端添加数据
@@ -138,7 +140,8 @@ class AppVolumeService(object):
 
     def create_service_volume(self, session: SessionClass, tenant_env, service, volume_path, volume_type, volume_name,
                               settings=None,
-                              mode=None):
+                              mode=None,
+                              config_type=''):
         # volume_name = volume_name.strip()
         # volume_path = volume_path.strip()
         volume_name = self.check_volume_name(session=session, service=service, volume_name=volume_name)
@@ -154,6 +157,7 @@ class AppVolumeService(object):
             "volume_path": volume_path,
             "volume_name": volume_name,
             "mode": mode,
+            "config_type": config_type,
         }
 
         if settings:

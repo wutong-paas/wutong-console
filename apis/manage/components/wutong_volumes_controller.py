@@ -136,6 +136,8 @@ async def add_volume(
     reclaim_policy = data.get('reclaim_policy', '')
     allow_expansion = data.get('allow_expansion', False)
     mode = data.get("mode")
+    config_type = data.get('config_type', '')
+
     if mode is not None:
         mode = ensure_volume_mode(mode)
 
@@ -157,7 +159,8 @@ async def add_volume(
             file_content=file_content,
             settings=settings,
             user_name=user.nick_name,
-            mode=mode)
+            mode=mode,
+            config_type=config_type)
         result = general_message("0", "success", "持久化路径添加成功", bean=jsonable_encoder(data))
         return JSONResponse(result, status_code=200)
     except ErrVolumePath as e:
