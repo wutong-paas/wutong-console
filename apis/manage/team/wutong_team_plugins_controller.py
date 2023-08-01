@@ -732,8 +732,7 @@ async def plugin_share(request: Request,
 @router.get("/teams/{team_name}/env/{env_id}/plugins/share/list", response_model=Response, name="团队共享插件列表")
 async def plugin_share_list(session: SessionClass = Depends(deps.get_session),
                             env=Depends(deps.get_current_team_env)) -> Any:
-    tenant_env_id = env.env_id
-    plugins = plugin_service.get_by_share_plugins(session, tenant_env_id, "shared")
+    plugins = plugin_service.get_by_share_plugins(session, "shared")
     return JSONResponse(general_message("0", "success", "查询成功", list=jsonable_encoder(plugins)), status_code=200)
 
 

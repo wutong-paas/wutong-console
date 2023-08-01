@@ -435,6 +435,10 @@ class AppExportService(object):
 
         result = {"wutong_app": wutong_app_init_data, "docker_compose": docker_compose_init_data,
                   "helm_chart": helm_chart_init_data, "yaml": yaml_init_data}
+        if app.source == "import":
+            result.pop("docker_compose")
+            result.pop("helm_chart")
+            result.pop("yaml")
         return result
 
 

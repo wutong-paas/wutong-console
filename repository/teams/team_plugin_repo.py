@@ -263,9 +263,8 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         return (session.execute(select(TeamPlugin).where(
             TeamPlugin.plugin_id == plugin_id))).scalars().first()
 
-    def get_by_share_plugins(self, session: SessionClass, tenant_env_id, origin):
+    def get_by_share_plugins(self, session: SessionClass, origin):
         return session.execute(select(TeamPlugin).where(
-            TeamPlugin.tenant_env_id == tenant_env_id,
             TeamPlugin.origin == origin)).scalars().all()
 
     def get_by_type_plugins(self, session: SessionClass, plugin_type, origin, service_region):
