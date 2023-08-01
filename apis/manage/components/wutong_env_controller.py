@@ -24,51 +24,24 @@ async def batch_get_envs(request: Request,
     """
     批量获取组件的环境变量文本参数
     """
-    env_type = request.query_params.get("env_type", None)
-    page = int(request.query_params.get("page", 1))
-    page_size = int(request.query_params.get("page_size", 10))
-    env_name = request.query_params.get("env_name", None)
-
+    env_type = request.query_params.get("env_type", "inner")
     service = service_info_repo.get_service(db, serviceAlias, env.env_id)
+    env_list = []
 
     if not env_type:
         return JSONResponse(general_message(400, "param error", "参数异常"), status_code=400)
     if env_type not in ("inner", "outer"):
         return JSONResponse(general_message(400, "param error", "参数异常"), status_code=400)
-    env_list = []
-    if env_name:
-        # 获取总数
-        env_count = (db.execute("select count(*) from tenant_service_env_var where tenant_env_id='{0}' and \
-                service_id='{1}' and scope='inner' and attr_name like '%{2}%';".format(
-            service.tenant_env_id, service.service_id, env_name))).fetchall()
 
-        total = env_count[0][0]
-        start = (page - 1) * page_size
-        remaining_num = total - (page - 1) * page_size
-        end = page_size
-        if remaining_num < page_size:
-            end = remaining_num
+    env_count = (db.execute("select count(*) from tenant_service_env_var where tenant_env_id='{0}' and service_id='{1}'\
+             and scope='inner';".format(service.tenant_env_id, service.service_id))).fetchall()
 
-        env_tuples = (db.execute("select ID, tenant_env_id, service_id, container_port, name, attr_name, \
-                attr_value, is_change, scope, create_time from tenant_service_env_var \
-                    where tenant_env_id='{0}' and service_id='{1}' and scope='inner' and \
-                        attr_name like '%{2}%' order by attr_name LIMIT {3},{4};".format(
-            service.tenant_env_id, service.service_id, env_name, start, end))).fetchall()
-    else:
-        env_count = (db.execute("select count(*) from tenant_service_env_var where tenant_env_id='{0}' and service_id='{1}'\
-                 and scope='inner';".format(service.tenant_env_id, service.service_id))).fetchall()
+    total = env_count[0][0]
 
-        total = env_count[0][0]
-        start = (page - 1) * page_size
-        remaining_num = total - (page - 1) * page_size
-        end = page_size
-        if remaining_num < page_size:
-            end = remaining_num
-
-        env_tuples = (db.execute("select ID, tenant_env_id, service_id, container_port, name, attr_name, attr_value,\
-                 is_change, scope, create_time from tenant_service_env_var where tenant_env_id='{0}' \
-                     and service_id='{1}' and scope='inner' order by attr_name LIMIT {2},{3};".format(
-            service.tenant_env_id, service.service_id, start, end))).fetchall()
+    env_tuples = (db.execute("select ID, tenant_env_id, service_id, container_port, name, attr_name, attr_value,\
+             is_change, scope, create_time from tenant_service_env_var where tenant_env_id='{0}' \
+                 and service_id='{1}' and scope='inner' order by attr_name;".format(
+        service.tenant_env_id, service.service_id))).fetchall()
     if len(env_tuples) > 0:
         for env_tuple in env_tuples:
             env_dict = dict()
