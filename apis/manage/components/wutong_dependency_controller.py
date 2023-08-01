@@ -68,7 +68,10 @@ async def get_dependency_component(request: Request,
             "service_alias": dep.service_alias,
             "group_name": service_group_map[dep.service_id]["group_name"],
             "group_id": service_group_map[dep.service_id]["group_id"],
-            "ports_list": ports_list
+            "ports_list": ports_list,
+            "project_id": service_group_map[dep.service_id]["project_id"],
+            "env_id": service_group_map[dep.service_id]["env_id"],
+            "region_code": service_group_map[dep.service_id]["region_code"],
         }
         dep_list.append(dep_service_info)
     start = (page_num - 1) * page_size
