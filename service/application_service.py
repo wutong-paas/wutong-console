@@ -1596,17 +1596,18 @@ class ApplicationService(object):
 
     def update_or_create_service_group_relation(self, session: SessionClass, tenant_env, service, group_id):
         gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
+        params = {
+            "service_id": service.service_id,
+            "group_id": group_id,
+            "tenant_env_id": tenant_env.env_id,
+            "region_name": service.service_region
+        }
         if gsr:
             gsr.group_id = group_id
             app_component_relation_repo.save(session=session, gsr=gsr)
         else:
-            params = {
-                "service_id": service.service_id,
-                "group_id": group_id,
-                "tenant_env_id": tenant_env.env_id,
-                "region_name": service.service_region
-            }
             app_component_relation_repo.create_service_group_relation(session, **params)
+        return params
 
     def get_group_by_id(self, session: SessionClass, tenant_env, region, group_id):
         principal_info = dict()
@@ -1622,6 +1623,7 @@ class ApplicationService(object):
             principal_info["real_name"] = group.username
             principal_info["username"] = group.username
         return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note,
+                "project_id": group.project_id,
                 "principal": principal_info}
 
     def get_group_services(self, session: SessionClass, group_id):

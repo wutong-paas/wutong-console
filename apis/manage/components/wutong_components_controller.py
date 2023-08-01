@@ -425,6 +425,7 @@ async def group_component(request: Request,
                           serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
                           env=Depends(deps.get_current_team_env)) -> Any:
+    res = {}
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     group_id = data.get("group_id", None)
@@ -435,13 +436,15 @@ async def group_component(request: Request,
         application_service.delete_service_group_relation_by_service_id(session=session, service_id=service.service_id)
     else:
         # check target app exists or not
-        application_service.get_group_by_id(session=session, tenant_env=env, region=service.service_region,
-                                            group_id=group_id)
+        group_info = application_service.get_group_by_id(session=session, tenant_env=env, region=service.service_region,
+                                                         group_id=group_id)
         # update service relation
-        application_service.update_or_create_service_group_relation(session=session, tenant_env=env, service=service,
-                                                                    group_id=group_id)
+        res = application_service.update_or_create_service_group_relation(session=session, tenant_env=env,
+                                                                          service=service,
+                                                                          group_id=group_id)
+        res.update({"project_id": group_info["project_id"]})
 
-    result = general_message("0", "success", "修改成功")
+    result = general_message("0", "success", "修改成功", bean=res)
     return JSONResponse(result, status_code=200)
 
 
