@@ -242,9 +242,26 @@ class AppEnvVarService(object):
 
     def batch_update_service_env(self, session, row_datas, env, service, is_change, scope, user):
         attr_names = []
+        row = 0
         for row_data in row_datas:
             if row_data:
-                attr_name, attr_value, name = row_data.split("|")
+                row += 1
+                attr_name = None
+                attr_value = ""
+                name = ""
+                row_data_list = row_data.split("|")
+                env_len = len(row_data_list)
+                if env_len == 3:
+                    attr_name = row_data_list[0]
+                    attr_value = row_data_list[1]
+                    name = row_data_list[2]
+                elif env_len == 2:
+                    attr_name = row_data_list[0]
+                    attr_value = row_data_list[1]
+                elif env_len == 1:
+                    attr_name = row_data_list[0]
+                else:
+                    return general_message(400, "params error", "格式解析错误")
                 if attr_name:
                     attr_names.append(attr_name)
                     service_env_var = env_var_repo.get_service_env_by_attr_name(session=session,
@@ -272,7 +289,7 @@ class AppEnvVarService(object):
                         if code != 200:
                             raise AbortRequest(msg="update value error", msg_show=msg, status_code=code)
                 else:
-                    return general_message(400, "params error", "变量名不能为空")
+                    return general_message(400, "params error", "第" + row + "行变量名不能为空")
 
         # 删除操作
         service_env_vars = service_env_var_repo.get_service_env_by_tenant_env_id_and_service_id(session=session,

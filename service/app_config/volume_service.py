@@ -183,7 +183,7 @@ class AppVolumeService(object):
         volume = volume_repo.get_service_volume_by_name(session, service.service_id, volume_name)
 
         if volume:
-            raise ServiceHandleException(msg="volume name already exists", msg_show="持久化名称[{0}]已存在".format(volume_name))
+            raise ServiceHandleException(msg="volume name already exists", msg_show="配置文件ID[{0}]已存在".format(volume_name))
         return volume_name
 
     def check_volume_path(self, session: SessionClass, service, volume_path, local_path=[]):
