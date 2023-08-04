@@ -78,7 +78,7 @@ async def create_app(params: TeamAppCreateRequest,
     if not app_code and params.app_alias:
         app_code = params.app_alias
     if app_code and not is_qualified_name(app_code):
-        raise ErrQualifiedName(msg_show="应用标识只支持字母、数字和-_组合,并且必须以字母开始、以数字或字母结尾")
+        raise ErrQualifiedName(msg_show="应用标识只支持英文、数字、中横线、下划线组合，需以英文、数字开头，中横线、下划线不能位于首尾")
 
     k8s_app = app_code.lower().replace("_", "-")
 

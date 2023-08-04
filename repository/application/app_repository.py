@@ -220,9 +220,10 @@ class AppTagRepository(object):
         if name:
             tags = session.execute(select(CenterAppTag).where(
                 CenterAppTag.name.contains(name)
-            ).order_by(CenterAppTag.sn.desc())).scalars().all()
+            ).order_by(CenterAppTag.sn.desc(), CenterAppTag.ID.asc())).scalars().all()
         else:
-            tags = session.execute(select(CenterAppTag).order_by(CenterAppTag.sn.desc())).scalars().all()
+            tags = session.execute(
+                select(CenterAppTag).order_by(CenterAppTag.sn.desc(), CenterAppTag.ID.asc())).scalars().all()
         return tags
 
     def create_tag(self, session, name, sn=0, desc=""):

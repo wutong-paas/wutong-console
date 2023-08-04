@@ -42,7 +42,7 @@ async def add_env(request: Request,
         return JSONResponse(result, status_code=result["code"])
 
     if not is_qualified_name(env_name):
-        raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只支持英文、数字、中横线、下划线组合，只能以英文开头且中横线、下划线不能位于首尾")
+        raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只支持英文、数字、中横线、下划线组合，需以英文、数字开头，中横线、下划线不能位于首尾")
 
     namespace = team_name + "-" + env_name
     namespace = namespace.lower().replace("_", "-")
