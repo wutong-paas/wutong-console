@@ -146,6 +146,7 @@ async def app_models(request: Request,
         teams = json.loads(unquote(teams))
 
     if app_name:
+        app_name = unquote(app_name)
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
         if not r.match(app_name):
             return JSONResponse(
