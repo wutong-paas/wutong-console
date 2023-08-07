@@ -100,8 +100,8 @@ async def regions(status: Optional[str] = "", check_status: Optional[str] = "",
                 current_use_memory = current_team_info.get("use_memory", 0)
             env_info = common_services.get_current_region_used_resource(session, env, region_code)
             if env_info:
-                use_cpu = env_info.get("cpu", 0) / 1000
-                use_memory = env_info.get("memory", 0) / 1024
+                use_cpu = env_info.get("cpu", 0)
+                use_memory = env_info.get("memory", 0)
                 region_use_info.update({team_code: {
                     "use_cpu": round(current_use_cpu + use_cpu, 2),
                     "use_memory": round(current_use_memory + use_memory, 2),

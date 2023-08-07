@@ -178,22 +178,6 @@ class AppImportService(object):
         res, body = remote_migrate_client_api.get_enterprise_app_import_status(session, import_record.region,
                                                                                event_id)
         status = body["bean"]["status"]
-        if import_record.status != "success":
-            if status == "success":
-                logger.debug("app import success !")
-                self.__save_enterprise_import_info(session, import_record, body["bean"]["metadata"])
-                import_record.source_dir = body["bean"]["source_dir"]
-                import_record.format = body["bean"]["format"]
-                import_record.status = "success"
-                # 成功以后删除数据中心目录数据
-                try:
-                    remote_migrate_client_api.delete_enterprise_import_file_dir(session,
-                                                                                import_record.region,
-                                                                                event_id)
-                except Exception as e:
-                    logger.exception(e)
-            else:
-                import_record.status = status
         apps_status = self.__wrapp_app_import_status(body["bean"]["apps"])
 
         failed_num = 0
@@ -210,6 +194,20 @@ class AppImportService(object):
             import_record.status = "failed"
         if status == "uploading":
             import_record.status = status
+
+        if import_record.status == "success":
+            logger.debug("app import success !")
+            self.__save_enterprise_import_info(session, import_record, body["bean"]["metadata"])
+            import_record.source_dir = body["bean"]["source_dir"]
+            import_record.format = body["bean"]["format"]
+            import_record.status = "success"
+            # 成功以后删除数据中心目录数据
+            try:
+                remote_migrate_client_api.delete_enterprise_import_file_dir(session,
+                                                                            import_record.region,
+                                                                            event_id)
+            except Exception as e:
+                logger.exception(e)
 
         return import_record, apps_status
 
