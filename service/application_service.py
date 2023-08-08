@@ -1887,6 +1887,11 @@ class ApplicationVisitService(object):
             ApplicationVisitRecord.is_delete == 0
         )).scalars().all()
 
+    def get_app_visit_record_by_env_id(self, session, env_id):
+        return session.execute(select(ApplicationVisitRecord).where(
+            ApplicationVisitRecord.tenant_env_id == env_id
+        )).scalars().all()
+
     def get_app_visit_record_by_user_app(self, session, user_id, app_id, is_delete=None):
         if is_delete:
             return session.execute(select(ApplicationVisitRecord).where(

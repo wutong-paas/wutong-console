@@ -10,9 +10,11 @@ from core.utils.validation import is_qualified_name
 from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrNamespaceExists
 from exceptions.main import ServiceHandleException
+from repository.application.application_repo import application_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
+from service.application_service import application_visit_service
 from service.env_delete_service import stop_env_resource
 from service.region_service import region_services
 from service.tenant_env_service import env_services
@@ -140,6 +142,16 @@ async def modify_env(request: Request,
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+
+    # 同步更新应用表及应用访问记录表
+    if env.env_alias != env_alias:
+        groups = application_repo.get_groups_by_env_id(session, env_id)
+        for group in groups:
+            group.env_name = env_alias
+
+        app_visits = application_visit_service.get_app_visit_record_by_env_id(session, env_id)
+        for app_visit in app_visits:
+            app_visit.tenant_env_alias = env_alias
 
     env.env_alias = env_alias
     env.desc = desc
