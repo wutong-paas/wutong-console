@@ -123,7 +123,7 @@ class ComponentDeleteService(object):
                     service_domain.delete_operator = user.nick_name
                 service_info_repo.update_by_primary_key(session=session, update_model=service)
                 # 组件从表标记删除 todo
-                return 200, "删除成功"
+                return "0", "删除成功"
         except Exception as e:
             logger.error(e)
             return 400, "删除失败"

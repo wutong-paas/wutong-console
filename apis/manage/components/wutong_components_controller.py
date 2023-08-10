@@ -460,7 +460,7 @@ async def delete_component(request: Request,
     # code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user)
     code, msg = component_delete_service.logic_delete(session=session, tenant_env=env, service=service, user=user,
                                                       is_force=True)
-    if code != 200:
+    if code != "0":
         return JSONResponse(general_message(code, "delete service error", msg), status_code=code)
     result = general_message("0", "success", "操作成功")
     return JSONResponse(result, status_code=200)

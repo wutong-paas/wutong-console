@@ -1180,7 +1180,7 @@ class AppManageService(object):
             # code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
             code, msg = component_delete_service.logic_delete(session=session, tenant_env=tenant_env, service=service,
                                                               user=user, is_force=True)
-            if code != 200:
+            if code != "0":
                 return code, msg
             else:
                 msg = "success"
