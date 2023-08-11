@@ -182,7 +182,7 @@ class YamlService(object):
         for autoscaler_data in autoscaler_datas:
             autoscaler_service.create_autoscaler_rule(session, region_name, env,
                                                       "wt" + autoscaler_data["service_id"][-6:],
-                                                      autoscaler_data)
+                                                      autoscaler_data, user.nick_name)
         return None
 
     def get_all_yaml_info(self, data):

@@ -57,7 +57,7 @@ class AutoscalerService(object):
         res["metrics"] = [jsonable_encoder(m) for m in metrics]
         return res
 
-    def create_autoscaler_rule(self, session, region_name, tenant_env, service_alias, data):
+    def create_autoscaler_rule(self, session, region_name, tenant_env, service_alias, data, user_name):
         # create autoscaler rule
         autoscaler_rule = {
             "rule_id": make_uuid(),
@@ -91,6 +91,7 @@ class AutoscalerService(object):
             raise ErrDuplicateMetrics
 
         autoscaler_rule["metrics"] = metrics
+        autoscaler_rule["operator"] = user_name
 
         remote_build_client.create_xpa_rule(session, region_name, tenant_env, service_alias, data=autoscaler_rule)
         return autoscaler_rule

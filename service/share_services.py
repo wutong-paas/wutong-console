@@ -1068,7 +1068,8 @@ class ShareService(object):
                         "share_user": user.nick_name,
                         "share_scope": app_version.scope,
                         "image_info": app.get("service_image", None),
-                        "slug_info": app.get("service_slug", None)
+                        "slug_info": app.get("service_slug", None),
+                        "operator": user.nick_name
                     }
                     re_body = None
                     try:

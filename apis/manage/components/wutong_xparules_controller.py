@@ -66,7 +66,8 @@ async def get_xparuler(serviceAlias: Optional[str] = None,
 async def set_xparuler(request: Request,
                        env_id: Optional[str] = None,
                        serviceAlias: Optional[str] = None,
-                       session: SessionClass = Depends(deps.get_session)) -> Any:
+                       session: SessionClass = Depends(deps.get_session),
+                       user=Depends(deps.get_current_user)) -> Any:
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
@@ -80,7 +81,7 @@ async def set_xparuler(request: Request,
     data["service_id"] = service.service_id
     res = autoscaler_service.create_autoscaler_rule(session, region_name, env,
                                                     service.service_alias,
-                                                    data)
+                                                    data, user.nick_name)
     result = general_message("0", "success", "创建成功", bean=res)
     return JSONResponse(result, status_code=200)
 
