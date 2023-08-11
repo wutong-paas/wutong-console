@@ -730,7 +730,8 @@ class AppPortService:
                                                                  tenant_env=tenant_env, service=service,
                                                                  container_port=container_port, name="连接地址",
                                                                  attr_name=env_prefix + "_HOST", attr_value=host_value,
-                                                                 is_change=False, scope="outer")
+                                                                 is_change=False, scope="outer",
+                                                                 user_name=user_name)
             if code != 200:
                 if code == 412 and env:
                     env.container_port = container_port
@@ -741,7 +742,8 @@ class AppPortService:
                                                                  container_port=container_port, name="端口",
                                                                  attr_name=env_prefix + "_PORT",
                                                                  attr_value=mapping_port, is_change=False,
-                                                                 scope="outer")
+                                                                 scope="outer",
+                                                                 user_name=user_name)
             if code != 200:
                 if code == 412 and env:
                     env.container_port = container_port

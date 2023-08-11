@@ -7,9 +7,10 @@ from addict import Dict
 from fastapi_pagination import Params, paginate
 from jsonpath import jsonpath
 from loguru import logger
-from sqlalchemy import select, delete
+from sqlalchemy import select
 
 from clients.remote_plugin_client import remote_plugin_client
+from core.setting import settings
 from core.utils.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
@@ -18,7 +19,7 @@ from exceptions.main import ServiceHandleException
 from models.application.plugin import ComponentPluginConfigVar
 from models.component.models import ComponentEnvVar
 from repository.component.group_service_repo import service_info_repo
-from repository.component.service_config_repo import port_repo, volume_repo
+from repository.component.service_config_repo import port_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
@@ -30,7 +31,6 @@ from service.app_env_service import env_var_service
 from service.plugin.plugin_config_service import plugin_config_service
 from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
-from core.setting import settings
 
 has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_show="该组件已存在相同功能插件", status_code=400)
 
@@ -263,8 +263,8 @@ class AppPluginService(object):
                 )).scalars().first()
                 if env:
                     env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
-                                                             env_id=env.ID,
-                                                             user_name=user.nick_name)
+                                                         env_id=env.ID,
+                                                         user_name=user.nick_name)
 
                 env_name = "OTEL_TRACES_EXPORTER"
                 env = session.execute(select(ComponentEnvVar).where(
@@ -273,8 +273,8 @@ class AppPluginService(object):
                 )).scalars().first()
                 if env:
                     env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
-                                                             env_id=env.ID,
-                                                             user_name=user.nick_name)
+                                                         env_id=env.ID,
+                                                         user_name=user.nick_name)
 
                 env_name = "OTEL_METRICS_EXPORTER"
                 env = session.execute(select(ComponentEnvVar).where(
@@ -283,8 +283,8 @@ class AppPluginService(object):
                 )).scalars().first()
                 if env:
                     env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
-                                                             env_id=env.ID,
-                                                             user_name=user.nick_name)
+                                                         env_id=env.ID,
+                                                         user_name=user.nick_name)
 
                 env_name = "OTEL_RESOURCE_ATTRIBUTES"
                 env = session.execute(select(ComponentEnvVar).where(
@@ -293,8 +293,8 @@ class AppPluginService(object):
                 )).scalars().first()
                 if env:
                     env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
-                                                             env_id=env.ID,
-                                                             user_name=user.nick_name)
+                                                         env_id=env.ID,
+                                                         user_name=user.nick_name)
 
                 env_name = "JAVA_TOOL_OPTIONS"
                 env = session.execute(select(ComponentEnvVar).where(
@@ -524,7 +524,8 @@ class AppPluginService(object):
                             protocol=port.protocol))
 
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
-                dep_services = plugin_service.get_service_dependencies(session=session, tenant_env=tenant_env, service=service)
+                dep_services = plugin_service.get_service_dependencies(session=session, tenant_env=tenant_env,
+                                                                       service=service)
                 if not dep_services:
                     session.rollback()
                     raise ServiceHandleException(msg="can't use this plugin", status_code=409,
@@ -764,25 +765,29 @@ class AppPluginService(object):
                 agent = settings.PLUGIN_AGENT_SERVER_ADDRESS
 
                 env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                        container_port=0, name="OTEL_RESOURCE_ATTRIBUTES", attr_name="OTEL_RESOURCE_ATTRIBUTES",
-                                                        attr_value=attributes,
-                                                        is_change=True, scope="inner",
-                                                        user_name=user.nick_name)
+                                                    container_port=0, name="OTEL_RESOURCE_ATTRIBUTES",
+                                                    attr_name="OTEL_RESOURCE_ATTRIBUTES",
+                                                    attr_value=attributes,
+                                                    is_change=True, scope="inner",
+                                                    user_name=user.nick_name)
                 env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                        container_port=0, name="OTEL_TRACES_EXPORTER", attr_name="OTEL_TRACES_EXPORTER",
-                                                        attr_value="otlp",
-                                                        is_change=True, scope="inner",
-                                                        user_name=user.nick_name)
+                                                    container_port=0, name="OTEL_TRACES_EXPORTER",
+                                                    attr_name="OTEL_TRACES_EXPORTER",
+                                                    attr_value="otlp",
+                                                    is_change=True, scope="inner",
+                                                    user_name=user.nick_name)
                 env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                        container_port=0, name="OTEL_METRICS_EXPORTER", attr_name="OTEL_METRICS_EXPORTER",
-                                                        attr_value="none",
-                                                        is_change=True, scope="inner",
-                                                        user_name=user.nick_name)
+                                                    container_port=0, name="OTEL_METRICS_EXPORTER",
+                                                    attr_name="OTEL_METRICS_EXPORTER",
+                                                    attr_value="none",
+                                                    is_change=True, scope="inner",
+                                                    user_name=user.nick_name)
                 env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                        container_port=0, name="OTEL_EXPORTER_OTLP_ENDPOINT", attr_name="OTEL_EXPORTER_OTLP_ENDPOINT",
-                                                        attr_value=agent,
-                                                        is_change=True, scope="inner",
-                                                        user_name=user.nick_name)
+                                                    container_port=0, name="OTEL_EXPORTER_OTLP_ENDPOINT",
+                                                    attr_name="OTEL_EXPORTER_OTLP_ENDPOINT",
+                                                    attr_value=agent,
+                                                    is_change=True, scope="inner",
+                                                    user_name=user.nick_name)
                 if not env:
                     env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
                                                         container_port=0, name=env_name, attr_name=env_name,
