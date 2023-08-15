@@ -228,7 +228,7 @@ async def deploy_component(
             devops_repo.modify_source(session, service, params.docker_image,
                                       params.registry_user, params.registry_password)
         user_dict = {
-            "nick_name": "admin"
+            "nick_name": "超级管理员"
         }
         user = UserInfo(**user_dict)
         if params.env_variables is not None:
