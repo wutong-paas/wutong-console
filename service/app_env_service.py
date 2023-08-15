@@ -14,10 +14,10 @@ from repository.component.env_var_repo import env_var_repo as service_env_var_re
 
 
 class AppEnvVarService(object):
-    SENSITIVE_ENV_NAMES = ('TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'MEMORY_SIZE',
-                           'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
+    SENSITIVE_ENV_NAMES = ('SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
                            'PATH',
-                           'POD_NET_IP', 'LOG_MATCH')
+                           'POD_NET_IP', 'LOG_MATCH',
+                           "POD_IP", "HOST_IP", "POD_NAMESPACE")
 
     def create_env_var(self, session, service, container_port, name, attr_name, attr_value, is_change=False,
                        scope="outer"):
