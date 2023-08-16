@@ -11,6 +11,7 @@ from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrNamespaceExists
 from exceptions.main import ServiceHandleException
 from repository.application.application_repo import application_repo
+from repository.env.user_env_auth_repo import user_env_auth_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.env import CreateEnvParam, UpdateEnvParam, DeleteEnvParam
@@ -160,13 +161,23 @@ async def modify_env(
 @router.get("/teams/{team_name}/query/envs", response_model=Response, name="查询团队下环境")
 async def get_team_envs(
         team_name: Optional[str] = None,
+        is_admin: Optional[bool] = False,
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询团队下环境
     """
     try:
+        env_list = []
         envs = env_services.get_envs_by_tenant_name(session, team_name)
-        result = general_message("0", "success", "查询成功", list=jsonable_encoder(envs))
+        if is_admin:
+            env_list = envs
+        else:
+            for env in envs:
+                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_id)
+                if is_auth:
+                    env_list.append(env)
+        result = general_message("0", "success", "查询成功", list=jsonable_encoder(env_list))
     except Exception as e:
         logger.exception(e)
         result = error_message("错误")

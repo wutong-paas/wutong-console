@@ -149,6 +149,11 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             EnvUserRelation.env_id == env_id
         ))
 
+    def get_env_rel_by_env_id(self, session, env_id):
+        return session.execute(select(EnvUserRelation).where(
+            EnvUserRelation.env_id == env_id
+        )).scalars().first()
+
     def get_env_by_env_namespace(self, session, namespace):
         return session.execute(select(TeamEnvInfo).where(
             TeamEnvInfo.namespace == namespace)).scalars().first()
