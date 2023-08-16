@@ -1,10 +1,10 @@
 import json
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text
+from sqlalchemy.dialects.mysql import LONGTEXT
+
 from core.utils.crypt import make_env_id
 from database.session import Base
-
-tenant_env_identity = (("拥有者", "owner"), ("管理员", "admin"), ("开发者", "developer"), ("观察者", "viewer"), ("访问", "access"))
 
 
 class TeamEnvInfo(Base):
@@ -36,6 +36,18 @@ class TeamEnvInfo(Base):
 
     def __unicode__(self):
         return self.env_name
+
+
+class EnvUserRelation(Base):
+    """
+    环境用户关联表
+    """
+
+    __tablename__ = 'env_user_relation'
+
+    ID = Column(Integer, primary_key=True)
+    env_id = Column(String(33), comment="环境id", nullable=False, unique=True)
+    user_ids = Column(LONGTEXT, comment="用户id列表", nullable=True)
 
 
 class ServiceDomain(Base):

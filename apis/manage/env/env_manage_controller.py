@@ -13,6 +13,7 @@ from exceptions.main import ServiceHandleException
 from repository.application.application_repo import application_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
+from schemas.env import CreateEnvParam, UpdateEnvParam, DeleteEnvParam
 from schemas.response import Response
 from service.application_service import application_visit_service
 from service.env_delete_service import stop_env_resource
@@ -23,65 +24,59 @@ router = APIRouter()
 
 
 @router.post("/teams/{team_name}/add-env", response_model=Response, name="新建环境")
-async def add_env(request: Request,
-                  team_name: Optional[str] = None,
-                  session: SessionClass = Depends(deps.get_session),
-                  user=Depends(deps.get_current_user)) -> Any:
-    try:
-        from_data = await request.json()
-    except:
-        result = general_message(400, "failed", "参数错误")
-        return JSONResponse(status_code=403, content=result)
-    env_alias = from_data["env_alias"]
-    team_alias = from_data["team_alias"]
-    region_name = from_data["region_name"]
-    env_name = from_data["env_name"]
-    tenant_id = from_data["tenant_id"]
-    desc = from_data.get("desc", "")
-
-    if len(env_name) > 31:
+async def add_env(
+        team_name: Optional[str] = None,
+        params: Optional[CreateEnvParam] = CreateEnvParam(),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
+    if len(params.env_name) > 31:
         result = general_message(400, "env_code too long", "环境标识长度限制31")
         return JSONResponse(result, status_code=result["code"])
 
-    if not is_qualified_name(env_name):
+    if not is_qualified_name(params.env_name):
         raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只支持英文、数字、中横线、下划线组合，需以英文、数字开头，中横线、下划线不能位于首尾")
 
-    namespace = team_name + "-" + env_name
+    namespace = team_name + "-" + params.env_name
     namespace = namespace.lower().replace("_", "-")
 
-    region = region_repo.get_region_by_region_name(session, region_name)
+    region = region_repo.get_region_by_region_name(session, params.region_name)
     if not region:
         return JSONResponse(general_message(404, "region not found", "集群不存在"), status_code=404)
 
-    if not env_alias:
+    if not params.env_alias:
         result = general_message(400, "env name not null", "环境名不能为空")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_env_name(session, tenant_id, env_alias)
+    env = env_repo.env_is_exists_by_env_name(session, params.tenant_id, params.env_alias)
     if env:
         result = general_message(400, "env name is exist", "环境名称已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_env_code(session, tenant_id, env_name)
+    env = env_repo.env_is_exists_by_env_code(session, params.tenant_id, params.env_name)
     if env:
         result = general_message(400, "env namespace is exist", "环境标识已存在")
         return JSONResponse(status_code=400, content=result)
 
-    env = env_repo.env_is_exists_by_namespace(session, tenant_id, namespace)
+    env = env_repo.env_is_exists_by_namespace(session, params.tenant_id, namespace)
     if env:
         index = str(uuid.uuid1())
         namespace = namespace + "-" + index[:8]
 
-    env = env_repo.create_env(session, user, region.region_alias, region_name, env_name, env_alias, tenant_id,
-                              team_name, team_alias, namespace, desc)
+    env = env_repo.create_env(session, user, region.region_alias, params.region_name, params.env_name, params.env_alias,
+                              params.tenant_id,
+                              team_name, params.team_alias, namespace, params.desc)
+    # 创建环境用户关系表
+    env_repo.create_env_rel(session, env.env_id, params.user_ids)
+
     exist_namespace_region_names = []
 
     try:
-        region_services.create_env_on_region(session=session, env=env, region_name=region_name, namespace=env.namespace,
-                                             team_id=tenant_id,
+        region_services.create_env_on_region(session=session, env=env, region_name=params.region_name,
+                                             namespace=env.namespace,
+                                             team_id=params.tenant_id,
                                              team_name=team_name)
     except ErrNamespaceExists:
-        exist_namespace_region_names.append(region_name)
+        exist_namespace_region_names.append(params.region_name)
     except ServiceHandleException as e:
         logger.error(e)
         session.rollback()
@@ -104,23 +99,24 @@ async def add_env(request: Request,
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/delete-env", response_model=Response, name="删除环境")
-async def delete_env(request: Request,
-                     env_id: Optional[str] = None,
-                     user=Depends(deps.get_current_user),
-                     session: SessionClass = Depends(deps.get_session)) -> Any:
+async def delete_env(
+        env_id: Optional[str] = None,
+        params: Optional[DeleteEnvParam] = DeleteEnvParam(),
+        user=Depends(deps.get_current_user),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     删除环境
     """
-    data = await request.json()
-    env_alias = data.get("env_alias", "")
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    if env.env_alias != env_alias:
+    if env.env_alias != params.env_alias:
         return JSONResponse(general_message(400, "env name error", "环境名不匹配"), status_code=400)
     try:
         # env_services.delete_by_env_id(session=session, user_nickname=user.nick_name, env=env)
         stop_env_resource(session=session, user=user, env=env, region_code=env.region_code)
+        # 删除环境用户关系表
+        env_repo.delete_env_rel(session, env.env_id)
         result = general_message("0", "delete a team successfully", "删除环境成功")
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:
@@ -128,33 +124,34 @@ async def delete_env(request: Request,
 
 
 @router.put("/teams/{team_name}/env/{env_id}/modify-env", response_model=Response, name="修改环境配置")
-async def modify_env(request: Request,
-                     env_id: Optional[str] = None,
-                     session: SessionClass = Depends(deps.get_session)) -> Any:
+async def modify_env(
+        env_id: Optional[str] = None,
+        params: Optional[UpdateEnvParam] = UpdateEnvParam(),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     修改环境配置
     """
-    data = await request.json()
-    env_alias = data.get("env_alias", None)
-    desc = data.get("desc", None)
-    if not env_alias:
+    if not params.env_alias:
         return JSONResponse(general_message(400, "env name not null", "环境名不能为空"), status_code=400)
     env = env_services.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     # 同步更新应用表及应用访问记录表
-    if env.env_alias != env_alias:
+    if env.env_alias != params.env_alias:
         groups = application_repo.get_groups_by_env_id(session, env_id)
         for group in groups:
-            group.env_name = env_alias
+            group.env_name = params.env_alias
 
         app_visits = application_visit_service.get_app_visit_record_by_env_id(session, env_id)
         for app_visit in app_visits:
-            app_visit.tenant_env_alias = env_alias
+            app_visit.tenant_env_alias = params.env_alias
 
-    env.env_alias = env_alias
-    env.desc = desc
+    env.env_alias = params.env_alias
+    env.desc = params.desc
+
+    # 更新环境用户关系表
+    env_repo.update_env_rel(session, env.env_id, params.user_ids)
 
     result = general_message("0", "delete a team successfully", "修改环境成功")
     return JSONResponse(result, status_code=200)

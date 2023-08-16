@@ -4,7 +4,7 @@ env repository
 from loguru import logger
 from sqlalchemy import select, delete
 from clients.remote_build_client import remote_build_client
-from models.teams import TeamEnvInfo, RegionConfig
+from models.teams import TeamEnvInfo, RegionConfig, EnvUserRelation
 from models.component.models import Component
 from repository.application.application_repo import application_repo
 from repository.base import BaseRepository
@@ -127,6 +127,27 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         session.add(add_team)
         session.flush()
         return add_team
+
+    def create_env_rel(self, session, env_id, user_ids):
+        params = {
+            "env_id": env_id,
+            "user_ids": user_ids,
+        }
+        add_env_rel = EnvUserRelation(**params)
+        session.add(add_env_rel)
+        return add_env_rel
+
+    def update_env_rel(self, session, env_id, user_ids):
+        env_rel = session.execute(select(EnvUserRelation).where(
+            EnvUserRelation.env_id == env_id
+        )).scalars().first()
+        if env_rel:
+            env_rel.user_ids = user_ids
+
+    def delete_env_rel(self, session, env_id):
+        session.execute(delete(EnvUserRelation).where(
+            EnvUserRelation.env_id == env_id
+        ))
 
     def get_env_by_env_namespace(self, session, namespace):
         return session.execute(select(TeamEnvInfo).where(

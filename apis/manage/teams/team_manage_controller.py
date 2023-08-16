@@ -16,7 +16,7 @@ from repository.component.group_service_repo import service_info_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
-from schemas.team import CloseTeamAppParam
+from schemas.env import CloseEnvAppParam
 from service.app_actions.app_delete import component_delete_service
 from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
@@ -27,7 +27,7 @@ router = APIRouter()
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/close", response_model=Response, name="关闭团队应用")
-async def close_teams_app(params: Optional[CloseTeamAppParam] = CloseTeamAppParam(),
+async def close_teams_app(params: Optional[CloseEnvAppParam] = CloseEnvAppParam(),
                           env_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
                           user=Depends(deps.get_current_user)) -> Any:
