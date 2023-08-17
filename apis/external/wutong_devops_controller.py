@@ -328,7 +328,7 @@ async def check_resource(
 async def get_team_envs(
         team_name: Optional[str] = None,
         is_admin: Optional[bool] = False,
-        user_id: Optional[str] = None,
+        user_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询团队下环境
@@ -340,7 +340,7 @@ async def get_team_envs(
             env_list = envs
         else:
             for env in envs:
-                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user_id)
+                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user_name)
                 if is_auth:
                     env_list.append(env)
         result = general_message("0", "success", "查询成功", list=jsonable_encoder(env_list))

@@ -47,7 +47,7 @@ class EnvUserRelation(Base):
 
     ID = Column(Integer, primary_key=True)
     env_id = Column(String(33), comment="环境id", nullable=False, unique=True)
-    user_ids = Column(LONGTEXT, comment="用户id列表", nullable=True)
+    user_names = Column(LONGTEXT, comment="用户账号列表", nullable=True)
 
 
 class ServiceDomain(Base):

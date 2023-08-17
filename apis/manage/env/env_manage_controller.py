@@ -67,7 +67,7 @@ async def add_env(
                               params.tenant_id,
                               team_name, params.team_alias, namespace, params.desc)
     # 创建环境用户关系表
-    env_repo.create_env_rel(session, env.env_id, params.user_ids)
+    env_repo.create_env_rel(session, env.env_id, params.user_names)
 
     exist_namespace_region_names = []
 
@@ -152,7 +152,7 @@ async def modify_env(
     env.desc = params.desc
 
     # 更新环境用户关系表
-    env_repo.update_env_rel(session, env.env_id, params.user_ids)
+    env_repo.update_env_rel(session, env.env_id, params.user_names)
 
     result = general_message("0", "delete a team successfully", "修改环境成功")
     return JSONResponse(result, status_code=200)

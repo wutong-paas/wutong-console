@@ -128,21 +128,21 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         session.flush()
         return add_team
 
-    def create_env_rel(self, session, env_id, user_ids):
+    def create_env_rel(self, session, env_id, user_names):
         params = {
             "env_id": env_id,
-            "user_ids": user_ids,
+            "user_names": user_names,
         }
         add_env_rel = EnvUserRelation(**params)
         session.add(add_env_rel)
         return add_env_rel
 
-    def update_env_rel(self, session, env_id, user_ids):
+    def update_env_rel(self, session, env_id, user_names):
         env_rel = session.execute(select(EnvUserRelation).where(
             EnvUserRelation.env_id == env_id
         )).scalars().first()
         if env_rel:
-            env_rel.user_ids = user_ids
+            env_rel.user_names = user_names
 
     def delete_env_rel(self, session, env_id):
         session.execute(delete(EnvUserRelation).where(
