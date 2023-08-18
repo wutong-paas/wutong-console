@@ -64,13 +64,10 @@ async def get_xparuler(serviceAlias: Optional[str] = None,
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules", response_model=Response, name="添加组件伸缩规则")
 async def set_xparuler(request: Request,
-                       env_id: Optional[str] = None,
                        serviceAlias: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
+                       env=Depends(deps.get_current_team_env),
                        user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     await validate_parameter(data)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
@@ -88,17 +85,14 @@ async def set_xparuler(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparecords", response_model=Response, name="查询组件伸缩规则")
 async def get_xparecords(request: Request,
-                         env_id: Optional[str] = None,
                          serviceAlias: Optional[str] = None,
+                         env=Depends(deps.get_current_team_env),
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = scaling_records_service.list_scaling_records(session=session, region_name=region_name,
@@ -109,7 +103,8 @@ async def get_xparecords(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/extend_method", response_model=Response, name="获取组件扩展方式")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/extend_method", response_model=Response,
+            name="获取组件扩展方式")
 async def get_extend_method(serviceAlias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             env=Depends(deps.get_current_team_env)) -> Any:
@@ -160,14 +155,11 @@ async def get_xparules_index(rule_id: Optional[str] = None,
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/xparules/{rule_id}", response_model=Response,
             name="创建组件伸缩指标")
 async def set_xparules_index(request: Request,
-                             env_id: Optional[str] = None,
                              serviceAlias: Optional[str] = None,
                              rule_id: Optional[str] = None,
+                             env=Depends(deps.get_current_team_env),
                              session: SessionClass = Depends(deps.get_session),
                              user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     await validate_parameter(data)
     region = await region_services.get_region_by_request(session, request)

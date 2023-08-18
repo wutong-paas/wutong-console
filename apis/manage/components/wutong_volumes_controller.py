@@ -30,8 +30,8 @@ def ensure_volume_mode(mode):
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes", response_model=Response, name="获取组件的持久化路径")
 async def get_volume_dir(request: Request,
-                         env_id: Optional[str] = None,
                          serviceAlias: Optional[str] = None,
+                         env=Depends(deps.get_current_team_env),
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件的持久化路径
@@ -48,9 +48,6 @@ async def get_volume_dir(request: Request,
           type: string
           paramType: path
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     is_config = parse_argument(request, 'is_config', value_type=bool, default=False)
     volumes = volume_service.get_service_volumes(session=session, tenant_env=env, service=service,
@@ -81,9 +78,9 @@ async def get_volume_dir(request: Request,
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes", response_model=Response, name="为组件添加存储")
 async def add_volume(
         request: Request,
-        env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
     """
     为组件添加持久化目录
@@ -116,9 +113,6 @@ async def add_volume(
           paramType: form
 
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     volume_name = data.get("volume_name", None)
@@ -173,10 +167,10 @@ async def add_volume(
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes/{volume_id}", response_model=Response,
             name="修改存储设置")
 async def modify_volume(request: Request,
-                        env_id: Optional[str] = None,
                         serviceAlias: Optional[str] = None,
                         volume_id: Optional[str] = None,
                         session: SessionClass = Depends(deps.get_session),
+                        env=Depends(deps.get_current_team_env),
                         user=Depends(deps.get_current_user)) -> Any:
     """
     修改存储设置
@@ -185,9 +179,6 @@ async def modify_volume(request: Request,
     :param kwargs:
     :return:
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     new_volume_path = data.get("new_volume_path", None)
     new_file_content = data.get("new_file_content", None)
@@ -238,10 +229,10 @@ async def modify_volume(request: Request,
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/volumes/{volume_id}", response_model=Response,
                name="删除组件的某个存储")
 async def delete_volume(
-        env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
         volume_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
     """
     删除组件的某个持久化路径
@@ -264,9 +255,6 @@ async def delete_volume(
           paramType: path
 
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     if not volume_id:
         return JSONResponse(general_message(400, "attr_name not specify", "未指定需要删除的持久化路径"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)

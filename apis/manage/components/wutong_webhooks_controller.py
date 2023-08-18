@@ -241,13 +241,10 @@ async def update_deploy_mode(
 @router.post("/env/{env_id}/image/webhooks/{service_id}", response_model=Response, name="镜像仓库webhooks回调")
 async def update_deploy_mode(
         request: Request,
-        env_id: Optional[str] = None,
         service_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         service_obj = service_info_repo.get_service_by_service_id(session, service_id)
         if not service_obj:

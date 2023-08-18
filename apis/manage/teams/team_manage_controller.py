@@ -27,13 +27,11 @@ router = APIRouter()
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/close", response_model=Response, name="关闭团队应用")
-async def close_teams_app(params: Optional[CloseEnvAppParam] = CloseEnvAppParam(),
-                          env_id: Optional[str] = None,
-                          session: SessionClass = Depends(deps.get_session),
-                          user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+async def close_teams_app(
+        params: Optional[CloseEnvAppParam] = CloseEnvAppParam(),
+        env=Depends(deps.get_current_team_env),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     if params.region_name:
         app_manage_service.close_all_component_in_tenant(session=session, tenant_env=env,
                                                          region_name=params.region_name,
@@ -64,10 +62,10 @@ def __sort_events(event1, event2):
 async def overview_env_app_info(request: Request,
                                 page: int = Query(default=1, ge=1, le=9999),
                                 page_size: int = Query(default=10, ge=1, le=500),
-                                env_id: Optional[str] = None,
                                 status: Optional[str] = "all",
                                 project_ids: Optional[str] = None,
                                 query: Optional[str] = "",
+                                env=Depends(deps.get_current_team_env),
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     总览 团队应用信息
@@ -91,9 +89,6 @@ async def overview_env_app_info(request: Request,
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
     groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query, project_ids=project_ids)
     total = len(groups)
@@ -122,19 +117,13 @@ async def overview_env_app_info(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/services/event", response_model=Response, name="应用事件动态")
 async def env_services_event(
-        # request: Request,
-        env_id: Optional[str] = None,
         page: int = Query(default=1, ge=1, le=9999),
         page_size: int = Query(default=3, ge=1, le=500),
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     组件事件动态
     """
-    # page = request.query_params.get("page", 1)
-    # page_size = request.query_params.get("page_size", 3)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     total = 0
     region_list = region_repo.get_team_opened_region(session, env.namespace)
@@ -182,19 +171,17 @@ async def env_services_event(
 
 @router.delete("/teams/{team_name}/env/{env_id}/again_delete", response_model=Response, name="二次确认删除应用")
 async def again_delete_app(request: Request,
-                           env_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
+                           env=Depends(deps.get_current_team_env),
                            user=Depends(deps.get_current_user)) -> Any:
     """
     二次确认删除组件
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     service_id = data.get("service_id", None)
     service = service_info_repo.get_service_by_service_id(session, service_id)
     # app_manage_service.delete_again(session, user, env, service)
-    code, msg = component_delete_service.logic_delete(session=session, user=user, tenant_env=env, is_force=True, service=service)
+    code, msg = component_delete_service.logic_delete(session=session, user=user, tenant_env=env, is_force=True,
+                                                      service=service)
     result = general_message(code, "", msg, bean={})
     return JSONResponse(result, status_code=code)

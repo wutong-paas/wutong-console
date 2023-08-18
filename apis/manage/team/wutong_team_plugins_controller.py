@@ -60,8 +60,8 @@ async def get_team_all_plugins(
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins/default", response_model=Response, name="默认插件创建")
 async def add_default_plugins(request: Request,
-                              env_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
+                              env=Depends(deps.get_current_team_env),
                               user=Depends(deps.get_current_user)) -> Any:
     """
            插件创建
@@ -78,9 +78,6 @@ async def add_default_plugins(request: Request,
                  type: string
                  paramType: form
            """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     from_data = await request.json()
     plugin_type = from_data["plugin_type"]
     if not plugin_type:
@@ -124,12 +121,9 @@ async def get_default_plugins(
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins", response_model=Response, name="插件创建")
 async def create_plugins(request: Request,
-                         env_id: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
+                         env=Depends(deps.get_current_team_env),
                          user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     # 必要参数
     plugin_alias = data.get("plugin_alias", None)
@@ -241,12 +235,9 @@ async def create_plugins(request: Request,
 @router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/build-history", response_model=Response,
             name="插件构建历史信息展示")
 async def get_build_history(request: Request,
-                            env_id: Optional[str] = None,
                             plugin_id: Optional[str] = None,
+                            env=Depends(deps.get_current_team_env),
                             session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -329,12 +320,9 @@ async def get_plugin_config(
             name="获取插件某个版本的信息")
 async def get_plugin_version(
         request: Request,
-        env_id: Optional[str] = None,
         plugin_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -353,13 +341,10 @@ async def get_plugin_version(
 @router.put("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}", response_model=Response,
             name="修改插件某个版本的信息")
 async def modify_plugin_version(request: Request,
-                                env_id: Optional[str] = None,
                                 plugin_id: Optional[str] = None,
+                                env=Depends(deps.get_current_team_env),
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         region = await region_services.get_region_by_request(session, request)
         if not region:
@@ -422,14 +407,11 @@ async def modify_plugin_version(request: Request,
              name="构建插件")
 async def build_plugin(
         request: Request,
-        env_id: Optional[str] = None,
         plugin_id: Optional[str] = None,
         update_info: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -493,12 +475,9 @@ async def get_build_status(
             response_model=Response,
             name="获取event事件")
 async def get_build_log(request: Request,
-                        env_id: Optional[str] = None,
                         plugin_id: Optional[str] = None,
+                        env=Depends(deps.get_current_team_env),
                         session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -610,12 +589,9 @@ async def delete_plugin_config(
 
 @router.delete("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}", response_model=Response, name="删除插件")
 async def delete_plugin(request: Request,
-                        env_id: Optional[str] = None,
                         plugin_id: Optional[str] = None,
+                        env=Depends(deps.get_current_team_env),
                         session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     is_force = data.get("is_force", False)
     region = await region_services.get_region_by_request(session, request)
@@ -630,13 +606,10 @@ async def delete_plugin(request: Request,
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/share", response_model=Response, name="团队插件共享")
 async def plugin_share(request: Request,
-                       env_id: Optional[str] = None,
                        plugin_id: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
+                       env=Depends(deps.get_current_team_env),
                        user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)

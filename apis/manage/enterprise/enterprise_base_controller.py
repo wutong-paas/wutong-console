@@ -174,12 +174,9 @@ async def delete_region(
              name="设置环境内存限额")
 async def set_env_memory_limit(request: Request,
                                region_id: Optional[str] = None,
-                               env_id: Optional[str] = None,
+                               env=Depends(deps.get_current_team_env),
                                session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     env_services.set_tenant_env_memory_limit(session, region_id, env, data)
     return JSONResponse(general_message("0", "success", "设置成功"), status_code=status.HTTP_200_OK)
 
@@ -242,7 +239,8 @@ async def export_team_memory_config(request: Request,
     sheet.append(columns)
     for data in jsonable_encoder(envs):
         if data["team_name"]:
-            wdata = [data["team_name"], data["env_name"], data["memory_limit"], data["cpu_limit"], data["set_limit_memory"],
+            wdata = [data["team_name"], data["env_name"], data["memory_limit"], data["cpu_limit"],
+                     data["set_limit_memory"],
                      data["app_num"], data["running_app_num"]]
             sheet.append(wdata)
 
@@ -255,5 +253,5 @@ async def export_team_memory_config(request: Request,
     # http响应头告知浏览器，返回excel
     response = StreamingResponse(platform_data_services.download_env_resource_file(file_path))
     response.init_headers({"Content-Disposition": "attchment; filename={}".format(file_name),
-                          "content_type": 'application/vnd.ms-excel'})
+                           "content_type": 'application/vnd.ms-excel'})
     return response

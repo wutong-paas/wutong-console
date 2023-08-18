@@ -25,11 +25,9 @@ async def get_team_backup_info(
         env_id: Optional[str] = None,
         page: int = Query(default=1, ge=1, le=9999),
         page_size: int = Query(default=10, ge=1, le=500),
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -61,13 +59,10 @@ async def get_team_backup_info(
 @router.delete("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/delete", response_model=Response,
                name="应用数据删除")
 async def delete_team_app_info(request: Request,
-                               env_id: Optional[str] = None,
                                group_id: Optional[str] = None,
+                               env=Depends(deps.get_current_team_env),
                                session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         if not group_id:
             return JSONResponse(general_message(400, "group id is null", "请确认需要删除的组"), status_code=400)

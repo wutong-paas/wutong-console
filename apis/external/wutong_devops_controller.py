@@ -23,6 +23,7 @@ from service.app_actions.app_deploy import app_deploy_service
 from service.app_actions.exception import ErrServiceSourceNotFound
 from service.application_service import application_service
 from service.tenant_env_service import env_services
+from core.api.team_api import team_api
 
 router = APIRouter()
 
@@ -327,20 +328,24 @@ async def check_resource(
 @router.get("/devops/teams/{team_name}/query/envs", response_model=Response, name="查询团队下环境")
 async def get_team_envs(
         team_name: Optional[str] = None,
-        is_admin: Optional[bool] = False,
-        user_name: Optional[str] = None,
+        team_id: Optional[str] = None,
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询团队下环境
     """
+    if not team_id or not user_name:
+        return JSONResponse(general_message(400, "failed", "参数错误"), status_code=400)
     try:
         env_list = []
         envs = env_services.get_envs_by_tenant_name(session, team_name)
-        if is_admin:
+        is_team_admin = team_api.get_user_env_auth(user.user_id, team_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+        if is_team_admin or is_super_admin:
             env_list = envs
         else:
             for env in envs:
-                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user_name)
+                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
                 if is_auth:
                     env_list.append(env)
         result = general_message("0", "success", "查询成功", list=jsonable_encoder(env_list))

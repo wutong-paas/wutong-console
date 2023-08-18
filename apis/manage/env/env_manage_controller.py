@@ -162,20 +162,24 @@ async def modify_env(
 @router.get("/teams/{team_name}/query/envs", response_model=Response, name="查询团队下环境")
 async def get_team_envs(
         team_name: Optional[str] = None,
-        is_admin: Optional[bool] = False,
+        team_id: Optional[str] = None,
         user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询团队下环境
     """
+    if not team_id:
+        return JSONResponse(general_message(400, "failed", "参数错误"), status_code=400)
     try:
         env_list = []
         envs = env_services.get_envs_by_tenant_name(session, team_name)
-        if is_admin:
+        is_team_admin = team_api.get_user_env_auth(user.user_id, team_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+        if is_team_admin or is_super_admin:
             env_list = envs
         else:
             for env in envs:
-                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_id)
+                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
                 if is_auth:
                     env_list.append(env)
         result = general_message("0", "success", "查询成功", list=jsonable_encoder(env_list))
@@ -202,16 +206,16 @@ async def get_all_envs(
 @router.get("/teams/{team_name}/env/{env_id}", response_model=Response, name="查询单个环境")
 async def get_env_by_env_id(
         env_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询单个环境
     """
     try:
-        env = env_services.get_env_by_env_id(session, env_id)
-        if not env:
-            result = general_message(404, "not found env", "环境不存在")
-            return JSONResponse(result, status_code=400)
-        result = general_message("0", "success", "查询成功", bean=jsonable_encoder(env))
+        env_rel = env_repo.get_env_rel_by_env_id(session, env_id)
+        res = jsonable_encoder(env)
+        res["user_names"] = env_rel.user_names
+        result = general_message("0", "success", "查询成功", bean=res)
     except Exception as e:
         logger.exception(e)
         result = error_message("错误")
@@ -228,6 +232,8 @@ async def get_user_env_auth(
     """
     查询用户是否有环境权限
     """
+    if not team_id or not env_id:
+        return JSONResponse(general_message(400, "failed", "参数错误"), status_code=400)
     is_team_admin = team_api.get_user_env_auth(user.user_id, team_id, "3")
     is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
     if is_team_admin or is_super_admin:

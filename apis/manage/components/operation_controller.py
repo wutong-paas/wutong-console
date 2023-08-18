@@ -134,8 +134,8 @@ async def get_check_uuid(service_alias: Optional[str] = None,
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
 async def get_check_detail(check_uuid: Optional[str] = None,
-                           env_id: Optional[str] = None,
                            service_alias: Optional[str] = None,
+                           env=Depends(deps.get_current_team_env),
                            session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件检测信息
@@ -160,9 +160,6 @@ async def get_check_detail(check_uuid: Optional[str] = None,
     """
     if not check_uuid:
         return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status_code=400)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=Component(service_alias=service_alias,
                                                                          tenant_env_id=env.env_id))
@@ -203,9 +200,9 @@ async def get_check_detail(check_uuid: Optional[str] = None,
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
 async def check(
         params: Optional[DockerRunCheckParam] = DockerRunCheckParam(),
-        env_id: Optional[str] = None,
         service_alias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
     """
     组件信息检测
@@ -223,9 +220,6 @@ async def check(
           paramType: path
 
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=Component(service_alias=service_alias,
                                                                          tenant_env_id=env.env_id))
@@ -242,9 +236,9 @@ async def check(
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/build", response_model=Response, name="构建组件")
 async def component_build(params: Optional[BuildParam] = BuildParam(),
-                          env_id: Optional[str] = None,
                           service_alias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
+                          env=Depends(deps.get_current_team_env),
                           user=Depends(deps.get_current_user)) -> Any:
     """
     组件构建
@@ -262,9 +256,6 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
           paramType: path
     """
     is_deploy = params.is_deploy
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=Component(service_alias=service_alias,
                                                                          tenant_env_id=env.env_id))
@@ -321,14 +312,11 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/pods/{pod_name}/detail", response_model=Response,
             name="pod详情")
 async def pod_detail(
-        env_id: Optional[str] = None,
         service_alias: Optional[str] = None,
         pod_name: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         service = team_component_repo.get_one_by_model(session=session,
                                                        query_model=Component(service_alias=service_alias,
                                                                              tenant_env_id=env.env_id))
@@ -347,14 +335,11 @@ async def pod_detail(
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/vertical", response_model=Response, name="垂直升级组件")
 async def component_vertical(request: Request,
-                             env_id: Optional[str] = None,
                              service_alias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
+                             env=Depends(deps.get_current_team_env),
                              user=Depends(deps.get_current_user)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         new_memory = data.get("new_memory", 0)
         new_gpu_type = data.get("new_gpu_type", None)
@@ -384,14 +369,11 @@ async def component_vertical(request: Request,
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/horizontal", response_model=Response, name="水平升级组件")
 async def component_horizontal(request: Request,
-                               env_id: Optional[str] = None,
                                service_alias: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
+                               env=Depends(deps.get_current_team_env),
                                user=Depends(deps.get_current_user)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         new_node = data.get("new_node", None)
         if not new_node:
@@ -458,13 +440,10 @@ async def component_monitor(service_alias: Optional[str] = None,
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor", response_model=Response,
              name="添加组件监控点")
 async def add_component_monitor(request: Request,
-                                env_id: Optional[str] = None,
                                 service_alias: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session),
+                                env=Depends(deps.get_current_team_env),
                                 user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     data = await request.json()
     port = data.get("port", None)
     name = data.get("name", None)
@@ -576,12 +555,9 @@ async def delete_component_monitor(
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/history_log", response_model=Response,
             name="获取组件历史日志")
 async def get_history_log(request: Request,
-                          env_id: Optional[str] = None,
                           service_alias: Optional[str] = None,
+                          env=Depends(deps.get_current_team_env),
                           session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = service_info_repo.get_service(session, service_alias, env.env_id)
     code, msg, file_list = log_service.get_history_log(session, env, service)
     log_domain_url = ws_service.get_log_domain(session, request, service.service_region)

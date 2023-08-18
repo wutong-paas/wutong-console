@@ -31,14 +31,12 @@ async def get_app_state(request: Request,
                         page: int = Query(default=1, ge=1, le=9999),
                         page_size: int = Query(default=10, ge=-1, le=999),
                         env_id: Optional[str] = None,
+                        env=Depends(deps.get_current_team_env),
                         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
      应用组件列表、状态展示
      """
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         code = 200
         # page = int(request.query_params.get("page", 1))
         # page_size = int(request.query_params.get("page_size", 10))
@@ -102,6 +100,7 @@ async def get_app_state(request: Request,
 async def overview_team_env_info(region_name: Optional[str] = None,
                                  env_id: Optional[str] = None,
                                  project_id: Optional[str] = None,
+                                 env=Depends(deps.get_current_team_env),
                                  session: SessionClass = Depends(deps.get_session)
                                  ) -> Any:
     """
@@ -114,10 +113,6 @@ async def overview_team_env_info(region_name: Optional[str] = None,
            type: string
            paramType: path
      """
-
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
 
     # 项目id数组
     if project_id:
@@ -285,8 +280,8 @@ async def team_app_group(
 @router.get("/teams/{team_name}/env/{env_id}/overview/service/over", response_model=Response, name="团队应用信息")
 async def team_app_group(
         request: Request,
-        env_id: Optional[str] = None,
         region_name: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("page_size", 10)
@@ -294,9 +289,6 @@ async def team_app_group(
     fields = request.query_params.get('fields', 'update_time')
     query_key = request.query_params.get("query_key", '')
     service_status = request.query_params.get("service_status", 'all')
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     services_list = base_service.get_fuzzy_services_list(session=session,
                                                          env_id=env.env_id, region_name=region_name,
                                                          query_key=query_key, fields=fields, order=order)

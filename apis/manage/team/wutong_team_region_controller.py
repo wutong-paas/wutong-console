@@ -23,17 +23,14 @@ router = APIRouter()
 @router.get("/teams/{team_name}/env/{env_id}/regions/{region_name}/features", response_model=Response,
             name="获取指定数据中心的授权功能列表")
 async def team_app_group(
-        env_id: Optional[str] = None,
         region_name: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取指定数据中心的授权功能列表
     ---
 
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     features = region_services.get_region_license_features(session=session, tenant_env=env, region_name=region_name)
     # todo
     features.append({"code": 'GPU'})
@@ -44,8 +41,8 @@ async def team_app_group(
 @router.get("/teams/{team_name}/env/{env_id}/regions/{region_name}/sort_domain/query", response_model=Response,
             name="获取团队下域名访问量排序")
 async def get_sort_domain_query(request: Request,
-                                env_id: Optional[str] = None,
                                 region_name: Optional[str] = None,
+                                env=Depends(deps.get_current_team_env),
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     """
             获取团队下域名访问量排序
@@ -60,9 +57,6 @@ async def get_sort_domain_query(request: Request,
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 5))
     repo = request.query_params.get("repo", "1")
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     if repo == "1":
         total_traffic = 0
@@ -182,8 +176,8 @@ async def get_sort_service_query(region_name: Optional[str] = None,
 
 @router.get("/teams/{team_name}/env/{env_id}/protocols", response_model=Response, name="获取数据中心支持的协议")
 async def get_protocol_info(request: Request,
-                            env_id: Optional[str] = None,
                             region_name: Optional[str] = None,
+                            env=Depends(deps.get_current_team_env),
                             session: SessionClass = Depends(deps.get_session)) -> Any:
     """
      获取数据中心支持的协议
@@ -201,9 +195,6 @@ async def get_protocol_info(request: Request,
            paramType: query
      """
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         region_name = request.query_params.get("region_name", region_name)
         protocols_info = remote_build_client.get_protocols(session, region_name, env)
         protocols = protocols_info["list"]
@@ -220,17 +211,14 @@ async def get_protocol_info(request: Request,
 @router.get("/teams/{team_name}/env/{env_id}/regions/{region_name}/publickey", response_model=Response,
             name="获取指定数据中心的Key")
 async def get_region_key(
-        env_id: Optional[str] = None,
         region_name: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取指定数据中心的Key
     ---
 
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     key = region_services.get_public_key(session, env, region_name)
     result = general_message("0", 'query success', '数据中心key获取成功', bean=key)
     return JSONResponse(result, status_code=200)
@@ -327,15 +315,12 @@ async def get_kubeconfig(request: Request,
 @router.post("/teams/{team_name}/env/{env_id}/apps/{app_id}/kuberesources", response_model=Response,
              name="获取组件kuberesources")
 async def get_components_kuberesources(request: Request,
-                                       env_id: Optional[str] = None,
                                        app_id: Optional[str] = None,
+                                       env=Depends(deps.get_current_team_env),
                                        session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     service_alias = data.get("service_alias", None)
     namespace = data.get("namespace", "default")
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)

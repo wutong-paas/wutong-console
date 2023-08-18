@@ -211,8 +211,8 @@ async def get_migrate_record(request: Request, session: SessionClass = Depends(d
 
 @router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="应用迁移")
 async def app_migrate(request: Request,
-                      env_id: Optional[str] = None,
                       session: SessionClass = Depends(deps.get_session),
+                      env=Depends(deps.get_current_team_env),
                       user=Depends(deps.get_current_user)) -> Any:
     """
     应用迁移
@@ -228,10 +228,6 @@ async def app_migrate(request: Request,
     tenant_name = data.get("team_alias", None)
     project_id = data.get("project_id", None)
     project_name = data.get("project_name", "")
-
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     region = team_region_repo.get_region_by_env_id(session, env.env_id)
     if not region:
@@ -261,16 +257,12 @@ async def app_migrate(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="查询应用迁移状态")
 async def get_app_migrate_state(request: Request,
-                                env_id: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session),
+                                env=Depends(deps.get_current_team_env),
                                 user=Depends(deps.get_current_user)) -> Any:
     restore_id = request.query_params.get("restore_id", None)
     if not restore_id:
         return JSONResponse(general_message(400, "restore id is null", "请指明查询的备份ID"), status_code=400)
-
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     region = await region_services.get_region_by_request(session, request)
     if not region:
@@ -288,8 +280,8 @@ async def get_app_migrate_state(request: Request,
 
 @router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup/import", response_model=Response, name="导入备份")
 async def set_backup_info(request: Request,
-                          env_id: Optional[str] = None,
                           group_id: Optional[str] = None,
+                          env=Depends(deps.get_current_team_env),
                           session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         form_data = await request.form()
@@ -297,9 +289,6 @@ async def set_backup_info(request: Request,
             return JSONResponse(general_message(400, "group id is null", "请选择需要导出备份的组"), status_code=400)
         if not form_data or not form_data.get('file'):
             return JSONResponse(general_message(400, "param error", "请指定需要导入的备份信息"), status_code=400)
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         upload_file = form_data.get('file')
         file_data = await upload_file.read()
         if len(file_data) > StorageUnit.ONE_MB * 2:
