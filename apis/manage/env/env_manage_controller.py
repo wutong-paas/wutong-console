@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from core import deps
+from core.api.team_api import team_api
 from core.utils.return_message import general_message, error_message
 from core.utils.validation import is_qualified_name
 from database.session import SessionClass
@@ -216,3 +217,21 @@ async def get_env_by_env_id(
         result = error_message("错误")
         return JSONResponse(result, status_code=result["code"])
     return JSONResponse(result, status_code=200)
+
+
+@router.get("/team/env/user/auth", response_model=Response, name="查询用户是否有环境权限")
+async def get_user_env_auth(
+        team_id: Optional[str] = None,
+        env_id: Optional[str] = None,
+        user=Depends(deps.get_current_user),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    查询用户是否有环境权限
+    """
+    is_team_admin = team_api.get_user_env_auth(user.user_id, team_id, "3")
+    is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+    if is_team_admin or is_super_admin:
+        return JSONResponse(general_message("0", "success", "查询成功", bean={"is_auth": True}), status_code=200)
+    else:
+        is_auth = user_env_auth_repo.is_auth_in_env(session, env_id, user.user_name)
+        return JSONResponse(general_message("0", "success", "查询成功", bean={"is_auth": is_auth}), status_code=200)

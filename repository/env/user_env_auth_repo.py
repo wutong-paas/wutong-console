@@ -8,8 +8,8 @@ class UserEnvAuthRepo(object):
             EnvUserRelation.env_id == env_id
         )).scalars().first()
         if user_env_rel:
-            user_names = user_env_rel.user_names
-            if user_names == "all":
+            user_names = user_env_rel.user_names.split(",")
+            if user_names[0] == "all":
                 return True
             if user_name in user_names:
                 return True
