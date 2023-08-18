@@ -334,7 +334,7 @@ async def get_team_envs(
     """
     查询团队下环境
     """
-    if not team_id or not user_name:
+    if not team_id:
         return JSONResponse(general_message(400, "failed", "参数错误"), status_code=400)
     try:
         env_list = []
