@@ -78,6 +78,8 @@ async def get_store(
     store["total_memory"] = round(store["total_memory"], 2)
     store["total_disk"] = round(store["total_disk"], 2)
     store["used_cpu"] = round(store["used_cpu"], 2)
+    store["used_memory"] = round(store["used_memory"], 2)
+
     info = {
         "store": store,
         "pod": pod,
