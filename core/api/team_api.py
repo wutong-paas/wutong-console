@@ -15,7 +15,7 @@ class TeamApi(object):
             "roleId": role_id,
         }
 
-        url = "http://cube.wutong-dev.talkweb.com.cn/bone/cube-gateway/wutong-cube-core/role-user/valid-role-user-team-project"
+        url = "{}/wutong-cube-core/role-user/valid-role-user-team-project".format(settings.USER_AUTH_API_URL)
         response = requests.post(url, json=params, headers=self.headers)
 
         data = response.json()

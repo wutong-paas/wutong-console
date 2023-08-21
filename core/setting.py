@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     YAML_ROOT = os.path.join(DATA_DIR, 'file')
 
     # 团队API路由配置
-    TEAM_API_URL = os.environ.get("TEAM_API_URL", "wt044803-18099.cube:18099")
+    USER_AUTH_API_URL = os.environ.get("USER_AUTH_API_URL", "http://cube.wutong-dev.talkweb.com.cn/bone/cube-gateway")
 
     # 跨域白名单
     BACKEND_CORS_ORIGINS: List = ['*']
