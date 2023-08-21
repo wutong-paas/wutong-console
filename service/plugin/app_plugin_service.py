@@ -426,7 +426,7 @@ class AppPluginService(object):
         return region_env_config
 
     def update_service_plugin_config(self, session: SessionClass, tenant_env, service, plugin_id, build_version, config,
-                                     response_region):
+                                     response_region, user=None):
         # delete old config
         self.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
         # 全量插入新配置
@@ -434,7 +434,7 @@ class AppPluginService(object):
                                             build_version=build_version, config_bean=config)
         # 更新数据中心配置
         region_config = self.get_region_config_from_db(session=session, service=service, plugin_id=plugin_id,
-                                                       build_version=build_version)
+                                                       build_version=build_version, user=user)
         remote_plugin_client.update_service_plugin_config(session,
                                                           response_region, tenant_env,
                                                           service.service_alias, plugin_id,

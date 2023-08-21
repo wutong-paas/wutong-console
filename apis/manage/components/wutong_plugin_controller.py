@@ -24,7 +24,8 @@ from service.region_service import region_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/pluginlist", response_model=Response, name="获取组件可用的插件列表")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/pluginlist", response_model=Response,
+            name="获取组件可用的插件列表")
 async def get_plugin_list(request: Request,
                           serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
@@ -93,7 +94,8 @@ async def install_sys_plugin(request: Request,
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys", service.service_region)
     if not plugins:
-        plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant_env=env, region=response_region,
+        plugin_id = plugin_service.add_default_plugin(session=session, user=user, tenant_env=env,
+                                                      region=response_region,
                                                       plugin_type=plugin_type, build_version=build_version)
     else:
         plugin_id = None
@@ -292,6 +294,7 @@ async def open_or_stop_plugin(request: Request,
                               env_id: Optional[str] = None,
                               plugin_id: Optional[str] = None,
                               serviceAlias: Optional[str] = None,
+                              user=Depends(deps.get_current_user),
                               session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     启停用组件插件
@@ -350,6 +353,7 @@ async def open_or_stop_plugin(request: Request,
     data["plugin_id"] = plugin_id
     data["switch"] = is_active
     data["version_id"] = build_version
+    data["operator"] = user.nick_name
     if memory is not None:
         data["plugin_memory"] = int(memory)
     if cpu is not None:
@@ -472,7 +476,7 @@ async def update_plugin_config(request: Request,
     # update service plugin config
     app_plugin_service.update_service_plugin_config(session=session, tenant_env=env, service=service,
                                                     plugin_id=plugin_id, build_version=pbv.build_version, config=config,
-                                                    response_region=response_region)
+                                                    response_region=response_region, user=user)
 
     plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
     if plugin_info:
