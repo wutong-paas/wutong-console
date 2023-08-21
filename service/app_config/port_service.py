@@ -155,7 +155,7 @@ class AppPortService:
 
         # 删除原有环境变量
         env_var_service.delete_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
-                                                     container_port=deal_port.container_port)
+                                                     container_port=deal_port.container_port, user_name=user_name)
 
         # component port change, will change entrance network governance plugin configuration
         if service.create_status == "complete":
@@ -170,7 +170,7 @@ class AppPortService:
         deal_port.mapping_port = mapping_port
         # 删除原有环境变量
         env_var_service.delete_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
-                                                     container_port=deal_port.container_port)
+                                                     container_port=deal_port.container_port, user_name=user_name)
 
         env_prefix = deal_port.port_alias.upper() if bool(deal_port.port_alias) else service.service_key.upper()
 
@@ -186,14 +186,14 @@ class AppPortService:
                                                               tenant_env=tenant_env, service=service,
                                                               container_port=deal_port.container_port, name="连接地址",
                                                               attr_name=env_prefix + "_HOST", attr_value=host_value,
-                                                              is_change=False, scope="outer")
+                                                              is_change=False, scope="outer", user_name=user_name)
         if code != 200 and code != 412:
             return code, msg
         code, msg, data = env_var_service.add_service_env_var(session=session,
                                                               tenant_env=tenant_env, service=service,
                                                               container_port=deal_port.container_port, name="端口",
                                                               attr_name=env_prefix + "_PORT", attr_value=mapping_port,
-                                                              is_change=False, scope="outer")
+                                                              is_change=False, scope="outer", user_name=user_name)
         if code != 200 and code != 412:
             return code, msg
 
