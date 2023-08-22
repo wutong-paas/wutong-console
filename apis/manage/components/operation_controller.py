@@ -701,8 +701,12 @@ async def yaml_install(
         return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", list=err_msg),
                             status_code=200)
 
-    # 使用kind对yaml数据分类
-    kind_data = yaml_service.yaml_classify_by_kind(yaml_datas)
+    try:
+        # 使用kind对yaml数据分类
+        kind_data = yaml_service.yaml_classify_by_kind(yaml_datas)
+    except:
+        return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败"),
+                            status_code=400)
 
     # 仅识别Deployment、StatefulSet为组件
     deployment_data = kind_data.get("Deployment", [])
