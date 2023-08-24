@@ -362,7 +362,7 @@ class GroupappsMigrateService(object):
         for env in tenant_service_env_vars:
             env.pop("ID")
             new_env = ComponentEnvVar(**env)
-            new_env.env_id = tenant_env.env_id
+            new_env.tenant_env_id = tenant_env.env_id
             new_env.service_id = service.service_id
             env_list.append(new_env)
         if env_list:
