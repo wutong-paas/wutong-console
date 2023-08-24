@@ -184,4 +184,6 @@ async def again_delete_app(request: Request,
     code, msg = component_delete_service.logic_delete(session=session, user=user, tenant_env=env, is_force=True,
                                                       service=service)
     result = general_message(code, "", msg, bean={})
-    return JSONResponse(result, status_code=code)
+    if code != "0":
+        return JSONResponse(result, status_code=code)
+    return JSONResponse(result, status_code=200)
