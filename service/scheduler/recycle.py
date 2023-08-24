@@ -13,7 +13,6 @@ from service.tenant_env_service import env_services
 
 
 def recycle_delete_task(session: SessionClass):
-
     delete_date = datetime.datetime.now().date() - datetime.timedelta(days=7)
     # 扫描待清理组件信息数据
     component_records = service_info_repo.get_logic_delete_records(session=session, delete_date=delete_date)
@@ -23,16 +22,23 @@ def recycle_delete_task(session: SessionClass):
             logger.info("开始清理组件信息:{},删除操作人:{},删除操作时间:{}", record.service_cname, record.delete_operator,
                         record.delete_time)
             # 查询env
-            tenant_env = env_repo.get_env_by_env_id(session=session, env_id=record.tenant_env_id)
+            tenant_env = env_repo.get_all_env_by_env_id(session=session, env_id=record.tenant_env_id)
             if tenant_env:
                 try:
-                    app_manage_service.delete(session=session, user_nickname=record.delete_operator, tenant_env=tenant_env,
-                                              service=record)
-                    logger.info("{0} 组件清理完成".format(record.service_alias))
+                    code, msg = app_manage_service.delete(session=session, user_nickname=record.delete_operator,
+                                                          tenant_env=tenant_env,
+                                                          service=record)
+                    if code == 200:
+                        logger.info("{0} 组件清理完成".format(record.service_alias))
+                    else:
+                        logger.info("{0} 组件清理失败:{1}".format(record.service_alias, msg))
                 except Exception as e:
                     logger.exception(e)
                     logger.info("{0} 组件清理失败".format(record.service_alias))
         logger.info("组件清理完成")
+
+    session.flush()
+    session.commit()
 
     # 扫描待清理应用信息数据
     app_records = application_repo.get_logic_delete_records(session=session, delete_date=delete_date)
@@ -45,7 +51,8 @@ def recycle_delete_task(session: SessionClass):
             tenant_env = env_repo.get_env_by_env_id(session=session, env_id=record.tenant_env_id)
             if tenant_env:
                 try:
-                    application_service.delete_app(session=session, tenant_env=tenant_env, region_name=record.region_name,
+                    application_service.delete_app(session=session, tenant_env=tenant_env,
+                                                   region_name=record.region_name,
                                                    app_id=record.ID,
                                                    app_type=record.app_type)
                     logger.info("{0} 应用清理完成".format(record.group_name))
@@ -53,6 +60,9 @@ def recycle_delete_task(session: SessionClass):
                     logger.exception(e)
                     logger.info("{0} 应用清理失败".format(record.group_name))
         logger.info("应用清理完成")
+
+    session.flush()
+    session.commit()
 
     # 扫描待清理环境信息数据
     logger.info("定时任务开始执行:清理{}之前删除的数据", delete_date)

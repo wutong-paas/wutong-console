@@ -73,6 +73,10 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id,
                                       TeamEnvInfo.is_delete == is_delete)).scalars().first()
 
+    def get_all_env_by_env_id(self, session, env_id):
+        return session.execute(
+            select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id)).scalars().first()
+
     def delete_by_env_id(self, session, env_id):
         row = session.execute(
             delete(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id))

@@ -244,27 +244,28 @@ class AppManageService(object):
 
     def _truncate_service(self, session: SessionClass, tenant_env, service, user_nickname=None):
         if service.create_status == "complete":
-            data = jsonable_encoder(service)
-            data.pop("ID")
-            data.pop("service_name")
-            data.pop("build_upgrade")
-            data.pop("oauth_service_id")
-            data.pop("is_upgrate")
-            data.pop("secret")
-            data.pop("open_webhooks")
-            data.pop("server_type")
-            data.pop("git_full_name")
-            data.pop("gpu_type")
-            data.pop("is_delete")
-            data.pop("delete_time")
-            data.pop("delete_operator")
-        try:
-            add_model: TeamComponentInfoDelete = TeamComponentInfoDelete(**data)
-            session.add(add_model)
-            session.flush()
-        except Exception as e:
-            logger.exception(e)
-            pass
+            try:
+                data = jsonable_encoder(service)
+                data.pop("ID")
+                data.pop("service_name")
+                data.pop("build_upgrade")
+                data.pop("oauth_service_id")
+                data.pop("is_upgrate")
+                data.pop("secret")
+                data.pop("open_webhooks")
+                data.pop("server_type")
+                data.pop("git_full_name")
+                data.pop("gpu_type")
+                data.pop("is_delete")
+                data.pop("delete_time")
+                data.pop("delete_operator")
+                data.pop("image_hub")
+                add_model: TeamComponentInfoDelete = TeamComponentInfoDelete(**data)
+                session.add(add_model)
+                session.flush()
+            except Exception as e:
+                logger.exception(e)
+                pass
 
         service_id = service.service_id
 
