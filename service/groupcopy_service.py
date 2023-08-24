@@ -231,7 +231,8 @@ class GroupAppCopyService(object):
                                                                                  user.nick_name)
                 else:
                     # 数据中心创建组件
-                    new_service = application_service.create_region_service(session, tenant_env, service, user.nick_name)
+                    new_service = application_service.create_region_service(session, tenant_env, service,
+                                                                            user.nick_name)
                 service = new_service
                 # 部署组件
                 app_manage_service.deploy(session, tenant_env, service, user)
@@ -253,8 +254,10 @@ class GroupAppCopyService(object):
                         event_id = make_uuid()
                         plugin_version.event_id = event_id
                         image_tag = (plugin_version.image_tag if plugin_version.image_tag else "latest")
-                        plugin_service.create_region_plugin(session, region_name, tenant_env, plugin, image_tag=image_tag)
-                        ret = plugin_service.build_plugin(session, region_name, plugin, plugin_version, user, tenant_env, event_id)
+                        plugin_service.create_region_plugin(session, region_name, tenant_env, plugin,
+                                                            image_tag=image_tag, user_name=user.nick_name)
+                        ret = plugin_service.build_plugin(session, region_name, plugin, plugin_version, user,
+                                                          tenant_env, event_id)
                         plugin_version.build_status = ret.get('bean').get('status')
                         # plugin_version.save()
                     except Exception as e:
@@ -270,6 +273,7 @@ class GroupAppCopyService(object):
                         data["version_id"] = service_plugin.build_version
                         data["plugin_cpu"] = service_plugin.min_cpu
                         data["plugin_memory"] = service_plugin.min_memory
+                        data["operator"] = user.nick_name
                         data.update(region_config)
                         remote_plugin_client.install_service_plugin(session,
                                                                     region_name, tenant_env,

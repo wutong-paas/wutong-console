@@ -49,7 +49,8 @@ class PluginService(object):
         tenant_plugin = plugin_repo.create_plugin(session, **plugin_params)
         return 200, "success", tenant_plugin
 
-    def create_region_plugin(self, session: SessionClass, region, tenant_env, tenant_plugin, image_tag="latest"):
+    def create_region_plugin(self, session: SessionClass, region, tenant_env, tenant_plugin, image_tag="latest",
+                             user_name=""):
         """创建region端插件信息"""
         plugin_data = dict()
         plugin_data["build_model"] = tenant_plugin.build_source
@@ -64,6 +65,7 @@ class PluginService(object):
         plugin_data["plugin_name"] = tenant_plugin.plugin_name
         plugin_data["tenant_env_id"] = tenant_env.env_id
         plugin_data["origin"] = tenant_plugin.origin
+        plugin_data["operator"] = user_name
         remote_plugin_client.create_plugin(session, region, tenant_env, plugin_data)
         return 200, "success"
 

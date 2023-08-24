@@ -202,7 +202,8 @@ async def create_plugins(request: Request,
             code_version,
             min_cpu=min_cpu)
         # 数据中心创建插件
-        code, msg = plugin_service.create_region_plugin(session, response_region, env, tenant_plugin, image_tag)
+        code, msg = plugin_service.create_region_plugin(session, response_region, env, tenant_plugin, image_tag,
+                                                        user_name=user.nick_name)
         if code != 200:
             plugin_service.delete_console_tenant_plugin(session, env.env_id, tenant_plugin.plugin_id)
             plugin_version_service.delete_build_version_by_id_and_version(session,
@@ -651,7 +652,7 @@ async def plugin_share(request: Request,
         min_cpu=plugin_version.min_cpu)
     # 数据中心创建插件
     code, msg = plugin_service.create_region_plugin(session, region.region_name, env, tenant_plugin,
-                                                    plugin_build_version.image_tag)
+                                                    plugin_build_version.image_tag, user_name=user.nick_name)
     if code != 200:
         plugin_service.delete_console_tenant_plugin(session, env.env_id, tenant_plugin.plugin_id)
         plugin_version_service.delete_build_version_by_id_and_version(session,
