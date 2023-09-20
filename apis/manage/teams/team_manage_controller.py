@@ -169,7 +169,7 @@ async def env_services_event(
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/env/{env_id}/again_delete", response_model=Response, name="二次确认删除应用")
+@router.delete("/teams/{team_name}/env/{env_id}/again_delete", response_model=Response, name="二次确认删除组件")
 async def again_delete_app(request: Request,
                            session: SessionClass = Depends(deps.get_session),
                            env=Depends(deps.get_current_team_env),
