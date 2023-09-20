@@ -178,6 +178,18 @@ class ApplicationService(object):
 
         return 200, "创建成功", ts
 
+    def get_service_by_service_key(self, session, service, dep_service_key):
+        """
+        get service according to service_key that is sometimes called service_share_uuid.
+        """
+        group_id = service_group_relation_repo.get_group_id_by_service(session, service)
+        dep_services = service_info_repo.list_by_svc_share_uuids(session, group_id, [dep_service_key])
+        if not dep_services:
+            logger.warning("service share uuid: {}; failed to get dep service: \
+                service not found".format(dep_service_key))
+            return None
+        return dep_services[0]
+
     @staticmethod
     def get_pod(session, tenant_env, region_name, pod_name):
         return remote_build_client.get_pod(session, region_name, tenant_env, pod_name)

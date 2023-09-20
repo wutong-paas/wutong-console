@@ -384,7 +384,7 @@ class PropertiesChanges(object):
 
         if not new_dep_volumes:
             return
-        old_dep_volumes = mnt_repo.get_service_mnts(self.service.tenant_env_id, self.service.service_id)
+        old_dep_volumes = mnt_repo.get_service_mnts(session, self.service.tenant_env_id, self.service.service_id)
         olds = {key(item.dep_service_id, item.mnt_name): item for item in old_dep_volumes}
 
         tenant_service_volumes = volume_repo.get_service_volumes(session, self.service.service_id)
@@ -392,7 +392,8 @@ class PropertiesChanges(object):
 
         add = []
         for new_dep_volume in new_dep_volumes:
-            dep_service = application_service.get_service_by_service_key(self.service,
+            dep_service = application_service.get_service_by_service_key(session,
+                                                                         self.service,
                                                                          new_dep_volume["service_share_uuid"])
             logger.debug("dep_service: {}".format(dep_service))
             if dep_service is None:
@@ -402,7 +403,7 @@ class PropertiesChanges(object):
                     key(dep_service["service_id"], new_dep_volume["mnt_name"])))
                 continue
 
-            volume_service.check_volume_path(self.service, new_dep_volume["mnt_dir"], local_path=local_path)
+            volume_service.check_volume_path(session, self.service, new_dep_volume["mnt_dir"], local_path=local_path)
 
             new_dep_volume["service_id"] = dep_service["service_id"]
             add.append(new_dep_volume)
