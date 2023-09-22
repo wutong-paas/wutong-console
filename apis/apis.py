@@ -22,6 +22,7 @@ from apis.manage.team import wutong_team_overview_controller, \
 from apis.manage.teams import team_manage_controller, cube_team_controller
 from apis.manage.env import env_manage_controller
 from apis.manage.yaml import yaml_manage_controller
+from apis.manage.components import backup_restore_controller
 
 api_router = APIRouter()
 
@@ -97,3 +98,5 @@ api_router.include_router(plat_manage_controller.router, tags=["plat"])
 api_router.include_router(cube_team_controller.router, tags=["cube-team"])
 # yaml
 api_router.include_router(yaml_manage_controller.router, tags=["yaml"])
+# backup restore
+api_router.include_router(backup_restore_controller.router, tags=["backup"])
