@@ -9,6 +9,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
+from schemas.components import ServiceBackupParam
 from schemas.response import Response
 
 router = APIRouter()
@@ -17,6 +18,7 @@ router = APIRouter()
 @router.post("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup", response_model=Response, name="组件备份")
 async def service_backup(
         service_alias: Optional[str] = None,
+        backup_param: ServiceBackupParam = ServiceBackupParam(),
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
     """
@@ -26,7 +28,7 @@ async def service_backup(
 
     body = {
         "service_id": service.service_id,
-        "desc": ""
+        "desc": backup_param.desc
     }
     re = remote_component_client.service_backup(session,
                                                 service.service_region, env,
