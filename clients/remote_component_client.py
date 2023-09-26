@@ -685,7 +685,8 @@ class RemoteComponentClient(ApiBaseHttpClient):
                                                                           service_alias)
 
         self._set_headers(token)
-        res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body), timeout=20)
+        res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body),
+                               timeout=20)
         return body
 
     def service_restore(self, session, region_name, tenant_env, service_alias, body):
@@ -697,7 +698,8 @@ class RemoteComponentClient(ApiBaseHttpClient):
                                                                            service_alias)
 
         self._set_headers(token)
-        res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body), timeout=20)
+        res, body = self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body),
+                               timeout=20)
         return body
 
     def get_service_backup_list(self, session, region_name, tenant_env, service_alias):
@@ -751,6 +753,19 @@ class RemoteComponentClient(ApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region)
         return body
+
+    def download_service_backup(self, session, region_name, tenant_env, service_alias, backup_id):
+        """下载组件备份"""
+
+        url, token = get_region_access_info(region_name, session)
+        url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/backup/{3}/download".format(tenant_env.tenant_name,
+                                                                                       tenant_env.env_name,
+                                                                                       service_alias,
+                                                                                       backup_id)
+
+        self._set_headers(token)
+        res, body = self._get(session, url, self.default_headers, region=region_name)
+        return body['raw']
 
 
 remote_component_client = RemoteComponentClient()

@@ -1,8 +1,11 @@
+import io
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette.responses import StreamingResponse
 
 from clients.remote_component_client import remote_component_client
 from core import deps
@@ -134,3 +137,26 @@ async def delete_service_restore(
                                                                 service.service_alias,
                                                                 restore_id)
     return JSONResponse(general_message(200, "success", "删除组件恢复记录成功", list=re), status_code=200)
+
+
+@router.get("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/{backup_id}/download",
+            response_model=Response,
+            name="下载组件备份")
+async def get_service_backup(
+        service_alias: Optional[str] = None,
+        backup_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env)) -> Any:
+    """
+    下载组件备份
+    """
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
+
+    re = remote_component_client.download_service_backup(session,
+                                                         service.service_region, env,
+                                                         service.service_alias,
+                                                         backup_id)
+    file = io.BytesIO(re)
+    response = StreamingResponse(file, media_type="application/gzip")
+    response.init_headers({"Content-Disposition": "attchment; filename={0}.tar.gz".format(backup_id)})
+    return response
