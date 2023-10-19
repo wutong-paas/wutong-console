@@ -798,3 +798,19 @@ async def cancel_project_app(
         return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
     result = general_message("0", "success", "更新成功")
     return JSONResponse(result, status_code=200)
+
+
+@router.get("/teams/{team_code}/app/update", response_model=Response, name="更新团队应用信息")
+async def update_team_app(
+        team_code: Optional[str] = None,
+        team_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+
+    if not team_code or not team_name:
+        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
+
+    apps = application_repo.get_apps_by_team_code(session, team_code)
+    for app in apps:
+        app.tenant_name = team_name
+    result = general_message("0", "success", "更新成功")
+    return JSONResponse(result, status_code=200)

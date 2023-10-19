@@ -259,5 +259,12 @@ class ApplicationRepository(BaseRepository[Application]):
             select(Application).where(Application.is_delete == True, Application.delete_time < delete_date)
         ).scalars().all()
 
+    def get_apps_by_team_code(self, session, team_code):
+        return (
+            session.execute(
+                select(Application).where(Application.team_code == team_code)
+            )
+        ).scalars().all()
+
 
 application_repo = ApplicationRepository(Application)
