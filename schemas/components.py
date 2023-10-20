@@ -70,7 +70,3 @@ class BuildSourceParam(BaseModel):
     docker_image: Optional[str] = None
     registry_user: Optional[str] = None
     registry_password: Optional[str] = None
-
-
-class ServiceBackupParam(BaseModel):
-    desc: Optional[str] = ""
