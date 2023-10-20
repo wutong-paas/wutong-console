@@ -731,7 +731,7 @@ async def get_user_details(
             # 查询团队信息
             tenant_info = dict()
             team_region_list = get_region_list_by_team_name(session=session, envs=envs)
-            team_env_list = get_team_env_list(envs=envs)
+            team_env_list = get_team_env_list(session=session, envs=envs, user=user)
             tenant_info["team_name"] = team_code
             tenant_info["region"] = team_region_list
             tenant_info["envs"] = team_env_list

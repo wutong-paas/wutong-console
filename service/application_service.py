@@ -50,6 +50,8 @@ from service.app_config.service_monitor_service import service_monitor_service
 from service.base_services import base_service, baseService
 from service.label_service import label_service
 from service.probe_service import probe_service
+from core.api.team_api import team_api
+from repository.env.user_env_auth_repo import user_env_auth_repo
 
 
 class ApplicationService(object):
@@ -1455,14 +1457,22 @@ class ApplicationService(object):
 
         return result
 
-    def get_env_groups(self, session: SessionClass, tenant_name, env_id=None, app_name=None, team_id=None,
+    def get_env_groups(self, session: SessionClass, tenant_name, user, env_id=None, app_name=None, team_id=None,
                        project_id=None):
         result = []
+        is_team_admin = team_api.get_user_env_auth(user.user_id, team_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
         groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id, app_name, project_id)
         for g in groups:
             bean = dict()
             env = env_repo.get_env_by_env_id(session, g.tenant_env_id)
             if env:
+                if is_team_admin or is_super_admin:
+                    is_auth = True
+                else:
+                    is_auth = user_env_auth_repo.is_auth_in_env(session, g.tenant_env_id, user.user_name)
+                if not is_auth:
+                    continue
                 bean["group_id"] = g.ID
                 bean["group_name"] = g.group_name
                 bean["env_name"] = g.env_name
@@ -1878,13 +1888,28 @@ class ApplicationVisitService(object):
             ApplicationVisitRecord.is_delete == 0
         ))
 
-    def get_app_visit_record_by_user(self, session, user_id):
+    def get_app_visit_record_by_user(self, session, user):
         data = []
+        app_records_auth = []
         app_records = session.execute(select(ApplicationVisitRecord).where(
-            ApplicationVisitRecord.user_id == user_id,
+            ApplicationVisitRecord.user_id == user.user_id,
             ApplicationVisitRecord.is_delete == 0
-        ).order_by(ApplicationVisitRecord.visit_time.desc()).limit(5)).scalars().all()
+        ).order_by(ApplicationVisitRecord.visit_time.desc())).scalars().all()
         for app_record in app_records:
+            env = env_repo.get_env_by_env_id(session, app_record.tenant_env_id)
+            if env:
+                is_team_admin = team_api.get_user_env_auth(user.user_id, env.tenant_id, "3")
+                is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+                if is_team_admin or is_super_admin:
+                    is_auth = True
+                else:
+                    is_auth = user_env_auth_repo.is_auth_in_env(session, app_record.tenant_env_id, user.user_name)
+                if is_auth:
+                    app_records_auth.append(app_record)
+                if len(app_records_auth) > 4:
+                    break
+
+        for app_record in app_records_auth:
             record_dict = jsonable_encoder(app_record)
             app_id = record_dict["app_id"]
             app = application_repo.get_group_by_id(session, app_id)

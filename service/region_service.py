@@ -16,6 +16,8 @@ from repository.teams.env_repo import env_repo
 from service.app_actions.app_manage import app_manage_service
 from service.base_services import base_service
 from service.plugin_service import plugin_service
+from core.api.team_api import team_api
+from repository.env.user_env_auth_repo import user_env_auth_repo
 
 
 def get_region_list_by_team_name(session: SessionClass, envs):
@@ -54,15 +56,24 @@ def get_region_list_by_team_name(session: SessionClass, envs):
         return []
 
 
-def get_team_env_list(envs):
+def get_team_env_list(session, envs, user):
     """
-    :param session:
     :param envs:
+    :param user:
     :return:
     """
     team_env_list = []
     if envs:
         for env in envs:
+            # 判断是否拥有权限
+            is_team_admin = team_api.get_user_env_auth(user.user_id, env.tenant_id, "3")
+            is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+            if is_team_admin or is_super_admin:
+                is_auth = True
+            else:
+                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
+            if not is_auth:
+                continue
             env_info = {
                 "env_id": env.env_id,
                 "env_code": env.env_name,

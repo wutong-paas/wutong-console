@@ -765,7 +765,7 @@ async def create_apps_vist(
 async def get_apps_vist(
         user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    apps = application_visit_service.get_app_visit_record_by_user(session, user.user_id)
+    apps = application_visit_service.get_app_visit_record_by_user(session, user)
     result = general_message("0", "success", "查询成功", list=apps)
     return JSONResponse(result, status_code=200)
 
