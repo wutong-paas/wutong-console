@@ -12,6 +12,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
+from schemas.components import BackupScheduleParam
 
 router = APIRouter()
 
@@ -156,3 +157,65 @@ async def get_service_backup(
     response = StreamingResponse(file, media_type="application/gzip")
     response.init_headers({"Content-Disposition": "attchment; filename={0}.tar.gz".format(backup_id)})
     return response
+
+
+@router.get("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule", response_model=Response,
+            name="获取组件备份计划")
+async def get_service_backup_schedule(
+        service_alias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env)) -> Any:
+    """
+    获取组件备份列表
+    """
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
+
+    re = remote_component_client.get_service_backup_schedule(session,
+                                                             service.service_region, env,
+                                                             service.service_alias)
+    return JSONResponse(general_message(200, "success", "获取组件备份计划成功", bean=re), status_code=200)
+
+
+@router.post("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule", response_model=Response,
+             name="新增组件备份计划")
+async def service_backup_schedule(
+        service_alias: Optional[str] = None,
+        param: BackupScheduleParam = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env)) -> Any:
+    """
+    新增组件备份计划
+    """
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
+
+    body = {
+        "service_id": service.service_id,
+        "cron": param.cron
+    }
+    re = remote_component_client.service_backup_schedule(session,
+                                                         service.service_region, env,
+                                                         service.service_alias, body)
+    if re and re.get("bean") and re.get("bean").get("status") != "success":
+        logger.error("deploy component failure {}".format(re))
+        return JSONResponse(general_message(500, "failed", "新增组件备份计划失败"), status_code=500)
+    return JSONResponse(general_message(200, "success", "新增组件备份计划成功"), status_code=200)
+
+
+@router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule", response_model=Response,
+               name="删除组件备份计划")
+async def delete_service_backup_schedule(
+        service_alias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env)) -> Any:
+    """
+    删除组件备份计划
+    """
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
+
+    re = remote_component_client.delete_service_backup_schedule(session,
+                                                                service.service_region, env,
+                                                                service.service_alias)
+    if re and re.get("bean") and re.get("bean").get("status") != "success":
+        logger.error("deploy component failure {}".format(re))
+        return JSONResponse(general_message(500, "failed", "删除组件备份计划失败"), status_code=500)
+    return JSONResponse(general_message(200, "success", "删除组件备份计划成功"), status_code=200)
