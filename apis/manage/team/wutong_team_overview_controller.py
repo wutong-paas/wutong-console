@@ -123,7 +123,6 @@ async def overview_team_env_info(region_name: Optional[str] = None,
         project_ids = None
 
     overview_detail = dict()
-    team_service_num = 0
 
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
@@ -134,6 +133,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
     groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name, project_ids=project_ids)
     batch_create_app_body = []
     region_app_ids = []
+    app_auth_ids = []
     # 查询用户权限
     is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
     is_super_admin = team_api.get_user_env_auth(user, None, "1")
@@ -145,6 +145,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
         for group in groups:
             if (group.project_id and (group.project_id in project_ids)) or (
                     not group.project_id) or is_team_admin or is_super_admin:
+                app_auth_ids.append(group.ID)
                 if app_id_rels.get(group.ID):
                     region_app_ids.append(app_id_rels[group.ID])
                     continue
@@ -160,6 +161,9 @@ async def overview_team_env_info(region_name: Optional[str] = None,
                 if group.k8s_app:
                     create_app_body["k8s_app"] = group.k8s_app
                 batch_create_app_body.append(create_app_body)
+
+    service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_auth_ids)
+    team_service_num = len(service_list)
 
     if len(batch_create_app_body) > 0:
         try:
@@ -195,7 +199,6 @@ async def overview_team_env_info(region_name: Optional[str] = None,
                     if app_status.get("status") == "RUNNING":
                         running_app_num += 1
                     service_running_num += app_status.get("service_running_num")
-                    team_service_num += app_status.get("service_num", 0)
                     cpu_usage += app_status.get("cpu", 0) if app_status.get("cpu", 0) else 0
                     memory_usage += app_status.get("memory", 0) if app_status.get("memory", 0) else 0
     except Exception as e:
