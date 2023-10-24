@@ -22,6 +22,7 @@ from service.application_service import application_service
 from service.base_services import base_service
 from service.common_services import common_services
 from service.region_service import region_services
+from core.api.team_api import team_api
 
 router = APIRouter()
 
@@ -100,6 +101,7 @@ async def get_app_state(request: Request,
 async def overview_team_env_info(region_name: Optional[str] = None,
                                  env_id: Optional[str] = None,
                                  project_id: Optional[str] = None,
+                                 user=Depends(deps.get_current_user),
                                  env=Depends(deps.get_current_team_env),
                                  session: SessionClass = Depends(deps.get_session)
                                  ) -> Any:
@@ -121,8 +123,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
         project_ids = None
 
     overview_detail = dict()
-    team_service_num = service_info_repo.get_team_service_num_by_team_id(
-        session=session, env_id=env_id, region_name=region_name, project_id=project_id)
+    team_service_num = 0
 
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
@@ -133,26 +134,32 @@ async def overview_team_env_info(region_name: Optional[str] = None,
     groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name, project_ids=project_ids)
     batch_create_app_body = []
     region_app_ids = []
+    # 查询用户权限
+    is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
+    is_super_admin = team_api.get_user_env_auth(user, None, "1")
+    project_ids = team_api.get_user_project_ids(user.user_id, env.tenant_id, user.token)
     if groups:
         app_ids = [group.ID for group in groups]
         region_apps = region_app_repo.list_by_app_ids(session, region.region_name, app_ids)
         app_id_rels = {rapp.app_id: rapp.region_app_id for rapp in region_apps}
         for group in groups:
-            if app_id_rels.get(group.ID):
-                region_app_ids.append(app_id_rels[group.ID])
-                continue
-            create_app_body = dict()
-            group_services = base_service.get_group_services_list(session=session, env_id=env.env_id,
-                                                                  region_name=region.region_name, group_id=group.ID)
-            service_ids = []
-            if group_services:
-                service_ids = [service["service_id"] for service in group_services]
-            create_app_body["app_name"] = group.group_name
-            create_app_body["console_app_id"] = group.ID
-            create_app_body["service_ids"] = service_ids
-            if group.k8s_app:
-                create_app_body["k8s_app"] = group.k8s_app
-            batch_create_app_body.append(create_app_body)
+            if (group.project_id and (group.project_id in project_ids)) or (
+                    not group.project_id) or is_team_admin or is_super_admin:
+                if app_id_rels.get(group.ID):
+                    region_app_ids.append(app_id_rels[group.ID])
+                    continue
+                create_app_body = dict()
+                group_services = base_service.get_group_services_list(session=session, env_id=env.env_id,
+                                                                      region_name=region.region_name, group_id=group.ID)
+                service_ids = []
+                if group_services:
+                    service_ids = [service["service_id"] for service in group_services]
+                create_app_body["app_name"] = group.group_name
+                create_app_body["console_app_id"] = group.ID
+                create_app_body["service_ids"] = service_ids
+                if group.k8s_app:
+                    create_app_body["k8s_app"] = group.k8s_app
+                batch_create_app_body.append(create_app_body)
 
     if len(batch_create_app_body) > 0:
         try:
@@ -161,10 +168,13 @@ async def overview_team_env_info(region_name: Optional[str] = None,
             app_list = []
             if applist:
                 for app in applist:
-                    data = RegionApp(
-                        app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
-                    app_list.append(data)
-                    region_app_ids.append(app["region_app_id"])
+                    group = application_service.get_app_by_app_id(session, app["app_id"])
+                    if (group.project_id and (group.project_id in project_ids)) or (
+                            not group.project_id) or is_team_admin or is_super_admin:
+                        data = RegionApp(
+                            app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
+                        app_list.append(data)
+                        region_app_ids.append(app["region_app_id"])
             region_app_repo.bulk_create(session=session, app_list=app_list)
         except Exception as e:
             logger.exception(e)
@@ -185,12 +195,12 @@ async def overview_team_env_info(region_name: Optional[str] = None,
                     if app_status.get("status") == "RUNNING":
                         running_app_num += 1
                     service_running_num += app_status.get("service_running_num")
+                    team_service_num += app_status.get("service_num", 0)
                     cpu_usage += app_status.get("cpu", 0) if app_status.get("cpu", 0) else 0
                     memory_usage += app_status.get("memory", 0) if app_status.get("memory", 0) else 0
     except Exception as e:
         logger.exception(e)
-    team_app_num = application_repo.get_tenant_region_groups_count(session, env.env_id, region_name, project_id)
-    overview_detail["team_app_num"] = team_app_num
+    overview_detail["team_app_num"] = len(region_app_ids)
     overview_detail["team_service_num"] = team_service_num
     overview_detail["team_service_memory_count"] = 0
     overview_detail["team_service_total_disk"] = 0

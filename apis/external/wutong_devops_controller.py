@@ -339,8 +339,8 @@ async def get_team_envs(
     try:
         env_list = []
         envs = env_services.get_envs_by_tenant_name(session, team_name)
-        is_team_admin = team_api.get_user_env_auth(user.user_id, team_id, "3")
-        is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+        is_team_admin = team_api.get_user_env_auth(user, team_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user, None, "1")
         if is_team_admin or is_super_admin:
             env_list = envs
         else:

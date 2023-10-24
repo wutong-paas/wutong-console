@@ -65,6 +65,7 @@ async def overview_env_app_info(request: Request,
                                 status: Optional[str] = "all",
                                 project_ids: Optional[str] = None,
                                 query: Optional[str] = "",
+                                user=Depends(deps.get_current_user),
                                 env=Depends(deps.get_current_team_env),
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -85,14 +86,13 @@ async def overview_env_app_info(request: Request,
         "UNKNOWN": 0,
         "": 0
     }
+    total = 0
 
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     region_name = region.region_name
     groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query, project_ids=project_ids)
-    total = len(groups)
-    app_num_dict = {"total": total}
     start = (page - 1) * page_size
     end = page * page_size
     apps = []
@@ -101,9 +101,12 @@ async def overview_env_app_info(request: Request,
         apps, count = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids,
                                                                   region=region_name,
                                                                   tenant_env=env,
+                                                                  user=user,
                                                                   status=status)
 
-    total = len(apps)
+    for value in count.values():
+        total += value
+    app_num_dict = {"total": total}
     pages = int(total / page_size)
     if pages == 0:
         pages = 1

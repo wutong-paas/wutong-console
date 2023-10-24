@@ -66,8 +66,8 @@ def get_team_env_list(session, envs, user):
     if envs:
         for env in envs:
             # 判断是否拥有权限
-            is_team_admin = team_api.get_user_env_auth(user.user_id, env.tenant_id, "3")
-            is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+            is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
+            is_super_admin = team_api.get_user_env_auth(user, None, "1")
             if is_team_admin or is_super_admin:
                 is_auth = True
             else:

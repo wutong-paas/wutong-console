@@ -1338,7 +1338,8 @@ class ApplicationService(object):
             app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
         return app_id_status_rels
 
-    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_env, status="all"):
+    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_env, user, status="all"):
+        auth_app_ids = []
         count = {
             "RUNNING": 0,
             "CLOSED": 0,
@@ -1349,8 +1350,38 @@ class ApplicationService(object):
             "UNKNOWN": 0,
             "": 0
         }
+        is_team_admin = team_api.get_user_env_auth(user, tenant_env.tenant_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user, None, "1")
+        project_ids = team_api.get_user_project_ids(user.user_id, tenant_env.tenant_id, user.token)
         app_list = application_repo.get_multi_app_info(session, app_ids)
-        service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
+        app_id_statuses = self.get_region_app_statuses(session=session, tenant_env=tenant_env, region_name=region,
+                                                       app_ids=app_ids)
+        apps = dict()
+        for app in app_list:
+            if (app.project_id and (app.project_id in project_ids)) or (
+            not app.project_id) or is_team_admin or is_super_admin:
+                auth_app_ids.append(app.ID)
+                app_status = app_id_statuses.get(app.ID)
+                if app_status:
+                    count[app_status["status"]] += 1
+                    if status == "all" or app_status["status"] == status.upper():
+                        used_cpu = app_status.get("cpu", 0)
+                        used_mem = app_status.get("memory", 0)
+                        apps[app.ID] = {
+                            "project_id": app.project_id,
+                            "group_id": app.ID,
+                            "update_time": app.update_time,
+                            "create_time": app.create_time,
+                            "group_name": app.group_name,
+                            "group_note": app.note,
+                            "service_list": [],
+                            "used_mem": used_mem if app_status and used_mem else 0,
+                            "used_cpu": round(used_cpu / 1000, 2) if app_status and used_cpu else 0,
+                            "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
+                            "logo": app.logo,
+                            "accesses": [],
+                        }
+        service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, auth_app_ids)
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(session=session, region=region, tenant_env=tenant_env,
                                                         service_ids=service_ids)
@@ -1359,30 +1390,6 @@ class ApplicationService(object):
             raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
         for status_dict in status_list:
             service_status[status_dict["service_id"]] = status_dict
-        app_id_statuses = self.get_region_app_statuses(session=session, tenant_env=tenant_env, region_name=region,
-                                                       app_ids=app_ids)
-        apps = dict()
-        for app in app_list:
-            app_status = app_id_statuses.get(app.ID)
-            if app_status:
-                count[app_status["status"]] += 1
-                if status == "all" or app_status["status"] == status.upper():
-                    used_cpu = app_status.get("cpu", 0)
-                    used_mem = app_status.get("memory", 0)
-                    apps[app.ID] = {
-                        "project_id": app.project_id,
-                        "group_id": app.ID,
-                        "update_time": app.update_time,
-                        "create_time": app.create_time,
-                        "group_name": app.group_name,
-                        "group_note": app.note,
-                        "service_list": [],
-                        "used_mem": used_mem if app_status and used_mem else 0,
-                        "used_cpu": round(used_cpu / 1000, 2) if app_status and used_cpu else 0,
-                        "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
-                        "logo": app.logo,
-                        "accesses": [],
-                    }
         # 获取应用下组件的访问地址
         accesses = port_service.list_access_infos(session=session, tenant_env=tenant_env, services=service_list)
         for service in service_list:
@@ -1460,8 +1467,8 @@ class ApplicationService(object):
     def get_env_groups(self, session: SessionClass, tenant_name, user, env_id=None, app_name=None, team_id=None,
                        project_id=None):
         result = []
-        is_team_admin = team_api.get_user_env_auth(user.user_id, team_id, "3")
-        is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+        is_team_admin = team_api.get_user_env_auth(user, team_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user, None, "1")
         groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id, app_name, project_id)
         for g in groups:
             bean = dict()
@@ -1898,8 +1905,8 @@ class ApplicationVisitService(object):
         for app_record in app_records:
             env = env_repo.get_env_by_env_id(session, app_record.tenant_env_id)
             if env:
-                is_team_admin = team_api.get_user_env_auth(user.user_id, env.tenant_id, "3")
-                is_super_admin = team_api.get_user_env_auth(user.user_id, None, "1")
+                is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
+                is_super_admin = team_api.get_user_env_auth(user, None, "1")
                 if is_team_admin or is_super_admin:
                     is_auth = True
                 else:
