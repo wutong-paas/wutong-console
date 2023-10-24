@@ -201,7 +201,8 @@ async def service_backup_schedule(
     return JSONResponse(general_message(200, "success", "新增组件备份计划成功"), status_code=200)
 
 
-@router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule", response_model=Response,
+@router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule/delete",
+               response_model=Response,
                name="删除组件备份计划")
 async def delete_service_backup_schedule(
         service_alias: Optional[str] = None,

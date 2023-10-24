@@ -728,7 +728,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
                                timeout=20)
         return body
 
-    def get_service_backup_schedule(self, session, region_name, tenant_env, service_alias, body):
+    def get_service_backup_schedule(self, session, region_name, tenant_env, service_alias):
         """获取组件备份计划"""
 
         url, token = get_region_access_info(region_name, session)
@@ -738,8 +738,8 @@ class RemoteComponentClient(ApiBaseHttpClient):
                                                                                    service_alias)
 
         self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region_name, body=json.dumps(body))
-        return body
+        res, body = self._get(session, url, self.default_headers, region=region_name)
+        return body["bean"]
 
     def delete_service_backup_schedule(self, session, region_name, tenant_env, service_alias):
         """删除组件备份计划"""
