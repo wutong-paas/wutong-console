@@ -1423,7 +1423,7 @@ class ApplicationService(object):
                 re_app_list.append(app)
         return re_app_list, count
 
-    def get_groups_and_services(self, session: SessionClass, tenant_env, region, query="", app_type="",
+    def get_groups_and_services(self, session: SessionClass, tenant_env, region, user, query="", app_type="",
                                 project_id=None):
         # 项目id需转换为list
         if project_id:
@@ -1455,12 +1455,18 @@ class ApplicationService(object):
                 service_id_map.pop(k)
 
         result = []
-        for g in groups:
-            bean = dict()
-            bean["group_id"] = g.ID
-            bean["group_name"] = g.group_name
-            bean["service_list"] = group_services_map.get(g.ID)
-            result.insert(0, bean)
+        # 查询用户权限
+        is_team_admin = team_api.get_user_env_auth(user, tenant_env.tenant_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user, None, "1")
+        project_ids = team_api.get_user_project_ids(user.user_id, tenant_env.tenant_id, user.token)
+        for group in groups:
+            if (group.project_id and (group.project_id in project_ids)) or (
+                    not group.project_id) or is_team_admin or is_super_admin:
+                bean = dict()
+                bean["group_id"] = group.ID
+                bean["group_name"] = group.group_name
+                bean["service_list"] = group_services_map.get(group.ID)
+                result.insert(0, bean)
 
         return result
 
