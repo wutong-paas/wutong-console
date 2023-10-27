@@ -28,7 +28,8 @@ async def service_backup(
 
     body = {
         "service_id": service.service_id,
-        "ttl": service_backup_param.ttl
+        "ttl": service_backup_param.ttl,
+        "desc": service_backup_param.desc
     }
     re = remote_component_client.service_backup(session,
                                                 service.service_region, env,
@@ -191,7 +192,8 @@ async def service_backup_schedule(
     body = {
         "service_id": service.service_id,
         "cron": param.cron,
-        "ttl": param.ttl
+        "ttl": param.ttl,
+        "desc": param.desc
     }
     re = remote_component_client.service_backup_schedule(session,
                                                          service.service_region, env,

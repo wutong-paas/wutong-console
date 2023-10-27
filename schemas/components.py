@@ -77,8 +77,12 @@ class BackupScheduleParam(BaseModel):
     cron: Optional[str] = None
     # 备份保留时长
     ttl: Optional[str] = None
+    # 描述信息
+    desc: Optional[str] = None
 
 
 class ServiceBackupParam(BaseModel):
     # 备份保留时长
     ttl: Optional[str] = None
+    # 描述信息
+    desc: Optional[str] = None
