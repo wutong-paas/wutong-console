@@ -27,7 +27,8 @@ default_plugins = [
     DefaultPluginConstants.INANDOUT_NET_PLUGIN, DefaultPluginConstants.FILEBEAT_LOG_PLUGIN,
     DefaultPluginConstants.LOGTAIL_LOG_PLUGIN, DefaultPluginConstants.MYSQLD_EXPORTER_PLUGIN,
     DefaultPluginConstants.FILEBROWSER_PLUGIN, DefaultPluginConstants.MYSQL_DBGATE_PLUGIN,
-    DefaultPluginConstants.REDIS_DBGATE_PLUGIN, DefaultPluginConstants.JAVA_AGENT_PLUGIN
+    DefaultPluginConstants.REDIS_DBGATE_PLUGIN, DefaultPluginConstants.JAVA_AGENT_PLUGIN,
+    DefaultPluginConstants.JAVA_AGENT_WEB_PLUGIN
 ]
 
 
@@ -221,7 +222,8 @@ class PluginService(object):
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            self.create_region_plugin(session=session, region=region, tenant_env=tenant_env, tenant_plugin=plugin_base_info,
+            self.create_region_plugin(session=session, region=region, tenant_env=tenant_env,
+                                      tenant_plugin=plugin_base_info,
                                       image_tag=image_tag)
 
             self.build_plugin(session=session, region=region, plugin=plugin_base_info,
@@ -233,7 +235,8 @@ class PluginService(object):
         except Exception as e:
             logger.exception(e)
             if plugin_base_info:
-                self.delete_plugin(session=session, region=region, tenant_env=tenant_env, plugin_id=plugin_base_info.plugin_id,
+                self.delete_plugin(session=session, region=region, tenant_env=tenant_env,
+                                   plugin_id=plugin_base_info.plugin_id,
                                    is_force=True)
             raise e
 

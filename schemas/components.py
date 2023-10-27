@@ -74,8 +74,3 @@ class BuildSourceParam(BaseModel):
 
 class BackupScheduleParam(BaseModel):
     cron: Optional[str] = None
-
-
-class ServiceBackupParam(BaseModel):
-    # 备份保留时长
-    retention_duration: Optional[str] = None
