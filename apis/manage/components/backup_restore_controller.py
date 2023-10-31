@@ -1,4 +1,5 @@
 import io
+import string
 from typing import Any, Optional
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -20,6 +21,7 @@ async def service_backup(
         service_alias: Optional[str] = None,
         service_backup_param: ServiceBackupParam = None,
         session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
         env=Depends(deps.get_current_team_env)) -> Any:
     """
     组件存储备份
@@ -28,7 +30,8 @@ async def service_backup(
 
     body = {
         "service_id": service.service_id,
-        "ttl": service_backup_param.ttl
+        "ttl": service_backup_param.ttl,
+        "operator": user.nick_name
     }
     re = remote_component_client.service_backup(session,
                                                 service.service_region, env,
@@ -50,10 +53,19 @@ async def get_service_backup(
     """
     service = service_info_repo.get_service(session, service_alias, env.env_id)
 
-    re = remote_component_client.get_service_backup_list(session,
-                                                         service.service_region, env,
-                                                         service.service_alias)
-    return JSONResponse(general_message(200, "success", "获取组件存储备份成功", list=re), status_code=200)
+    data = remote_component_client.get_service_backup_list(session,
+                                                           service.service_region, env,
+                                                           service.service_alias)
+
+    all_backup_stauts = True
+    if data:
+        for backup in data:
+            if backup["status"] == "InProgress":
+                all_backup_stauts = False
+
+    return JSONResponse(
+        general_message(200, "success", "获取组件存储备份成功", list=data, bean={"all_backup_stauts": all_backup_stauts}),
+        status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/{backup_id}", response_model=Response,
@@ -81,6 +93,7 @@ async def service_restore(
         service_alias: Optional[str] = None,
         backup_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
         env=Depends(deps.get_current_team_env)) -> Any:
     """
     组件存储恢复
@@ -89,7 +102,8 @@ async def service_restore(
 
     body = {
         "service_id": service.service_id,
-        "backup_id": backup_id
+        "backup_id": backup_id,
+        "operator": user.nick_name
     }
     re = remote_component_client.service_restore(session,
                                                  service.service_region, env,
@@ -168,12 +182,34 @@ async def get_service_backup_schedule(
     """
     获取组件存储备份列表
     """
+    data = {"enable": True}
     service = service_info_repo.get_service(session, service_alias, env.env_id)
 
     re = remote_component_client.get_service_backup_schedule(session,
                                                              service.service_region, env,
                                                              service.service_alias)
-    return JSONResponse(general_message(200, "success", "获取组件存储备份计划成功", bean=re), status_code=200)
+    if not re:
+        data.update({"enable": False})
+    else:
+        try:
+            data.update(re)
+            cron_list = data.get("cron").split(" ")
+            if cron_list[4] == "*":
+                sync_freq = "day"
+            else:
+                sync_freq = "week"
+            sync_time = int(cron_list[1]) + 8
+            if sync_time > 24:
+                sync_time = sync_time - 24
+
+            data = {"sync_freq": sync_freq,
+                    "sync_time": str(sync_time),
+                    "sync_week": cron_list[4]}
+        except Exception as err:
+            logger.error(err)
+            return JSONResponse(general_message(500, "failed", "获取组件存储备份计划失败"), status_code=500)
+
+    return JSONResponse(general_message(200, "success", "获取组件存储备份计划成功", bean=data), status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule", response_model=Response,
@@ -182,16 +218,28 @@ async def service_backup_schedule(
         service_alias: Optional[str] = None,
         param: BackupScheduleParam = None,
         session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
         env=Depends(deps.get_current_team_env)) -> Any:
     """
     新增组件存储备份计划
     """
+    if not param.sync_time:
+        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
     service = service_info_repo.get_service(session, service_alias, env.env_id)
+
+    sync_time = int(param.sync_time)
+    if sync_time - 8 < 0:
+        sync_time = 24 + sync_time - 8
+    else:
+        sync_time = sync_time - 8
+
+    cron = "0 {0} * * {1}".format(str(sync_time), param.sync_week)
 
     body = {
         "service_id": service.service_id,
-        "cron": param.cron,
-        "ttl": param.ttl
+        "cron": cron,
+        "ttl": param.ttl,
+        "operator": user.nick_name
     }
     re = remote_component_client.service_backup_schedule(session,
                                                          service.service_region, env,
