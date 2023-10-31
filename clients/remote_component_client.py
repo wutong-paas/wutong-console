@@ -728,6 +728,20 @@ class RemoteComponentClient(ApiBaseHttpClient):
                                timeout=20)
         return body
 
+    def put_service_backup_schedule(self, session, region_name, tenant_env, service_alias, body):
+        """修改组件备份计划"""
+
+        url, token = get_region_access_info(region_name, session)
+
+        url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/backup/schedule".format(tenant_env.tenant_name,
+                                                                                   tenant_env.env_name,
+                                                                                   service_alias)
+
+        self._set_headers(token)
+        res, body = self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body),
+                              timeout=20)
+        return body
+
     def get_service_backup_schedule(self, session, region_name, tenant_env, service_alias):
         """获取组件备份计划"""
 

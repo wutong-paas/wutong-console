@@ -28,7 +28,6 @@ async def service_backup(
     service = service_info_repo.get_service(session, service_alias, env.env_id)
 
     body = {
-        "service_id": service.service_id,
         "ttl": service_backup_param.ttl,
         "operator": user.nick_name,
         "desc": service_backup_param.desc
@@ -236,10 +235,10 @@ async def service_backup_schedule(
     cron = "0 {0} * * {1}".format(str(sync_time), param.sync_week)
 
     body = {
-        "service_id": service.service_id,
         "cron": cron,
         "ttl": param.ttl,
-        "operator": user.nick_name
+        "operator": user.nick_name,
+        "desc": param.desc
     }
     re = remote_component_client.service_backup_schedule(session,
                                                          service.service_region, env,
@@ -248,6 +247,44 @@ async def service_backup_schedule(
         logger.error("deploy component failure {}".format(re))
         return JSONResponse(general_message(500, "failed", "新增组件存储备份计划失败"), status_code=500)
     return JSONResponse(general_message(200, "success", "新增组件存储备份计划成功"), status_code=200)
+
+
+@router.put("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule", response_model=Response,
+            name="修改组件存储备份计划")
+async def put_service_backup_schedule(
+        service_alias: Optional[str] = None,
+        param: BackupScheduleParam = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env)) -> Any:
+    """
+    修改组件存储备份计划
+    """
+    if not param.sync_time:
+        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
+    service = service_info_repo.get_service(session, service_alias, env.env_id)
+
+    sync_time = int(param.sync_time)
+    if sync_time - 8 < 0:
+        sync_time = 24 + sync_time - 8
+    else:
+        sync_time = sync_time - 8
+
+    cron = "0 {0} * * {1}".format(str(sync_time), param.sync_week)
+
+    body = {
+        "cron": cron,
+        "ttl": param.ttl,
+        "operator": user.nick_name,
+        "desc": param.desc
+    }
+    re = remote_component_client.put_service_backup_schedule(session,
+                                                             service.service_region, env,
+                                                             service.service_alias, body)
+    if re and re.get("bean") and re.get("bean").get("status") != "success":
+        logger.error("deploy component failure {}".format(re))
+        return JSONResponse(general_message(500, "failed", "修改组件存储备份计划失败"), status_code=500)
+    return JSONResponse(general_message(200, "success", "修改组件存储备份计划成功"), status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule/delete",
