@@ -11,6 +11,7 @@ from database.session import SessionClass
 from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from schemas.components import BackupScheduleParam, ServiceBackupParam
+from common.api_base_http_client import ApiBaseHttpClient
 
 router = APIRouter()
 
@@ -38,7 +39,7 @@ async def service_backup(
     if re and re.get("bean") and re.get("bean").get("status") != "success":
         logger.error("deploy component failure {}".format(re))
         return JSONResponse(general_message(400, "failed", "组件存储备份失败"), status_code=400)
-    return JSONResponse(general_message(200, "success", "组件存储备份成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "组件存储备份成功"), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/records", response_model=Response,
@@ -59,11 +60,11 @@ async def get_service_backup(
     all_backup_stauts = True
     if data:
         for backup in data:
-            if backup["status"] == "InProgress":
+            if backup["status"] == "InProgress" or backup["status"] == "Deleting":
                 all_backup_stauts = False
 
     return JSONResponse(
-        general_message(200, "success", "获取组件存储备份成功", list=data, bean={"all_backup_stauts": all_backup_stauts}),
+        general_message("0", "success", "获取组件存储备份成功", list=data, bean={"all_backup_stauts": all_backup_stauts}),
         status_code=200)
 
 
@@ -79,11 +80,11 @@ async def delete_service_backup(
     """
     service = service_info_repo.get_service(session, service_alias, env.env_id)
 
-    re = remote_component_client.delete_service_backup_records(session,
-                                                               service.service_region, env,
-                                                               service.service_alias,
-                                                               backup_id)
-    return JSONResponse(general_message(200, "success", "删除组件存储备份记录成功", list=re), status_code=200)
+    remote_component_client.delete_service_backup_records(session,
+                                                          service.service_region, env,
+                                                          service.service_alias,
+                                                          backup_id)
+    return JSONResponse(general_message("0", "success", "删除组件存储备份记录成功"), status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/services/{service_alias}/restore/{backup_id}", response_model=Response,
@@ -104,12 +105,14 @@ async def service_restore(
         "backup_id": backup_id,
         "operator": user.nick_name
     }
-    re = remote_component_client.service_restore(session,
-                                                 service.service_region, env,
-                                                 service.service_alias, body)
-    if re and re.get("bean") and re.get("bean").get("status") != "success":
-        logger.error("deploy component failure {}".format(re))
-        return JSONResponse(general_message(400, "failed", "组件存储恢复失败"), status_code=400)
+    try:
+        remote_component_client.service_restore(session,
+                                                service.service_region, env,
+                                                service.service_alias, body)
+    except ApiBaseHttpClient.CallApiError as exc:
+        logger.error(exc)
+        return JSONResponse(general_message(500, exc.body.msg, exc.body.msg),
+                            status_code=200)
     return JSONResponse(general_message(200, "success", "组件存储恢复成功"), status_code=200)
 
 
@@ -127,7 +130,7 @@ async def get_service_backup(
     re = remote_component_client.get_service_restore_list(session,
                                                           service.service_region, env,
                                                           service.service_alias)
-    return JSONResponse(general_message(200, "success", "获取组件存储恢复列表", list=re), status_code=200)
+    return JSONResponse(general_message("0", "success", "获取组件存储恢复列表", list=re), status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/restore/{restore_id}", response_model=Response,
@@ -142,11 +145,11 @@ async def delete_service_restore(
     """
     service = service_info_repo.get_service(session, service_alias, env.env_id)
 
-    re = remote_component_client.delete_service_restore_records(session,
-                                                                service.service_region, env,
-                                                                service.service_alias,
-                                                                restore_id)
-    return JSONResponse(general_message(200, "success", "删除组件存储恢复记录成功", list=re), status_code=200)
+    remote_component_client.delete_service_restore_records(session,
+                                                           service.service_region, env,
+                                                           service.service_alias,
+                                                           restore_id)
+    return JSONResponse(general_message("0", "success", "删除组件存储恢复记录成功"), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/{backup_id}/download",
@@ -179,7 +182,7 @@ async def get_service_backup_schedule(
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
     """
-    获取组件存储备份列表
+    获取组件存储备份计划
     """
     data = {"enable": True}
     service = service_info_repo.get_service(session, service_alias, env.env_id)
@@ -201,21 +204,21 @@ async def get_service_backup_schedule(
             if sync_time > 24:
                 sync_time = sync_time - 24
 
-            data = {"sync_freq": sync_freq,
-                    "sync_time": str(sync_time),
-                    "sync_week": cron_list[4]}
+            data.update({"sync_freq": sync_freq,
+                         "sync_time": sync_time,
+                         "sync_week": int(cron_list[4]) if cron_list[4] != "*" else 1})
         except Exception as err:
             logger.error(err)
             return JSONResponse(general_message(500, "failed", "获取组件存储备份计划失败"), status_code=500)
 
-    return JSONResponse(general_message(200, "success", "获取组件存储备份计划成功", bean=data), status_code=200)
+    return JSONResponse(general_message("0", "success", "获取组件存储备份计划成功", bean=data), status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule", response_model=Response,
              name="新增组件存储备份计划")
 async def service_backup_schedule(
         service_alias: Optional[str] = None,
-        param: BackupScheduleParam = None,
+        param: Optional[BackupScheduleParam] = BackupScheduleParam(),
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         env=Depends(deps.get_current_team_env)) -> Any:
@@ -246,14 +249,14 @@ async def service_backup_schedule(
     if re and re.get("bean") and re.get("bean").get("status") != "success":
         logger.error("deploy component failure {}".format(re))
         return JSONResponse(general_message(500, "failed", "新增组件存储备份计划失败"), status_code=500)
-    return JSONResponse(general_message(200, "success", "新增组件存储备份计划成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "新增组件存储备份计划成功"), status_code=200)
 
 
 @router.put("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule", response_model=Response,
             name="修改组件存储备份计划")
 async def put_service_backup_schedule(
         service_alias: Optional[str] = None,
-        param: BackupScheduleParam = None,
+        param: Optional[BackupScheduleParam] = BackupScheduleParam(),
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         env=Depends(deps.get_current_team_env)) -> Any:
@@ -284,7 +287,7 @@ async def put_service_backup_schedule(
     if re and re.get("bean") and re.get("bean").get("status") != "success":
         logger.error("deploy component failure {}".format(re))
         return JSONResponse(general_message(500, "failed", "修改组件存储备份计划失败"), status_code=500)
-    return JSONResponse(general_message(200, "success", "修改组件存储备份计划成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "修改组件存储备份计划成功"), status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/backup/schedule/delete",
@@ -305,4 +308,4 @@ async def delete_service_backup_schedule(
     if re and re.get("bean") and re.get("bean").get("status") != "success":
         logger.error("deploy component failure {}".format(re))
         return JSONResponse(general_message(500, "failed", "删除组件存储备份计划失败"), status_code=500)
-    return JSONResponse(general_message(200, "success", "删除组件存储备份计划成功"), status_code=200)
+    return JSONResponse(general_message("0", "success", "删除组件存储备份计划成功"), status_code=200)

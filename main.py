@@ -36,7 +36,7 @@ async def exception_handler(request: Request, exc: ApiBaseHttpClient.CallApiErro
     """
     logger.error("catch exception,request:{},error_message:{}", request.url, exc.body.msg)
     return JSONResponse(general_message(exc.message["http_code"], exc.body.msg, exc.body.msg),
-                        status_code=exc.message["http_code"])
+                        status_code=200)
 
 
 @app.exception_handler(ServiceHandleException)

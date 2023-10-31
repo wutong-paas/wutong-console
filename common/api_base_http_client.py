@@ -23,7 +23,7 @@ def _json_decode(string):
     try:
         body = json.loads(string)
     except ValueError:
-        if len(string) < 10000:
+        if len(string) < 100000000:
             body = {"raw": string}
         else:
             body = {"raw": "too long to record!"}
