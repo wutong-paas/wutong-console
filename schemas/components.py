@@ -78,8 +78,12 @@ class BackupScheduleParam(BaseModel):
     # 计划时间
     sync_time: Optional[str] = None
     sync_week: Optional[str] = "*"
+    # 描述信息
+    desc: Optional[str] = None
 
 
 class ServiceBackupParam(BaseModel):
     # 备份保留时长
     ttl: Optional[str] = None
+    # 描述信息
+    desc: Optional[str] = None

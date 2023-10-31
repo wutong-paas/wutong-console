@@ -1,5 +1,4 @@
 import io
-import string
 from typing import Any, Optional
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -31,7 +30,8 @@ async def service_backup(
     body = {
         "service_id": service.service_id,
         "ttl": service_backup_param.ttl,
-        "operator": user.nick_name
+        "operator": user.nick_name,
+        "desc": service_backup_param.desc
     }
     re = remote_component_client.service_backup(session,
                                                 service.service_region, env,
