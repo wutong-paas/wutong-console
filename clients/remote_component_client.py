@@ -818,7 +818,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
                                                                                        backup_id)
 
         self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, region=region_name)
+        res, body = self._get(session, url, self.default_headers, region=region_name, timeout=30)
         return body['raw']
 
 

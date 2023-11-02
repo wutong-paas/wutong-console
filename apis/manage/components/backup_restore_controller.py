@@ -62,6 +62,7 @@ async def get_service_backup(
         for backup in data:
             if backup["status"] == "InProgress" or backup["status"] == "Deleting":
                 all_backup_stauts = False
+                break
 
     return JSONResponse(
         general_message("0", "success", "获取组件存储备份成功", list=data, bean={"all_backup_stauts": all_backup_stauts}),
@@ -105,15 +106,11 @@ async def service_restore(
         "backup_id": backup_id,
         "operator": user.nick_name
     }
-    try:
-        remote_component_client.service_restore(session,
-                                                service.service_region, env,
-                                                service.service_alias, body)
-    except ApiBaseHttpClient.CallApiError as exc:
-        logger.error(exc)
-        return JSONResponse(general_message(500, exc.body.msg, exc.body.msg),
-                            status_code=200)
-    return JSONResponse(general_message(200, "success", "组件存储恢复成功"), status_code=200)
+    remote_component_client.service_restore(session,
+                                            service.service_region, env,
+                                            service.service_alias, body)
+
+    return JSONResponse(general_message("0", "success", "组件存储恢复成功"), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/services/{service_alias}/restore/records", response_model=Response,
@@ -171,7 +168,8 @@ async def get_service_backup(
                                                          backup_id)
     file = io.BytesIO(re)
     response = StreamingResponse(file, media_type="application/gzip")
-    response.init_headers({"Content-Disposition": "attchment; filename={0}.tar.gz".format(backup_id)})
+    response.init_headers({"Content-Disposition": "attchment; filename={0}.tar.gz".format(backup_id),
+                           "file_name": "{0}.tar.gz".format(backup_id)})
     return response
 
 
