@@ -12,7 +12,7 @@ from starlette.responses import JSONResponse
 from apis.apis import api_router
 from common.api_base_http_client import ApiBaseHttpClient
 from core import nacos
-from core.nacos import register_nacos
+from core.nacos import register_nacos, client
 from core.utils.return_message import general_message
 from database.session import engine, Base, settings, SessionClass
 from exceptions.main import ServiceHandleException
@@ -122,6 +122,12 @@ def shutdown_event():
     关闭
     :return:
     """
+    # 注销nacos服务
+    client.remove_naming_instance(
+        settings.SERVICE_NAME,
+        settings.SERVICE_IP,
+        settings.SERVICE_PORT,
+        group_name=settings.SERVICE_GROUP_NAME)
     scheduler.shutdown()
 
 
