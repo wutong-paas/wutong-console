@@ -1,7 +1,5 @@
 # 初始化app实例
 import atexit
-import fcntl
-
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -18,6 +16,9 @@ from database.session import engine, Base, settings, SessionClass
 from exceptions.main import ServiceHandleException
 from middleware import register_middleware
 from service.scheduler import recycle
+
+if not settings.DEBUG:
+    import fcntl
 
 if settings.ENV == "PROD":
     # 生产关闭swagger
@@ -88,18 +89,19 @@ def scheduler_nacos_beat():
 
 
 def start_scheduler():
-    f = open("scheduler.lock", "wb")
-    try:
-        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        scheduler.start()
-    except:
-        pass
+    if not settings.DEBUG:
+        f = open("scheduler.lock", "wb")
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            scheduler.start()
+        except:
+            pass
 
-    def unlock():
-        fcntl.flock(f, fcntl.LOCK_UN)
-        f.close()
+        def unlock():
+            fcntl.flock(f, fcntl.LOCK_UN)
+            f.close()
 
-    atexit.register(unlock)
+        atexit.register(unlock)
 
 
 @app.on_event('startup')
