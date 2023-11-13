@@ -341,6 +341,7 @@ class NewComponents(object):
         volumes2 = []
         config_files = []
         for volume in volumes:
+            config_file = None
             try:
                 if volume["volume_type"] == "config-file" and volume["file_content"] != "":
                     settings = None
@@ -348,7 +349,6 @@ class NewComponents(object):
                         service_id=component.service_id,
                         volume_name=volume["volume_name"],
                         file_content=volume["file_content"])
-                    config_files.append(config_file)
                 else:
                     settings = volume_service.get_best_suitable_volume_settings(session,
                                                                                 self.tenant_env, component,
@@ -366,18 +366,24 @@ class NewComponents(object):
                     else:
                         settings["volume_capacity"] = volume.get("volume_capacity", 0)
 
-                volumes2.append(
-                    volume_service.create_service_volume(
-                        session,
-                        self.tenant_env,
-                        component,
-                        volume["volume_path"],
-                        volume["volume_type"],
-                        volume["volume_name"],
-                        settings=settings,
-                        mode=volume.get("mode")))
+                vol = volume_service.create_service_volume(
+                    session,
+                    self.tenant_env,
+                    component,
+                    volume["volume_path"],
+                    volume["volume_type"],
+                    volume["volume_name"],
+                    settings=settings,
+                    mode=volume.get("mode"))
+                session.add(vol)
+                session.flush()
+                if config_file:
+                    config_file.volume_id = vol.ID
+                    config_files.append(config_file)
+                volumes2.append(vol)
             except ErrVolumePath:
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
+
         return volumes2, config_files
 
     def _template_to_probes(self, session, component, probes):
