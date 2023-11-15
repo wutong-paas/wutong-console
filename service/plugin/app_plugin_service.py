@@ -303,10 +303,11 @@ class AppPluginService(object):
                 )).scalars().first()
 
                 if env:
+                    java_agent_env = "-javaagent:/agent/agent.jar"
                     old_attr_value = env.attr_value
-                    if "-javaagent" in env.attr_value:
-                        start_index = old_attr_value.find("-javaagent")
-                        end_index = old_attr_value.find(service.k8s_component_name) + len(service.k8s_component_name)
+                    if java_agent_env in env.attr_value:
+                        start_index = old_attr_value.find(java_agent_env)
+                        end_index = old_attr_value.find(java_agent_env) + len(java_agent_env)
                         repl_value = old_attr_value[:start_index] + "" + old_attr_value[end_index:]
                     else:
                         return
