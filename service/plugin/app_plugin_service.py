@@ -322,6 +322,13 @@ class AppPluginService(object):
                                                              attr_value=repl_value,
                                                              user_name=user.nick_name)
 
+    def delete_java_agent_plugin_volume(self, session, env, service, volume_id, user):
+        code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env, service=service,
+                                                                       volume_id=volume_id,
+                                                                       user_name=user.nick_name)
+        if code != 200:
+            logger.debug("删除agent存储失败 " + msg)
+
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
         service_plugin_var = []
@@ -725,14 +732,7 @@ class AppPluginService(object):
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
-
-                volumes = volume_service.get_service_volumes(session=session, tenant_env=tenant_env, service=service,
-                                                             is_config_file=False)
-
-                for volume in volumes:
-                    if volume["volume_path"] == "/agent":
-                        return
-
+                volume_path = "/agent"
                 settings = {'volume_capacity': 1, 'provider_name': '',
                             'access_mode': '',
                             'share_policy': '', 'backup_policy': '',
@@ -742,7 +742,7 @@ class AppPluginService(object):
                     session=session,
                     tenant_env=tenant_env,
                     service=service,
-                    volume_path="/agent",
+                    volume_path=volume_path,
                     volume_type="share-file",
                     volume_name=volume_name,
                     file_content="",

@@ -207,7 +207,7 @@ async def get_service_backup_schedule(
                          "sync_week": int(cron_list[4]) if cron_list[4] != "*" else 1})
         except Exception as err:
             logger.error(err)
-            return JSONResponse(general_message(500, "failed", "获取组件存储备份计划失败"), status_code=500)
+            return JSONResponse(general_message(500, "failed", "获取组件存储备份计划失败"), status_code=501)
 
     return JSONResponse(general_message("0", "success", "获取组件存储备份计划成功", bean=data), status_code=200)
 
@@ -246,7 +246,7 @@ async def service_backup_schedule(
                                                          service.service_alias, body)
     if re and re.get("bean") and re.get("bean").get("status") != "success":
         logger.error("deploy component failure {}".format(re))
-        return JSONResponse(general_message(500, "failed", "新增组件存储备份计划失败"), status_code=500)
+        return JSONResponse(general_message(500, "failed", "新增组件存储备份计划失败"), status_code=501)
     return JSONResponse(general_message("0", "success", "新增组件存储备份计划成功"), status_code=200)
 
 
@@ -284,7 +284,7 @@ async def put_service_backup_schedule(
                                                              service.service_alias, body)
     if re and re.get("bean") and re.get("bean").get("status") != "success":
         logger.error("deploy component failure {}".format(re))
-        return JSONResponse(general_message(500, "failed", "修改组件存储备份计划失败"), status_code=500)
+        return JSONResponse(general_message(500, "failed", "修改组件存储备份计划失败"), status_code=501)
     return JSONResponse(general_message("0", "success", "修改组件存储备份计划成功"), status_code=200)
 
 
@@ -305,5 +305,5 @@ async def delete_service_backup_schedule(
                                                                 service.service_alias)
     if re and re.get("bean") and re.get("bean").get("status") != "success":
         logger.error("deploy component failure {}".format(re))
-        return JSONResponse(general_message(500, "failed", "删除组件存储备份计划失败"), status_code=500)
+        return JSONResponse(general_message(500, "failed", "删除组件存储备份计划失败"), status_code=501)
     return JSONResponse(general_message("0", "success", "删除组件存储备份计划成功"), status_code=200)

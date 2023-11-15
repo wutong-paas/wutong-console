@@ -20,6 +20,7 @@ from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
 from service.plugin_service import default_plugins, plugin_service
 from service.region_service import region_services
+from repository.component.service_config_repo import volume_repo
 
 router = APIRouter()
 
@@ -104,6 +105,15 @@ async def install_sys_plugin(request: Request,
             pbvs = plugin_version_repo.get_plugin_versions(session, plugin_id)
             if pbvs:
                 for pbv in pbvs:
+                    # 判断存储是否已存在
+                    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
+                    if plugin_info:
+                        if plugin_info.origin_share_id == "java_agent_plugin":
+                            volume = volume_repo.get_service_volume_by_path(session, service.service_id, "/agent")
+                            if volume:
+                                return JSONResponse(general_message(500, "path already exists", "持久化路径[/agent]已存在"),
+                                                    status_code=501)
+                    # 判断是否需要更新
                     if pbv.build_version != build_version:
                         all_default_config = service_plugin_config_repo.all_default_config
                         config_item_repo.delete_item_by_id(session=session, plugin_id=plugin_id)
@@ -284,6 +294,8 @@ async def delete_plugin(
                                                                  container_port=config_attr_port, user=user)
     app_plugin_service.update_java_agent_plugin_env(session=session, tenant_env=env, service=service,
                                                     plugin_id=plugin_id, user=user)
+    # app_plugin_service.delete_java_agent_plugin_volume(session=session, env=env, service=service,
+    #                                                    volume_id=plugin_id, user=user)
 
     return JSONResponse(general_message("0", "success", "卸载成功"), status_code=200)
 
