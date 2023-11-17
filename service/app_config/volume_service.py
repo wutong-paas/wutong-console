@@ -318,6 +318,9 @@ class AppVolumeService(object):
                     base_opts.append(opt)
         return base_opts
 
+    def get_volume_by_path(self, session, service, volume_path):
+        return volume_repo.get_volume_by_path(session, service.service_id, volume_path)
+
     def delete_service_volume_by_id(self, session: SessionClass, tenant_env, service, volume_id, user_name=''):
         volume = volume_repo.get_service_volume_by_pk(session, volume_id)
         if not volume:

@@ -281,6 +281,8 @@ async def delete_plugin(
     app_plugin_service.delete_service_plugin_relation(session=session, service=service, plugin_id=plugin_id)
     app_plugin_service.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
 
+    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
+
     if result_bean:
         attrs = json.loads(result_bean.attrs)
 
@@ -290,12 +292,13 @@ async def delete_plugin(
             config_attr_port = attrs.get("PORT")
 
         app_plugin_service.delete_filemanage_service_plugin_port(session=session, tenant_env=env, service=service,
-                                                                 response_region=response_region, plugin_id=plugin_id,
+                                                                 response_region=response_region,
+                                                                 plugin_info=plugin_info,
                                                                  container_port=config_attr_port, user=user)
     app_plugin_service.update_java_agent_plugin_env(session=session, tenant_env=env, service=service,
-                                                    plugin_id=plugin_id, user=user)
-    # app_plugin_service.delete_java_agent_plugin_volume(session=session, env=env, service=service,
-    #                                                    volume_id=plugin_id, user=user)
+                                                    plugin_info=plugin_info, user=user)
+    app_plugin_service.delete_java_agent_plugin_volume(session=session, env=env, service=service,
+                                                       volume_path="/agent", user=user, plugin_info=plugin_info)
 
     return JSONResponse(general_message("0", "success", "卸载成功"), status_code=200)
 

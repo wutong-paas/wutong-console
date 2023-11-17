@@ -217,8 +217,7 @@ class AppPluginService(object):
                                                                     plugin_id=plugin_id)
 
     def delete_filemanage_service_plugin_port(self, session: SessionClass, tenant_env, service, response_region, user,
-                                              container_port, plugin_id):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
+                                              container_port, plugin_info):
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin" or plugin_info.origin_share_id == "redis_dbgate_plugin" \
                     or plugin_info.origin_share_id == "mysql_dbgate_plugin":
@@ -251,8 +250,7 @@ class AppPluginService(object):
                                                            container_port=container_port,
                                                            user_name=user.nick_name)
 
-    def update_java_agent_plugin_env(self, session: SessionClass, tenant_env, service, plugin_id, user):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
+    def update_java_agent_plugin_env(self, session: SessionClass, tenant_env, service, plugin_info, user):
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
 
@@ -322,12 +320,17 @@ class AppPluginService(object):
                                                              attr_value=repl_value,
                                                              user_name=user.nick_name)
 
-    def delete_java_agent_plugin_volume(self, session, env, service, volume_id, user):
-        code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env, service=service,
-                                                                       volume_id=volume_id,
-                                                                       user_name=user.nick_name)
-        if code != 200:
-            logger.debug("删除agent存储失败 " + msg)
+    def delete_java_agent_plugin_volume(self, session, env, service, volume_path, user, plugin_info):
+        if plugin_info:
+            if plugin_info.origin_share_id == "java_agent_plugin":
+                volume = volume_service.get_volume_by_path(session, service, volume_path)
+                if volume:
+                    code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env,
+                                                                                   service=service,
+                                                                                   volume_id=volume.ID,
+                                                                                   user_name=user.nick_name)
+                    if code != 200:
+                        logger.debug("删除agent存储失败 " + msg)
 
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
