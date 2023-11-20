@@ -21,6 +21,7 @@ from service.plugin.plugin_version_service import plugin_version_service
 from service.plugin_service import default_plugins, plugin_service
 from service.region_service import region_services
 from repository.component.service_config_repo import volume_repo
+from clients.remote_component_client import remote_component_client
 
 router = APIRouter()
 
@@ -498,14 +499,24 @@ async def update_plugin_config(request: Request,
         if plugin_info.origin_share_id == "filebrowser_plugin":
             old_config_attr_info = result_bean["undefine_env"]["config"]
             old_config_attr_dir = old_config_attr_info[1]["attr_value"]
-
+            volume = volume_repo.get_service_volume_by_path(session, service.service_id, old_config_attr_dir)
             config_attr_info = config["undefine_env"]["config"]
             config_attr_dir = config_attr_info[1]["attr_value"]
 
             if old_config_attr_dir != config_attr_dir:
-                app_plugin_service.add_filemanage_mount(session=session, tenant_env=env, service=service,
-                                                        plugin_id=plugin_id,
-                                                        plugin_version=pbv.build_version, user=user)
+                data = {
+                    "volume_name": volume.volume_name,
+                    "volume_path": config_attr_dir,
+                    "volume_type": volume.volume_type,
+                    "file_content": None,
+                    "operator": user.nick_name,
+                    "mode": None,
+                }
+                res, body = remote_component_client.upgrade_service_volumes(session,
+                                                                            service.service_region, env,
+                                                                            service.service_alias, data)
+                if res.status == 200:
+                    volume.volume_path = config_attr_dir
         if plugin_info.origin_share_id == "redis_dbgate_plugin" or plugin_info.origin_share_id == "mysql_dbgate_plugin":
             port = 0
             old_port = 0
