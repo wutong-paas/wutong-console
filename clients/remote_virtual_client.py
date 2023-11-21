@@ -33,6 +33,7 @@ class RemoteVirtualClient(ApiBaseHttpClient):
 
     def create_virtual_machine(self, session, region, tenant_env, body):
         """
+        创建虚拟机
         :param session:
         :param region:
         :param tenant_env:
@@ -55,6 +56,114 @@ class RemoteVirtualClient(ApiBaseHttpClient):
             session, url, self.default_headers, json.dumps(body), region=region
         )
         return body["bean"]
+
+    def get_virtual_machine(self, session, region, tenant_env, vm_id):
+        """
+        获取单个虚拟机
+        :param session:
+        :param region:
+        :param tenant_env:
+        :param vm_id:
+        :return:
+        """
+        url, token = get_region_access_info(region, session)
+
+        url = (
+            url
+            + "/v2/tenants/"
+            + tenant_env.tenant_name
+            + "/envs/"
+            + tenant_env.env_name
+            + "/vms/"
+            + vm_id
+        )
+
+        self._set_headers(token)
+        res, body = self._get(
+            session, url, self.default_headers, region=region
+        )
+        return body["bean"]
+
+    def get_virtual_machine_list(self, session, region, tenant_env):
+        """
+        获取虚拟机列表
+        :param session:
+        :param region:
+        :param tenant_env:
+        :return:
+        """
+        url, token = get_region_access_info(region, session)
+
+        url = (
+            url
+            + "/v2/tenants/"
+            + tenant_env.tenant_name
+            + "/envs/"
+            + tenant_env.env_name
+            + "/vms"
+        )
+
+        self._set_headers(token)
+        res, body = self._get(
+            session, url, self.default_headers, region=region
+        )
+        return body["bean"]["vms"]
+
+    def update_virtual_machine(self, session, region, tenant_env, vm_id, body):
+        """
+        更新虚拟机列表
+        :param session:
+        :param region:
+        :param tenant_env:
+        :param vm_id:
+        :param body:
+        :return:
+        """
+        url, token = get_region_access_info(region, session)
+
+        url = (
+            url
+            + "/v2/tenants/"
+            + tenant_env.tenant_name
+            + "/envs/"
+            + tenant_env.env_name
+            + "/vms/"
+            + vm_id
+        )
+
+        self._set_headers(token)
+        res, body = self._put(
+            session, url, self.default_headers, json.dumps(body), region=region
+        )
+        return body["bean"]
+
+    def delete_virtual_machine(self, session, region, tenant_env, vm_id):
+        """
+        更新虚拟机列表
+        :param session:
+        :param region:
+        :param tenant_env:
+        :param vm_id:
+        :param body:
+        :return:
+        """
+        url, token = get_region_access_info(region, session)
+
+        url = (
+            url
+            + "/v2/tenants/"
+            + tenant_env.tenant_name
+            + "/envs/"
+            + tenant_env.env_name
+            + "/vms/"
+            + vm_id
+        )
+
+        self._set_headers(token)
+        self._delete(
+            session, url, self.default_headers, region=region
+        )
+        return None
 
 
 remote_virtual_client = RemoteVirtualClient()

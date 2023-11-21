@@ -24,3 +24,16 @@ class CreateVirtualParam(BaseModel):
     user: Optional[str] = "ubuntu"
     # 默认登录密码
     password: Optional[str] = "ubuntu"
+
+
+class UpdateVirtualParam(BaseModel):
+    # 虚拟机显示名称
+    display_name: Optional[str] = None
+    # 描述信息
+    desc: Optional[str] = None
+    # CPU 单位为 m
+    request_cpu: Optional[int] = None
+    # Memory 单位为 Mi
+    request_memory: Optional[int] = None
+    # 默认登录用户
+    default_login_user: Optional[str] = "ubuntu"

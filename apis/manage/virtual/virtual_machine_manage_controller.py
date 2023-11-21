@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends
 from starlette.responses import JSONResponse
@@ -9,19 +9,77 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.teams.team_region_repo import team_region_repo
 from schemas.response import Response
-from schemas.virtual import CreateVirtualParam
+from schemas.virtual import CreateVirtualParam, UpdateVirtualParam
 
 router = APIRouter()
+
+
+@router.get(
+    "/teams/{team_name}/env/{env_id}/vms/{vm_id}", response_model=Response, name="查询单个虚拟机"
+)
+async def get_virtual_machine(
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+) -> Any:
+    """
+    查询单个虚拟机
+    """
+
+    if not vm_id:
+        return JSONResponse(
+            general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
+        )
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=400
+        )
+
+    data = remote_virtual_client.get_virtual_machine(
+        session, region.region_name, env, vm_id
+    )
+    return JSONResponse(
+        general_message(200, "get virtual machine success", "获取虚拟机成功", bean=data),
+        status_code=200,
+    )
+
+
+@router.get(
+    "/teams/{team_name}/env/{env_id}/vms", response_model=Response, name="查询虚拟机列表"
+)
+async def get_virtual_machine(
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+) -> Any:
+    """
+    查询虚拟机列表
+    """
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=400
+        )
+
+    data = remote_virtual_client.get_virtual_machine_list(
+        session, region.region_name, env
+    )
+    return JSONResponse(
+        general_message(200, "get virtual machine success", "获取虚拟机列表成功", list=data, total=len(data) if data else 0),
+        status_code=200,
+    )
 
 
 @router.post(
     "/teams/{team_name}/env/{env_id}/vms", response_model=Response, name="创建虚拟机"
 )
 async def create_virtual_machine(
-    param: CreateVirtualParam = CreateVirtualParam(),
-    session: SessionClass = Depends(deps.get_session),
-    user=Depends(deps.get_current_user),
-    env=Depends(deps.get_current_team_env),
+        param: CreateVirtualParam = CreateVirtualParam(),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     创建虚拟机
@@ -51,5 +109,79 @@ async def create_virtual_machine(
     )
     return JSONResponse(
         general_message(200, "create virtual machine success", "创建虚拟机成功", bean=data),
+        status_code=200,
+    )
+
+
+@router.put(
+    "/teams/{team_name}/env/{env_id}/vms/{vm_id}", response_model=Response, name="更新虚拟机"
+)
+async def create_virtual_machine(
+        vm_id: Optional[str] = None,
+        param: UpdateVirtualParam = UpdateVirtualParam(),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env),
+) -> Any:
+    """
+    更新虚拟机
+    """
+
+    if not vm_id:
+        return JSONResponse(
+            general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
+        )
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=400
+        )
+
+    body = {
+        "displayName": param.display_name,
+        "desc": param.desc,
+        "requestCPU": param.request_cpu,
+        "requestMemory": param.request_memory,
+        "defaultLoginUser": param.default_login_user,
+        "operator": user.nick_name
+    }
+    data = remote_virtual_client.update_virtual_machine(
+        session, region.region_name, env, vm_id, body
+    )
+    return JSONResponse(
+        general_message(200, "create virtual machine success", "更新虚拟机成功", bean=data),
+        status_code=200,
+    )
+
+
+@router.delete(
+    "/teams/{team_name}/env/{env_id}/vms/{vm_id}", response_model=Response, name="删除虚拟机"
+)
+async def create_virtual_machine(
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+) -> Any:
+    """
+    删除虚拟机
+    """
+
+    if not vm_id:
+        return JSONResponse(
+            general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
+        )
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=400
+        )
+
+    remote_virtual_client.delete_virtual_machine(
+        session, region.region_name, env, vm_id
+    )
+    return JSONResponse(
+        general_message(200, "create virtual machine success", "删除虚拟机成功"),
         status_code=200,
     )
