@@ -27,7 +27,8 @@ default_plugins = [
     DefaultPluginConstants.INANDOUT_NET_PLUGIN, DefaultPluginConstants.FILEBEAT_LOG_PLUGIN,
     DefaultPluginConstants.LOGTAIL_LOG_PLUGIN, DefaultPluginConstants.MYSQLD_EXPORTER_PLUGIN,
     DefaultPluginConstants.FILEBROWSER_PLUGIN, DefaultPluginConstants.MYSQL_DBGATE_PLUGIN,
-    DefaultPluginConstants.REDIS_DBGATE_PLUGIN, DefaultPluginConstants.JAVA_AGENT_PLUGIN
+    DefaultPluginConstants.REDIS_DBGATE_PLUGIN, DefaultPluginConstants.JAVA_AGENT_PLUGIN,
+    DefaultPluginConstants.JAVA_AGENT_WEB_PLUGIN
 ]
 
 
@@ -49,18 +50,23 @@ class PluginService(object):
         tenant_plugin = plugin_repo.create_plugin(session, **plugin_params)
         return 200, "success", tenant_plugin
 
-    def create_region_plugin(self, session: SessionClass, region, tenant_env, tenant_plugin, image_tag="latest"):
+    def create_region_plugin(self, session: SessionClass, region, tenant_env, tenant_plugin, image_tag="latest",
+                             user_name=""):
         """创建region端插件信息"""
         plugin_data = dict()
         plugin_data["build_model"] = tenant_plugin.build_source
         plugin_data["git_url"] = tenant_plugin.code_repo
-        plugin_data["image_url"] = "{0}:{1}".format(tenant_plugin.image, image_tag)
+        if len(tenant_plugin.image.split(':')) > 1:
+            plugin_data["image_url"] = tenant_plugin.image
+        else:
+            plugin_data["image_url"] = "{0}:{1}".format(tenant_plugin.image, image_tag)
         plugin_data["plugin_id"] = tenant_plugin.plugin_id
         plugin_data["plugin_info"] = tenant_plugin.desc
         plugin_data["plugin_model"] = tenant_plugin.category
         plugin_data["plugin_name"] = tenant_plugin.plugin_name
         plugin_data["tenant_env_id"] = tenant_env.env_id
         plugin_data["origin"] = tenant_plugin.origin
+        plugin_data["operator"] = user_name
         remote_plugin_client.create_plugin(session, region, tenant_env, plugin_data)
         return 200, "success"
 
@@ -82,7 +88,10 @@ class PluginService(object):
         build_data["password"] = plugin.password  # git password
         build_data["tenant_env_id"] = tenant_env.env_id
         build_data["ImageInfo"] = image_info
-        build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
+        if len(plugin.image.split(':')) > 1:
+            build_data["build_image"] = plugin.image
+        else:
+            build_data["build_image"] = "{0}:{1}".format(plugin.image, plugin_version.image_tag)
         origin = plugin.origin
         if origin == "sys":
             plugin_from = "yb"
@@ -213,7 +222,8 @@ class PluginService(object):
             plugin_build_version.event_id = event_id
             plugin_build_version.plugin_version_status = "fixed"
 
-            self.create_region_plugin(session=session, region=region, tenant_env=tenant_env, tenant_plugin=plugin_base_info,
+            self.create_region_plugin(session=session, region=region, tenant_env=tenant_env,
+                                      tenant_plugin=plugin_base_info,
                                       image_tag=image_tag)
 
             self.build_plugin(session=session, region=region, plugin=plugin_base_info,
@@ -225,7 +235,8 @@ class PluginService(object):
         except Exception as e:
             logger.exception(e)
             if plugin_base_info:
-                self.delete_plugin(session=session, region=region, tenant_env=tenant_env, plugin_id=plugin_base_info.plugin_id,
+                self.delete_plugin(session=session, region=region, tenant_env=tenant_env,
+                                   plugin_id=plugin_base_info.plugin_id,
                                    is_force=True)
             raise e
 
@@ -274,8 +285,7 @@ class PluginService(object):
         data["build_model"] = tenant_plugin.build_source
         data["git_url"] = tenant_plugin.code_repo
         image = tenant_plugin.image
-        version = image.split(':')[-1]
-        if not version:
+        if len(image.split(':')) > 1:
             data["image_url"] = "{0}:{1}".format(tenant_plugin.image, plugin_build_version.image_tag)
         else:
             data["image_url"] = tenant_plugin.image
@@ -294,8 +304,8 @@ class PluginService(object):
         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
         return plugin
 
-    def get_by_share_plugins(self, session: SessionClass, tenant_env_id, origin):
-        plugins = plugin_repo.get_by_share_plugins(session, tenant_env_id, origin)
+    def get_by_share_plugins(self, session: SessionClass, origin):
+        plugins = plugin_repo.get_by_share_plugins(session, origin)
         return plugins
 
     def get_by_type_plugins(self, session: SessionClass, plugin_type, origin, service_region):

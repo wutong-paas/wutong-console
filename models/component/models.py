@@ -35,6 +35,7 @@ class Component(Base):
     container_gpu = Column(Integer, comment="gpu显存数量", nullable=False, default=0)
     gpu_type = Column(String(32), comment="gpu类型", nullable=True)
     min_memory = Column(Integer, comment="内存大小单位（M）", nullable=False, default=256)
+    image_hub = Column(String(32), comment="镜像源类型", nullable=True)
 
     # deprecated
     setting = Column(String(200), comment="设置项", nullable=True)
@@ -216,6 +217,7 @@ class TeamComponentVolume(Base):
     reclaim_policy = Column(String(100), comment="回收策略", nullable=True, default='')
     allow_expansion = Column(Boolean, comment="只是支持控制扩展，0：不支持；1：支持", nullable=True, default=False)
     mode = Column(Integer, comment="存储权限", nullable=True)
+    config_type = Column(String(32), comment="配置文件类型：single:单文件配置;multi：多文件配置", nullable=True, default='')
 
 
 class TeamComponentMountRelation(Base):

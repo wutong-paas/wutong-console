@@ -22,6 +22,7 @@ from service.application_service import application_service
 from service.base_services import base_service
 from service.common_services import common_services
 from service.region_service import region_services
+from core.api.team_api import team_api
 
 router = APIRouter()
 
@@ -31,14 +32,12 @@ async def get_app_state(request: Request,
                         page: int = Query(default=1, ge=1, le=9999),
                         page_size: int = Query(default=10, ge=-1, le=999),
                         env_id: Optional[str] = None,
+                        env=Depends(deps.get_current_team_env),
                         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
      应用组件列表、状态展示
      """
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         code = 200
         # page = int(request.query_params.get("page", 1))
         # page_size = int(request.query_params.get("page_size", 10))
@@ -68,7 +67,7 @@ async def get_app_state(request: Request,
             params = Params(page=page, size=page_size)
             pg = paginate(no_group_service_list, params)
             total = pg.total
-            result = general_message(code, "query success", "应用查询成功", list=no_group_service_list, total=total)
+            result = general_message("0", "query success", "应用查询成功", list=no_group_service_list, total=total)
             return JSONResponse(result, status_code=code)
 
         group_count = application_repo.get_group_count_by_team_id_and_group_id(session=session, env_id=env_id,
@@ -90,7 +89,7 @@ async def get_app_state(request: Request,
         params = Params(page=page, size=page_size)
         pg = paginate(group_service_list, params)
         total = pg.total
-        result = general_message(code, "query success", "应用查询成功", list=jsonable_encoder(pg.items),
+        result = general_message("0", "query success", "应用查询成功", list=jsonable_encoder(pg.items),
                                  total=total)
         return JSONResponse(result, status_code=200)
     except GroupNotExistError as e:
@@ -101,6 +100,9 @@ async def get_app_state(request: Request,
 @router.get("/teams/{team_name}/env/{env_id}/overview", response_model=Response, name="总览环境信息")
 async def overview_team_env_info(region_name: Optional[str] = None,
                                  env_id: Optional[str] = None,
+                                 project_id: Optional[str] = None,
+                                 user=Depends(deps.get_current_user),
+                                 env=Depends(deps.get_current_team_env),
                                  session: SessionClass = Depends(deps.get_session)
                                  ) -> Any:
     """
@@ -114,44 +116,54 @@ async def overview_team_env_info(region_name: Optional[str] = None,
            paramType: path
      """
 
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+    # 项目id数组
+    if project_id:
+        project_ids = [project_id]
+    else:
+        project_ids = None
 
     overview_detail = dict()
-    team_service_num = service_info_repo.get_team_service_num_by_team_id(
-        session=session, env_id=env_id, region_name=region_name)
-    source = common_services.get_current_region_used_resource(session=session, env=env, region_name=region_name)
 
     region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
         overview_detail["region_health"] = False
-        return general_message("0", "success", "查询成功", bean=overview_detail)
+        return JSONResponse(general_message("0", "success", "查询成功", bean=overview_detail), status_code=200)
 
     # 同步应用到集群
-    groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name)
+    groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name, project_ids=project_ids)
     batch_create_app_body = []
     region_app_ids = []
+    app_auth_ids = []
+    # 查询用户权限
+    is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
+    is_super_admin = team_api.get_user_env_auth(user, None, "1")
+    project_ids = team_api.get_user_project_ids(user.user_id, env.tenant_id, user.token)
     if groups:
         app_ids = [group.ID for group in groups]
         region_apps = region_app_repo.list_by_app_ids(session, region.region_name, app_ids)
         app_id_rels = {rapp.app_id: rapp.region_app_id for rapp in region_apps}
         for group in groups:
-            if app_id_rels.get(group.ID):
-                region_app_ids.append(app_id_rels[group.ID])
-                continue
-            create_app_body = dict()
-            group_services = base_service.get_group_services_list(session=session, env_id=env.env_id,
-                                                                  region_name=region.region_name, group_id=group.ID)
-            service_ids = []
-            if group_services:
-                service_ids = [service["service_id"] for service in group_services]
-            create_app_body["app_name"] = group.group_name
-            create_app_body["console_app_id"] = group.ID
-            create_app_body["service_ids"] = service_ids
-            if group.k8s_app:
-                create_app_body["k8s_app"] = group.k8s_app
-            batch_create_app_body.append(create_app_body)
+            if (group.project_id and (group.project_id in project_ids)) or (
+                    not group.project_id) or is_team_admin or is_super_admin:
+                app_auth_ids.append(group.ID)
+                if app_id_rels.get(group.ID):
+                    region_app_ids.append(app_id_rels[group.ID])
+                    continue
+                create_app_body = dict()
+                group_services = base_service.get_group_services_list(session=session, env_id=env.env_id,
+                                                                      region_name=region.region_name, group_id=group.ID)
+                service_ids = []
+                if group_services:
+                    service_ids = [service["service_id"] for service in group_services]
+                create_app_body["app_name"] = group.group_name
+                create_app_body["console_app_id"] = group.ID
+                create_app_body["service_ids"] = service_ids
+                if group.k8s_app:
+                    create_app_body["k8s_app"] = group.k8s_app
+                batch_create_app_body.append(create_app_body)
+
+    service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_auth_ids)
+    team_service_num = len(service_list)
 
     if len(batch_create_app_body) > 0:
         try:
@@ -160,27 +172,38 @@ async def overview_team_env_info(region_name: Optional[str] = None,
             app_list = []
             if applist:
                 for app in applist:
-                    data = RegionApp(
-                        app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
-                    app_list.append(data)
-                    region_app_ids.append(app["region_app_id"])
+                    group = application_service.get_app_by_app_id(session, app["app_id"])
+                    if (group.project_id and (group.project_id in project_ids)) or (
+                            not group.project_id) or is_team_admin or is_super_admin:
+                        data = RegionApp(
+                            app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
+                        app_list.append(data)
+                        region_app_ids.append(app["region_app_id"])
             region_app_repo.bulk_create(session=session, app_list=app_list)
         except Exception as e:
             logger.exception(e)
 
     running_app_num = 0
+    service_running_num = 0
+    cpu_usage = 0
+    memory_usage = 0
     try:
         resp = remote_build_client.list_app_statuses_by_app_ids(session, env, region_name,
                                                                 {"app_ids": region_app_ids})
         app_statuses = resp.get("list", [])
         if app_statuses:
             for app_status in app_statuses:
-                if app_status.get("status") == "RUNNING":
-                    running_app_num += 1
+                k8s_app = app_status.get("k8s_app")
+                app = application_repo.get_app_by_k8s_app(session, env_id, region_name, k8s_app, project_id)
+                if app:
+                    if app_status.get("status") == "RUNNING":
+                        running_app_num += 1
+                    service_running_num += app_status.get("service_running_num")
+                    cpu_usage += app_status.get("cpu", 0) if app_status.get("cpu", 0) else 0
+                    memory_usage += app_status.get("memory", 0) if app_status.get("memory", 0) else 0
     except Exception as e:
         logger.exception(e)
-    team_app_num = application_repo.get_tenant_region_groups_count(session, env.env_id, region_name)
-    overview_detail["team_app_num"] = team_app_num
+    overview_detail["team_app_num"] = len(region_app_ids)
     overview_detail["team_service_num"] = team_service_num
     overview_detail["team_service_memory_count"] = 0
     overview_detail["team_service_total_disk"] = 0
@@ -192,28 +215,22 @@ async def overview_team_env_info(region_name: Optional[str] = None,
     overview_detail["running_app_num"] = running_app_num
     overview_detail["running_component_num"] = 0
     overview_detail["team_alias"] = env.tenant_name
-    if source:
-        try:
-            overview_detail["region_health"] = True
-            overview_detail["team_service_memory_count"] = int(source["memory"])
-            overview_detail["team_service_total_disk"] = int(source["disk"])
-            overview_detail["team_service_total_cpu"] = int(source["limit_cpu"])
-            overview_detail["team_service_total_memory"] = int(source["limit_memory"])
-            overview_detail["team_service_use_cpu"] = int(source["cpu"])
-            overview_detail["running_component_num"] = int(source.get("service_running_num", 0))
-            overview_detail["cpu_usage"] = round(int(source["cpu"]) / 1000, 2)
-            overview_detail["memory_usage"] = round(int(source["memory"]) / 1024, 2)
-        except Exception as e:
-            logger.debug(source)
-            logger.exception(e)
-    else:
-        overview_detail["region_health"] = False
+    try:
+        overview_detail["region_health"] = True
+        overview_detail["team_service_use_cpu"] = cpu_usage
+        overview_detail[
+            "running_component_num"] = team_service_num if service_running_num > team_service_num else service_running_num
+        overview_detail["cpu_usage"] = round(cpu_usage / 1000, 2)
+        overview_detail["memory_usage"] = round(memory_usage / 1024, 2)
+    except Exception as e:
+        logger.exception(e)
     return JSONResponse(general_message("0", "success", "查询成功", bean=overview_detail), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/overview/groups", response_model=Response, name="团队环境应用列表")
 async def team_env_app_group(request: Request,
                              session: SessionClass = Depends(deps.get_session),
+                             user=Depends(deps.get_current_user),
                              env=Depends(deps.get_current_team_env)) -> Any:
     """
        团队环境下应用列表
@@ -237,18 +254,25 @@ async def team_env_app_group(request: Request,
 
     query = request.query_params.get("query", "")
     app_type = request.query_params.get("app_type", "")
+    project_id = request.query_params.get("project_id", None)
     groups_services = application_service.get_groups_and_services(session=session, tenant_env=env, region=region_name,
-                                                                  query=query, app_type=app_type)
-    return general_message("0", "success", "查询成功", list=groups_services)
+                                                                  query=query, app_type=app_type,
+                                                                  project_id=project_id,
+                                                                  user=user)
+    return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 
-@router.get("/teams/{team_name}/overview/groups", response_model=Response, name="团队应用列表")
+@router.get("/teams/{team_name}/overview/groups", response_model=Response, name="环境应用列表")
 async def team_app_group(
         team_name: Optional[str] = None,
+        team_id: Optional[str] = None,
         env_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        app_name: Optional[str] = None,
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
-       团队下应用列表
+       环境下应用列表
        ---
        parameters:
            - name: team_name
@@ -262,15 +286,19 @@ async def team_app_group(
              type: string
              paramType: query
    """
-    groups_services = application_service.get_team_groups(session=session, tenant_name=team_name, env_id=env_id)
-    return general_message("0", "success", "查询成功", list=groups_services)
+    groups_services = application_service.get_env_groups(session=session, tenant_name=team_name, env_id=env_id,
+                                                         app_name=app_name,
+                                                         team_id=team_id,
+                                                         project_id=project_id,
+                                                         user=user)
+    return JSONResponse(general_message("0", "success", "查询成功", list=groups_services), status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/overview/service/over", response_model=Response, name="团队应用信息")
 async def team_app_group(
         request: Request,
-        env_id: Optional[str] = None,
         region_name: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("page_size", 10)
@@ -278,9 +306,6 @@ async def team_app_group(
     fields = request.query_params.get('fields', 'update_time')
     query_key = request.query_params.get("query_key", '')
     service_status = request.query_params.get("service_status", 'all')
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     services_list = base_service.get_fuzzy_services_list(session=session,
                                                          env_id=env.env_id, region_name=region_name,
                                                          query_key=query_key, fields=fields, order=order)
@@ -315,8 +340,8 @@ async def team_app_group(
                         service["min_memory"] = 0
                     result.append(service)
                 else:
-                    if status_cache.get(service.service_id) == service_status:
-                        service["status"] = status_cache.get(service.service_id, "unknow")
+                    if status_cache.get(service["service_id"]) == service_status:
+                        service["status"] = status_cache.get(service["service_id"], "unknow")
                         service["status_cn"] = get_status_info_map(service["status"]).get("status_cn")
                         if service["status"] == "closed" or service["status"] == "undeploy":
                             service["min_memory"] = 0

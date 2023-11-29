@@ -4,6 +4,7 @@ import pickle
 import random
 import re
 import string
+import uuid
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
@@ -42,12 +43,15 @@ from repository.component.service_share_repo import component_share_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from repository.region.region_app_repo import region_app_repo
 from repository.region.region_info_repo import region_repo
+from repository.teams.env_repo import env_repo
 from repository.teams.team_service_env_var_repo import env_var_repo as team_env_var_repo
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
 from service.base_services import base_service, baseService
 from service.label_service import label_service
 from service.probe_service import probe_service
+from core.api.team_api import team_api
+from repository.env.user_env_auth_repo import user_env_auth_repo
 
 
 class ApplicationService(object):
@@ -176,6 +180,18 @@ class ApplicationService(object):
 
         return 200, "创建成功", ts
 
+    def get_service_by_service_key(self, session, service, dep_service_key):
+        """
+        get service according to service_key that is sometimes called service_share_uuid.
+        """
+        group_id = service_group_relation_repo.get_group_id_by_service(session, service)
+        dep_services = service_info_repo.list_by_svc_share_uuids(session, group_id, [dep_service_key])
+        if not dep_services:
+            logger.warning("service share uuid: {}; failed to get dep service: \
+                service not found".format(dep_service_key))
+            return None
+        return dep_services[0]
+
     @staticmethod
     def get_pod(session, tenant_env, region_name, pod_name):
         return remote_build_client.get_pod(session, region_name, tenant_env, pod_name)
@@ -293,7 +309,7 @@ class ApplicationService(object):
 
     @staticmethod
     def check_app_name(session: SessionClass, env_id, region_name, group_name, app: Application = None,
-                       k8s_app=""):
+                       k8s_app="", app_code=""):
         """
         检查应用名称
         :param tenant:
@@ -312,20 +328,27 @@ class ApplicationService(object):
         exist_app = application_repo.get_group_by_unique_key(session=session, tenant_env_id=env_id,
                                                              region_name=region_name, group_name=group_name)
         app_id = app.app_id if app else 0
-        if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
-            raise ErrK8sAppExists
         if not exist_app:
-            return
+            if application_repo.is_app_code_duplicate(session, env_id, region_name, app_code, app_id):
+                raise ErrK8sAppExists
+            if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
+                return True
+            return False
         if not app or exist_app.app_id != app.app_id:
             raise ServiceHandleException(msg="app name exist", msg_show="应用名称已存在")
+        if application_repo.is_app_code_duplicate(session, env_id, region_name, app_code, app_id):
+            raise ErrK8sAppExists
+        if application_repo.is_k8s_app_duplicate(session, env_id, region_name, k8s_app, app_id):
+            return True
+        return False
 
     def create_app(self, session: SessionClass,
                    tenant_env,
-                   project_id,
                    region_name,
                    app_name,
                    tenant_name,
                    team_code,
+                   project_id=None,
                    project_name="",
                    note="",
                    username="",
@@ -334,6 +357,7 @@ class ApplicationService(object):
                    app_template_name="",
                    version="",
                    logo="",
+                   app_code="",
                    k8s_app=""):
         """
         创建团队应用
@@ -347,9 +371,20 @@ class ApplicationService(object):
         :param app_template_name:
         :param version:
         :param logo:
+        :param app_code:
+        :param k8s_app:
         :return:
         """
-        self.check_app_name(session, tenant_env.env_id, region_name, app_name, k8s_app=k8s_app)
+        is_k8s_app_dup = self.check_app_name(session, tenant_env.env_id, region_name, app_name, k8s_app=k8s_app,
+                                             app_code=app_code)
+        logger.info("is_k8s_app_dup ========== {0} k8s_app ======= {1}".format(is_k8s_app_dup, k8s_app))
+        if is_k8s_app_dup:
+            index = str(uuid.uuid1())
+            k8s_app_temp = k8s_app + "-" + index[:8]
+            if len(k8s_app_temp) > 32:
+                k8s_app_temp = k8s_app[:-9] + "-" + index[:8]
+            k8s_app = k8s_app_temp
+
         # check parameter for helm app
         app_type = AppType.wutong.name
         if app_store_name or app_template_name or version:
@@ -384,6 +419,7 @@ class ApplicationService(object):
             app_template_name=app_template_name,
             version=version,
             logo=logo,
+            app_code=app_code,
             k8s_app=k8s_app
         )
         application_repo.create(session=session, model=app)
@@ -535,7 +571,7 @@ class ApplicationService(object):
         return result
 
     def create_docker_run_app(self, session: SessionClass, region_name, tenant_env, user, service_cname, docker_cmd,
-                              image_type, k8s_component_name):
+                              image_type, k8s_component_name, image_hub=None):
         is_pass, msg = self.check_service_cname(service_cname=service_cname)
         if not is_pass:
             return 412, msg, None
@@ -553,6 +589,7 @@ class ApplicationService(object):
         new_service.image = ""
         new_service.k8s_component_name = k8s_component_name if k8s_component_name else service_alias
         new_service.service_region = tenant_env.region_code
+        new_service.image_hub = image_hub
 
         session.add(new_service)
         session.flush()
@@ -608,7 +645,7 @@ class ApplicationService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ","
         tenant_service.min_node = 1
-        tenant_service.min_memory = 0
+        tenant_service.min_memory = 1024
         tenant_service.min_cpu = base_service.calculate_service_cpu(0)
         tenant_service.inner_port = 0
         tenant_service.version = "latest"
@@ -1301,7 +1338,8 @@ class ApplicationService(object):
             app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
         return app_id_status_rels
 
-    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_env, status="all"):
+    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_env, user, status="all"):
+        auth_app_ids = []
         count = {
             "RUNNING": 0,
             "CLOSED": 0,
@@ -1312,8 +1350,38 @@ class ApplicationService(object):
             "UNKNOWN": 0,
             "": 0
         }
+        is_team_admin = team_api.get_user_env_auth(user, tenant_env.tenant_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user, None, "1")
+        project_ids = team_api.get_user_project_ids(user.user_id, tenant_env.tenant_id, user.token)
         app_list = application_repo.get_multi_app_info(session, app_ids)
-        service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_ids)
+        app_id_statuses = self.get_region_app_statuses(session=session, tenant_env=tenant_env, region_name=region,
+                                                       app_ids=app_ids)
+        apps = dict()
+        for app in app_list:
+            if (app.project_id and (app.project_id in project_ids)) or (
+            not app.project_id) or is_team_admin or is_super_admin:
+                auth_app_ids.append(app.ID)
+                app_status = app_id_statuses.get(app.ID)
+                if app_status:
+                    count[app_status["status"]] += 1
+                    if status == "all" or app_status["status"] == status.upper():
+                        used_cpu = app_status.get("cpu", 0)
+                        used_mem = app_status.get("memory", 0)
+                        apps[app.ID] = {
+                            "project_id": app.project_id,
+                            "group_id": app.ID,
+                            "update_time": app.update_time,
+                            "create_time": app.create_time,
+                            "group_name": app.group_name,
+                            "group_note": app.note,
+                            "service_list": [],
+                            "used_mem": used_mem if app_status and used_mem else 0,
+                            "used_cpu": round(used_cpu / 1000, 2) if app_status and used_cpu else 0,
+                            "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
+                            "logo": app.logo,
+                            "accesses": [],
+                        }
+        service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, auth_app_ids)
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(session=session, region=region, tenant_env=tenant_env,
                                                         service_ids=service_ids)
@@ -1322,27 +1390,6 @@ class ApplicationService(object):
             raise ServiceHandleException(msg="query status failure", msg_show="查询组件状态失败")
         for status_dict in status_list:
             service_status[status_dict["service_id"]] = status_dict
-        app_id_statuses = self.get_region_app_statuses(session=session, tenant_env=tenant_env, region_name=region,
-                                                       app_ids=app_ids)
-        apps = dict()
-        for app in app_list:
-            app_status = app_id_statuses.get(app.ID)
-            if app_status:
-                count[app_status["status"]] += 1
-                if status == "all" or app_status["status"] == status.upper():
-                    apps[app.ID] = {
-                        "group_id": app.ID,
-                        "update_time": app.update_time,
-                        "create_time": app.create_time,
-                        "group_name": app.group_name,
-                        "group_note": app.note,
-                        "service_list": [],
-                        "used_mem": app_status.get("memory", 0) if app_status else 0,
-                        "used_cpu": round(app_status.get("cpu", 0) / 1000, 2) if app_status else 0,
-                        "status": app_status.get("status", "UNKNOWN") if app_status else "UNKNOWN",
-                        "logo": app.logo,
-                        "accesses": [],
-                    }
         # 获取应用下组件的访问地址
         accesses = port_service.list_access_infos(session=session, tenant_env=tenant_env, services=service_list)
         for service in service_list:
@@ -1376,8 +1423,15 @@ class ApplicationService(object):
                 re_app_list.append(app)
         return re_app_list, count
 
-    def get_groups_and_services(self, session: SessionClass, tenant_env, region, query="", app_type=""):
-        groups = application_repo.get_tenant_region_groups(session, tenant_env.env_id, region, query, app_type)
+    def get_groups_and_services(self, session: SessionClass, tenant_env, region, user, query="", app_type="",
+                                project_id=None):
+        # 项目id需转换为list
+        if project_id:
+            project_ids = [project_id]
+        else:
+            project_ids = None
+        groups = application_repo.get_tenant_region_groups(session, tenant_env.env_id, region, query, app_type,
+                                                           project_ids)
         services = service_info_repo.get_tenant_region_services(session, region, tenant_env.env_id)
 
         sl = []
@@ -1401,28 +1455,48 @@ class ApplicationService(object):
                 service_id_map.pop(k)
 
         result = []
-        for g in groups:
-            bean = dict()
-            bean["group_id"] = g.ID
-            bean["group_name"] = g.group_name
-            bean["service_list"] = group_services_map.get(g.ID)
-            result.insert(0, bean)
+        # 查询用户权限
+        is_team_admin = team_api.get_user_env_auth(user, tenant_env.tenant_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user, None, "1")
+        project_ids = team_api.get_user_project_ids(user.user_id, tenant_env.tenant_id, user.token)
+        for group in groups:
+            if (group.project_id and (group.project_id in project_ids)) or (
+                    not group.project_id) or is_team_admin or is_super_admin:
+                bean = dict()
+                bean["group_id"] = group.ID
+                bean["group_name"] = group.group_name
+                bean["service_list"] = group_services_map.get(group.ID)
+                result.insert(0, bean)
 
         return result
 
-    def get_team_groups(self, session: SessionClass, tenant_name, env_id=None):
+    def get_env_groups(self, session: SessionClass, tenant_name, user, env_id=None, app_name=None, team_id=None,
+                       project_id=None):
         result = []
-        groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id)
+        is_team_admin = team_api.get_user_env_auth(user, team_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user, None, "1")
+        groups = application_repo.get_groups_by_team_name(session, tenant_name, env_id, app_name, project_id)
         for g in groups:
             bean = dict()
-            bean["group_id"] = g.ID
-            bean["group_name"] = g.group_name
-            bean["env_name"] = g.env_name
-            bean["team_code"] = tenant_name
-            bean["env_id"] = g.tenant_env_id
-            bean["region_code"] = g.region_name
-            bean["region_name"] = g.region_alias
-            result.append(bean)
+            env = env_repo.get_env_by_env_id(session, g.tenant_env_id)
+            if env:
+                if is_team_admin or is_super_admin:
+                    is_auth = True
+                else:
+                    is_auth = user_env_auth_repo.is_auth_in_env(session, g.tenant_env_id, user.user_name)
+                if not is_auth:
+                    continue
+                bean["group_id"] = g.ID
+                bean["group_name"] = g.group_name
+                bean["env_name"] = g.env_name
+                bean["team_code"] = tenant_name
+                bean["env_id"] = g.tenant_env_id
+                bean["region_code"] = g.region_name
+                bean["region_name"] = g.region_alias
+                bean["env_namespace"] = env.namespace
+                bean["project_id"] = g.project_id
+                bean["team_id"] = team_id
+                result.append(bean)
         return result
 
     @staticmethod
@@ -1557,17 +1631,18 @@ class ApplicationService(object):
 
     def update_or_create_service_group_relation(self, session: SessionClass, tenant_env, service, group_id):
         gsr = app_component_relation_repo.get_group_by_service_id(session, service.service_id)
+        params = {
+            "service_id": service.service_id,
+            "group_id": group_id,
+            "tenant_env_id": tenant_env.env_id,
+            "region_name": service.service_region
+        }
         if gsr:
             gsr.group_id = group_id
             app_component_relation_repo.save(session=session, gsr=gsr)
         else:
-            params = {
-                "service_id": service.service_id,
-                "group_id": group_id,
-                "tenant_env_id": tenant_env.env_id,
-                "region_name": service.service_region
-            }
             app_component_relation_repo.create_service_group_relation(session, **params)
+        return params
 
     def get_group_by_id(self, session: SessionClass, tenant_env, region, group_id):
         principal_info = dict()
@@ -1583,6 +1658,7 @@ class ApplicationService(object):
             principal_info["real_name"] = group.username
             principal_info["username"] = group.username
         return {"group_id": group.ID, "group_name": group.group_name, "group_note": group.note,
+                "project_id": group.project_id,
                 "principal": principal_info}
 
     def get_group_services(self, session: SessionClass, group_id):
@@ -1600,7 +1676,7 @@ class ApplicationService(object):
                                                                                   group_id)
         return gsr
 
-    def sync_envs(self, session, tenant_name, region_name, region_app_id, components, envs):
+    def sync_envs(self, session, tenant_env, region_name, region_app_id, components, envs):
         # make sure attr_value is string.
         for env in envs:
             if type(env.attr_value) != str:
@@ -1630,7 +1706,7 @@ class ApplicationService(object):
         body = {
             "components": new_components,
         }
-        remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
+        remote_app_client.sync_components(session, tenant_env, region_name, region_app_id, body)
 
     def update_governance_mode(self, session, tenant_env, region_name, app_id, governance_mode):
         # update the value of host env. eg. MYSQL_HOST
@@ -1663,7 +1739,7 @@ class ApplicationService(object):
         application_repo.update_governance_mode(session, tenant_env.env_id, region_name, app_id, governance_mode)
 
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
-        self.sync_envs(session, tenant_env.tenant_name, region_name, region_app_id, components.values(), envs)
+        self.sync_envs(session, tenant_env, region_name, region_app_id, components.values(), envs)
         remote_app_client.update_app(session, region_name, tenant_env, region_app_id,
                                      {"governance_mode": governance_mode})
 
@@ -1738,10 +1814,17 @@ class ApplicationService(object):
                      version="",
                      revision=0,
                      logo="",
+                     app_code="",
                      k8s_app=""):
         # check app id
         if not app_id or not str.isdigit(app_id) or int(app_id) < 0:
             raise ServiceHandleException(msg="app id illegal", msg_show="应用ID不合法")
+
+        if len(logo) > 255:
+            raise ServiceHandleException(msg="logo err", msg_show="logo格式错误")
+
+        app = application_repo.get_group_by_id(session, app_id)
+
         data = {
             "note": note,
             "logo": logo,
@@ -1750,12 +1833,18 @@ class ApplicationService(object):
         }
         if username:
             data["username"] = username
-        app = application_repo.get_group_by_id(session, app_id)
 
         # check app name
         if app_alias:
-            self.check_app_name(session, tenant_env.env_id, region_name, app_alias, app,
-                                k8s_app=k8s_app)
+            is_k8s_app_dup = self.check_app_name(session, tenant_env.env_id, region_name, app_alias, app,
+                                                 app_code=app_code, k8s_app=k8s_app)
+            if is_k8s_app_dup:
+                index = str(uuid.uuid1())
+                k8s_app_temp = k8s_app + "-" + index[:8]
+                if len(k8s_app_temp) > 32:
+                    k8s_app_temp = k8s_app[:-9] + "-" + index[:8]
+                k8s_app = k8s_app_temp
+
         if overrides:
             overrides = self._parse_overrides(overrides)
 
@@ -1772,11 +1861,12 @@ class ApplicationService(object):
             "k8s_app": k8s_app
         })
         data["k8s_app"] = bean["k8s_app"]
+        data["app_code"] = app_code
         application_repo.update(session, app_id, **data)
 
     def get_apps_by_plat(self, session, team_code, env_id, project_id, app_name):
-        sql = "select ID, group_name, k8s_app, note, logo, tenant_name, env_name, project_name " \
-              "from service_group where 1"
+        sql = "select ID, project_id, group_name, k8s_app, note, logo, tenant_name, env_name, project_name, " \
+              "region_name as region_code, tenant_env_id as env_id, team_code from service_group where is_delete=0"
         params = {
             "team_code": team_code,
             "env_id": env_id,
@@ -1784,13 +1874,15 @@ class ApplicationService(object):
             "app_name": app_name
         }
         if team_code:
-            sql += " and team_code like '%' :team_code '%'"
+            sql += " and team_code=:team_code"
         if env_id:
             sql += " and tenant_env_id=:env_id"
         if project_id:
             sql += " and project_id=:project_id"
         if app_name:
             sql += " and group_name like '%' :app_name '%'"
+
+        sql += " ORDER BY create_time desc"
 
         apps = session.execute(sql, params).fetchall()
         return apps
@@ -1809,11 +1901,35 @@ class ApplicationVisitService(object):
             ApplicationVisitRecord.is_delete == 0
         ))
 
-    def get_app_visit_record_by_user(self, session, user_id):
-        return session.execute(select(ApplicationVisitRecord).where(
-            ApplicationVisitRecord.user_id == user_id,
+    def get_app_visit_record_by_user(self, session, user):
+        data = []
+        app_records_auth = []
+        app_records = session.execute(select(ApplicationVisitRecord).where(
+            ApplicationVisitRecord.user_id == user.user_id,
             ApplicationVisitRecord.is_delete == 0
-        ).order_by(ApplicationVisitRecord.visit_time.desc()).limit(5)).scalars().all()
+        ).order_by(ApplicationVisitRecord.visit_time.desc())).scalars().all()
+        for app_record in app_records:
+            env = env_repo.get_env_by_env_id(session, app_record.tenant_env_id)
+            if env:
+                is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
+                is_super_admin = team_api.get_user_env_auth(user, None, "1")
+                if is_team_admin or is_super_admin:
+                    is_auth = True
+                else:
+                    is_auth = user_env_auth_repo.is_auth_in_env(session, app_record.tenant_env_id, user.user_name)
+                if is_auth:
+                    app_records_auth.append(app_record)
+                if len(app_records_auth) > 4:
+                    break
+
+        for app_record in app_records_auth:
+            record_dict = jsonable_encoder(app_record)
+            app_id = record_dict["app_id"]
+            app = application_repo.get_group_by_id(session, app_id)
+            project_id = app.project_id
+            record_dict.update({"project_id": project_id})
+            data.append(record_dict)
+        return data
 
     def get_app_visit_record_by_app_id(self, session, app_id):
         return session.execute(select(ApplicationVisitRecord).where(
@@ -1821,12 +1937,27 @@ class ApplicationVisitService(object):
             ApplicationVisitRecord.is_delete == 0
         )).scalars().all()
 
-    def get_app_visit_record_by_user_app(self, session, user_id, app_id):
+    def get_app_visit_record_by_env_id(self, session, env_id):
         return session.execute(select(ApplicationVisitRecord).where(
+            ApplicationVisitRecord.tenant_env_id == env_id
+        )).scalars().all()
+
+    def get_app_visit_record_by_user_app(self, session, user_id, app_id, is_delete=None):
+        if is_delete:
+            return session.execute(select(ApplicationVisitRecord).where(
+                ApplicationVisitRecord.user_id == user_id,
+                ApplicationVisitRecord.app_id == app_id,
+                ApplicationVisitRecord.is_delete == is_delete
+            )).scalars().first()
+        visit = session.execute(select(ApplicationVisitRecord).where(
             ApplicationVisitRecord.user_id == user_id,
-            ApplicationVisitRecord.app_id == app_id,
-            ApplicationVisitRecord.is_delete == 0
+            ApplicationVisitRecord.app_id == app_id
         )).scalars().first()
+        if visit:
+            visit.is_delete = False
+            visit.delete_time = None
+            visit.delete_operator = None
+        return visit
 
 
 application_service = ApplicationService()

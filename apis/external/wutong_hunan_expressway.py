@@ -70,14 +70,16 @@ async def get_store(
         store["total_disk"] += result_bean["total_capacity_storage"]
         store["used_disk"] += result_bean["total_used_storage"]
 
-        total_pod = result_bean['total_capacity_pods'] + result_bean['total_used_pods']
-        pod["total"] += total_pod
+        pod["total"] += result_bean['total_capacity_pods']
         pod["used_pod"] += result_bean['total_used_pods']
-        pod["free_pod"] += result_bean['total_capacity_pods']
+        pod["free_pod"] += result_bean['total_capacity_pods'] - result_bean['total_used_pods']
 
     store["used_disk"] = round(store["used_disk"], 2)
     store["total_memory"] = round(store["total_memory"], 2)
     store["total_disk"] = round(store["total_disk"], 2)
+    store["used_cpu"] = round(store["used_cpu"], 2)
+    store["used_memory"] = round(store["used_memory"], 2)
+
     info = {
         "store": store,
         "pod": pod,

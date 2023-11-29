@@ -1,18 +1,21 @@
 import re
 from typing import Any, Optional
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from sqlalchemy import select
+
 from clients.remote_component_client import remote_component_client
 from common.api_base_http_client import ApiBaseHttpClient
 from core import deps
 from core.setting import settings
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message, general_data
+from core.utils.validation import is_qualified_component_name
 from database.session import SessionClass
-from exceptions.bcode import ErrComponentBuildFailed
+from exceptions.bcode import ErrComponentBuildFailed, ErrQualifiedName
 from exceptions.main import AccountOverdueException, ResourceNotEnoughException, ErrInsufficientResource, \
     ServiceHandleException
 from models.component.models import Component
@@ -36,6 +39,7 @@ from service.monitor_service import monitor_service
 from service.multi_app_service import multi_app_service
 from service.region_service import region_services
 from service.tenant_env_service import env_services
+from service.yaml.yaml_service import yaml_service
 
 router = APIRouter()
 
@@ -57,9 +61,19 @@ async def docker_run(
     """
     image和docker-run创建组件
     """
-    if params.k8s_component_name and application_service.is_k8s_component_name_duplicate(session,
-                                                                                         params.group_id,
-                                                                                         params.k8s_component_name):
+    if not params.k8s_component_name:
+        return JSONResponse(general_message(400, "k8s component name is not null", "组件英文名不能为空"), status_code=400)
+
+    if len(params.k8s_component_name) > 32:
+        result = general_message(400, "k8s component name too long", "组件英文名长度限制32")
+        return JSONResponse(result, status_code=result["code"])
+
+    if not is_qualified_component_name(params.k8s_component_name):
+        raise ErrQualifiedName(msg="invalid component name", msg_show="组件英文名称只支持小写字母、数字或“-”，并且必须以字母开始、以数字或字母结尾")
+
+    if application_service.is_k8s_component_name_duplicate(session,
+                                                           params.group_id,
+                                                           params.k8s_component_name):
         return JSONResponse(general_message(400, "k8s component name exists", "组件英文名已存在"), status_code=400)
     try:
         if not params.image_type:
@@ -78,6 +92,7 @@ async def docker_run(
                                                                                 service_cname=params.service_cname,
                                                                                 docker_cmd=params.docker_cmd,
                                                                                 image_type=params.image_type,
+                                                                                image_hub=params.image_hub,
                                                                                 k8s_component_name=params.k8s_component_name)
         if code != 200:
             return JSONResponse(general_message(code, "service create fail", msg_show), status_code=200)
@@ -103,7 +118,8 @@ async def docker_run(
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/get_check_uuid", response_model=Response, name="组件构建检测")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/get_check_uuid", response_model=Response,
+            name="组件构建检测")
 async def get_check_uuid(service_alias: Optional[str] = None,
                          session: SessionClass = Depends(deps.get_session),
                          env=Depends(deps.get_current_team_env)) -> Any:
@@ -118,8 +134,8 @@ async def get_check_uuid(service_alias: Optional[str] = None,
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
 async def get_check_detail(check_uuid: Optional[str] = None,
-                           env_id: Optional[str] = None,
                            service_alias: Optional[str] = None,
+                           env=Depends(deps.get_current_team_env),
                            session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件检测信息
@@ -144,9 +160,6 @@ async def get_check_detail(check_uuid: Optional[str] = None,
     """
     if not check_uuid:
         return JSONResponse(general_message(400, "params error", "参数错误，请求参数应该包含请求的ID"), status_code=400)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=Component(service_alias=service_alias,
                                                                          tenant_env_id=env.env_id))
@@ -187,9 +200,9 @@ async def get_check_detail(check_uuid: Optional[str] = None,
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/check", response_model=Response, name="组件构建检测")
 async def check(
         params: Optional[DockerRunCheckParam] = DockerRunCheckParam(),
-        env_id: Optional[str] = None,
         service_alias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
     """
     组件信息检测
@@ -207,9 +220,6 @@ async def check(
           paramType: path
 
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=Component(service_alias=service_alias,
                                                                          tenant_env_id=env.env_id))
@@ -226,9 +236,9 @@ async def check(
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/build", response_model=Response, name="构建组件")
 async def component_build(params: Optional[BuildParam] = BuildParam(),
-                          env_id: Optional[str] = None,
                           service_alias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
+                          env=Depends(deps.get_current_team_env),
                           user=Depends(deps.get_current_user)) -> Any:
     """
     组件构建
@@ -246,9 +256,6 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
           paramType: path
     """
     is_deploy = params.is_deploy
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = team_component_repo.get_one_by_model(session=session,
                                                    query_model=Component(service_alias=service_alias,
                                                                          tenant_env_id=env.env_id))
@@ -299,20 +306,17 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
     service.create_status = "checked"
 
     session.merge(service)
-    return JSONResponse(result, status_code=200)
+    return JSONResponse(result, status_code=result["code"])
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/pods/{pod_name}/detail", response_model=Response,
             name="pod详情")
 async def pod_detail(
-        env_id: Optional[str] = None,
         service_alias: Optional[str] = None,
         pod_name: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         service = team_component_repo.get_one_by_model(session=session,
                                                        query_model=Component(service_alias=service_alias,
                                                                              tenant_env_id=env.env_id))
@@ -331,14 +335,11 @@ async def pod_detail(
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/vertical", response_model=Response, name="垂直升级组件")
 async def component_vertical(request: Request,
-                             env_id: Optional[str] = None,
                              service_alias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
+                             env=Depends(deps.get_current_team_env),
                              user=Depends(deps.get_current_user)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         new_memory = data.get("new_memory", 0)
         new_gpu_type = data.get("new_gpu_type", None)
@@ -368,14 +369,11 @@ async def component_vertical(request: Request,
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/horizontal", response_model=Response, name="水平升级组件")
 async def component_horizontal(request: Request,
-                               env_id: Optional[str] = None,
                                service_alias: Optional[str] = None,
                                session: SessionClass = Depends(deps.get_session),
+                               env=Depends(deps.get_current_team_env),
                                user=Depends(deps.get_current_user)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         new_node = data.get("new_node", None)
         if not new_node:
@@ -407,14 +405,16 @@ async def component_graphs(service_alias: Optional[str] = None,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response, name="查询组件内部图表")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response,
+            name="查询组件内部图表")
 async def component_graphs() -> Any:
     graphs = component_graph_service.list_internal_graphs()
     result = general_message("0", "success", "查询成功", list=graphs)
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response, name="一键导入内部图表")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/internal-graphs", response_model=Response,
+             name="一键导入内部图表")
 async def import_component_graphs(request: Request,
                                   service_alias: Optional[str] = None,
                                   session: SessionClass = Depends(deps.get_session),
@@ -427,7 +427,8 @@ async def import_component_graphs(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor", response_model=Response, name="查询组件监控点")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor", response_model=Response,
+            name="查询组件监控点")
 async def component_monitor(service_alias: Optional[str] = None,
                             session: SessionClass = Depends(deps.get_session),
                             env=Depends(deps.get_current_team_env)) -> Any:
@@ -439,13 +440,10 @@ async def component_monitor(service_alias: Optional[str] = None,
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/service_monitor", response_model=Response,
              name="添加组件监控点")
 async def add_component_monitor(request: Request,
-                                env_id: Optional[str] = None,
                                 service_alias: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session),
+                                env=Depends(deps.get_current_team_env),
                                 user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     data = await request.json()
     port = data.get("port", None)
     name = data.get("name", None)
@@ -557,12 +555,9 @@ async def delete_component_monitor(
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/history_log", response_model=Response,
             name="获取组件历史日志")
 async def get_history_log(request: Request,
-                          env_id: Optional[str] = None,
                           service_alias: Optional[str] = None,
+                          env=Depends(deps.get_current_team_env),
                           session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = service_info_repo.get_service(session, service_alias, env.env_id)
     code, msg, file_list = log_service.get_history_log(session, env, service)
     log_domain_url = ws_service.get_log_domain(session, request, service.service_region)
@@ -575,7 +570,8 @@ async def get_history_log(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response, name="删除组件图表")
+@router.delete("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response,
+               name="删除组件图表")
 async def delete_component_graphs(
         service_alias: Optional[str] = None,
         graph_id: Optional[str] = None,
@@ -588,7 +584,8 @@ async def delete_component_graphs(
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response, name="修改组件图表")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{service_alias}/graphs/{graph_id}", response_model=Response,
+            name="修改组件图表")
 async def modify_component_graphs(
         request: Request,
         service_alias: Optional[str] = None,
@@ -666,3 +663,66 @@ async def multi_create(
         })
 
     return JSONResponse(result, status_code=200)
+
+
+@router.post("/teams/{team_name}/env/{env_id}/apps/yaml", response_model=Response, name="yaml安装组件")
+async def yaml_install(
+        request: Request,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env)) -> Any:
+    """
+    yaml安装组件
+    ---
+    parameters:
+        - name: team_name
+          description: 团队code
+          required: true
+          type: string
+          paramType: path
+        - name: env_id
+          description: 环境id
+          required: true
+          type: string
+          paramType: path
+    """
+
+    request_data = await request.json()
+    group_id = request_data.get("group_id")
+    yaml_names = request_data.get("yaml_names")
+
+    if not yaml_names or not group_id:
+        return JSONResponse(general_message(400, "failed", msg_show="参数错误"), status_code=200)
+
+    # 解析yaml文件
+    yaml_datas, err_msg = yaml_service.yaml_resolution(yaml_names)
+
+    if err_msg:
+        return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败", list=err_msg),
+                            status_code=200)
+
+    try:
+        # 使用kind对yaml数据分类
+        kind_data = yaml_service.yaml_classify_by_kind(yaml_datas)
+    except:
+        return JSONResponse(general_message(400, "yaml file error", msg_show="yaml解析失败"),
+                            status_code=400)
+
+    # 仅识别Deployment、StatefulSet为组件
+    deployment_data = kind_data.get("Deployment", [])
+    stateful_set_data = kind_data.get("StatefulSet", [])
+    services = deployment_data + stateful_set_data
+    if len(services) == 0:
+        return JSONResponse(general_message(400, "not found Deployment、StatefulSet", msg_show="未识别到组件信息"),
+                            status_code=200)
+
+    # 安装yaml组件
+    err_msg = yaml_service.install_yaml_service(session=session,
+                                                user=user,
+                                                env=env,
+                                                app_id=group_id,
+                                                region_name=env.region_code,
+                                                yaml_data=kind_data)
+    if err_msg:
+        return JSONResponse(general_message(400, "failed", msg_show="yaml解析失败", list=err_msg), status_code=200)
+    return JSONResponse(general_message("0", "success", msg_show="安装成功"), status_code=200)

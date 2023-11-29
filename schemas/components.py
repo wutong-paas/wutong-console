@@ -20,6 +20,7 @@ class DockerRunParams(BaseModel):
     password: Optional[str] = None
     user_name: Optional[str] = None
     k8s_component_name: Optional[str] = None
+    image_hub: Optional[str] = None
 
 
 class DeployBusinessParams(BaseModel):
@@ -69,3 +70,20 @@ class BuildSourceParam(BaseModel):
     docker_image: Optional[str] = None
     registry_user: Optional[str] = None
     registry_password: Optional[str] = None
+
+
+class BackupScheduleParam(BaseModel):
+    # 备份保留时长
+    ttl: Optional[str] = None
+    # 计划时间
+    sync_time: Optional[str] = None
+    sync_week: Optional[str] = "*"
+    # 描述信息
+    desc: Optional[str] = None
+
+
+class ServiceBackupParam(BaseModel):
+    # 备份保留时长
+    ttl: Optional[str] = None
+    # 描述信息
+    desc: Optional[str] = None

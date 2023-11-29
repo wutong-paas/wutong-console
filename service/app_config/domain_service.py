@@ -60,7 +60,7 @@ class DomainService(object):
             "certificate": base64.b64decode(cert.certificate).decode(),
             "private_key": cert.private_key,
         }
-        team_regions = cert_service.get_team_usable_regions(session, tenant_env.env_name)
+        team_regions = cert_service.get_team_usable_regions(session, tenant_env.namespace)
         for team_region in team_regions:
             try:
                 remote_build_client.update_ingresses_by_certificate(session, team_region.region_name,
@@ -658,6 +658,8 @@ class DomainService(object):
         domain_info["service_name"] = service.service_alias
         if not domain_info["rewrites"]:
             domain_info["rewrites"] = None
+        else:
+            domain_info["rewrites"] = json.dumps(domain_info["rewrites"])
         model_data = ServiceDomain(**domain_info)
         domain_repo.save_service_domain(session, model_data)
         if re_model:
@@ -712,11 +714,7 @@ class DomainService(object):
         tenant_service_port = port_repo.get_service_port_by_port(session, service.tenant_env_id, service.service_id,
                                                                  container_port)
         if tenant_service_port:
-            protocol = tenant_service_port.protocol
-        else:
-            protocol = ''
-        if protocol:
-            domain_info["protocol"] = protocol
+            domain_info["protocol"] = tenant_service_port.protocol
         else:
             domain_info["protocol"] = 'tcp'
         domain_info["end_point"] = end_point

@@ -16,18 +16,25 @@ from repository.teams.env_repo import env_repo
 from service.app_actions.app_manage import app_manage_service
 from service.base_services import base_service
 from service.plugin_service import plugin_service
+from core.api.team_api import team_api
+from repository.env.user_env_auth_repo import user_env_auth_repo
 
 
-def get_region_list_by_env_name(session: SessionClass, env_name):
+def get_region_list_by_team_name(session: SessionClass, envs):
     """
-    :param session:
+
     :param team_name:
     :return:
     """
-    regions = team_region_repo.get_active_region_by_env_name(session=session, env_name=env_name)
-    if regions:
-        region_name_list = []
-        for region in regions:
+    region_name_list = []
+    team_region_name_list = []
+    if envs:
+        for env in envs:
+            region = team_region_repo.get_active_region_by_env(session=session, tenant_env=env)
+            region_name = region.region_name
+            if region_name in team_region_name_list:
+                continue
+            team_region_name_list.append(region.region_name)
             region_config = team_region_repo.get_region_by_region_name(session, region.region_name)
             if region_config and region_config.status in ("1", "3"):
                 region_info = {
@@ -35,7 +42,8 @@ def get_region_list_by_env_name(session: SessionClass, env_name):
                     "is_active": region.is_active,
                     "region_status": region_config.status,
                     "team_region_alias": region_config.region_alias,
-                    "region_tenant_env_id": region.region_tenant_env_id,
+                    "region_env_id": region.region_env_id,
+                    "region_tenant_id": env.tenant_id,
                     "team_region_name": region.region_name,
                     "region_scope": region_config.scope,
                     "region_create_time": region_config.create_time,
@@ -48,6 +56,38 @@ def get_region_list_by_env_name(session: SessionClass, env_name):
         return []
 
 
+def get_team_env_list(session, envs, user):
+    """
+    :param envs:
+    :param user:
+    :return:
+    """
+    team_env_list = []
+    if envs:
+        for env in envs:
+            # 判断是否拥有权限
+            is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
+            is_super_admin = team_api.get_user_env_auth(user, None, "1")
+            if is_team_admin or is_super_admin:
+                is_auth = True
+            else:
+                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
+            if not is_auth:
+                continue
+            env_info = {
+                "env_id": env.env_id,
+                "env_code": env.env_name,
+                "env_namespace": env.namespace,
+                "env_name": env.env_alias,
+                "region_name": env.region_name,
+                "region_code": env.region_code
+            }
+            team_env_list.append(env_info)
+        return team_env_list
+    else:
+        return []
+
+
 class RegionService(object):
 
     async def get_region_by_request(self, session, request):
@@ -55,6 +95,8 @@ class RegionService(object):
             data = await request.json()
         except:
             data = {}
+        if isinstance(data, list):
+            data = data[0]
         response_region = data.get("region_name", None)
         if not response_region:
             response_region = request.query_params.get("region_name", None)
@@ -259,7 +301,8 @@ class RegionService(object):
                                                         namespace)
             if res["status"] != 200 and body['msg'] != 'env name {} is exist'.format(env.env_name):
                 logger.error(res)
-                raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化租户失败")
+                logger.error(body)
+                raise ServiceHandleException(msg="cluster init failure ", msg_show="集群初始化环境失败")
             env_region.is_active = True
             env_region.is_init = True
             env_region.region_env_id = env.env_id
@@ -288,7 +331,7 @@ class RegionService(object):
             # check cluster api health
             if not info or info["rbd_version"] == "":
                 ignore_cluster_resource = True
-        services = service_info_repo.get_services_by_team_and_region(session, env.env_id, region_name)
+        services = service_info_repo.get_services_by_env_and_region(session, env.env_id, region_name)
         if not ignore_cluster_resource and services and len(services) > 0:
             # check component status
             service_ids = [service.service_id for service in services]

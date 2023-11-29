@@ -9,6 +9,7 @@ logger.remove()
 
 
 class Settings(BaseSettings):
+    DEBUG = False
     ENV = os.environ.get("wutong_env", "DEV")
     APP_NAME = "wutong-console"
     API_PREFIX = "/console"
@@ -19,6 +20,11 @@ class Settings(BaseSettings):
     DATA_DIR = os.getenv("DATA_DIR", DATA_DIR)
     MEDIA_URL = '/data/media/'
     MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
+    YAML_URL = '/data/file/'
+    YAML_ROOT = os.path.join(DATA_DIR, 'file')
+
+    # 团队API路由配置
+    USER_AUTH_API_URL = os.environ.get("USER_AUTH_API_URL", "http://cube.wutong-dev.talkweb.com.cn/bone/cube-gateway")
 
     # 跨域白名单
     BACKEND_CORS_ORIGINS: List = ['*']
@@ -35,8 +41,10 @@ class Settings(BaseSettings):
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
-    # SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
-    SQLALCHEMY_DATABASE_URI: str = 'mysql://root:root@127.0.0.1:33066/console'
+    if not DEBUG:
+        SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+    else:
+        SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@127.0.0.1:3306/console'
 
     # 日志级别
     # CRITICAL = 50
@@ -59,8 +67,8 @@ class Settings(BaseSettings):
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_DAY = 15
 
-    INIT_AGENT_PLUGIN_ENV = os.getenv("JAVA_TOOL_OPTIONS",
-                                      "-javaagent:/agent/agent.jar -Dotel.exporter.jaeger.endpoint=http://grafana-labs-traces-agent.wutong-obs:14250 -Dotel.traces.exporter=jaeger -Dotel.metrics.exporter=none -Dotel.resource.attributes=service.name=")
+    PLUGIN_AGENT_SERVER_ADDRESS = os.getenv("AGENT_SERVER_ADDRESS",
+                                      "http://wutong-obs-system-trace-agent.wutong-obs:4317")
 
     EVENT_WEBSOCKET_URL = {
         'cloudbang': 'auto',
@@ -70,8 +78,7 @@ class Settings(BaseSettings):
     PORT = os.environ.get("PORT", 8888)
 
     # 是否热加载
-    RELOAD = True
-
+    RELOAD = False
     SSO_LOGIN = True
     TENANT_VALID_TIME = 7
 
@@ -80,8 +87,8 @@ class Settings(BaseSettings):
     NACOS_HOST = os.environ.get("NACOS_HOST", "wtb1e507-8848.cube:8848")
     SERVER_NAMESPACE_ID = os.environ.get("SERVER_NAMESPACE_ID", "CUBE")
     SERVICE_NAME = "paas-console"
-    SERVICE_IP = ip_address
-    SERVICE_PORT = "8888"
+    SERVICE_IP = os.environ.get("SERVICE_IP", ip_address)
+    SERVICE_PORT = os.environ.get("SERVICE_PORT", "8888")
     SERVICE_GROUP_NAME = os.environ.get("SERVICE_GROUP_NAME", "CUBE")
 
     source_code_type = {

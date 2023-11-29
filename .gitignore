@@ -19,3 +19,4 @@ poetry.lock
 pyproject.toml
 info.md
 data
+scheduler.lock

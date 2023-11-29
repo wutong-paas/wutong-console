@@ -18,6 +18,7 @@ from models.teams import TeamEnvInfo
 from repository.application.app_upgrade_repo import upgrade_repo
 from repository.component.component_repo import tenant_service_group_repo, service_source_repo
 from repository.component.component_upgrade_record_repo import component_upgrade_record_repo
+from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
@@ -43,8 +44,15 @@ class UpgradeService(object):
 
     @staticmethod
     def list_rollback_record(session, upgrade_record: ApplicationUpgradeRecord):
+        data_list = []
         records = upgrade_repo.list_by_rollback_records(session, upgrade_record.ID)
-        return [record.to_dict() for record in records]
+        for record in records:
+            data = record.to_dict()
+            key = record.group_key
+            app = component_share_repo.get_app_by_key(session, key)
+            data.update({"app_model_name": app.app_name})
+            data_list.append(data)
+        return data_list
 
     def restore(self, session, tenant_env, region, user, app, record: ApplicationUpgradeRecord):
         if not record.can_rollback():
@@ -356,7 +364,14 @@ class UpgradeService(object):
         event_paginator = paginate(records, params)
         records = event_paginator.items
         self.sync_unfinished_records(session=session, tenant_env=tenant_env, region_name=region_name, records=records)
-        return [record.to_dict() for record in records], event_paginator.total
+        data_list = []
+        for record in records:
+            data = record.to_dict()
+            key = record.group_key
+            app = component_share_repo.get_app_by_key(session, key)
+            data.update({"app_model_name": app.app_name})
+            data_list.append(data)
+        return data_list, event_paginator.total
 
     def get_latest_upgrade_record(self, session: SessionClass, tenant_env: TeamEnvInfo, app: Application,
                                   upgrade_group_id=None, record_type=None):

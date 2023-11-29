@@ -20,6 +20,6 @@ async def delete_cube_team(team_code: Optional[str] = None, user=Depends(deps.ge
     envs = env_services.get_envs_by_tenant_name(session, team_code)
     if envs:
         for env in envs:
-            env_delete_service.logic_delete_by_env_id(session=session, user=user, env=env, region_name=env.region_name)
+            env_delete_service.logic_delete_by_env_id(session=session, user=user, env=env, region_code=env.region_code)
     result = general_message("0", "delete a team successfully", "删除团队成功")
     return JSONResponse(result, status_code=200)

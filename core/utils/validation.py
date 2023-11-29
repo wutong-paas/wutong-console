@@ -74,7 +74,15 @@ def validate_name(name):
 # Verification k8s resource name, refer to:
 # https://github.com/kubernetes/kubernetes/blob/b0bc8adbc2178e15872f9ef040355c51c45d04bb/staging/src/k8s.io/apimachinery/pkg/util/validation/validation.go#L43
 def is_qualified_name(name):
-    # 只支持字母、数字和-组合,并且必须以数字或字母开始、以数字或字母结尾
-    if re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', name):
+    # 只支持英文、数字、中横线、下划线组合，需以英文、数字开头，中横线、下划线不能位于首尾
+    if re.match(r'^[A-Za-z0-9]([-_A-Za-z0-9]*[A-Za-z0-9])?$', name):
+        return True
+    return False
+
+
+# 验证组件英文名称
+def is_qualified_component_name(name):
+    # 只支持小写字母、数字或“-”，并且必须以字母开始、以数字或字母结尾
+    if re.match(r'^[a-z]([-a-z0-9]*[a-z0-9])?$', name):
         return True
     return False

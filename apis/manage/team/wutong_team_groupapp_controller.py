@@ -71,6 +71,8 @@ async def get_backup_info(request: Request,
     note = data.get("note", None)
     if not note:
         return JSONResponse(general_message(400, "note is null", "请填写备份信息"), status_code=400)
+    if len(note) > 255:
+        return JSONResponse(general_message(400, "note is to long", "备份信息长度过长"), status_code=400)
     mode = data.get("mode", None)
     if not mode:
         return JSONResponse(general_message(400, "mode is null", "请选择备份模式"), status_code=400)
@@ -209,8 +211,8 @@ async def get_migrate_record(request: Request, session: SessionClass = Depends(d
 
 @router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="应用迁移")
 async def app_migrate(request: Request,
-                      env_id: Optional[str] = None,
                       session: SessionClass = Depends(deps.get_session),
+                      env=Depends(deps.get_current_team_env),
                       user=Depends(deps.get_current_user)) -> Any:
     """
     应用迁移
@@ -223,16 +225,16 @@ async def app_migrate(request: Request,
     migrate_type = data.get("migrate_type", "migrate")
     event_id = data.get("event_id", None)
     restore_id = data.get("restore_id", None)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+    tenant_name = data.get("team_alias", None)
+    project_id = data.get("project_id", None)
+    project_name = data.get("project_name", "")
 
     region = team_region_repo.get_region_by_env_id(session, env.env_id)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     if not migrate_env_id:
-        return JSONResponse(general_message(400, "team is null", "请指明要迁移的团队"), status_code=400)
+        return JSONResponse(general_message(400, "team is null", "请指明要迁移的环境"), status_code=400)
     migrate_env = env_repo.get_env_by_env_id(session, migrate_env_id)
     if not migrate_env:
         return JSONResponse(general_message(404, "team is not found", "需要迁移的环境不存在"), status_code=404)
@@ -243,7 +245,10 @@ async def app_migrate(request: Request,
                                                        migrate_region=migrate_region,
                                                        backup_id=backup_id, migrate_type=migrate_type,
                                                        event_id=event_id,
-                                                       restore_id=restore_id)
+                                                       restore_id=restore_id,
+                                                       tenant_name=tenant_name,
+                                                       project_id=project_id,
+                                                       project_name=project_name)
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show), status_code=e.status_code)
     result = general_message("0", "success", "操作成功，开始迁移应用", bean=jsonable_encoder(migrate_record))
@@ -252,36 +257,31 @@ async def app_migrate(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/migrate", response_model=Response, name="查询应用迁移状态")
 async def get_app_migrate_state(request: Request,
-                                env_id: Optional[str] = None,
                                 session: SessionClass = Depends(deps.get_session),
+                                env=Depends(deps.get_current_team_env),
                                 user=Depends(deps.get_current_user)) -> Any:
     restore_id = request.query_params.get("restore_id", None)
     if not restore_id:
         return JSONResponse(general_message(400, "restore id is null", "请指明查询的备份ID"), status_code=400)
-
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     response_region = region.region_name
     migrate_record = migrate_service.get_and_save_migrate_status(session=session,
-                                                                 migrate_env=env,
                                                                  user=user, restore_id=restore_id,
                                                                  current_env_name=env.env_name,
                                                                  current_region=response_region)
     if not migrate_record:
         return JSONResponse(general_message(404, "not found record", "记录不存在"), status_code=404)
-    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(migrate_record))
+    result = general_message("0", "success", "查询成功", bean=migrate_record)
     return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/backup/import", response_model=Response, name="导入备份")
 async def set_backup_info(request: Request,
-                          env_id: Optional[str] = None,
                           group_id: Optional[str] = None,
+                          env=Depends(deps.get_current_team_env),
                           session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         form_data = await request.form()
@@ -289,9 +289,6 @@ async def set_backup_info(request: Request,
             return JSONResponse(general_message(400, "group id is null", "请选择需要导出备份的组"), status_code=400)
         if not form_data or not form_data.get('file'):
             return JSONResponse(general_message(400, "param error", "请指定需要导入的备份信息"), status_code=400)
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         upload_file = form_data.get('file')
         file_data = await upload_file.read()
         if len(file_data) > StorageUnit.ONE_MB * 2:
@@ -336,19 +333,23 @@ async def app_copy(request: Request,
                    session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     services = data.get("services", [])
-    tar_env_name = data.get("tar_env_name")
+    tar_env_id = data.get("tar_env_id")
     tar_region_name = data.get("tar_region_name")
     tar_group_id = data.get("tar_group_id")
 
-    if not tar_env_name or not tar_region_name or not tar_group_id:
+    if not tar_env_id or not tar_region_name or not tar_group_id:
         raise ServiceHandleException(msg_show="缺少复制目标参数", msg="not found copy target parameters", status_code=404)
-    tar_group = groupapp_copy_service.check_and_get_env_group(session, env.env_id, tar_group_id)
+
+    tar_env = env_repo.get_env_by_env_id(session, tar_env_id)
+    if not tar_env:
+        raise ServiceHandleException(msg_show="目标环境不存在", msg="not found tar env", status_code=404)
+    tar_group = groupapp_copy_service.check_and_get_env_group(session, tar_env_id, tar_group_id)
     try:
         region = await region_services.get_region_by_request(session, request)
         if not region:
             return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
         region_name = region.region_name
-        groupapp_copy_service.copy_group_services(session, user, region_name, env,
+        groupapp_copy_service.copy_group_services(session, user, env, region_name, tar_env,
                                                   tar_region_name,
                                                   tar_group, group_id, services)
         result = general_message(
@@ -356,7 +357,8 @@ async def app_copy(request: Request,
             "success",
             "复制成功",
             bean={
-                "tar_env_name": tar_env_name,
+                "tar_team_name": tar_env.tenant_name,
+                "tar_env_id": tar_env_id,
                 "tar_region_name": tar_region_name,
                 "tar_group_id": tar_group_id
             })

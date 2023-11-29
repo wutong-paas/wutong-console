@@ -12,8 +12,9 @@ from core.enum.component_enum import is_support
 from core.utils.constants import PluginCategoryConstants
 from core.utils.reqparse import parse_argument, parse_item
 from core.utils.return_message import general_message
+from core.utils.validation import is_qualified_component_name
 from database.session import SessionClass
-from exceptions.bcode import ErrK8sComponentNameExists
+from exceptions.bcode import ErrK8sComponentNameExists, ErrQualifiedName
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
     AccountOverdueException, AbortRequest, CallRegionAPIException
 from models.component.models import ComponentEnvVar
@@ -225,6 +226,14 @@ async def modify_components_name(
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     service_cname = data.get("service_cname", None)
     k8s_component_name = data.get("k8s_component_name", "")
+
+    if len(k8s_component_name) > 32:
+        result = general_message(400, "k8s component name too long", "组件英文名长度限制32")
+        return JSONResponse(result, status_code=result["code"])
+
+    if not is_qualified_component_name(k8s_component_name):
+        raise ErrQualifiedName(msg="invalid component name", msg_show="组件英文名称只支持小写字母、数字或“-”，并且必须以字母开始、以数字或字母结尾")
+
     app = application_service.get_service_group_info(session, service.service_id)
     if app:
         if application_service.is_k8s_component_name_duplicate(session, app.ID, k8s_component_name, service.service_id):
@@ -336,6 +345,10 @@ async def restart_component(serviceAlias: Optional[str] = None,
                             user=Depends(deps.get_current_user),
                             env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+    is_dep_running = app_manage_service.is_dep_service_running(session, env, service)
+    if not is_dep_running:
+        return JSONResponse(general_message(400, "dep service is not running", "依赖的组件服务存在异常,未能正常构建/更新/重启,请检查依赖项或取消依赖"),
+                            status_code=400)
     code, msg = app_manage_service.restart(session=session, tenant_env=env, service=service, user=user)
     bean = {}
     if code != 200:
@@ -362,6 +375,10 @@ async def start_component(serviceAlias: Optional[str] = None,
                           user=Depends(deps.get_current_user),
                           env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+    is_dep_running = app_manage_service.is_dep_service_running(session, env, service)
+    if not is_dep_running:
+        return JSONResponse(general_message(400, "dep service is not running", "依赖的组件服务存在异常,未能正常构建/更新/重启,请检查依赖项或取消依赖"),
+                            status_code=400)
     try:
         code, msg = app_manage_service.start(session=session, tenant_env=env, service=service, user=user)
         bean = {}
@@ -385,6 +402,10 @@ async def upgrade_component(serviceAlias: Optional[str] = None,
     更新
     """
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+    is_dep_running = app_manage_service.is_dep_service_running(session, env, service)
+    if not is_dep_running:
+        return JSONResponse(general_message(400, "dep service is not running", "依赖的组件服务存在异常,未能正常构建/更新/重启,请检查依赖项或取消依赖"),
+                            status_code=400)
     try:
         code, msg, _ = app_manage_service.upgrade(session=session, tenant_env=env, service=service, user=user)
         bean = {}
@@ -404,6 +425,7 @@ async def group_component(request: Request,
                           serviceAlias: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
                           env=Depends(deps.get_current_team_env)) -> Any:
+    res = {}
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = await request.json()
     group_id = data.get("group_id", None)
@@ -414,13 +436,15 @@ async def group_component(request: Request,
         application_service.delete_service_group_relation_by_service_id(session=session, service_id=service.service_id)
     else:
         # check target app exists or not
-        application_service.get_group_by_id(session=session, tenant_env=env, region=service.service_region,
-                                            group_id=group_id)
+        group_info = application_service.get_group_by_id(session=session, tenant_env=env, region=service.service_region,
+                                                         group_id=group_id)
         # update service relation
-        application_service.update_or_create_service_group_relation(session=session, tenant_env=env, service=service,
-                                                                    group_id=group_id)
+        res = application_service.update_or_create_service_group_relation(session=session, tenant_env=env,
+                                                                          service=service,
+                                                                          group_id=group_id)
+        res.update({"project_id": group_info["project_id"]})
 
-    result = general_message("0", "success", "修改成功")
+    result = general_message("0", "success", "修改成功", bean=res)
     return JSONResponse(result, status_code=200)
 
 
@@ -436,7 +460,7 @@ async def delete_component(request: Request,
     # code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user)
     code, msg = component_delete_service.logic_delete(session=session, tenant_env=env, service=service, user=user,
                                                       is_force=True)
-    if code != 200:
+    if code != "0":
         return JSONResponse(general_message(code, "delete service error", msg), status_code=code)
     result = general_message("0", "success", "操作成功")
     return JSONResponse(result, status_code=200)

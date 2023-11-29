@@ -4,7 +4,7 @@ import logging
 import copy
 from datetime import datetime
 
-from core.enum.app import ApplicationUpgradeStatus
+from core.enum.app import ApplicationUpgradeStatus, ApplicationUpgradeRecordType
 from core.enum.enterprise_enum import ActionType
 from exceptions.bcode import ErrAppUpgradeDeployFailed
 from exceptions.main import ServiceHandleException
@@ -83,7 +83,7 @@ class AppRestore(MarketApp):
         rollback_record.pop("can_rollback")
         rollback_record.pop("is_finished")
         rollback_record["status"] = ApplicationUpgradeStatus.ROLLING.value
-        rollback_record["record_type"] = ApplicationUpgradeStatus.ROLLBACK.value
+        rollback_record["record_type"] = ApplicationUpgradeRecordType.ROLLBACK.value
         rollback_record["parent_id"] = self.upgrade_record.ID
         rollback_record["version"] = self.upgrade_record.old_version
         rollback_record["old_version"] = self.upgrade_record.version

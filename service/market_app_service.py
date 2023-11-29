@@ -1,12 +1,9 @@
-import base64
 import json
 import time
 from addict import Dict
 from fastapi.encoders import jsonable_encoder
-from jsonpath import jsonpath
 from loguru import logger
 from sqlalchemy import select, delete
-from core.enum.component_enum import Kind
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, AbortRequest
@@ -164,16 +161,19 @@ class MarketAppService(object):
                           user,
                           scope,
                           app_name,
+                          sort_type,
+                          teams=None,
                           tag_names=None,
                           is_complete=True,
                           page=1,
                           page_size=10,
                           need_install="false"):
-        apps = center_app_repo.get_wutong_app_in_enterprise_by_query(session, scope, app_name, tag_names,
+        apps = center_app_repo.get_wutong_app_in_enterprise_by_query(session, scope, app_name, sort_type, teams,
+                                                                     tag_names,
                                                                      page,
                                                                      page_size,
                                                                      need_install)
-        count = center_app_repo.get_wutong_app_total_count(session, scope, None, app_name, tag_names,
+        count = center_app_repo.get_wutong_app_total_count(session, scope, teams, app_name, tag_names,
                                                            need_install)
         if not apps:
             return [], count
@@ -313,8 +313,8 @@ class MarketAppService(object):
                 app_release = True
 
             version.release_user = ""
-            version.share_user_id = version.share_user
-            version.share_user = version.share_user_id
+            version.create_time = str(version.create_time)
+            version.update_time = str(version.update_time)
 
             app_with_versions[version.version] = version
             if version.version not in apv_ver_nums:
@@ -364,7 +364,8 @@ class MarketAppService(object):
                     install_from_cloud,
                     is_deploy=False):
         app = (
-            session.execute(select(Application).where(Application.ID == app_id))
+            session.execute(select(Application).where(Application.ID == app_id,
+                                                      Application.is_delete == 0))
         ).scalars().first()
 
         if not app:
@@ -531,7 +532,7 @@ class MarketAppService(object):
                 'app_model_name': app_model.app_name,
                 'app_model_id': app_model_key,
                 'share_user': app_model.create_user,
-                'share_team': app_model.create_team,
+                'share_env': app_model.create_team,
                 'tenant_service_group_id': app_model.app_id,
                 'pic': app_model.pic,
                 'source': app_model.source,
@@ -606,173 +607,6 @@ class MarketAppService(object):
         if not app:
             raise RbdAppNotFound("未找到该应用")
         return app, app_version
-
-    def get_all_helm_info(self, helm_dir):
-        helm_list = center_app_repo.get_all_helm_info(helm_dir)
-        data = []
-        kind_service = []
-        kind_deployment = []
-        kind_configmap = []
-        kind_persistent_volume_claim = []
-        kind_secret = []
-        kind_statefulset = []
-
-        for helm in helm_list:
-            kind = helm.get("kind")
-            if kind == Kind.Service.value:
-                kind_service.append(helm)
-            elif kind == Kind.Deployment.value:
-                kind_deployment.append(helm)
-            elif kind == Kind.ConfigMap.value:
-                kind_configmap.append(helm)
-            elif kind == Kind.PersistentVolumeClaim.value:
-                kind_persistent_volume_claim.append(helm)
-            elif kind == Kind.Secret.value:
-                kind_secret.append(helm)
-            elif kind == Kind.StatefulSet.value:
-                kind_deployment.append(helm)
-
-        for deployment in kind_deployment:
-            helm_data = {}
-            new_ports = []
-            secret_info = []
-            volume_claim_info = []
-            uuid = make_uuid()
-            status = False
-            enable = False
-            deployment_name = jsonpath(deployment, '$.metadata..labels')[0].get("app.kubernetes.io/name")
-            ports_deployment = jsonpath(deployment, '$.spec..template...spec')[0].get("containers")[0].get("ports")
-            name = jsonpath(deployment, '$.metadata..name')[0][13:]
-            for service in kind_service:
-                service_name = jsonpath(service, '$.metadata..labels')[0].get("app.kubernetes.io/name")
-                if deployment_name != service_name:
-                    continue
-                status = True
-                ports_service = jsonpath(service, '$.spec..ports')[0]
-                for port in ports_deployment:
-                    enable = False
-                    port_name = port.get("name")
-                    deployment_port = port.get("containerPort")
-                    for port_service in ports_service:
-                        port_service_target_port = port_service.get("targetPort")
-                        if port_name == port_service_target_port or deployment_port == port_service_target_port:
-                            enable = True
-                            break
-                    container_port = port.get("containerPort")
-                    port_alias = "wt" + uuid[-6:] + str(container_port)
-                    k8s_name = "wt" + uuid[-6:] + '-' + str(container_port)
-                    port.update({"port_alias": port_alias.upper()})
-                    port.update({"k8s_service_name": k8s_name.upper()})
-                    port.update({"container_port": container_port})
-                    port.update({"is_outer_service": enable})
-                    port.update({"is_inner_service": False})
-                    new_ports.append(port)
-
-            if not status:
-                for port in ports_deployment:
-                    port.update({"is_outer_service": enable})
-                    port.update({"container_port": port.get("containerPort")})
-                    port.update({"is_inner_service": False})
-                    new_ports.append(port)
-
-            for secret in kind_secret:
-                secret_name = jsonpath(secret, '$.metadata..labels')[0].get("app.kubernetes.io/name")
-                if deployment_name != secret_name:
-                    continue
-                secret_info = jsonpath(secret, '$.data')
-
-            for volume_claim in kind_persistent_volume_claim:
-                volume_claim_name = jsonpath(volume_claim, '$.metadata..labels')[0].get("app.kubernetes.io/name")
-                if deployment_name != volume_claim_name:
-                    continue
-                volume_claim_info = jsonpath(volume_claim, '$.spec')
-
-            envs = jsonpath(deployment, '$.spec..template...spec')[0].get("containers")[0].get("env")
-            image = jsonpath(deployment, '$.spec..template...spec')[0].get("containers")[0].get("image")
-            resources = jsonpath(deployment, '$.spec..template...spec')[0].get("containers")[0].get("resources").get(
-                "requests")
-            volume_mounts = jsonpath(deployment, '$.spec..template...spec')[0].get("containers")[0].get("volumeMounts")
-            volumes = jsonpath(deployment, '$.spec..template...spec')[0].get("volumes")
-
-            if envs:
-                for env in envs:
-                    attr_name = env.get("name")
-                    env.update({"attr_name": attr_name})
-                    env.update({"attr_value": env.get("value")})
-                    env.update({"is_change": True})
-                    if not env.get("attr_value") and env.get("valueFrom"):
-                        value_from = env.get("valueFrom").get("secretKeyRef")
-                        value_name = value_from.get("name")
-                        value_key = value_from.get("key")
-                        for secret in kind_secret:
-                            secret_name = jsonpath(secret, '$.metadata')[0].get("name")
-                            secret_data = secret.get("data")
-                            if secret_name == value_name:
-                                value = secret_data.get(value_key)
-                                env.update({"attr_value": base64.b64decode(value)})
-                    elif not env.get("attr_value") and env.get("valueFrom") is None:
-                        env.update({"attr_value": ""})
-
-            if volume_mounts:
-                for volume_mount in volume_mounts:
-                    v_name = volume_mount.get("name")
-                    for volume in volumes:
-                        volume_name = volume.get("name")
-                        if v_name == volume_name:
-                            is_config_map = "configMap" in volume.keys()
-                            if is_config_map:
-                                try:
-                                    sub_path = volume_mount["subPath"]
-                                except:
-                                    sub_path = volume_mount["mountPath"]
-                                config_map = volume["configMap"]
-                                config_name = config_map["name"]
-                                volume_mount.update({"volume_type": "config-file"})
-                                volume_mount.update({"volume_name": config_name})
-                                configmap_info = jsonpath(kind_configmap[0], '$.data')
-                                if sub_path == {}:
-                                    sub_path = ''
-                                file_content = ''
-                                for configmap in configmap_info:
-                                    is_config = sub_path in configmap.keys()
-                                    if is_config:
-                                        file_content = configmap.get(sub_path)
-                                volume_mount.update({"file_content": file_content})
-                        else:
-                            volume_mount.update({"volume_type": "share-file"})
-                        is_volume_name = "volume_name" in volume_mount.keys()
-                        if not is_volume_name:
-                            volume_mount.update({"volume_name": volume_mount.get("name")})
-                        volume_mount.update({"access_mode": "RWX"})
-                        volume_mount.update({"mode": 755})
-                        volume_mount.update({"volume_path": volume_mount.get("mountPath")})
-
-            helm_data.update({"service_cname": name})
-            helm_data.update({"port_map_list": new_ports})
-            helm_data.update({"service_env_map_list": envs})
-            helm_data.update({"service_connect_info_map_list": []})
-            helm_data.update({"image": image})
-            helm_data.update({"extend_method_map": {
-                "max_memory": int(resources.get("memory")[:-2]) if resources else 0,
-                "min_memory": int(resources.get("memory")[:-2]) if resources else 0,
-                "init_memory": int(resources.get("memory")[:-2]) if resources else 0,
-                "container_cpu": int(resources.get("cpu")[:-1]) if resources else 0,
-                "step_memory": int(resources.get("memory")[:-2]) if resources else 0,
-                "min_node": 1,
-                "max_node": 1,
-                "step_node": 1,
-                "is_restart": 1
-            }})
-            helm_data.update({"service_volume_map_list": volume_mounts})
-            helm_data.update({"secret": secret_info})
-            helm_data.update({"persistent_volume_claim": volume_claim_info})
-            helm_data.update({"extend_method": "stateless"})
-            helm_data.update({"version": ''.join(image.split(":")[-1:])})
-            helm_data.update({"service_key": uuid})
-            helm_data.update({"service_id": uuid})
-            helm_data.update({"service_share_uuid": uuid})
-            data.append(helm_data)
-        return data
 
     def get_wutong_detail_app_and_version(self, session: SessionClass, app_id, app_version):
         app, app_version = center_app_repo.get_wutong_app_and_version(session, app_id, app_version)

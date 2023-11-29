@@ -251,7 +251,8 @@ class TopologicalService(object):
         all_service_id_list = list(set(dep_service_id_list).union(set(service_id_list)))
         service_list = (
             session.execute(
-                select(Component).where(Component.service_id.in_(all_service_id_list)))
+                select(Component).where(Component.service_id.in_(all_service_id_list),
+                                        Component.is_delete == 0))
         ).scalars().all()
 
         service_map = {x.service_id: x for x in service_list}

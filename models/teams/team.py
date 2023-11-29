@@ -1,10 +1,10 @@
 import json
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text
+from sqlalchemy.dialects.mysql import LONGTEXT
+
 from core.utils.crypt import make_env_id
 from database.session import Base
-
-tenant_env_identity = (("拥有者", "owner"), ("管理员", "admin"), ("开发者", "developer"), ("观察者", "viewer"), ("访问", "access"))
 
 
 class TeamEnvInfo(Base):
@@ -21,12 +21,13 @@ class TeamEnvInfo(Base):
     env_name = Column(String(31), comment="环境名称", nullable=False)
     tenant_id = Column(String(33), comment="团队id", nullable=False)
     tenant_name = Column(String(31), comment="团队标识", nullable=False)
+    team_alias = Column(String(32), comment="团队名称", nullable=False)
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     creater = Column(String(64), nullable=False, default="admin", comment="租户创建者")
     limit_memory = Column(Integer, nullable=False, default=1024, comment="内存大小单位（M）")
     update_time = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     env_alias = Column(String(64), comment="环境别名", nullable=False)
-    namespace = Column(String(33), comment="环境的命名空间", nullable=False)
+    namespace = Column(String(63), comment="环境的命名空间", nullable=False)
     desc = Column(String(255), comment="描述", nullable=True)
 
     is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
@@ -35,6 +36,18 @@ class TeamEnvInfo(Base):
 
     def __unicode__(self):
         return self.env_name
+
+
+class EnvUserRelation(Base):
+    """
+    环境用户关联表
+    """
+
+    __tablename__ = 'env_user_relation'
+
+    ID = Column(Integer, primary_key=True)
+    env_id = Column(String(33), comment="环境id", nullable=False, unique=True)
+    user_names = Column(LONGTEXT, comment="用户账号列表", nullable=True)
 
 
 class ServiceDomain(Base):

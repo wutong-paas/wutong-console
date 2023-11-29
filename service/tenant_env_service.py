@@ -1,5 +1,5 @@
 from loguru import logger
-from sqlalchemy import select, BINARY
+from sqlalchemy import select
 from clients.remote_build_client import remote_build_client
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException

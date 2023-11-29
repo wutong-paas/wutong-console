@@ -97,6 +97,7 @@ class DefaultPluginConstants(object):
     MYSQL_DBGATE_PLUGIN = "mysql_dbgate_plugin"
     REDIS_DBGATE_PLUGIN = "redis_dbgate_plugin"
     JAVA_AGENT_PLUGIN = "java_agent_plugin"
+    JAVA_AGENT_WEB_PLUGIN = "java_agent_web_plugin"
 
 
 class PluginMetaType(object):

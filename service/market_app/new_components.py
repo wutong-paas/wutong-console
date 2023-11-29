@@ -35,9 +35,10 @@ class NewComponents(object):
                  version,
                  install_from_cloud,
                  components_keys,
+                 create_type,
                  market_name="",
                  is_deploy=False,
-                 support_labels=None):
+                 support_labels=None,):
         """
         components_keys: component keys that the user select.
         """
@@ -52,7 +53,7 @@ class NewComponents(object):
         self.install_from_cloud = install_from_cloud
         self.market_name = market_name
         self.is_deploy = is_deploy
-
+        self.create_type = create_type
         self.support_labels = support_labels if support_labels else []
 
         self.components_keys = components_keys
@@ -67,7 +68,7 @@ class NewComponents(object):
         templates = self.app_template.component_templates()
         new_component_tmpls = self._get_new_component_templates(exist_components, templates)
 
-        components = [self._template_to_component(self.tenant_env.env_id, template) for template in new_component_tmpls]
+        components = [self._template_to_component(self.tenant_env.env_id, self.create_type, template) for template in new_component_tmpls]
         if self.components_keys:
             components = [cpt for cpt in components if cpt.service_key in self.components_keys]
 
@@ -81,7 +82,8 @@ class NewComponents(object):
             # component source
             component_source = self._template_to_component_source(cpt, component_tmpl)
             # ports
-            ports = self._template_to_ports(session, cpt, component_tmpl.get("port_map_list"))
+            port_map_list = component_tmpl.get("port_map_list")
+            ports = self._template_to_ports(session, cpt, port_map_list)
             # envs
             inner_envs = component_tmpl.get("service_env_map_list")
             outer_envs = component_tmpl.get("service_connect_info_map_list")
@@ -143,10 +145,18 @@ class NewComponents(object):
                 return True
         return False
 
-    def _template_to_component(self, env_id, template):
+    def _template_to_component(self, env_id, create_type, template):
         component = TeamComponentInfo()
+        service_id = None
+        if create_type == "market":
+            component.desc = "install from market app"
+            component.service_source = AppConstants.MARKET
+        else:
+            service_id = template.get("service_id", None)
+            component.desc = "install from yaml"
+            component.service_source = AppConstants.DOCKER_IMAGE
         component.tenant_env_id = env_id
-        component.service_id = make_uuid()
+        component.service_id = service_id if service_id else make_uuid()
         component.service_cname = template.get("service_cname", "default-name")
         component.service_alias = "wt" + component.service_id[-6:]
         component.creater = self.user.nick_name
@@ -154,13 +164,11 @@ class NewComponents(object):
         component.cmd = template.get("cmd", "")
         component.service_region = self.region_name
         component.service_key = template.get("service_key")
-        component.desc = "install from market app"
         component.category = "app_publish"
         component.version = template.get("version")
         component.create_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         component.deploy_version = template.get("deploy_version")
         component.service_type = "application"
-        component.service_source = AppConstants.MARKET
         component.create_status = "complete"
         component.tenant_service_group_id = self.original_app.upgrade_group_id
         component.build_upgrade = self.is_deploy
@@ -333,6 +341,7 @@ class NewComponents(object):
         volumes2 = []
         config_files = []
         for volume in volumes:
+            config_file = None
             try:
                 if volume["volume_type"] == "config-file" and volume["file_content"] != "":
                     settings = None
@@ -340,7 +349,6 @@ class NewComponents(object):
                         service_id=component.service_id,
                         volume_name=volume["volume_name"],
                         file_content=volume["file_content"])
-                    config_files.append(config_file)
                 else:
                     settings = volume_service.get_best_suitable_volume_settings(session,
                                                                                 self.tenant_env, component,
@@ -358,18 +366,24 @@ class NewComponents(object):
                     else:
                         settings["volume_capacity"] = volume.get("volume_capacity", 0)
 
-                volumes2.append(
-                    volume_service.create_service_volume(
-                        session,
-                        self.tenant_env,
-                        component,
-                        volume["volume_path"],
-                        volume["volume_type"],
-                        volume["volume_name"],
-                        settings=settings,
-                        mode=volume.get("mode")))
+                vol = volume_service.create_service_volume(
+                    session,
+                    self.tenant_env,
+                    component,
+                    volume["volume_path"],
+                    volume["volume_type"],
+                    volume["volume_name"],
+                    settings=settings,
+                    mode=volume.get("mode"))
+                session.add(vol)
+                session.flush()
+                if config_file:
+                    config_file.volume_id = vol.ID
+                    config_files.append(config_file)
+                volumes2.append(vol)
             except ErrVolumePath:
                 logger.warning("Volume {0} Path {1} error".format(volume["volume_name"], volume["volume_path"]))
+
         return volumes2, config_files
 
     def _template_to_probes(self, session, component, probes):

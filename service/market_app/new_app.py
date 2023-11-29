@@ -69,6 +69,11 @@ class NewApp(object):
         self.config_group_items = config_group_items if config_group_items else []
         self.config_group_components = config_group_components if config_group_components else []
 
+    def _save_config_groups(self, session):
+        app_config_group_repo.bulk_create_or_update(session, self.config_groups)
+        app_config_group_item_repo.bulk_create_or_update(session, self.config_group_items)
+        app_config_group_service_repo.bulk_create_or_update(session, self.config_group_components)
+
     def save(self, session):
         # component
         self._save_components(session)
@@ -81,6 +86,8 @@ class NewApp(object):
         # dependency
         self._save_component_deps(session)
         self._save_volume_deps(session)
+        # config group
+        self._save_config_groups(session)
         # component group
         self.component_group.save(session)
 

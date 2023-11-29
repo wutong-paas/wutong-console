@@ -105,7 +105,8 @@ class ComponentCheckService(object):
         if not ports:
             return
         for port in ports:
-            code, msg, port_data = port_service.add_service_port(session=session, tenant_env=tenant_env, service=service,
+            code, msg, port_data = port_service.add_service_port(session=session, tenant_env=tenant_env,
+                                                                 service=service,
                                                                  container_port=int(port["container_port"]),
                                                                  protocol=port["protocol"],
                                                                  port_alias=service.service_alias.upper() + str(
@@ -123,9 +124,9 @@ class ComponentCheckService(object):
             )
 
             SENSITIVE_ENV_NAMES = (
-                'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'MEMORY_SIZE',
                 'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
-                'PATH', 'PORT', 'POD_NET_IP', 'LOG_MATCH')
+                'PATH', 'PORT', 'POD_NET_IP', 'LOG_MATCH',
+                "POD_IP", "HOST_IP", "POD_NAMESPACE")
             for env in envs:
                 if env["name"] in SENSITIVE_ENV_NAMES:
                     continue
@@ -280,9 +281,9 @@ class ComponentCheckService(object):
                                               ComponentEnvVar.scope == "build"))
 
             SENSITIVE_ENV_NAMES = (
-                'TENANT_ID', 'SERVICE_ID', 'TENANT_NAME', 'SERVICE_NAME', 'MEMORY_SIZE',
                 'SERVICE_EXTEND_METHOD', 'SLUG_URL', 'DEPEND_SERVICE', 'REVERSE_DEPEND_SERVICE', 'POD_ORDER',
-                'PATH', 'POD_NET_IP')
+                'PATH', 'POD_NET_IP',
+                "POD_IP", "HOST_IP", "POD_NAMESPACE")
             for env in envs:
                 if env["name"] in SENSITIVE_ENV_NAMES:
                     continue

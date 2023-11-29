@@ -1,48 +1,54 @@
 from datetime import datetime
+
 from sqlalchemy import select, update, not_, delete
+
 from models.application.models import Application, ComponentApplicationRelation
 from repository.base import BaseRepository
 
 
 class ApplicationRepository(BaseRepository[Application]):
 
+    def get_groups_by_project_id(self, session, project_id):
+        return session.execute(select(Application).where(
+            Application.project_id == project_id)).scalars().all()
+
     def get_groups_by_tenant_env_ids(self, session, tenant_env_ids):
         return session.execute(select(Application).where(
             Application.tenant_env_id.in_(tenant_env_ids)).order_by(
             Application.update_time.desc(), Application.order_index.desc())).scalars().all()
 
-    def get_tenant_region_groups(self, session, env_id, region, query="", app_type="", project_id=None):
-        sql = select(Application).where(Application.tenant_env_id == env_id,
-                                        Application.region_name == region,
-                                        Application.is_delete == 0,
-                                        Application.group_name.contains(query)).order_by(
-            Application.update_time.desc(), Application.order_index.desc())
+    def get_tenant_region_groups(self, session, env_id, region, query="", app_type="", project_ids=None):
+        params = {
+            "region_name": region,
+            "env_id": env_id,
+            "group_name": query
+        }
+        sql = "select * from service_group where tenant_env_id = :env_id and is_delete=0 and " \
+              "region_name = :region_name and group_name like '%' :group_name '%'"
         if app_type:
-            sql = select(Application).where(Application.tenant_env_id == env_id,
-                                            Application.region_name == region,
-                                            Application.app_type == app_type,
-                                            Application.is_delete == 0,
-                                            Application.group_name.contains(query)).order_by(
-                Application.update_time.desc(), Application.order_index.desc())
-        if project_id:
-            sql = select(Application).where(Application.tenant_env_id == env_id,
-                                            Application.region_name == region,
-                                            Application.project_id == project_id,
-                                            Application.is_delete == 0,
-                                            Application.group_name.contains(query)).order_by(
-                Application.update_time.desc(), Application.order_index.desc())
-        return session.execute(sql).scalars().all()
+            sql += " and app_type = :app_type"
+        if project_ids:
+            sql += " and project_id in ({0})".format(
+                ", ".join("'{0}'".format(project_id) for project_id in project_ids))
+        sql += " ORDER BY order_index,update_time DESC"
+        return session.execute(sql, params).fetchall()
 
-    def get_groups_by_team_name(self, session, team_name, env_id):
-        if not env_id:
-            sql = select(Application).where(Application.team_code == team_name).order_by(
-                Application.update_time.desc(), Application.order_index.desc())
-        else:
-            sql = select(Application).where(
-                Application.team_code == team_name,
-                Application.tenant_env_id == env_id).order_by(
-                Application.update_time.desc(), Application.order_index.desc())
-        return session.execute(sql).scalars().all()
+    def get_groups_by_team_name(self, session, team_name, env_id, app_name, project_id):
+        params = {
+            "team_code": team_name,
+            "env_id": env_id,
+            "app_name": app_name,
+            "project_id": project_id
+        }
+        sql = "select * from service_group where team_code = :team_code and is_delete=0"
+        if env_id:
+            sql += " and tenant_env_id = :env_id order by update_time desc"
+        if app_name:
+            sql += " and group_name like '%' :app_name '%'"
+        if project_id:
+            sql += " and project_id = :project_id"
+        sql += ""
+        return session.execute(sql, params).fetchall()
 
     def get_hn_tenant_region_groups(self, session, env_id, query="", app_type=""):
         sql = select(Application).where(Application.tenant_env_id == env_id,
@@ -55,9 +61,16 @@ class ApplicationRepository(BaseRepository[Application]):
                 Application.update_time.desc(), Application.order_index.desc())
         return session.execute(sql).scalars().all()
 
-    def get_tenant_region_groups_count(self, session, env_id, region):
-        sql = select(Application).where(Application.tenant_env_id == env_id,
-                                        Application.region_name == region)
+    def get_tenant_region_groups_count(self, session, env_id, region, project_id):
+        if project_id:
+            sql = select(Application).where(Application.tenant_env_id == env_id,
+                                            Application.region_name == region,
+                                            Application.is_delete == 0,
+                                            Application.project_id == project_id)
+        else:
+            sql = select(Application).where(Application.tenant_env_id == env_id,
+                                            Application.region_name == region,
+                                            Application.is_delete == 0)
         count = len((session.execute(sql)).scalars().all())
         return count
 
@@ -84,6 +97,24 @@ class ApplicationRepository(BaseRepository[Application]):
             )
         ).scalars().first()
 
+    def get_group_by_id_and_project_id(self, session, group_id, project_id):
+        if project_id:
+            return (
+                session.execute(
+                    select(Application).where(
+                        Application.ID == group_id,
+                        Application.project_id == project_id
+                    )
+                )
+            ).scalars().first()
+        else:
+            return (
+                session.execute(
+                    select(Application).where(
+                        Application.ID == group_id)
+                )
+            ).scalars().first()
+
     def delete_group_by_id(self, session, group_id):
         session.execute(delete(Application).where(Application.ID == group_id))
 
@@ -91,6 +122,20 @@ class ApplicationRepository(BaseRepository[Application]):
         service_group_info = session.execute(
             select(Application).where(Application.tenant_env_id == env_id,
                                       Application.ID == group_id,
+                                      Application.is_delete == 0)
+        ).scalars().all()
+        group_count = len(service_group_info)
+        return group_count
+
+    def get_groups_by_env_id(self, session, env_id):
+        service_group_info = session.execute(
+            select(Application).where(Application.tenant_env_id == env_id)
+        ).scalars().all()
+        return service_group_info
+
+    def get_group_num_by_env_id(self, session, env_id):
+        service_group_info = session.execute(
+            select(Application).where(Application.tenant_env_id == env_id,
                                       Application.is_delete == 0)
         ).scalars().all()
         group_count = len(service_group_info)
@@ -125,6 +170,24 @@ class ApplicationRepository(BaseRepository[Application]):
         session.add(model)
         session.flush()
 
+    def is_app_code_duplicate(self, session, env_id, region_name, app_code, app_id=None):
+        if not app_code:
+            return False
+        params = {
+            "env_id": env_id,
+            "region_name": region_name,
+            "app_id": app_id,
+            "app_code": app_code
+        }
+        sql = "select * from service_group where tenant_env_id = :env_id and region_name = :region_name " \
+              "and binary app_code = :app_code"
+        if app_id:
+            sql = sql + " and not ID = :app_id"
+            service_groups = session.execute(sql, params).fetchall()
+            return len(service_groups) > 0
+        service_groups = session.execute(sql, params).fetchall()
+        return len(service_groups) > 0
+
     def is_k8s_app_duplicate(self, session, env_id, region_name, k8s_app, app_id=None):
         if not k8s_app:
             return False
@@ -143,12 +206,20 @@ class ApplicationRepository(BaseRepository[Application]):
         )).scalars().all()
         return len(service_groups) > 0
 
-    def get_app_by_k8s_app(self, session, tenant_env_id, region_name, k8s_app):
-        return session.execute(select(Application).where(
-            Application.tenant_env_id == tenant_env_id,
-            Application.region_name == region_name,
-            Application.k8s_app == k8s_app
-        )).scalars().first()
+    def get_app_by_k8s_app(self, session, tenant_env_id, region_name, k8s_app, project_id):
+        if project_id:
+            return session.execute(select(Application).where(
+                Application.tenant_env_id == tenant_env_id,
+                Application.region_name == region_name,
+                Application.k8s_app == k8s_app,
+                Application.project_id == project_id
+            )).scalars().first()
+        else:
+            return session.execute(select(Application).where(
+                Application.tenant_env_id == tenant_env_id,
+                Application.region_name == region_name,
+                Application.k8s_app == k8s_app
+            )).scalars().first()
 
     def get_by_service_id(self, session, env_id, service_id):
         rel = (session.execute(
@@ -186,6 +257,13 @@ class ApplicationRepository(BaseRepository[Application]):
     def get_logic_delete_records(self, session, delete_date):
         return session.execute(
             select(Application).where(Application.is_delete == True, Application.delete_time < delete_date)
+        ).scalars().all()
+
+    def get_apps_by_team_code(self, session, team_code):
+        return (
+            session.execute(
+                select(Application).where(Application.team_code == team_code)
+            )
         ).scalars().all()
 
 

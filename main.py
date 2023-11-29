@@ -1,26 +1,43 @@
 # 初始化app实例
+import atexit
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
-from redis import StrictRedis
 from starlette.responses import JSONResponse
 
 from apis.apis import api_router
+from common.api_base_http_client import ApiBaseHttpClient
 from core import nacos
-from core.nacos import register_nacos
+from core.nacos import register_nacos, client
 from core.utils.return_message import general_message
 from database.session import engine, Base, settings, SessionClass
 from exceptions.main import ServiceHandleException
 from middleware import register_middleware
 from service.scheduler import recycle
 
+if not settings.DEBUG:
+    import fcntl
+
 if settings.ENV == "PROD":
     # 生产关闭swagger
     app = FastAPI(title=settings.APP_NAME, docs_url=None, redoc_url=None)
 else:
     app = FastAPI(title=settings.APP_NAME, openapi_url=f"{settings.API_PREFIX}/openapi.json")
+
+
+@app.exception_handler(ApiBaseHttpClient.CallApiError)
+async def exception_handler(request: Request, exc: ApiBaseHttpClient.CallApiError):
+    """
+    捕获请求参数
+    :param request:
+    :param exc:
+    :return:
+    """
+    logger.error("catch exception,request:{},error_message:{}", request.url, exc.body.msg)
+    return JSONResponse(general_message(exc.message["http_code"], exc.body.msg, exc.body.msg),
+                        status_code=200)
 
 
 @app.exception_handler(ServiceHandleException)
@@ -45,13 +62,6 @@ async def request_validation_exception_handler(request: Request, exception: Requ
     return JSONResponse(general_message(400, "validation error", "参数异常"), status_code=400)
 
 
-def get_redis_pool():
-    redis = StrictRedis(host=settings.REDIS_HOST, port=int(settings.REDIS_PORT), db=int(settings.REDIS_DATABASE),
-                        password=settings.REDIS_PASSWORD,
-                        encoding="utf-8")
-    return redis
-
-
 # jobstores={'default': RedisJobStore(db=int(settings.REDIS_DATABASE) + 1,
 #                                                                  host=settings.REDIS_HOST,
 #                                                                  password=settings.REDIS_PASSWORD,
@@ -73,9 +83,25 @@ def scheduler_delete_task():
 
 
 @scheduler.scheduled_job('interval', seconds=5)
-async def scheduler_nacos_beat():
-    logger.info("初始化Nacos心跳定时任务")
-    await nacos.beat()
+def scheduler_nacos_beat():
+    if not settings.DEBUG:
+        nacos.beat()
+
+
+def start_scheduler():
+    if not settings.DEBUG:
+        f = open("scheduler.lock", "wb")
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            scheduler.start()
+        except:
+            pass
+
+        def unlock():
+            fcntl.flock(f, fcntl.LOCK_UN)
+            f.close()
+
+        atexit.register(unlock)
 
 
 @app.on_event('startup')
@@ -85,11 +111,11 @@ def startup_event():
     :return:
     """
     Base.metadata.create_all(engine)
-    app.state.redis = get_redis_pool()
     # 微服务注册
-    # register_nacos()
+    if not settings.DEBUG:
+        register_nacos()
     # 启动定时任务调度器
-    scheduler.start()
+    start_scheduler()
 
 
 @app.on_event('shutdown')
@@ -98,7 +124,13 @@ def shutdown_event():
     关闭
     :return:
     """
-    app.state.redis.connection_pool.disconnect()
+    # 注销nacos服务
+    client.remove_naming_instance(
+        settings.SERVICE_NAME,
+        settings.SERVICE_IP,
+        settings.SERVICE_PORT,
+        group_name=settings.SERVICE_GROUP_NAME)
+    scheduler.shutdown()
 
 
 app.mount("/static", StaticFiles(directory="weavescope"), name="static")

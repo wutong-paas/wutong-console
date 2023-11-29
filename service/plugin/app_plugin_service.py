@@ -7,9 +7,10 @@ from addict import Dict
 from fastapi_pagination import Params, paginate
 from jsonpath import jsonpath
 from loguru import logger
-from sqlalchemy import select, delete
+from sqlalchemy import select
 
 from clients.remote_plugin_client import remote_plugin_client
+from core.setting import settings
 from core.utils.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
@@ -18,7 +19,7 @@ from exceptions.main import ServiceHandleException
 from models.application.plugin import ComponentPluginConfigVar
 from models.component.models import ComponentEnvVar
 from repository.component.group_service_repo import service_info_repo
-from repository.component.service_config_repo import port_repo, volume_repo
+from repository.component.service_config_repo import port_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
@@ -30,7 +31,6 @@ from service.app_env_service import env_var_service
 from service.plugin.plugin_config_service import plugin_config_service
 from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
-from core.setting import settings
 
 has_the_same_category_plugin = ServiceHandleException(msg="params error", msg_show="该组件已存在相同功能插件", status_code=400)
 
@@ -217,14 +217,15 @@ class AppPluginService(object):
                                                                     plugin_id=plugin_id)
 
     def delete_filemanage_service_plugin_port(self, session: SessionClass, tenant_env, service, response_region, user,
-                                              container_port, plugin_id):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
+                                              container_port, plugin_info):
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin" or plugin_info.origin_share_id == "redis_dbgate_plugin" \
                     or plugin_info.origin_share_id == "mysql_dbgate_plugin":
                 port = port_service.get_port_by_container_port(session, service, container_port)
                 if not port:
                     return
+
+                # 关闭对内端口
                 code, msg, data = port_service.manage_port(session=session, tenant_env=tenant_env, service=service,
                                                            region_name=response_region, container_port=container_port,
                                                            action="close_inner",
@@ -234,14 +235,65 @@ class AppPluginService(object):
                 if code != 200:
                     logger.debug("close file manager inner error", msg)
 
+                # 关闭对外端口
+                code, msg, data = port_service.manage_port(session=session, tenant_env=tenant_env, service=service,
+                                                           region_name=response_region, container_port=container_port,
+                                                           action="close_outer",
+                                                           protocol="http", port_alias=None,
+                                                           k8s_service_name="", user_name=user.nick_name)
+
+                if code != 200:
+                    logger.debug("close file manager outer error", msg)
+
+                # 删除端口
                 port_service.delete_port_by_container_port(session=session, tenant_env=tenant_env, service=service,
                                                            container_port=container_port,
                                                            user_name=user.nick_name)
 
-    def update_java_agent_plugin_env(self, session: SessionClass, tenant_env, service, plugin_id, user):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
+    def update_java_agent_plugin_env(self, session: SessionClass, tenant_env, service, plugin_info, user):
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
+
+                env_name = "OTEL_EXPORTER_OTLP_ENDPOINT"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+                if env:
+                    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
+                                                         env_id=env.ID,
+                                                         user_name=user.nick_name)
+
+                env_name = "OTEL_TRACES_EXPORTER"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+                if env:
+                    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
+                                                         env_id=env.ID,
+                                                         user_name=user.nick_name)
+
+                env_name = "OTEL_METRICS_EXPORTER"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+                if env:
+                    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
+                                                         env_id=env.ID,
+                                                         user_name=user.nick_name)
+
+                env_name = "OTEL_RESOURCE_ATTRIBUTES"
+                env = session.execute(select(ComponentEnvVar).where(
+                    ComponentEnvVar.attr_name == env_name,
+                    ComponentEnvVar.service_id == service.service_id
+                )).scalars().first()
+                if env:
+                    env_var_service.delete_env_by_env_id(session=session, tenant_env=tenant_env, service=service,
+                                                         env_id=env.ID,
+                                                         user_name=user.nick_name)
+
                 env_name = "JAVA_TOOL_OPTIONS"
                 env = session.execute(select(ComponentEnvVar).where(
                     ComponentEnvVar.attr_name == env_name,
@@ -249,10 +301,11 @@ class AppPluginService(object):
                 )).scalars().first()
 
                 if env:
+                    java_agent_env = "-javaagent:/agent/agent.jar"
                     old_attr_value = env.attr_value
-                    if "-javaagent" in env.attr_value:
-                        start_index = old_attr_value.find("-javaagent")
-                        end_index = old_attr_value.find(service.k8s_component_name) + len(service.k8s_component_name)
+                    if java_agent_env in env.attr_value:
+                        start_index = old_attr_value.find(java_agent_env)
+                        end_index = old_attr_value.find(java_agent_env) + len(java_agent_env)
                         repl_value = old_attr_value[:start_index] + "" + old_attr_value[end_index:]
                     else:
                         return
@@ -266,6 +319,18 @@ class AppPluginService(object):
                                                              env_id=str(env.ID), name=env_name,
                                                              attr_value=repl_value,
                                                              user_name=user.nick_name)
+
+    def delete_java_agent_plugin_volume(self, session, env, service, volume_path, user, plugin_info):
+        if plugin_info:
+            if plugin_info.origin_share_id == "java_agent_plugin":
+                volume = volume_service.get_volume_by_path(session, service, volume_path)
+                if volume:
+                    code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env,
+                                                                                   service=service,
+                                                                                   volume_id=volume.ID,
+                                                                                   user_name=user.nick_name)
+                    if code != 200:
+                        logger.debug("删除agent存储失败 " + msg)
 
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
@@ -372,7 +437,7 @@ class AppPluginService(object):
         return region_env_config
 
     def update_service_plugin_config(self, session: SessionClass, tenant_env, service, plugin_id, build_version, config,
-                                     response_region):
+                                     response_region, user=None):
         # delete old config
         self.delete_service_plugin_config(session=session, service=service, plugin_id=plugin_id)
         # 全量插入新配置
@@ -380,7 +445,7 @@ class AppPluginService(object):
                                             build_version=build_version, config_bean=config)
         # 更新数据中心配置
         region_config = self.get_region_config_from_db(session=session, service=service, plugin_id=plugin_id,
-                                                       build_version=build_version)
+                                                       build_version=build_version, user=user)
         remote_plugin_client.update_service_plugin_config(session,
                                                           response_region, tenant_env,
                                                           service.service_alias, plugin_id,
@@ -470,7 +535,8 @@ class AppPluginService(object):
                             protocol=port.protocol))
 
             if config_group.service_meta_type == PluginMetaType.DOWNSTREAM_PORT:
-                dep_services = plugin_service.get_service_dependencies(session=session, tenant_env=tenant_env, service=service)
+                dep_services = plugin_service.get_service_dependencies(session=session, tenant_env=tenant_env,
+                                                                       service=service)
                 if not dep_services:
                     session.rollback()
                     raise ServiceHandleException(msg="can't use this plugin", status_code=409,
@@ -669,14 +735,7 @@ class AppPluginService(object):
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
-
-                volumes = volume_service.get_service_volumes(session=session, tenant_env=tenant_env, service=service,
-                                                             is_config_file=False)
-
-                for volume in volumes:
-                    if volume["volume_path"] == "/agent":
-                        return
-
+                volume_path = "/agent"
                 settings = {'volume_capacity': 1, 'provider_name': '',
                             'access_mode': '',
                             'share_policy': '', 'backup_policy': '',
@@ -686,7 +745,7 @@ class AppPluginService(object):
                     session=session,
                     tenant_env=tenant_env,
                     service=service,
-                    volume_path="/agent",
+                    volume_path=volume_path,
                     volume_type="share-file",
                     volume_name=volume_name,
                     file_content="",
@@ -705,14 +764,42 @@ class AppPluginService(object):
                     ComponentEnvVar.service_id == service.service_id
                 )).scalars().first()
 
+                options = "-javaagent:/agent/agent.jar"
+                attributes = "service.name=" + service.k8s_component_name + ",namespace=" + tenant_env.namespace
+                agent = settings.PLUGIN_AGENT_SERVER_ADDRESS
+
+                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
+                                                    container_port=0, name="OTEL_RESOURCE_ATTRIBUTES",
+                                                    attr_name="OTEL_RESOURCE_ATTRIBUTES",
+                                                    attr_value=attributes,
+                                                    is_change=True, scope="inner",
+                                                    user_name=user.nick_name)
+                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
+                                                    container_port=0, name="OTEL_TRACES_EXPORTER",
+                                                    attr_name="OTEL_TRACES_EXPORTER",
+                                                    attr_value="otlp",
+                                                    is_change=True, scope="inner",
+                                                    user_name=user.nick_name)
+                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
+                                                    container_port=0, name="OTEL_METRICS_EXPORTER",
+                                                    attr_name="OTEL_METRICS_EXPORTER",
+                                                    attr_value="none",
+                                                    is_change=True, scope="inner",
+                                                    user_name=user.nick_name)
+                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
+                                                    container_port=0, name="OTEL_EXPORTER_OTLP_ENDPOINT",
+                                                    attr_name="OTEL_EXPORTER_OTLP_ENDPOINT",
+                                                    attr_value=agent,
+                                                    is_change=True, scope="inner",
+                                                    user_name=user.nick_name)
                 if not env:
                     env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
                                                         container_port=0, name=env_name, attr_name=env_name,
-                                                        attr_value=settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name,
+                                                        attr_value=options,
                                                         is_change=True, scope="inner",
                                                         user_name=user.nick_name)
                 else:
-                    attr_value = settings.INIT_AGENT_PLUGIN_ENV + service.k8s_component_name + " " + env.attr_value
+                    attr_value = options + " " + env.attr_value
                     env.attr_value = attr_value
 
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):

@@ -13,7 +13,8 @@ class HunanExpresswayRepository(object):
 
     def get_app_by_app_id(self, session, app_id):
         return session.execute(select(Application).where(
-            Application.ID == app_id
+            Application.ID == app_id,
+            Application.is_delete == 0
         )).scalars().first()
 
     def get_tenant_by_tenant_env_id(self, session, tenant_env_id):

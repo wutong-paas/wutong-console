@@ -7,12 +7,16 @@ from starlette.requests import Request
 from starlette.responses import StreamingResponse
 from clients.remote_build_client import remote_build_client
 from core import deps
+from core.api.team_api import team_api
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from models.teams import RegionConfig
+from repository.application.application_repo import application_repo
 from repository.region.region_config_repo import region_config_repo
+from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.backup_data_service import platform_data_services
+from service.common_services import common_services
 from service.enterprise_service import enterprise_services
 from service.region_service import region_services
 
@@ -75,11 +79,36 @@ async def monitor(session: SessionClass = Depends(deps.get_session)) -> Any:
 
 @router.get("/enterprise/regions", response_model=Response, name="获取集群列表")
 async def regions(status: Optional[str] = "", check_status: Optional[str] = "",
-                  session: SessionClass = Depends(deps.get_session)) -> Any:
+                  session: SessionClass = Depends(deps.get_session),
+                  user=Depends(deps.get_current_user)) -> Any:
     data = region_services.get_enterprise_regions(session=session, level="safe",
                                                   status=status,
                                                   check_status=check_status)
-    result = general_message("0", "success", "获取成功", list=jsonable_encoder(data))
+    region_infos = jsonable_encoder(data)
+    for region_info in region_infos:
+        region_code = region_info["region_name"]
+        envs = env_repo.get_envs_by_region_code(session, region_code)
+        region_use_info = {}
+        for env in envs:
+            team_code = env.tenant_name
+            team_name = env.team_alias
+            current_team_info = region_use_info.get(team_code, {})
+            current_use_cpu = 0
+            current_use_memory = 0
+            if current_team_info:
+                current_use_cpu = current_team_info.get("use_cpu", 0)
+                current_use_memory = current_team_info.get("use_memory", 0)
+            env_info = common_services.get_current_region_used_resource(session, env, region_code)
+            if env_info:
+                use_cpu = env_info.get("cpu", 0)
+                use_memory = env_info.get("memory", 0)
+                region_use_info.update({team_code: {
+                    "use_cpu": round(current_use_cpu + use_cpu, 2),
+                    "use_memory": round(current_use_memory + use_memory, 2),
+                    "team_name": team_name
+                }})
+        region_info.update({"region_team_info": region_use_info})
+    result = general_message("0", "success", "获取成功", list=region_infos)
     return JSONResponse(result, status_code=200)
 
 

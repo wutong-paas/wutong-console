@@ -62,7 +62,8 @@ class ComponentShareRepository(BaseRepository[ServiceShareRecord]):
         return (session.execute(
             select(Component).where(
                 Component.service_id.in_(svc_ids),
-                not_(Component.service_source == 'third_party'))
+                not_(Component.service_source == 'third_party'),
+                Component.is_delete == 0)
         )).scalars().all()
 
     def create_service_share_record(self, session, **kwargs):

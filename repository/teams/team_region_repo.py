@@ -12,7 +12,7 @@ class TeamRegionRepository(BaseRepository[EnvRegionInfo]):
     TenantRegionRepository
     """
 
-    def get_env_region_info_by_env_id_and_region_name(self, session: SessionClass, env_id, region_name):
+    def get_region_info_by_region_name(self, session: SessionClass, env_id, region_name):
         """
 
         :param tenant_env_id:
@@ -22,28 +22,25 @@ class TeamRegionRepository(BaseRepository[EnvRegionInfo]):
 
         logger.info("get_env_region_info_by_tenant_env_id_and_region,param-tenant_env_id:{},param-region:{}", env_id,
                     region_name)
-        sql = select(EnvRegionInfo).where(EnvRegionInfo.region_env_id == env_id,
-                                          EnvRegionInfo.region_name == region_name)
+        sql = select(RegionConfig).where(RegionConfig.region_name == region_name)
         results = session.execute(sql)
         data = results.scalars().first()
         return data
 
-    def get_active_region_by_env_name(self, session: SessionClass, env_name):
+    def get_active_region_by_env(self, session: SessionClass, tenant_env):
         """
-
-        :param tenant_name:
+        :param session:
+        :param tenant_env:
         :return:
         """
-        env_results = session.execute(select(TeamEnvInfo).where(TeamEnvInfo.env_name == env_name))
-        tenant_env = env_results.scalars().first()
         if not tenant_env:
             return None
         regions_result = session.execute(
             select(EnvRegionInfo).where(EnvRegionInfo.region_env_id == tenant_env.env_id,
                                         EnvRegionInfo.is_active == 1, EnvRegionInfo.is_init == 1))
-        regions = regions_result.scalars().all()
-        if regions:
-            return regions
+        region = regions_result.scalars().first()
+        if region:
+            return region
         return None
 
     def get_region_by_region_name(self, session: SessionClass, region_name):

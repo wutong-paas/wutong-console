@@ -152,6 +152,11 @@ class AppPortService:
                                                           "operation": "close",
                                                           "operator": user_name
                                                       })
+
+        # 删除原有环境变量
+        env_var_service.delete_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
+                                                     container_port=deal_port.container_port, user_name=user_name)
+
         # component port change, will change entrance network governance plugin configuration
         if service.create_status == "complete":
             plugin_service.update_config_if_have_entrance_plugin(session=session, tenant_env=tenant_env, service=service)
@@ -165,7 +170,7 @@ class AppPortService:
         deal_port.mapping_port = mapping_port
         # 删除原有环境变量
         env_var_service.delete_env_by_container_port(session=session, tenant_env=tenant_env, service=service,
-                                                     container_port=deal_port.container_port)
+                                                     container_port=deal_port.container_port, user_name=user_name)
 
         env_prefix = deal_port.port_alias.upper() if bool(deal_port.port_alias) else service.service_key.upper()
 
@@ -181,14 +186,14 @@ class AppPortService:
                                                               tenant_env=tenant_env, service=service,
                                                               container_port=deal_port.container_port, name="连接地址",
                                                               attr_name=env_prefix + "_HOST", attr_value=host_value,
-                                                              is_change=False, scope="outer")
+                                                              is_change=False, scope="outer", user_name=user_name)
         if code != 200 and code != 412:
             return code, msg
         code, msg, data = env_var_service.add_service_env_var(session=session,
                                                               tenant_env=tenant_env, service=service,
                                                               container_port=deal_port.container_port, name="端口",
                                                               attr_name=env_prefix + "_PORT", attr_value=mapping_port,
-                                                              is_change=False, scope="outer")
+                                                              is_change=False, scope="outer", user_name=user_name)
         if code != 200 and code != 412:
             return code, msg
 
@@ -359,7 +364,7 @@ class AppPortService:
                                                                  data)
                     except Exception as e:
                         logger.exception(e)
-                        tcp_domain_repo.delete_tcp_domain(tcp_rule_id)
+                        tcp_domain_repo.delete_tcp_domain(session, tcp_rule_id)
                         return 412, "数据中心添加策略失败"
 
         deal_port.is_outer_service = True
@@ -476,7 +481,9 @@ class AppPortService:
                 accesses[svc.service_id] = {"access_type": ServicePortConstants.NOT_HTTP_OUTER, "access_info": []}
                 for p in svc_ports[svc.service_id]["stream_outer_port"]:
                     port_dict = p.__dict__
-                    # port_dict["access_urls"] = port_and_urls[p.container_port] if port_and_urls[p.container_port] else []
+                    if port_and_urls:
+                        container_port = port_and_urls.get(p.container_port)
+                        port_dict["access_urls"] = container_port if container_port else []
                     port_dict["service_cname"] = svc.service_cname
                     accesses[svc.service_id]["access_info"].append(port_dict)
                 continue
@@ -723,7 +730,8 @@ class AppPortService:
                                                                  tenant_env=tenant_env, service=service,
                                                                  container_port=container_port, name="连接地址",
                                                                  attr_name=env_prefix + "_HOST", attr_value=host_value,
-                                                                 is_change=False, scope="outer")
+                                                                 is_change=False, scope="outer",
+                                                                 user_name=user_name)
             if code != 200:
                 if code == 412 and env:
                     env.container_port = container_port
@@ -734,7 +742,8 @@ class AppPortService:
                                                                  container_port=container_port, name="端口",
                                                                  attr_name=env_prefix + "_PORT",
                                                                  attr_value=mapping_port, is_change=False,
-                                                                 scope="outer")
+                                                                 scope="outer",
+                                                                 user_name=user_name)
             if code != 200:
                 if code == 412 and env:
                     env.container_port = container_port
@@ -980,7 +989,7 @@ class AppPortService:
             if port.service_id != k8s_service["service_id"] or port.container_port != k8s_service["port"]:
                 raise ErrK8sServiceNameExists
 
-    def sync_ports(self, session, tenant_name, region_name, region_app_id, components, ports, envs):
+    def sync_ports(self, session, tenant_env, region_name, region_app_id, components, ports, envs):
         # make sure attr_value is string.
         for env in envs:
             if type(env.attr_value) != str:
@@ -1011,7 +1020,7 @@ class AppPortService:
         body = {
             "components": new_components,
         }
-        remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
+        remote_app_client.sync_components(session, tenant_env, region_name, region_app_id, body)
 
     def update_by_k8s_services(self, session, tenant_env, region_name, app: Application, k8s_services):
         """
@@ -1050,7 +1059,7 @@ class AppPortService:
         # sync ports and envs
         components = service_info_repo.list_by_ids(session=session, service_ids=component_ids)
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app.app_id)
-        self.sync_ports(session, tenant_env.tenant_name, region_name, region_app_id, components, ports, new_envs)
+        self.sync_ports(session, tenant_env, region_name, region_app_id, components, ports, new_envs)
 
 
 class EndpointService(object):

@@ -23,10 +23,11 @@ BUILD_KIND_MAP = {
 
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/version", response_model=Response, name="获取组件的构建版本")
-async def get_version(request: Request,
-                      env_id: Optional[str] = None,
-                      serviceAlias: Optional[str] = None,
-                      session: SessionClass = Depends(deps.get_session)) -> Any:
+async def get_version(
+        request: Request,
+        serviceAlias: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取组件的构建版本
     ---
@@ -42,9 +43,6 @@ async def get_version(request: Request,
           type: string
           paramType: path
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     page = int(request.query_params.get("page_num", 1))
     page_size = int(request.query_params.get("page_size", 10))
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)

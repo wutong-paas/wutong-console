@@ -3,9 +3,13 @@ from datetime import datetime
 from sqlalchemy import select, delete, not_, text
 from core.utils.status_translate import get_status_info_map
 from database.session import SessionClass
+from exceptions.main import ServiceHandleException
 from models.application.models import ComponentApplicationRelation
 from models.component.models import Component, ComponentSourceInfo
+from models.teams import ServiceDomain, ServiceTcpDomain
+from repository.application.application_repo import application_repo
 from repository.base import BaseRepository
+from repository.region.region_info_repo import region_repo
 from service.base_services import base_service
 
 
@@ -108,11 +112,22 @@ class ComponentRepository(BaseRepository[Component]):
                 select(Component).where(Component.service_alias == service_alias))
         ).scalars().first()
 
-    def get_team_service_num_by_team_id(self, session, env_id, region_name):
-        count = (session.execute(select(ComponentApplicationRelation).where(
-            ComponentApplicationRelation.tenant_env_id == env_id,
-            ComponentApplicationRelation.region_name == region_name))).scalars().all()
-        return len(count)
+    def get_team_service_num_by_team_id(self, session, env_id, region_name, project_id=None):
+        count = 0
+        service_rels = session.execute(
+            select(ComponentApplicationRelation).where(
+                ComponentApplicationRelation.tenant_env_id == env_id,
+                ComponentApplicationRelation.region_name == region_name)
+        ).scalars().all()
+        for rel in service_rels:
+            service_id = rel.service_id
+            group_id = rel.group_id
+            app = application_repo.get_group_by_id_and_project_id(session, group_id, project_id)
+            if app:
+                service = service_info_repo.get_service_by_service_id(session, service_id)
+                if service:
+                    count += 1
+        return count
 
     def get_hn_team_service_num_by_team_id(self, session, env_id):
         count = (session.execute(select(ComponentApplicationRelation).where(
@@ -126,7 +141,7 @@ class ComponentRepository(BaseRepository[Component]):
         from tenant_service svc
             left join service_group_relation sgr on svc.service_id = sgr.service_id
             left join service_group sg on sg.id = sgr.group_id
-        where sg.id in :ids;
+        where sg.id in :ids and svc.is_delete=0;
         """
         sql = text(sql).bindparams(ids=tuple(ids.split(",")))
 
@@ -145,12 +160,17 @@ class ComponentRepository(BaseRepository[Component]):
         return (session.execute(select(Component).where(
             Component.service_region == region,
             Component.tenant_env_id == tenant_env_id,
+            Component.is_delete == 0,
             not_(Component.service_id == service_id)))).scalars().all()
 
     def get_service(self, session, service_alias, env_id):
-        return session.execute(select(Component).where(
+        service = session.execute(select(Component).where(
             Component.service_alias == service_alias,
-            Component.tenant_env_id == env_id)).scalars().first()
+            Component.tenant_env_id == env_id,
+            Component.is_delete == 0)).scalars().first()
+        if not service:
+            raise ServiceHandleException(msg="not found service", msg_show="该组件不存在或已被删除", status_code=400)
+        return service
 
     def list_by_component_ids(self, session, service_ids: []):
         return session.execute(select(Component).where(
@@ -160,6 +180,10 @@ class ComponentRepository(BaseRepository[Component]):
         return session.execute(select(Component).where(
             Component.service_id == service_id,
             Component.is_delete == is_delete)).scalars().first()
+
+    def delete_service_by_service_id(self, session, service_id):
+        return session.execute(select(Component).where(
+            Component.service_id == service_id)).scalars().first()
 
     def get_group_service_by_group_id(self, session, group_id, region_name, tenant_env, query=""):
         # todo
@@ -183,6 +207,24 @@ class ComponentRepository(BaseRepository[Component]):
                 Component.service_id == service["service_id"])).scalars().first()
             if service_obj:
                 service["service_source"] = service_obj.service_source
+
+            service["service_domain"] = []
+            # http服务
+            service_domains = session.execute(select(ServiceDomain).where(
+                ServiceDomain.service_id == service["service_id"])).scalars().all()
+            if service_domains:
+                for service_domain in service_domains:
+                    service["service_domain"].append(service_domain.domain_name)
+            # tcp服务
+            service_tcp_domains = session.execute(select(ServiceTcpDomain).where(
+                ServiceTcpDomain.service_id == service["service_id"])).scalars().all()
+            if service_tcp_domains:
+                for service_tcp_domain in service_tcp_domains:
+                    end_point = service_tcp_domain.end_point
+                    ip, port = end_point.split(":")
+                    region = region_repo.get_region_by_region_name(session, region_name)
+                    service["service_domain"].append(region.tcpdomain + ":" + port)
+
             service["status_cn"] = statuscn_cache.get(service["service_id"], "未知")
             status = status_cache.get(service["service_id"], "unknow")
 
@@ -198,10 +240,11 @@ class ComponentRepository(BaseRepository[Component]):
             result.append(service)
         return result
 
-    def get_services_by_team_and_region(self, session, env_id, region_name):
+    def get_services_by_env_and_region(self, session, env_id, region_name):
         return session.execute(select(Component).where(
             Component.service_region == region_name,
-            Component.tenant_env_id == env_id)).scalars().all()
+            Component.tenant_env_id == env_id),
+            Component.is_delete == 0).scalars().all()
 
     def delete_services_by_team_and_region(self, session, env_id, region_name):
         session.execute(delete(Component).where(
@@ -213,7 +256,8 @@ class ComponentRepository(BaseRepository[Component]):
         return (
             session.execute(
                 select(Component).where(Component.service_id.in_(component_ids),
-                                        Component.tenant_service_group_id.in_(service_group_ids)))
+                                        Component.tenant_service_group_id.in_(service_group_ids),
+                                        Component.is_delete == 0))
         ).scalars().all()
 
     def get_no_group_service_status_by_group_id(self, session, tenant_env, tenant_env_id, region_name):
@@ -270,7 +314,8 @@ class ComponentRepository(BaseRepository[Component]):
 
     def get_services_by_service_ids(self, session, service_ids):
         return session.execute(
-            select(Component).where(Component.service_id.in_(service_ids))).scalars().all()
+            select(Component).where(Component.service_id.in_(service_ids),
+                                    Component.is_delete == 0)).scalars().all()
 
     def get_services_by_service_ids_tenant_env_id(self, session, service_ids, tenant_env_id):
         return session.execute(

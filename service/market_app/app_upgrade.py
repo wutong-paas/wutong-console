@@ -1,9 +1,11 @@
 # -*- coding: utf8 -*-
-import json
 import copy
+import json
 from datetime import datetime
+
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
+
 from clients.remote_plugin_client import remote_plugin_client
 from core.enum.enterprise_enum import ActionType
 from core.utils.crypt import make_uuid
@@ -14,9 +16,9 @@ from models.application.models import Application, ApplicationUpgradeRecord, App
     ApplicationConfigGroup, ApplicationUpgradeSnapshot, ConfigGroupItem, ConfigGroupService
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar, TeamPlugin, \
     PluginBuildVersion, PluginConfigItems, PluginConfigGroup
+from models.component.models import TeamComponentMountRelation
 from models.relate.models import TeamComponentRelation
 from models.teams import RegionConfig
-from models.component.models import TeamComponentMountRelation
 from repository.application.app_snapshot import app_snapshot_repo
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
 from repository.component.service_config_repo import app_config_group_repo
@@ -30,6 +32,7 @@ from service.market_app.original_app import OriginalApp
 from service.market_app.plugin import Plugin
 from service.market_app.property_changes import PropertyChanges
 from service.market_app.update_components import UpdateComponents
+from service.plugin_service import plugin_service
 
 
 class AppUpgrade(MarketApp):
@@ -47,7 +50,8 @@ class AppUpgrade(MarketApp):
                  record: ApplicationUpgradeRecord = None,
                  component_keys=None,
                  is_deploy=False,
-                 is_upgrade_one=False):
+                 is_upgrade_one=False,
+                 create_type="market"):
         """
         components_keys: component keys that the user select.
         """
@@ -82,13 +86,13 @@ class AppUpgrade(MarketApp):
 
         # plugins
         self.original_plugins = self.list_original_plugins(session)
-        self.new_plugins = self._create_new_plugins()
+        self.new_plugins = self._create_new_plugins(session, region.region_name, user)
         plugins = [plugin.plugin for plugin in self._plugins()]
 
         self.property_changes = PropertyChanges(session, self.original_app.components(), plugins, self.app_template,
                                                 self.support_labels)
 
-        self.new_app = self._create_new_app(session)
+        self.new_app = self._create_new_app(session, create_type)
         self.property_changes.ensure_dep_changes(self.new_app, self.original_app)
 
         super(AppUpgrade, self).__init__(session, self.original_app, self.new_app)
@@ -167,7 +171,7 @@ class AppUpgrade(MarketApp):
                     "type": "upgrade",
                     'current_version': current_version,
                     'can_upgrade': original_cpt is not None,
-                    'have_change': True if upgrade_info and current_version != self.version else False
+                    'have_change': True if upgrade_info else False
                 },
                 "upgrade_info": upgrade_info,
             })
@@ -204,20 +208,26 @@ class AppUpgrade(MarketApp):
     def _sync_plugins(self, session, plugins: [Plugin]):
         new_plugins = []
         for plugin in plugins:
-            new_plugins.append({
-                "build_model": plugin.plugin.build_source,
-                "git_url": plugin.plugin.code_repo,
-                "image_url": "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag),
-                "plugin_id": plugin.plugin.plugin_id,
-                "plugin_info": plugin.plugin.desc,
-                "plugin_model": plugin.plugin.category,
-                "plugin_name": plugin.plugin.plugin_name,
-                "origin": plugin.plugin.origin
-            })
-        body = {
-            "plugins": new_plugins,
-        }
-        remote_plugin_client.sync_plugins(session, self.tenant_env, self.region_name, body)
+            origin = plugin.plugin.origin
+            if origin != "sys":
+                if len(plugin.plugin.image.split(':')) > 1:
+                    image_url = plugin.plugin.image
+                else:
+                    image_url = "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag)
+                new_plugins.append({
+                    "build_model": plugin.plugin.build_source,
+                    "git_url": plugin.plugin.code_repo,
+                    "image_url": image_url,
+                    "plugin_id": plugin.plugin.plugin_id,
+                    "plugin_info": plugin.plugin.desc,
+                    "plugin_model": plugin.plugin.category,
+                    "plugin_name": plugin.plugin.plugin_name,
+                    "origin": plugin.plugin.origin
+                })
+            body = {
+                "plugins": new_plugins,
+            }
+            remote_plugin_client.sync_plugins(session, self.tenant_env, self.region_name, body)
 
     def _install_deploy(self, session):
         try:
@@ -236,7 +246,10 @@ class AppUpgrade(MarketApp):
                 plugin_from = "ys"
             else:
                 plugin_from = None
-
+            if len(plugin.plugin.image.split(':')) > 1:
+                build_image = plugin.plugin.image
+            else:
+                build_image = "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag)
             new_plugins.append({
                 "plugin_id": plugin.plugin.plugin_id,
                 "build_version": plugin.build_version.build_version,
@@ -251,7 +264,7 @@ class AppUpgrade(MarketApp):
                 "password": plugin.plugin.password,  # git password
                 "tenant_env_id": self.tenant_env_id,
                 "ImageInfo": plugin.plugin_image,
-                "build_image": "{0}:{1}".format(plugin.plugin.image, plugin.build_version.image_tag),
+                "build_image": build_image,
                 "plugin_from": plugin_from,
             })
         body = {
@@ -303,7 +316,7 @@ class AppUpgrade(MarketApp):
         self.save_new_app(session)
         self._update_upgrade_record(ApplicationUpgradeStatus.UPGRADING.value, snapshot)
 
-    def _create_new_app(self, session):
+    def _create_new_app(self, session, create_type):
         # new components
         new_components = NewComponents(
             session,
@@ -316,6 +329,7 @@ class AppUpgrade(MarketApp):
             self.version,
             self.install_from_cloud,
             self.component_keys,
+            create_type,
             self.market_name,
             self.is_deploy,
             support_labels=self.support_labels).components
@@ -679,7 +693,7 @@ class AppUpgrade(MarketApp):
 
         return new_plugin_configs, False
 
-    def _create_new_plugins(self):
+    def _create_new_plugins(self, session, region_name, user):
         plugin_templates = self.app_template.get("plugins")
         if not plugin_templates:
             return []
@@ -687,18 +701,33 @@ class AppUpgrade(MarketApp):
         original_plugins = {plugin.plugin.origin_share_id: plugin.plugin for plugin in self.original_plugins}
         plugins = []
         for plugin_tmpl in plugin_templates:
+            plugin_id = make_uuid()
+            # 系统插件不额外创建
+            origin = plugin_tmpl.get("origin")
+            plugin_type = plugin_tmpl.get("origin_share_id")
+            if origin == "sys":
+                build_version = "1.0"
+                my_plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys", region_name)
+                if not my_plugins:
+                    plugin_id = plugin_service.add_default_plugin(session=session, user=user,
+                                                                  tenant_env=self.tenant_env,
+                                                                  region=region_name,
+                                                                  plugin_type=plugin_type, build_version=build_version)
+                else:
+                    for plugin in my_plugins:
+                        plugin_id = plugin.plugin_id
+
             original_plugin = original_plugins.get(plugin_tmpl.get("plugin_key"))
             if original_plugin:
                 continue
 
-            image = None
+            image_and_tag = None
             username = None
             passwd = None
             plugin_image = None
             if "share_image" in plugin_tmpl:
                 if plugin_tmpl["share_image"]:
-                    image_and_tag = plugin_tmpl["share_image"].rsplit(":", 1)
-                    image = image_and_tag[0]
+                    image_and_tag = plugin_tmpl["share_image"]
 
             if "plugin_image" in plugin_tmpl:
                 plugin_image = plugin_tmpl["plugin_image"]
@@ -708,17 +737,17 @@ class AppUpgrade(MarketApp):
             plugin = TeamPlugin(
                 tenant_env_id=self.tenant_env.env_id,
                 region=self.region_name,
-                plugin_id=make_uuid(),
+                plugin_id=plugin_id,
                 create_user=self.user.user_id,
                 desc=plugin_tmpl["desc"],
                 plugin_alias=plugin_tmpl["plugin_alias"],
                 category=plugin_tmpl["category"],
                 build_source="image",
-                image=image,
+                image=image_and_tag,
                 code_repo=plugin_tmpl["code_repo"],
                 username=username,
                 password=passwd,
-                origin="sys",
+                origin=origin,
                 origin_share_id=plugin_tmpl["plugin_key"],
                 plugin_name=plugin_tmpl["plugin_name"])
 
@@ -754,7 +783,8 @@ class AppUpgrade(MarketApp):
             min_cpu=min_cpu,
             image_tag=image_tag,
             plugin_version_status="fixed",
-            update_info=plugin_tmpl.get('desc')
+            update_info=plugin_tmpl.get('desc'),
+            build_cmd=plugin_tmpl.get('build_cmd'),
         )
 
     @staticmethod

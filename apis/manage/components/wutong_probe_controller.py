@@ -48,9 +48,7 @@ async def get_probe(request: Request,
         mode = request.query_params.get("mode", None)
         if not mode:
             code, msg, probe = probe_service.get_service_probe(session=session, service=service)
-            if code != 200:
-                return JSONResponse(general_message(code, "get probe error", msg))
-            result = general_message("0", "success", "查询成功", bean=jsonable_encoder(probe))
+            result = general_message("0", "success", "查询成功", bean=jsonable_encoder(probe) if probe else {})
         else:
             code, msg, probe = probe_service.get_service_probe_by_mode(session=session, service=service, mode=mode)
             if code != 200:

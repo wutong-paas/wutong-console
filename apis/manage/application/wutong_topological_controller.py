@@ -20,15 +20,12 @@ router = APIRouter()
 @router.get("/teams/{team_name}/env/{env_id}/regions/{region_name}/topological", response_model=Response, name="应用拓扑图")
 async def get_topological(
         region_name,
-        env_id: Optional[str] = None,
         group_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     应用拓扑图(未分组应用无拓扑图, 直接返回列表展示)
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     code = 200
     if group_id == "-1":
         no_service_list = service_info_repo.get_no_group_service_status_by_group_id(
@@ -139,13 +136,11 @@ async def get_topological_internet_info(
         request: Request,
         env_id: Optional[str] = None,
         group_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     拓扑图中Internet详情
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -178,8 +173,8 @@ async def get_topological_internet_info(
 @router.get("/teams/{team_name}/env/{env_id}/topological/services/{serviceAlias}", response_model=Response,
             name="拓扑图中组件详情")
 async def get_topological_info(
-        env_id: Optional[str] = None,
         serviceAlias: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     拓扑图中组件详情
@@ -196,9 +191,6 @@ async def get_topological_info(
           type: string
           paramType: path
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not service:
         return JSONResponse(general_message(400, "service not found", "参数错误"), status_code=400)

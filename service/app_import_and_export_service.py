@@ -30,13 +30,13 @@ class AppImportService(object):
 
         app_import_record_repo.delete_by_event_id(session, event_id)
 
-    def start_import_apps(self, session, scope, event_id, file_names, tenant_env):
+    def start_import_apps(self, session, scope, event_id, file_names, team_name):
         import_record = app_import_record_repo.get_import_record_by_event_id(session, event_id)
         if not import_record:
             raise RecordNotFound("import_record not found")
         import_record.scope = scope
-        if tenant_env.tenant_name:
-            import_record.team_name = tenant_env.team_name
+        if team_name:
+            import_record.team_name = team_name
 
         service_image = app_store.get_app_hub_info(session=session)
         data = {"service_image": service_image, "event_id": event_id, "apps": file_names}
@@ -44,7 +44,7 @@ class AppImportService(object):
             remote_migrate_client_api.import_app_2_enterprise(session, import_record.region,
                                                               data)
         else:
-            res, body = remote_migrate_client_api.import_app(session, import_record.region, tenant_env, data)
+            res, body = remote_migrate_client_api.import_app(session, import_record.region, data)
         import_record.status = "importing"
         # import_record.save()
 
@@ -107,6 +107,7 @@ class AppImportService(object):
             if app:
                 app.scope = import_record.scope
                 app.describe = app_describe
+                app.create_team = import_record.team_name
                 # app.save()
                 app_version = app_repo.get_wutong_app_version_by_app_id_and_version(
                     session, app.app_id, app_template["group_version"])
@@ -177,22 +178,6 @@ class AppImportService(object):
         res, body = remote_migrate_client_api.get_enterprise_app_import_status(session, import_record.region,
                                                                                event_id)
         status = body["bean"]["status"]
-        if import_record.status != "success":
-            if status == "success":
-                logger.debug("app import success !")
-                self.__save_enterprise_import_info(session, import_record, body["bean"]["metadata"])
-                import_record.source_dir = body["bean"]["source_dir"]
-                import_record.format = body["bean"]["format"]
-                import_record.status = "success"
-                # 成功以后删除数据中心目录数据
-                try:
-                    remote_migrate_client_api.delete_enterprise_import_file_dir(session,
-                                                                                import_record.region,
-                                                                                event_id)
-                except Exception as e:
-                    logger.exception(e)
-            else:
-                import_record.status = status
         apps_status = self.__wrapp_app_import_status(body["bean"]["apps"])
 
         failed_num = 0
@@ -209,6 +194,20 @@ class AppImportService(object):
             import_record.status = "failed"
         if status == "uploading":
             import_record.status = status
+
+        if import_record.status == "success":
+            logger.debug("app import success !")
+            self.__save_enterprise_import_info(session, import_record, body["bean"]["metadata"])
+            import_record.source_dir = body["bean"]["source_dir"]
+            import_record.format = body["bean"]["format"]
+            import_record.status = "success"
+            # 成功以后删除数据中心目录数据
+            try:
+                remote_migrate_client_api.delete_enterprise_import_file_dir(session,
+                                                                            import_record.region,
+                                                                            event_id)
+            except Exception as e:
+                logger.exception(e)
 
         return import_record, apps_status
 
@@ -352,6 +351,12 @@ class AppExportService(object):
         docker_compose_init_data = {
             "is_export_before": False,
         }
+        helm_chart_init_data = {
+            "is_export_before": False,
+        }
+        yaml_init_data = {
+            "is_export_before": False,
+        }
 
         if app_export_records:
             for export_record in app_export_records:
@@ -400,8 +405,38 @@ class AppExportService(object):
                                                                     "/v2", "")),
                         "is_export_image": True if export_record.is_export_image else False
                     })
+                if export_record.format == "helm_chart":
+                    helm_chart_init_data.update({
+                        "is_export_before":
+                            True,
+                        "status":
+                            export_record.status,
+                        "file_path":
+                            self._wrapper_director_download_url(session, export_record.region_name,
+                                                                export_record.file_path.replace(
+                                                                    "/v2", "")),
+                        "is_export_image": True if export_record.is_export_image else False
+                    })
+                if export_record.format == "yaml":
+                    yaml_init_data.update({
+                        "is_export_before":
+                            True,
+                        "status":
+                            export_record.status,
+                        "file_path":
+                            self._wrapper_director_download_url(session,
+                                                                export_record.region_name,
+                                                                export_record.file_path.replace(
+                                                                    "/v2", "")),
+                        "is_export_image": True if export_record.is_export_image else False
+                    })
 
-        result = {"wutong_app": wutong_app_init_data, "docker_compose": docker_compose_init_data}
+        result = {"wutong_app": wutong_app_init_data, "docker_compose": docker_compose_init_data,
+                  "helm_chart": helm_chart_init_data, "yaml": yaml_init_data}
+        if app.source == "import":
+            result.pop("docker_compose")
+            result.pop("helm_chart")
+            result.pop("yaml")
         return result
 
 

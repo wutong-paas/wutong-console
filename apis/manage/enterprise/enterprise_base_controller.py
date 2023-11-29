@@ -1,10 +1,16 @@
+import datetime
 import json
 import os
 from typing import Any, Optional
+
 from fastapi import APIRouter, Depends, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
+from openpyxl import Workbook
 from starlette import status
+from starlette.responses import StreamingResponse
+
 from clients.remote_build_client import remote_build_client
 from core import deps
 from core.utils.return_message import general_message
@@ -14,6 +20,7 @@ from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import RegionApiBaseHttpClient
+from service.backup_data_service import platform_data_services
 from service.region_service import region_services
 from service.tenant_env_service import env_services
 
@@ -154,6 +161,9 @@ async def delete_region(
     region = region_repo.get_region_by_region_id(session, region_id)
     if not region:
         raise ServiceHandleException(status_code=404, msg="集群已不存在")
+    envs = env_repo.get_envs_by_region_code(session, region.region_name)
+    if envs:
+        return JSONResponse(general_message(400, "failed", "该集群内存在相关环境未删除"), status_code=400)
     region_repo.del_by_enterprise_region_id(session, region_id)
     result = general_message("0", "success", "删除成功")
     return JSONResponse(result, status_code=200)
@@ -164,14 +174,11 @@ async def delete_region(
              name="设置环境内存限额")
 async def set_env_memory_limit(request: Request,
                                region_id: Optional[str] = None,
-                               env_id: Optional[str] = None,
+                               env=Depends(deps.get_current_team_env),
                                session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     env_services.set_tenant_env_memory_limit(session, region_id, env, data)
-    return JSONResponse({}, status_code=status.HTTP_200_OK)
+    return JSONResponse(general_message("0", "success", "设置成功"), status_code=status.HTTP_200_OK)
 
 
 @router.post("/enterprise/regions", response_model=Response, name="集群配置")
@@ -205,10 +212,46 @@ async def get_team_memory_config(request: Request,
                                  session: SessionClass = Depends(deps.get_session)) -> Any:
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("pageSize", 10)
-    envs, total = env_repo.get_envs_list_by_region(session, region_id, page, page_size)
+    team_code = request.query_params.get("team_code", None)
+    env_id = request.query_params.get("env_id", None)
+    envs, total = env_repo.get_envs_list_by_region(session, region_id, team_code, env_id, page, page_size)
     result = general_message(
         "0", "success", "获取成功", bean={
             "envs": envs,
             "total": total,
         })
     return JSONResponse(result, status_code=status.HTTP_200_OK)
+
+
+@router.get("/enterprise/regions/{region_id}/tenants/envs/export", response_model=Response, name="导出环境内存配置信息")
+async def export_team_memory_config(request: Request,
+                                    region_id: Optional[str] = None,
+                                    session: SessionClass = Depends(deps.get_session)) -> Any:
+    team_code = request.query_params.get("team_code", None)
+    env_id = request.query_params.get("env_id", None)
+    envs, total = env_repo.get_envs_list_by_region(session, region_id, team_code, env_id, 1, 99999)
+
+    columns = ["团队名称", "所属环境", "内存使用量(MB)", "CPU使用量(M)", "环境限额(MB)", "应用数量", "运行组件数"]
+    # 使用openpyxl生成xlsx的excel文件
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = '默认title'
+    sheet.append(columns)
+    for data in jsonable_encoder(envs):
+        if data["team_name"]:
+            wdata = [data["team_name"], data["env_name"], data["memory_limit"], data["cpu_limit"],
+                     data["set_limit_memory"],
+                     data["app_num"], data["running_app_num"]]
+            sheet.append(wdata)
+
+    file_url = "data/export"
+    file_name = '{}.xlsx'.format(datetime.datetime.now().strftime("%Y-%m-%d-%H_%M_%S"))
+    file_path = file_url + "/" + file_name
+    if not os.path.exists(file_url):
+        os.makedirs(file_url)
+    workbook.save(file_path)
+    # http响应头告知浏览器，返回excel
+    response = StreamingResponse(platform_data_services.download_env_resource_file(file_path))
+    response.init_headers({"Content-Disposition": "attchment; filename={}".format(file_name),
+                           "content_type": 'application/vnd.ms-excel'})
+    return response

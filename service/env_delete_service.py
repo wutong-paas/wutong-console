@@ -1,5 +1,5 @@
 import datetime
-from models.application.models import ComponentApplicationRelation
+from models.application.models import ComponentApplicationRelation, Application
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_domain_repo import domain_repo
@@ -8,16 +8,17 @@ from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_visit_service
 
 
-def logic_delete_by_env_id(session, user, env, region_name):
+def logic_delete_by_env_id(session, user, env, region_code):
     # 查询环境下全部应用，停用全部组件
     # 环境、应用、组件 标记为逻辑删除
-    stop_env_resource(session=session, env=env, region_name=region_name, user=user)
+    stop_env_resource(session=session, env=env, region_code=region_code, user=user)
 
 
-def stop_env_resource(session, env, region_name, user):
+def stop_env_resource(session, env, region_code, user):
     action = "stop"
-    apps = application_repo.get_tenant_region_groups(session, env.env_id, region_name)
+    apps = application_repo.get_tenant_region_groups(session, env.env_id, region_code)
     for app in apps:
+        app = Application(**app)
         group_id = app.ID
 
         # 应用访问记录删除
@@ -34,11 +35,12 @@ def stop_env_resource(session, env, region_name, user):
             app.is_delete = True
             app.delete_time = datetime.datetime.now()
             app.delete_operator = user.nick_name
+            session.merge(app)
             continue
         service_ids = [service.service_id for service in services]
         # 去除掉第三方组件
         for service_id in service_ids:
-            service_obj = service_info_repo.get_service_by_service_id(session, service_id)
+            service_obj = service_info_repo.delete_service_by_service_id(session, service_id)
             service_obj.is_delete = True
             service_obj.delete_time = datetime.datetime.now()
             service_obj.delete_operator = user.nick_name
@@ -57,11 +59,12 @@ def stop_env_resource(session, env, region_name, user):
                 service_domain.delete_operator = user.nick_name
 
         # 批量操作
-        app_manage_service.batch_operations(tenant_env=env, region_name=region_name, user=user, action=action,
+        app_manage_service.batch_operations(tenant_env=env, region_name=region_code, user=user, action=action,
                                             service_ids=service_ids, session=session)
         app.is_delete = True
         app.delete_time = datetime.datetime.now()
         app.delete_operator = user.nick_name
+        session.merge(app)
     env.is_delete = True
     env.delete_time = datetime.datetime.now()
     env.delete_operator = user.nick_name

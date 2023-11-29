@@ -128,6 +128,17 @@ async def get_share_info(
     return JSONResponse(general_message("0", "query success", "获取成功", bean=jsonable_encoder(data)), status_code=200)
 
 
+@router.get("/plugin/share/info", response_model=Response, name="获取应用发布时插件信息")
+async def get_share_plugin_info(
+        service_ids: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    plugins = []
+    service_ids = service_ids.split(",")
+    if service_ids:
+        plugins = share_service.get_services_used_plugins(service_ids=service_ids, session=session)
+    return JSONResponse(general_message("0", "query success", "获取成功", list=jsonable_encoder(plugins)), status_code=200)
+
+
 @router.post("/teams/{team_name}/env/{env_id}/share/{share_id}/info", response_model=Response,
              name="生成分享应用实体，向数据中心发送分享任务")
 async def create_share_info(
@@ -312,7 +323,8 @@ async def get_share_info(
         if not event:
             result = general_message(404, "not exist", "分享事件不存在")
             return JSONResponse(result, status_code=404)
-        if event.event_status == "success":
+        region_share_id = event.region_share_id
+        if not region_share_id or event.event_status == "success":
             result = general_message("0", "get sync share event result", "查询成功", bean=jsonable_encoder(event))
             return JSONResponse(result, status_code=200)
         bean = share_service.get_sync_event_result(session, response_region, env, event)
@@ -362,6 +374,7 @@ async def delete_share_info(
         if app and not app.is_complete:
             share_service.delete_app(session=session, key=share_record.group_share_id)
         share_service.delete_record(session=session, ID=share_id, env_name=env.env_name)
+        share_service.delete_version(session=session, record_id=share_id)
         result = general_message("0", "delete success", "放弃成功")
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:

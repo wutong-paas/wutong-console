@@ -128,7 +128,8 @@ class ApplicationConfigGroupRepository(BaseRepository[ConfigGroupService]):
         session.execute(delete(ApplicationConfigGroup).where(
             ApplicationConfigGroup.config_group_id.in_(config_group_ids)
         ))
-        session.add_all(config_groups)
+        for config_group in config_groups:
+            session.merge(config_group)
 
     def list_by_service_ids(self, session, region_name, service_ids):
         config_groups = session.execute(
@@ -357,7 +358,6 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
             mnt_dir=mnt_dir  # this dir is source app's volume path
         )
         session.add(tsr)
-        session.commit()
         return tsr
 
 
@@ -405,6 +405,12 @@ class TenantServiceVolumnRepository(BaseRepository[TeamComponentVolume]):
         return session.execute(select(TeamComponentVolume).where(
             TeamComponentVolume.service_id == service_id,
             not_(TeamComponentVolume.volume_type == "config-file"))).scalars().all()
+
+    def get_volume_by_path(self, session, service_id, volume_path):
+        return session.execute(select(TeamComponentVolume).where(
+            TeamComponentVolume.service_id == service_id,
+            TeamComponentVolume.volume_path == volume_path,
+            TeamComponentVolume.volume_type == "share-file")).scalars().first()
 
     def get_service_volume_by_path(self, session, service_id, volume_path):
         return session.execute(select(TeamComponentVolume).where(
@@ -475,7 +481,8 @@ class TenantServiceRelationRepository(BaseRepository[TeamComponentRelation]):
             session.execute(delete(TeamComponentRelation).where(
                 TeamComponentRelation.service_id.in_(component_ids)
             ))
-            session.add_all(component_deps)
+            for dep in component_deps:
+                session.merge(dep)
 
     def check_db_dep_by_eid(self, session):
         """

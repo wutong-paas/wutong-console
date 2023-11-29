@@ -9,6 +9,7 @@ from exceptions.main import ResourceNotEnoughException, AccountOverdueException
 from repository.component.group_service_repo import service_info_repo
 from schemas.response import Response
 from service.app_actions.app_deploy import app_deploy_service
+from service.app_actions.app_manage import app_manage_service
 from service.app_actions.exception import ErrServiceSourceNotFound
 
 router = APIRouter()
@@ -38,8 +39,12 @@ async def deploy_component(request: Request,
     """
     try:
         service = service_info_repo.get_service(session, serviceAlias, env.env_id)
+        is_dep_running = app_manage_service.is_dep_service_running(session, env, service)
+        if not is_dep_running:
+            return JSONResponse(
+                general_message(400, "dep service is not running", "依赖的组件服务存在异常,未能正常构建/更新/重启,请检查依赖项或取消依赖"),
+                status_code=400)
         oauth_instance, _ = None, None
-
         data = await request.json()
         group_version = data.get("group_version", None)
         code, msg, _ = app_deploy_service.deploy(

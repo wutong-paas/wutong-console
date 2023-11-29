@@ -24,7 +24,7 @@ class TeamPlugin(Base):
     plugin_id = Column(String(32), comment="插件ID", nullable=False)
     tenant_env_id = Column(String(32), comment="环境id", nullable=False)
     region = Column(String(64), comment="数据中心", nullable=False)
-    create_user = Column(Integer, nullable=False, comment="创建插件的用户id")
+    create_user = Column(String(64), nullable=False, comment="创建插件的用户id")
     desc = Column(String(256), comment="描述", nullable=False, default="")
     plugin_name = Column(String(32), comment="插件名称", nullable=False)
     plugin_alias = Column(String(32), comment="插件别名", nullable=False)

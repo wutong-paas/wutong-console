@@ -16058,6 +16058,7 @@ function Disklist(topologyUrlsById, currentTopologyId, options, nodeMap, dispatc
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
   var url = '';
   if (serviceAlias && tenantName && serviceAlias !== 'internet') {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
@@ -16092,6 +16093,7 @@ function GetPods(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
   var url = '';
   console.log(serviceAlias, 'serviceAlias');
   if (serviceAlias && tenantName && serviceAlias !== 'internet') {
@@ -16128,6 +16130,7 @@ function Visitinfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispat
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
   var url = '';
   if (serviceAlias && tenantName && serviceAlias !== 'internet') {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
@@ -16162,6 +16165,7 @@ function appVisitInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dis
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
   var url = '';
   if (serviceAlias && tenantName) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
@@ -16196,6 +16200,7 @@ function appModuleInfo(topologyUrlsById, currentTopologyId, options, nodeMap, di
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
   var url = '';
   if (serviceAlias && tenantName) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
@@ -16230,6 +16235,7 @@ function appInfo(topologyUrlsById, currentTopologyId, options, nodeMap, dispatch
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
   var url = '';
   if (serviceAlias && tenantName) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
@@ -16264,6 +16270,7 @@ function Podname(serviceAlias) {
     var windowParent = window.parent;
     var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
     var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
+    var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
     var url = '';
     if (serviceAlias && serviceAlias !== 'internet') {
       url = '/paas-console/console/teams/' + tenantName + '/env/' + envId + '/apps/' + serviceAlias + '/pods?region=' + region + '&_=' + new Date().getTime();
@@ -16293,6 +16300,7 @@ async function Dateils(topologyUrlsById, currentTopologyId, options, nodeMap, di
   var tenantName = windowParent.iframeGetTenantName && windowParent.iframeGetTenantName();
   var region = windowParent.iframeGetRegion && windowParent.iframeGetRegion();
   var groupId = windowParent.iframeGetGroupId && windowParent.iframeGetGroupId();
+  var envId = windowParent.iframeGetEnvId && windowParent.iframeGetEnvId();
   if (obj && serviceAlias && tenantName && groupId && padname) {
     var topologyUrl = topologyUrlsById.get(obj.topologyId);
     var url = '';

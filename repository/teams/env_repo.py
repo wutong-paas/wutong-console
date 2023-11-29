@@ -4,8 +4,9 @@ env repository
 from loguru import logger
 from sqlalchemy import select, delete
 from clients.remote_build_client import remote_build_client
-from models.teams import TeamEnvInfo, RegionConfig
+from models.teams import TeamEnvInfo, RegionConfig, EnvUserRelation
 from models.component.models import Component
+from repository.application.application_repo import application_repo
 from repository.base import BaseRepository
 
 
@@ -14,7 +15,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
     TenantRepository
     """
 
-    def get_envs_list_by_region(self, session, region_id, page=1, page_size=10):
+    def get_envs_list_by_region(self, session, region_id, team_code, env_id, page=1, page_size=10):
         tenant_envs = self.get_all_envs(session)
         env_maps = {}
         if tenant_envs:
@@ -22,37 +23,59 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
                 env_maps[env.env_id] = env
         res, body = remote_build_client.list_envs(session, region_id, page, page_size)
         env_list = []
-        total = 0
         if body.get("bean"):
             envs = body.get("bean").get("list")
-            total = body.get("bean").get("total")
             if envs:
                 for env in envs:
-                    env_alias = env_maps.get(env["UUID"]).env_alias if env_maps.get(env["UUID"]) else ''
-                    env_list.append({
-                        "env_id": env["UUID"],
-                        "env_name": env_alias,
-                        "env_code": env["Name"],
-                        "memory_request": env["memory_request"],
-                        "cpu_request": env["cpu_request"],
-                        "memory_limit": env["memory_limit"],
-                        "cpu_limit": env["cpu_limit"],
-                        "running_app_num": env["running_app_num"],
-                        "running_app_internal_num": env["running_app_internal_num"],
-                        "running_app_third_num": env["running_app_third_num"],
-                        "set_limit_memory": env["LimitMemory"],
-                    })
+                    show_enbale = False
+                    if not team_code and not env_id:
+                        show_enbale = True
+                    if team_code and team_code == env["TenantName"]:
+                        show_enbale = True
+                        if env_id and env_id != env["UUID"]:
+                            show_enbale = False
+
+                    if show_enbale:
+                        env_alias = env_maps.get(env["UUID"]).env_alias if env_maps.get(env["UUID"]) else ''
+                        team_name = env_maps.get(env["UUID"]).team_alias if env_maps.get(env["UUID"]) else ''
+                        app_num = application_repo.get_group_num_by_env_id(session, env_id)
+                        if team_name:
+                            env_list.append({
+                                "env_id": env["UUID"],
+                                "env_name": env_alias,
+                                "env_code": env["Name"],
+                                "memory_request": env["memory_request"],
+                                "cpu_request": env["cpu_request"],
+                                "memory_limit": env["memory_limit"],
+                                "cpu_limit": env["cpu_limit"],
+                                "running_app_num": env["running_app_num"],
+                                "running_app_internal_num": env["running_app_internal_num"],
+                                "running_app_third_num": env["running_app_third_num"],
+                                "set_limit_memory": env["LimitMemory"],
+                                "app_num": app_num,
+                                "team_name": team_name
+                            })
         else:
             logger.error(body)
-        return env_list, total
+        return env_list, len(env_list)
 
     def get_all_envs(self, session):
         return session.execute(select(TeamEnvInfo)).scalars().all()
+
+    def get_envs_by_region_code(self, session, region_code):
+        return session.execute(select(TeamEnvInfo).where(
+            TeamEnvInfo.region_code == region_code,
+            TeamEnvInfo.is_delete == 0
+        )).scalars().all()
 
     def get_env_by_env_id(self, session, env_id, is_delete=False):
         return session.execute(
             select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id,
                                       TeamEnvInfo.is_delete == is_delete)).scalars().first()
+
+    def get_all_env_by_env_id(self, session, env_id):
+        return session.execute(
+            select(TeamEnvInfo).where(TeamEnvInfo.env_id == env_id)).scalars().first()
 
     def delete_by_env_id(self, session, env_id):
         row = session.execute(
@@ -72,12 +95,22 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             TeamEnvInfo.env_alias == env_alias,
             TeamEnvInfo.tenant_id == team_id)).scalars().first()
 
-    def env_is_exists_by_namespace(self, session, team_id, env_name):
+    def env_is_exists_by_env_code(self, session, team_id, env_code):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.env_name == env_name,
-            TeamEnvInfo.tenant_id == team_id)).scalars().first()
+            TeamEnvInfo.tenant_id == team_id,
+            TeamEnvInfo.env_name == env_code)).scalars().first()
 
-    def create_env(self, session, user, region_name, region_code, env_name, env_alias, team_id, team_name, namespace="",
+    def get_env_by_env_code(self, session, env_code):
+        return session.execute(select(TeamEnvInfo).where(
+            TeamEnvInfo.env_name == env_code)).scalars().first()
+
+    def env_is_exists_by_namespace(self, session, team_id, namespace):
+        return session.execute(select(TeamEnvInfo).where(
+            TeamEnvInfo.tenant_id == team_id,
+            TeamEnvInfo.namespace == namespace)).scalars().first()
+
+    def create_env(self, session, user, region_name, region_code, env_name, env_alias, team_id, team_name, team_alias,
+                   namespace="",
                    desc=""):
         if not env_alias:
             env_alias = "{0}的环境".format(user.nick_name)
@@ -91,6 +124,7 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             "namespace": namespace,
             "tenant_id": team_id,
             "tenant_name": team_name,
+            "team_alias": team_alias,
             "desc": desc
         }
         add_team = TeamEnvInfo(**params)
@@ -98,9 +132,35 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         session.flush()
         return add_team
 
-    def get_team_by_env_name(self, session, env_name):
+    def create_env_rel(self, session, env_id, user_names):
+        params = {
+            "env_id": env_id,
+            "user_names": user_names,
+        }
+        add_env_rel = EnvUserRelation(**params)
+        session.add(add_env_rel)
+        return add_env_rel
+
+    def update_env_rel(self, session, env_id, user_names):
+        env_rel = session.execute(select(EnvUserRelation).where(
+            EnvUserRelation.env_id == env_id
+        )).scalars().first()
+        if env_rel:
+            env_rel.user_names = user_names
+
+    def delete_env_rel(self, session, env_id):
+        session.execute(delete(EnvUserRelation).where(
+            EnvUserRelation.env_id == env_id
+        ))
+
+    def get_env_rel_by_env_id(self, session, env_id):
+        return session.execute(select(EnvUserRelation).where(
+            EnvUserRelation.env_id == env_id
+        )).scalars().first()
+
+    def get_env_by_env_namespace(self, session, namespace):
         return session.execute(select(TeamEnvInfo).where(
-            TeamEnvInfo.env_name == env_name)).scalars().first()
+            TeamEnvInfo.namespace == namespace)).scalars().first()
 
     def get_region_alias(self, session, region_name):
         try:

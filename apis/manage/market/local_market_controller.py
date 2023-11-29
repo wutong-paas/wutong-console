@@ -1,11 +1,13 @@
 import json
 import re
 from typing import Any, Optional
-from fastapi import APIRouter, Path, Depends, Request, Query
+from urllib.parse import unquote
+
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-from sqlalchemy import select
+
 from core import deps
 from core.utils.crypt import make_uuid
 from core.utils.dependencies import DALGetter
@@ -13,21 +15,16 @@ from core.utils.return_message import general_message, error_message
 from core.utils.validation import validate_name
 from database.session import SessionClass
 from exceptions.main import RegionNotFound, AbortRequest
-from models.market.models import CenterAppTag
 from models.teams import RegionConfig
-from repository.application.app_repository import app_tag_repo
-from repository.market.center_app_tag_repo import center_app_tag_repo
 from repository.market.center_repo import CenterRepository
 from repository.region.region_config_repo import region_config_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.env_repo import env_repo
 from schemas import CenterAppCreate
 from schemas.market import MarketAppTemplateUpdateParam, MarketAppCreateParam
 from schemas.response import Response
 from service.app_import_and_export_service import import_service, export_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
-from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -110,8 +107,8 @@ async def update_app_template(params: Optional[MarketAppTemplateUpdateParam] = M
 
 @router.delete("/enterprise/app-model/{app_id}", response_model=Response, name="删除应用模版")
 async def delete_app_template(
-                              app_id: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session)) -> Any:
+        app_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     market_app_service.delete_wutong_app_all_info_by_id(session, app_id)
     return JSONResponse(general_message("0", "success", None), status_code=200)
 
@@ -139,11 +136,17 @@ async def app_models(request: Request,
     scope = request.query_params.get("scope", None)
     tags = request.query_params.get("tags", [])
     app_name = request.query_params.get("app_name", None)
+    teams = request.query_params.get("teams", [])
+    sort_type = request.query_params.get("sort_type", "publish")
 
     if tags:
-        tags = json.loads(tags)
+        tags = json.loads(unquote(tags))
+
+    if teams:
+        teams = json.loads(unquote(teams))
 
     if app_name:
+        app_name = unquote(app_name)
         r = re.compile('^[a-zA-Z0-9_\\.\\-\\u4e00-\\u9fa5]+$')
         if not r.match(app_name):
             return JSONResponse(
@@ -151,7 +154,8 @@ async def app_models(request: Request,
                                 next_page=int(page) + 1),
                 status_code=200)
 
-    apps, count = market_app_service.get_visiable_apps(session, user, scope, app_name, tags, is_complete,
+    apps, count = market_app_service.get_visiable_apps(session, user, scope, app_name, sort_type, teams, tags,
+                                                       is_complete,
                                                        page,
                                                        page_size, need_install)
 
@@ -208,39 +212,6 @@ async def add_app_models(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/enterprise/app-models/tag", response_model=Response, name="tag")
-async def update_tag(request: Request,
-                     session: SessionClass = Depends(deps.get_session)) -> Any:
-    data = await request.json()
-    name = data.get("name", None)
-    result = general_message("0", "success", "创建成功")
-    if not name:
-        result = general_message(400, "fail", "参数不正确")
-    try:
-        rst = app_tag_repo.create_tag(session, name)
-        if not rst:
-            result = general_message(400, "fail", "标签已存在")
-    except Exception as e:
-        logger.debug(e)
-        result = general_message(400, "fail", "创建失败")
-    code = result.get("code", 200)
-    if code == "0":
-        code = 200
-    return JSONResponse(result, status_code=code)
-
-
-@router.get("/enterprise/app-models/tag", response_model=Response, name="tag")
-async def get_tag(session: SessionClass = Depends(deps.get_session)) -> Any:
-    data = []
-    app_tag_list = center_app_tag_repo.list_by_model(session=session,
-                                                     query_model=CenterAppTag(is_deleted=False))
-    if app_tag_list:
-        for app_tag in app_tag_list:
-            data.append({"name": app_tag.name, "tag_id": app_tag.ID})
-    result = general_message("0", "success", None, list=data)
-    return JSONResponse(result, status_code=200)
-
-
 # 创建应用市场应用
 @router.post("/enterprise/app-models/{app_id}", response_model=Response, name="创建应用市场应用")
 async def create_center_app(*,
@@ -257,10 +228,10 @@ async def create_center_app(*,
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/enterprise/app-models/import", response_model=Response, name="创建新的导入记录")
+@router.post("/enterprise/app-models/create/import", response_model=Response, name="创建新的导入记录")
 async def add_app_models(
-                         session: SessionClass = Depends(deps.get_session),
-                         user=Depends(deps.get_current_user)) -> Any:
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     """
     查询导入记录，如果有未完成的记录返回未完成的记录，如果没有，创建新的导入记录
     ---
@@ -376,15 +347,15 @@ async def set_app_template(request: Request,
 @router.delete("/enterprise/app-model/{app_id}/version/{version}", response_model=Response,
                name="删除应用模版")
 async def delete_app_template(
-                              app_id: Optional[str] = None,
-                              version: Optional[str] = None,
-                              session: SessionClass = Depends(deps.get_session)) -> Any:
+        app_id: Optional[str] = None,
+        version: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     result = general_message("0", "success", "删除成功")
     market_app_service.delete_wutong_app_version(session, app_id, version)
     return JSONResponse(result, status_code=200)
 
 
-@router.get("/enterprise/app-models/export", response_model=Response, name="获取应用导出状态")
+@router.get("/enterprise/export/app-models", response_model=Response, name="获取应用导出状态")
 async def get_app_export_status(
         request: Request,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -416,7 +387,7 @@ async def get_app_export_status(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/enterprise/app-models/export", response_model=Response, name="导出应用市场应用")
+@router.post("/enterprise/export/app-models", response_model=Response, name="导出应用市场应用")
 async def export_app_models(
         request: Request,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -442,7 +413,7 @@ async def export_app_models(
     is_export_image = data.get("is_export_image", False)
     if not app_id or not app_versions:
         return JSONResponse(general_message(400, "app id is null", "请指明需要导出的应用"), status_code=400)
-    if not export_format or export_format not in ("wutong-app", "docker-compose"):
+    if not export_format or export_format not in ("wutong-app", "docker-compose", "helm_chart", "yaml"):
         return JSONResponse(general_message(400, "export format is illegal", "请指明导出格式"), status_code=400)
 
     new_export_record_list = []
@@ -453,11 +424,10 @@ async def export_app_models(
     return JSONResponse(result, status_code=200)
 
 
-@router.post("/enterprise/env/{env_id}/app-models/import/{event_id}", response_model=Response,
+@router.post("/enterprise/app-models/import/{event_id}", response_model=Response,
              name="应用包导入")
 async def import_app(
         request: Request,
-        env_id: Optional[str] = None,
         event_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
@@ -472,11 +442,8 @@ async def import_app(
         raise AbortRequest(msg="file name is null", msg_show="请选择要导入的文件")
     if not event_id:
         raise AbortRequest(msg="event is not found", msg_show="参数错误，未提供事件ID")
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     files = file_name.split(",")
-    import_service.start_import_apps(session, scope, event_id, files, env)
+    import_service.start_import_apps(session, scope, event_id, files, team_name)
     result = general_message("0", 'success', "操作成功，正在导入")
     return JSONResponse(result, status_code=200)
 

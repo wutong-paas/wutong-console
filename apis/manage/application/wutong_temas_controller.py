@@ -69,16 +69,13 @@ async def get_group_service_visit(service_alias: Optional[str] = None,
 
 @router.delete("/teams/{team_name}/env/{env_id}/batch_delete", response_model=Response, name="批量删除组件")
 async def batch_delete_components(request: Request,
-                                  env_id: Optional[str] = None,
                                   session: SessionClass = Depends(deps.get_session),
+                                  env=Depends(deps.get_current_team_env),
                                   user=Depends(deps.get_current_user)) -> Any:
     """
     批量删除组件
 
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     service_ids = data.get("service_ids", None)
     service_id_list = service_ids.split(",")
@@ -99,8 +96,8 @@ async def batch_delete_components(request: Request,
 
 @router.post("/teams/{team_name}/env/{env_id}/httpdomain", response_model=Response, name="添加HTTP网关策略")
 async def add_http_domain(request: Request,
-                          env_id: Optional[str] = None,
                           session: SessionClass = Depends(deps.get_session),
+                          env=Depends(deps.get_current_team_env),
                           user=Depends(deps.get_current_user)) -> Any:
     """
     添加http策略
@@ -128,10 +125,6 @@ async def add_http_domain(request: Request,
     path_rewrite = data.get("path_rewrite", False)
     rewrites = data.get("rewrites", None)
 
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-
     # 判断参数
     if len(do_path) > 1024:
         raise AbortRequest(msg="Maximum length of location 1024", msg_show="Location最大长度1024")
@@ -146,7 +139,6 @@ async def add_http_domain(request: Request,
         protocol = "https"
     # 判断策略是否存在
     service_domain = domain_repo.get_domain_by_name_and_port_and_protocol(session,
-                                                                          service.service_id, container_port,
                                                                           domain_name,
                                                                           protocol, domain_path)
     if service_domain:
@@ -224,11 +216,12 @@ async def add_http_domain(request: Request,
     except ServiceHandleException as e:
         return JSONResponse(general_message(e.status_code, e.msg, e.msg_show),
                             status_code=e.status_code)
-    result = general_message(201, "success", "策略添加成功", bean=data)
+    result = general_message("0", "success", "策略添加成功", bean=data)
     return JSONResponse(result, status_code=status.HTTP_201_CREATED)
 
 
-@router.get("/teams/{team_name}/env/{env_id}/domain/{rule_id}/put_gateway", response_model=Response, name="获取策略的网关自定义参数")
+@router.get("/teams/{team_name}/env/{env_id}/domain/{rule_id}/put_gateway", response_model=Response,
+            name="获取策略的网关自定义参数")
 async def get_domain_parameter(
         rule_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -245,12 +238,9 @@ async def get_domain_parameter(
 
 @router.put("/teams/{team_name}/env/{env_id}/domain/{rule_id}/put_gateway", response_model=Response, name="修改网关的自定义参数")
 async def set_domain_parameter(request: Request,
-                               env_id: Optional[str] = None,
                                rule_id: Optional[str] = None,
+                               env=Depends(deps.get_current_team_env),
                                session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     region = await region_services.get_region_by_request(session, request)
     if not region:
@@ -305,11 +295,8 @@ async def add_http_domain(
 
 @router.put("/teams/{team_name}/env/{env_id}/httpdomain", response_model=Response, name="编辑http策略")
 async def add_http_domain(request: Request,
-                          env_id: Optional[str] = None,
+                          env=Depends(deps.get_current_team_env),
                           session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     container_port = data.get("container_port", None)
     domain_name = data.get("domain_name", None)

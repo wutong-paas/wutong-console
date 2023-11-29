@@ -49,13 +49,14 @@ from repository.region.region_app_repo import region_app_repo
 from service.app_actions.app_delete import component_delete_service
 from service.app_actions.app_log import event_service
 from service.app_actions.exception import ErrVersionAlreadyExists
+from service.app_config.app_relation_service import dependency_service
 from service.app_config.component_graph import component_graph_service
 from service.app_config.port_service import port_service
 from service.app_config.service_monitor_service import service_monitor_service
 from service.app_config.volume_service import volume_service
 from service.app_env_service import env_var_service
 from service.application_service import application_service
-from service.base_services import baseService
+from service.base_services import baseService, base_service
 from service.market_app_service import market_app_service
 
 
@@ -77,6 +78,17 @@ from service.market_app_service import market_app_service
 class AppManageService(object):
     def __init__(self):
         super().__init__()
+
+    def is_dep_service_running(self, session, env, service):
+        dependencies = dependency_service.get_service_dependencies(session=session, tenant_env=env, service=service)
+        if dependencies:
+            service_ids = [dep.service_id for dep in dependencies]
+            status_list = base_service.status_multi_service(session=session, region=env.region_code, tenant_env=env,
+                                                            service_ids=service_ids)
+            for status in status_list:
+                if status["status"] != 'running':
+                    return False
+        return True
 
     def deploy_service(self, session, tenant_env, service_obj, user):
         """重新构建"""
@@ -232,27 +244,28 @@ class AppManageService(object):
 
     def _truncate_service(self, session: SessionClass, tenant_env, service, user_nickname=None):
         if service.create_status == "complete":
-            data = jsonable_encoder(service)
-            data.pop("ID")
-            data.pop("service_name")
-            data.pop("build_upgrade")
-            data.pop("oauth_service_id")
-            data.pop("is_upgrate")
-            data.pop("secret")
-            data.pop("open_webhooks")
-            data.pop("server_type")
-            data.pop("git_full_name")
-            data.pop("gpu_type")
-            data.pop("is_delete")
-            data.pop("delete_time")
-            data.pop("delete_operator")
-        try:
-            add_model: TeamComponentInfoDelete = TeamComponentInfoDelete(**data)
-            session.add(add_model)
-            session.flush()
-        except Exception as e:
-            logger.exception(e)
-            pass
+            try:
+                data = jsonable_encoder(service)
+                data.pop("ID")
+                data.pop("service_name")
+                data.pop("build_upgrade")
+                data.pop("oauth_service_id")
+                data.pop("is_upgrate")
+                data.pop("secret")
+                data.pop("open_webhooks")
+                data.pop("server_type")
+                data.pop("git_full_name")
+                data.pop("gpu_type")
+                data.pop("is_delete")
+                data.pop("delete_time")
+                data.pop("delete_operator")
+                data.pop("image_hub")
+                add_model: TeamComponentInfoDelete = TeamComponentInfoDelete(**data)
+                session.add(add_model)
+                session.flush()
+            except Exception as e:
+                logger.exception(e)
+                pass
 
         service_id = service.service_id
 
@@ -1168,7 +1181,7 @@ class AppManageService(object):
             # code, msg = self.truncate_service(session=session, tenant_env=tenant_env, service=service, user=user)
             code, msg = component_delete_service.logic_delete(session=session, tenant_env=tenant_env, service=service,
                                                               user=user, is_force=True)
-            if code != 200:
+            if code != "0":
                 return code, msg
             else:
                 msg = "success"
@@ -1215,7 +1228,7 @@ class AppManageService(object):
     def close_all_component_in_tenant(self, session: SessionClass, tenant_env, region_name, user):
         try:
             # list components
-            components = service_info_repo.get_services_by_team_and_region(session, tenant_env.env_id, region_name)
+            components = service_info_repo.get_services_by_env_and_region(session, tenant_env.env_id, region_name)
             component_ids = [cpt.service_id for cpt in components]
             self.batch_operations(session=session, tenant_env=tenant_env, region_name=region_name, user=user,
                                   action="stop",
@@ -1340,18 +1353,18 @@ class AppManageService(object):
         }
 
     @staticmethod
-    def _sync_third_components(session, tenant_name, region_name, region_app_id, component_bodies):
+    def _sync_third_components(session, tenant_env, region_name, region_app_id, component_bodies):
         body = {
             "components": component_bodies,
         }
-        remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
+        remote_app_client.sync_components(session, tenant_env, region_name, region_app_id, body)
 
     @staticmethod
-    def _rollback_third_components(session, tenant_name, region_name, region_app_id, components: [Component]):
+    def _rollback_third_components(session, tenant_env, region_name, region_app_id, components: [Component]):
         body = {
             "delete_component_ids": [component.service_id for component in components],
         }
-        remote_app_client.sync_components(session, tenant_name, region_name, region_app_id, body)
+        remote_app_client.sync_components(session, tenant_env, region_name, region_app_id, body)
 
     @staticmethod
     def _save_third_components(session, components, relations, third_endpoints, ports, envs):
@@ -1429,12 +1442,12 @@ class AppManageService(object):
 
         region_app_id = region_app_repo.get_region_app_id(session, region_name, app.app_id)
 
-        self._sync_third_components(session, tenant_env.tenant_name, region_name, region_app_id, component_bodies)
+        self._sync_third_components(session, tenant_env, region_name, region_app_id, component_bodies)
 
         try:
             self._save_third_components(session, components, relations, endpoints, new_ports, envs)
         except Exception as e:
-            self._rollback_third_components(session, tenant_env.tenant_name, region_name, region_app_id, components)
+            self._rollback_third_components(session, tenant_env, region_name, region_app_id, components)
             raise e
 
         return components

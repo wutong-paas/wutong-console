@@ -1,29 +1,28 @@
 import datetime
 import json
-import os
 import time
 
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from sqlalchemy import select, or_, text, delete
+from sqlalchemy import select, or_, text, delete, and_
 
 from appstore.app_store import app_store
 from clients.remote_build_client import remote_build_client
 from clients.remote_plugin_client import remote_plugin_client
-from common.api_base_http_client import ApiBaseHttpClient
 from core.enum.component_enum import is_singleton
 from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.main import AbortRequest, ServiceHandleException, RbdAppNotFound
 from models.application.models import ServiceShareRecord, ServiceShareRecordEvent
 from models.application.plugin import TeamComponentPluginRelation, TeamPlugin, ComponentPluginConfigVar, \
-    PluginShareRecordEvent
+    PluginShareRecordEvent, PluginBuildVersion
 from models.component.models import TeamComponentConfigurationFile, TeamComponentPort, Component, \
     ComponentEnvVar, TeamComponentVolume, TeamComponentMountRelation, ComponentProbe, ComponentMonitor, ComponentGraph, \
     ComponentLabels, ComponentEvent
 from models.market.models import CenterApp, CenterAppVersion
 from models.region.label import Labels
 from models.relate.models import TeamComponentRelation
+from repository.application.app_repository import app_tag_repo, app_repo
 from repository.application.config_group_repo import app_config_group_item_repo, app_config_group_service_repo
 from repository.component.service_config_repo import app_config_group_repo, configuration_repo, port_repo
 from repository.component.service_domain_repo import domain_repo
@@ -31,7 +30,6 @@ from repository.component.service_share_repo import component_share_repo
 from repository.market.center_repo import center_app_repo, app_export_record_repo
 from service.application_service import application_service
 from service.base_services import base_service
-from service.market_app_service import market_app_service
 from service.plugin.plugin_config_service import plugin_config_service
 
 
@@ -370,7 +368,7 @@ class ShareService(object):
                 version_alias=version_alias,
                 template_type=template_type,
                 record_id=share_record.ID,
-                share_user=share_user.user_id,
+                share_user=share_user.nick_name,
                 share_env=share_env.env_name,
                 group_id=share_record.group_id,
                 source="local",
@@ -418,14 +416,13 @@ class ShareService(object):
             ).scalars().first()
 
         dt = {"app_model_list": [], "last_shared_app": {}, "scope": scope}
-        if scope == "market":
-            logger.info("")
-        else:
-            logger.info("")
 
         if last_shared:
             last_shared_app_info = (
-                session.execute(select(CenterApp).where(CenterApp.app_id == last_shared.app_id))
+                session.execute(select(CenterApp).where(and_(CenterApp.app_id == last_shared.app_id,
+                                                             or_(
+                                                                 CenterApp.create_team == tenant_env.tenant_name,
+                                                                 CenterApp.scope == "enterprise"))))
             ).scalars().first()
 
             if last_shared_app_info:
@@ -459,10 +456,10 @@ class ShareService(object):
         else:
             apps = (
                 session.execute(select(CenterApp).where(
-                    CenterApp.source == "local",
-                    or_(CenterApp.create_team == team_name,
-                        CenterApp.scope.in_(
-                            ["team", "enterprise"]))).order_by(
+                    or_(
+                        and_(CenterApp.create_team == team_name,
+                             CenterApp.scope == "team"),
+                        (CenterApp.scope == "enterprise"))).order_by(
                     CenterApp.create_time.desc()))
             ).scalars().all()
 
@@ -493,7 +490,7 @@ class ShareService(object):
 
     def _patch_rainbond_apps_tag(self, apps, session: SessionClass):
         app_ids = [app["app_id"] for app in apps]
-        tags = self.get_multi_apps_tags(app_ids, session)
+        tags = app_tag_repo.get_multi_apps_tags(session, app_ids)
         if not tags:
             return
         app_with_tags = dict()
@@ -504,24 +501,6 @@ class ShareService(object):
 
         for app in apps:
             app["tags"] = app_with_tags.get(app["app_id"])
-
-    def get_multi_apps_tags(self, app_ids, session: SessionClass):
-        if not app_ids:
-            return None
-        app_ids = ",".join("'{0}'".format(app_id) for app_id in app_ids)
-
-        sql = """
-        select
-            atr.app_id, tag.*
-        from
-            center_app_tag_relation atr
-        left join center_app_tag tag on
-            atr.tag_id = tag.ID
-        where
-            atr.app_id in ({app_ids});
-        """.format(app_ids=app_ids)
-        result = (session.execute(text(sql))).fetchall()
-        return result
 
     def get_last_app_versions_by_app_id(self, app_id, session: SessionClass):
         sql = """
@@ -574,12 +553,44 @@ class ShareService(object):
             tenant_plugin = (
                 session.execute(select(TeamPlugin).where(TeamPlugin.plugin_id == spr.plugin_id))
             ).scalars().first()
+            plugin_build_version = (
+                session.execute(select(PluginBuildVersion).where(PluginBuildVersion.plugin_id == spr.plugin_id))
+            ).scalars().first()
 
-            plugin_dict = tenant_plugin.__dict__
+            if tenant_plugin:
+                plugin_dict = jsonable_encoder(tenant_plugin)
 
-            plugin_dict["build_version"] = spr.build_version
-            plugin_list.append(plugin_dict)
-            temp_plugin_ids.append(spr.plugin_id)
+                plugin_dict["build_version"] = spr.build_version
+                plugin_dict["build_cmd"] = plugin_build_version.build_cmd
+                plugin_list.append(plugin_dict)
+                temp_plugin_ids.append(spr.plugin_id)
+        return plugin_list
+
+    def get_services_used_plugins(self, service_ids, session: SessionClass):
+        sprs = (
+            session.execute(
+                select(TeamComponentPluginRelation).where(TeamComponentPluginRelation.service_id.in_(service_ids)))
+        ).scalars().all()
+
+        plugin_list = []
+        temp_plugin_ids = []
+        for spr in sprs:
+            if spr.plugin_id in temp_plugin_ids:
+                continue
+            tenant_plugin = (
+                session.execute(select(TeamPlugin).where(TeamPlugin.plugin_id == spr.plugin_id))
+            ).scalars().first()
+            plugin_build_version = (
+                session.execute(select(PluginBuildVersion).where(PluginBuildVersion.plugin_id == spr.plugin_id))
+            ).scalars().first()
+
+            if tenant_plugin:
+                plugin_dict = tenant_plugin.__dict__
+
+                plugin_dict["build_version"] = spr.build_version
+                plugin_dict["build_cmd"] = plugin_build_version.build_cmd
+                plugin_list.append(plugin_dict)
+                temp_plugin_ids.append(spr.plugin_id)
         return plugin_list
 
     def check_service_source(self, session: SessionClass, tenant_env, group_id, region_name):
@@ -593,12 +604,12 @@ class ShareService(object):
                                                             service_ids=service_ids)
             for status in status_list:
                 if status["status"] == "running":
-                    data = {"code": 200, "success": True, "msg_show": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
+                    data = {"code": 200, "success": True, "msg": "应用的组件有在运行中可以发布。", "list": list(), "bean": dict()}
                     return data
-            data = {"code": 400, "success": False, "msg_show": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
+            data = {"code": 400, "success": False, "msg": "应用下所有组件都在未运行状态，不能发布。", "list": list(), "bean": dict()}
             return data
         else:
-            data = {"code": 400, "success": False, "msg_show": "当前应用内无组件", "list": list(), "bean": dict()}
+            data = {"code": 400, "success": False, "msg": "当前应用内无组件", "list": list(), "bean": dict()}
             return data
 
     def create_service_share_record(self, session: SessionClass, **kwargs):
@@ -1009,6 +1020,9 @@ class ShareService(object):
     def delete_record(self, session, ID, env_name):
         return component_share_repo.delete_record(session=session, ID=ID, env_name=env_name)
 
+    def delete_version(self, session, record_id):
+        app_repo.delete_app_version_by_record_id(session, record_id)
+
     def create_publish_event(self, session, record_event, user_name, event_type):
         import datetime
         event = ComponentEvent(
@@ -1054,7 +1068,8 @@ class ShareService(object):
                         "share_user": user.nick_name,
                         "share_scope": app_version.scope,
                         "image_info": app.get("service_image", None),
-                        "slug_info": app.get("service_slug", None)
+                        "slug_info": app.get("service_slug", None),
+                        "operator": user.nick_name
                     }
                     re_body = None
                     try:
@@ -1090,8 +1105,8 @@ class ShareService(object):
                     new_apps.append(app)
             app_templetes["apps"] = new_apps
             app_version.app_template = json.dumps(app_templetes)
-            app_version.update_time = datetime.datetime.now()
-            session.flush()
+            # app_version.update_time = datetime.datetime.now()
+            # session.flush()
             return record_event
         except ServiceHandleException as e:
             logger.exception(e)

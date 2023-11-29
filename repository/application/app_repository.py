@@ -1,7 +1,7 @@
 import time
 
 from loguru import logger
-from sqlalchemy import select, delete, text
+from sqlalchemy import select, delete, text, update
 
 from models.component.models import Component, ComponentWebhooks, ComponentRecycleBin, \
     ComponentRelationRecycleBin, TeamComponentInfoDelete, TeamComponentConfigurationFile
@@ -38,6 +38,11 @@ class AppRepo(object):
         session.execute(delete(CenterAppVersion).where(
             CenterAppVersion.app_id == app_id,
             CenterAppVersion.version == version
+        ))
+
+    def delete_app_version_by_record_id(self, session, record_id):
+        session.execute(delete(CenterAppVersion).where(
+            CenterAppVersion.record_id == record_id
         ))
 
     def update_app_version(self, session, app_id, version, **data):
@@ -107,10 +112,12 @@ class AppRepo(object):
         if query:
             sql = select(Component).where(Component.tenant_env_id == tenant_env_id,
                                           Component.service_region == region,
-                                          Component.service_cname.contains(query))
+                                          Component.service_cname.contains(query),
+                                          Component.is_delete == 0)
         else:
             sql = select(Component).where(Component.tenant_env_id == tenant_env_id,
-                                          Component.service_region == region)
+                                          Component.service_region == region,
+                                          Component.is_delete == 0)
         return session.execute(sql).scalars().all()
 
 
@@ -182,7 +189,7 @@ class AppTagRepository(object):
     def get_multi_apps_tags(self, session, app_ids):
         if not app_ids:
             return None
-        app_ids = ",".join("'{0}'".format(app_id) for app_id in app_ids)
+        app_ids = ",".join("{0}".format(app_id) for app_id in app_ids)
 
         sql = """
         select
@@ -209,15 +216,43 @@ class AppTagRepository(object):
 
         return session.add_all(relation_list)
 
-    def create_tag(self, session, name):
+    def get_tag(self, session, name=None):
+        if name:
+            tags = session.execute(select(CenterAppTag).where(
+                CenterAppTag.name.contains(name)
+            ).order_by(CenterAppTag.sn.desc(), CenterAppTag.ID.asc())).scalars().all()
+        else:
+            tags = session.execute(
+                select(CenterAppTag).order_by(CenterAppTag.sn.desc(), CenterAppTag.ID.asc())).scalars().all()
+        return tags
+
+    def create_tag(self, session, name, sn=0, desc=""):
         old_tag = session.execute(select(CenterAppTag).where(
             CenterAppTag.name == name
         )).scalars().all()
         if old_tag:
             return False
-        wcat = CenterAppTag(name=name, is_deleted=False)
+        wcat = CenterAppTag(name=name, desc=desc, sn=sn)
         session.add(wcat)
         return wcat
+
+    def update_tag(self, session, tag_id, name, sn=0, desc=""):
+        session.execute(update(CenterAppTag).where(
+            CenterAppTag.ID == tag_id).values({
+            "name": name,
+            "sn": sn,
+            "desc": desc
+        }
+        ))
+
+    def delete_tag(self, session, tag_ids):
+        # 删除依赖关系
+        session.execute(delete(CenterAppTagsRelation).where(
+            CenterAppTagsRelation.tag_id.in_(tag_ids)
+        ))
+        # 删除tag
+        session.execute(delete(CenterAppTag).where(
+            CenterAppTag.ID.in_(tag_ids)))
 
 
 class ComponentConfigurationFileRepository(object):

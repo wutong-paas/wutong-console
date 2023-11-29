@@ -1,5 +1,8 @@
+import json
 from functools import cmp_to_key
 from typing import Any, Optional
+from urllib.parse import unquote
+
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -13,7 +16,7 @@ from repository.component.group_service_repo import service_info_repo
 from repository.region.region_info_repo import region_repo
 from repository.teams.env_repo import env_repo
 from schemas.response import Response
-from schemas.team import CloseTeamAppParam
+from schemas.env import CloseEnvAppParam
 from service.app_actions.app_delete import component_delete_service
 from service.app_actions.app_log import event_service
 from service.app_actions.app_manage import app_manage_service
@@ -24,13 +27,11 @@ router = APIRouter()
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/close", response_model=Response, name="关闭团队应用")
-async def close_teams_app(params: Optional[CloseTeamAppParam] = CloseTeamAppParam(),
-                          env_id: Optional[str] = None,
-                          session: SessionClass = Depends(deps.get_session),
-                          user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+async def close_teams_app(
+        params: Optional[CloseEnvAppParam] = CloseEnvAppParam(),
+        env=Depends(deps.get_current_team_env),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     if params.region_name:
         app_manage_service.close_all_component_in_tenant(session=session, tenant_env=env,
                                                          region_name=params.region_name,
@@ -61,14 +62,20 @@ def __sort_events(event1, event2):
 async def overview_env_app_info(request: Request,
                                 page: int = Query(default=1, ge=1, le=9999),
                                 page_size: int = Query(default=10, ge=1, le=500),
-                                env_id: Optional[str] = None,
+                                status: Optional[str] = "all",
+                                project_ids: Optional[str] = None,
+                                query: Optional[str] = "",
+                                user=Depends(deps.get_current_user),
+                                env=Depends(deps.get_current_team_env),
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     总览 团队应用信息
     """
-    query = request.query_params.get("query", "")
-    status = request.query_params.get("status", "all")
-    project_id = request.query_params.get("project_id", None)
+    if project_ids:
+        project_ids = json.loads(unquote(project_ids))
+
+    query = unquote(query)
+
     count = {
         "RUNNING": 0,
         "CLOSED": 0,
@@ -79,17 +86,13 @@ async def overview_env_app_info(request: Request,
         "UNKNOWN": 0,
         "": 0
     }
+    total = 0
 
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region_name = region.region_name
-    groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query, project_id=project_id)
-    total = len(groups)
-    app_num_dict = {"total": total}
+    groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query, project_ids=project_ids)
     start = (page - 1) * page_size
     end = page * page_size
     apps = []
@@ -98,37 +101,40 @@ async def overview_env_app_info(request: Request,
         apps, count = application_service.get_multi_apps_all_info(session=session, app_ids=group_ids,
                                                                   region=region_name,
                                                                   tenant_env=env,
+                                                                  user=user,
                                                                   status=status)
 
+    for value in count.values():
+        total += value
+    app_num_dict = {"total": total}
+    pages = int(total / page_size)
+    if pages == 0:
+        pages = 1
     apps = apps[start:end]
     app_num_dict.update(count)
-    return JSONResponse(general_message("0", "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict),
-                        status_code=200)
+    return JSONResponse(
+        general_message("0", "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict, total=total,
+                        current=page, pages=pages, size=page_size),
+        status_code=200)
 
 
 @router.get("/teams/{team_name}/env/{env_id}/services/event", response_model=Response, name="应用事件动态")
 async def env_services_event(
-        # request: Request,
-        env_id: Optional[str] = None,
         page: int = Query(default=1, ge=1, le=9999),
         page_size: int = Query(default=3, ge=1, le=500),
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     组件事件动态
     """
-    # page = request.query_params.get("page", 1)
-    # page_size = request.query_params.get("page_size", 3)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
     total = 0
-    region_list = region_repo.get_team_opened_region(session, env.env_name)
+    region_list = region_repo.get_team_opened_region(session, env.namespace)
     event_service_dynamic_list = []
     if region_list:
         for region in region_list:
             try:
-                events, event_count, has_next = event_service.get_target_events(session=session, target="tenant",
+                events, event_count, has_next = event_service.get_target_events(session=session, target="tenant_env",
                                                                                 target_id=env.env_id,
                                                                                 tenant_env=env,
                                                                                 region=region.region_name,
@@ -166,21 +172,21 @@ async def env_services_event(
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/env/{env_id}/again_delete", response_model=Response, name="二次确认删除应用")
+@router.delete("/teams/{team_name}/env/{env_id}/again_delete", response_model=Response, name="二次确认删除组件")
 async def again_delete_app(request: Request,
-                           env_id: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
+                           env=Depends(deps.get_current_team_env),
                            user=Depends(deps.get_current_user)) -> Any:
     """
     二次确认删除组件
     """
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     data = await request.json()
     service_id = data.get("service_id", None)
     service = service_info_repo.get_service_by_service_id(session, service_id)
     # app_manage_service.delete_again(session, user, env, service)
-    component_delete_service.logic_delete(session=session, user=user, tenant_env=env, is_force=True, service=service)
-    result = general_message("0", "success", "操作成功", bean={})
+    code, msg = component_delete_service.logic_delete(session=session, user=user, tenant_env=env, is_force=True,
+                                                      service=service)
+    result = general_message(code, "", msg, bean={})
+    if code != "0":
+        return JSONResponse(result, status_code=code)
     return JSONResponse(result, status_code=200)

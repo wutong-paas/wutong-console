@@ -17,6 +17,7 @@ from repository.component.group_service_repo import service_info_repo
 from repository.teams.env_repo import env_repo
 from repository.teams.team_component_repo import team_component_repo
 from schemas.response import Response
+from schemas.user import UserInfo
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_service
 from service.tenant_env_service import env_services
@@ -24,7 +25,8 @@ from service.tenant_env_service import env_services
 router = APIRouter()
 
 
-@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/get-url", response_model=Response, name="获取自动部署回调地址")
+@router.get("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/get-url", response_model=Response,
+            name="获取自动部署回调地址")
 async def get_auto_url(request: Request,
                        serviceAlias: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
@@ -58,11 +60,11 @@ async def get_auto_url(request: Request,
                                                                               deployment_way)
 
         # api处发自动部署
-        if deployment_way == "api_webhooks":
+        if deployment_way == "api_webhooks" or deployment_way == "code_webhooks":
             # 生成秘钥
             deploy = deploy_repo.get_deploy_relation_by_service_id(session=session, service_id=service_id)
             secret_key = pickle.loads(base64.b64decode(deploy)).get("secret_key")
-            url = host + "console/" + "custom/deploy/" + service_obj.service_id
+            url = host + "paas-console/console/custom/deploy/" + service_obj.service_id
             result = general_message(
                 200,
                 "success",
@@ -76,7 +78,7 @@ async def get_auto_url(request: Request,
                 })
         # 镜像处发自动部署
         elif deployment_way == "image_webhooks":
-            url = host + "console/" + "image/webhooks/" + service_obj.service_id
+            url = host + "paas-console/console/env/" + env.env_id + "/image/webhooks/" + service_obj.service_id
 
             result = general_message(
                 200,
@@ -111,7 +113,8 @@ async def get_auto_url(request: Request,
     return JSONResponse(result, status_code=500)
 
 
-@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/status", response_model=Response, name="开启或关闭自动部署功能")
+@router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/status", response_model=Response,
+             name="开启或关闭自动部署功能")
 async def run_or_stop_auto(request: Request,
                            serviceAlias: Optional[str] = None,
                            session: SessionClass = Depends(deps.get_session),
@@ -165,7 +168,8 @@ async def run_or_stop_auto(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/updatekey", response_model=Response, name="更新自动构建密钥")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/updatekey", response_model=Response,
+            name="更新自动构建密钥")
 async def update_key(request: Request,
                      serviceAlias: Optional[str] = None,
                      session: SessionClass = Depends(deps.get_session),
@@ -199,7 +203,8 @@ async def update_key(request: Request,
     return JSONResponse(result, status_code=500)
 
 
-@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/trigger'", response_model=Response, name="更新自动部署触发方式")
+@router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/webhooks/trigger'", response_model=Response,
+            name="更新自动部署触发方式")
 async def update_deploy_mode(
         request: Request,
         serviceAlias: Optional[str] = None,
@@ -224,7 +229,7 @@ async def update_deploy_mode(
             "自动部署触发条件更新成功",
             bean={
                 "url":
-                    "{host}console/image/webhooks/{service_id}".format(
+                    "{host}paas-console/console/env/" + env.env_id + "/image/webhooks/{service_id}".format(
                         host=os.environ.get('DEFAULT_DOMAIN', request.headers.get("referer")),
                         service_id=service.service_id),
                 "trigger":
@@ -236,13 +241,10 @@ async def update_deploy_mode(
 @router.post("/env/{env_id}/image/webhooks/{service_id}", response_model=Response, name="镜像仓库webhooks回调")
 async def update_deploy_mode(
         request: Request,
-        env_id: Optional[str] = None,
         service_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        env = env_repo.get_env_by_env_id(session, env_id)
-        if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
         data = await request.json()
         service_obj = service_info_repo.get_service_by_service_id(session, service_id)
         if not service_obj:
@@ -308,3 +310,39 @@ async def update_deploy_mode(
         logger.exception(e)
         result = error_message("failed")
         return JSONResponse(result, status_code=500)
+
+
+@router.post("/custom/deploy/{service_id}", response_model=Response, name="自定义回调接口处发自动部署")
+async def update_deploy_mode(
+        request: Request,
+        service_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """自定义回调接口处发自动部署"""
+    import base64
+    import pickle
+    data = await request.json()
+    secret_key = data.get("secret_key")
+    # 加密
+    deploy_key = deploy_repo.get_secret_key_by_service_id(session=session, service_id=service_id)
+    deploy_key_decode = pickle.loads(base64.b64decode(deploy_key)).get("secret_key")
+    if secret_key != deploy_key_decode:
+        result = general_message(400, "failed", "密钥错误")
+        return JSONResponse(result, status_code=400)
+    service_obj = service_info_repo.get_service_by_service_id(session, service_id)
+    env_obj = env_repo.get_env_by_env_id(session, service_obj.tenant_env_id)
+    user_obj = {
+        "nick_name": "admin"
+    }
+    user_obj = UserInfo(**user_obj)
+    service_webhook = service_webhooks_repo.get_or_create_service_webhook(session, service_id, "api_webhooks")
+    if not service_webhook.state:
+        result = general_message(400, "failed", "组件关闭了自动构建")
+        return JSONResponse(result, status_code=400)
+    status_map = application_service.get_service_status(session, env_obj, service_obj)
+    status = status_map.get("status", None)
+    if status != "closed":
+        return app_manage_service.deploy_service(
+            session=session, tenant_env=env_obj, service_obj=service_obj, user=user_obj)
+    else:
+        result = general_message(200, "component is closed, not support", "组件状态处于关闭中，不支持自动构建")
+        return JSONResponse(result, status_code=400)

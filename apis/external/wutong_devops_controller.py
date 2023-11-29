@@ -6,13 +6,14 @@ from loguru import logger
 from starlette.responses import JSONResponse
 from xpinyin import Pinyin
 from core import deps
-from core.utils.return_message import general_message
+from core.utils.return_message import general_message, error_message
 from database.session import SessionClass
 from exceptions.exceptions import GroupNotExistError
 from exceptions.main import ResourceNotEnoughException, AccountOverdueException
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.devops.devops_repo import devops_repo
+from repository.env.user_env_auth_repo import user_env_auth_repo
 from repository.expressway.hunan_expressway_repo import hunan_expressway_repo
 from repository.teams.env_repo import env_repo
 from schemas.components import BuildSourceParam, DeployBusinessParams
@@ -21,6 +22,8 @@ from schemas.user import UserInfo
 from service.app_actions.app_deploy import app_deploy_service
 from service.app_actions.exception import ErrServiceSourceNotFound
 from service.application_service import application_service
+from service.tenant_env_service import env_services
+from core.api.team_api import team_api
 
 router = APIRouter()
 
@@ -82,7 +85,7 @@ async def get_app_state(
             page_params = Params(page=page, size=page_size)
             pg = paginate(no_group_service_list, page_params)
             total = pg.total
-            result = general_message(code, "query success", "应用查询成功", list=pg.items, total=total)
+            result = general_message("0", "query success", "应用查询成功", list=pg.items, total=total)
             return JSONResponse(result, status_code=code)
 
         env_id = env.env_id
@@ -100,7 +103,7 @@ async def get_app_state(
         params = Params(page=page, size=page_size)
         pg = paginate(group_service_list, params)
         total = pg.total
-        result = general_message(code, "query success", "应用查询成功", list=jsonable_encoder(pg.items),
+        result = general_message("0", "query success", "应用查询成功", list=jsonable_encoder(pg.items),
                                  total=total)
         return JSONResponse(result, status_code=200)
     except GroupNotExistError as e:
@@ -135,7 +138,7 @@ async def deploy_business_component(
             return JSONResponse(general_message(400, "not found app at team", "应用不属于该团队"), status_code=400)
 
         user_dict = {
-            "nick_name": "admin"
+            "nick_name": "超级管理员"
         }
         user = UserInfo(**user_dict)
         code, msg_show, new_service = application_service.create_docker_run_app(session=session,
@@ -228,7 +231,7 @@ async def deploy_component(
             devops_repo.modify_source(session, service, params.docker_image,
                                       params.registry_user, params.registry_password)
         user_dict = {
-            "nick_name": "admin"
+            "nick_name": "超级管理员"
         }
         user = UserInfo(**user_dict)
         if params.env_variables is not None:
@@ -283,6 +286,9 @@ async def deploy_component(
         if code != 200:
             session.rollback()
             return JSONResponse(general_message(code, "deploy app error", msg, bean=bean), status_code=code)
+        service.is_delete = 0
+        service.delete_time = None
+        service.delete_operator = None
         result = general_message(code, "success", "操作成功", bean=bean)
     except ErrServiceSourceNotFound as e:
         logger.exception(e)
@@ -317,3 +323,34 @@ async def check_resource(
         "is_component": is_component
     }
     return JSONResponse(general_message("0", "success", "查询成功", bean=data), status_code=200)
+
+
+@router.get("/devops/teams/{team_name}/query/envs", response_model=Response, name="查询团队下环境")
+async def get_team_envs(
+        team_name: Optional[str] = None,
+        team_id: Optional[str] = None,
+        user=Depends(deps.get_current_user),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    查询团队下环境
+    """
+    if not team_id:
+        return JSONResponse(general_message(400, "failed", "参数错误"), status_code=400)
+    try:
+        env_list = []
+        envs = env_services.get_envs_by_tenant_name(session, team_name)
+        is_team_admin = team_api.get_user_env_auth(user, team_id, "3")
+        is_super_admin = team_api.get_user_env_auth(user, None, "1")
+        if is_team_admin or is_super_admin:
+            env_list = envs
+        else:
+            for env in envs:
+                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
+                if is_auth:
+                    env_list.append(env)
+        result = general_message("0", "success", "查询成功", list=jsonable_encoder(env_list))
+    except Exception as e:
+        logger.exception(e)
+        result = error_message("错误")
+        return JSONResponse(result, status_code=result["code"])
+    return JSONResponse(result, status_code=200)

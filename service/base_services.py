@@ -30,6 +30,7 @@ class BaseService:
                 t.version,
                 t.update_time,
                 t.min_memory * t.min_node AS min_memory,
+                t.image,
                 g.group_name
             FROM
                 tenant_service t
@@ -100,6 +101,7 @@ class BaseService:
                 t.version,
                 t.update_time,
                 t.min_memory * t.min_node AS min_memory,
+                t.image,
                 g.group_name
             FROM
                 tenant_service t

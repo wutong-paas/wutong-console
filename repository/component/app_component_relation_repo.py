@@ -79,6 +79,9 @@ class ComponentApplicationRelationRepository(BaseRepository[ComponentApplication
         groups = session.execute(select(Application).where(
             Application.ID.in_(group_ids))).scalars().all()
         group_map = {g.ID: g.group_name for g in groups}
+        project_map = {g.ID: g.project_id for g in groups}
+        env_map = {g.ID: g.tenant_env_id for g in groups}
+        region_map = {g.ID: g.region_name for g in groups}
         result_map = {}
         for service_id in service_ids:
             group_id = sgr_map.get(service_id, None)
@@ -86,10 +89,14 @@ class ComponentApplicationRelationRepository(BaseRepository[ComponentApplication
             if group_id:
                 group_info["group_name"] = group_map[group_id]
                 group_info["group_id"] = group_id
+                group_info["project_id"] = project_map[group_id]
+                group_info["env_id"] = env_map[group_id]
+                group_info["region_code"] = region_map[group_id]
                 result_map[service_id] = group_info
             else:
                 group_info["group_name"] = "未分组"
                 group_info["group_id"] = -1
+                group_info["project_id"] = ""
                 result_map[service_id] = group_info
         return result_map
 

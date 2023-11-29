@@ -50,7 +50,7 @@ class GroupAppCopyService(object):
         if not group:
             raise ServiceHandleException(msg="no found group app", msg_show="目标应用不存在", status_code=404)
         if group.tenant_env_id != env_id:
-            raise ServiceHandleException(msg="group app and team relation no found", msg_show="目标应用不属于目标团队",
+            raise ServiceHandleException(msg="group app and team relation no found", msg_show="目标应用不属于目标环境",
                                          status_code=400)
         return group
 
@@ -66,16 +66,16 @@ class GroupAppCopyService(object):
         return change_services
 
     def pop_services_metadata(self,
-                              old_team,
+                              old_env,
                               old_region_name,
-                              tar_team,
+                              tar_env,
                               tar_region_name,
                               metadata,
                               remove_service_ids,
                               service_ids,
                               change_service_map=None):
         same_team_and_region_copy = False
-        if old_team.tenant_env_id == tar_team.tenant_env_id and old_region_name == tar_region_name:
+        if old_env.env_id == tar_env.env_id and old_region_name == tar_region_name:
             same_team_and_region_copy = True
         if not remove_service_ids:
             for service in metadata["apps"]:
@@ -151,16 +151,16 @@ class GroupAppCopyService(object):
             new_metadata["compose_service_relation"] = None
         return new_metadata
 
-    def get_modify_group_metadata(self, session, old_team, old_region_name, tar_team, tar_region_name, group_id,
+    def get_modify_group_metadata(self, session, old_env, old_region_name, tar_env, tar_region_name, group_id,
                                   service_ids, changes):
         total_memory, services_metadata = groupapp_backup_service.get_group_app_metadata(session, group_id,
-                                                                                         old_team, old_region_name)
+                                                                                         old_env, old_region_name)
         group_all_service_ids = [service["service_id"] for service in services_metadata["service_group_relation"]]
         if not service_ids:
             service_ids = group_all_service_ids
         remove_service_ids = list(set(service_ids) ^ set(group_all_service_ids))
         change_services_map = self.change_services_map(session, service_ids)
-        services_metadata = self.pop_services_metadata(old_team, old_region_name, tar_team, tar_region_name,
+        services_metadata = self.pop_services_metadata(old_env, old_region_name, tar_env, tar_region_name,
                                                        services_metadata,
                                                        remove_service_ids, service_ids, change_services_map)
         services_metadata = self.change_services_metadata_info(services_metadata, changes)
@@ -191,7 +191,7 @@ class GroupAppCopyService(object):
                     env["attr_name"] = envs[env["attr_name"]]
         return metadata
 
-    def copy_group_services(self, session, user, old_region_name, env, tar_region_name, tar_group,
+    def copy_group_services(self, session, user, old_env, old_region_name, tar_env, tar_region_name, tar_group,
                             group_id,
                             choose_services):
         changes = {}
@@ -200,20 +200,20 @@ class GroupAppCopyService(object):
             for choose_service in choose_services:
                 service_ids.append(choose_service["service_id"])
                 changes.update({choose_service["service_id"]: choose_service.get("change")})
-        services_metadata, change_services_map = self.get_modify_group_metadata(session, env, old_region_name,
-                                                                                env,
+        services_metadata, change_services_map = self.get_modify_group_metadata(session, old_env, old_region_name,
+                                                                                tar_env,
                                                                                 tar_region_name, group_id, service_ids,
                                                                                 changes)
-        self.save_new_group_app(session, user, env, tar_region_name, tar_group.ID,
-                                services_metadata, change_services_map, env == env,
+        self.save_new_group_app(session, user, tar_env, tar_region_name, tar_group.ID,
+                                services_metadata, change_services_map, old_env == tar_env,
                                 old_region_name == tar_region_name)
-        return groupapp_copy_service.build_services(session, user, env, tar_region_name, tar_group.ID,
+        return groupapp_copy_service.build_services(session, user, tar_env, tar_region_name, tar_group.ID,
                                                     change_services_map)
 
     def save_new_group_app(self, session, user, env, region_name, group_id, metadata, changed_service_map,
-                           same_team, same_region):
+                           same_env, same_region):
         migrate_service.save_data(session, env, region_name, user, changed_service_map, metadata, group_id,
-                                  same_team, same_region)
+                                  same_env, same_region)
 
     def build_services(self, session, user, tenant_env, region_name, group_id, change_services_map):
         group_services = base_service.get_group_services_list(session, tenant_env.env_id, region_name, group_id)
@@ -231,7 +231,8 @@ class GroupAppCopyService(object):
                                                                                  user.nick_name)
                 else:
                     # 数据中心创建组件
-                    new_service = application_service.create_region_service(session, tenant_env, service, user.nick_name)
+                    new_service = application_service.create_region_service(session, tenant_env, service,
+                                                                            user.nick_name)
                 service = new_service
                 # 部署组件
                 app_manage_service.deploy(session, tenant_env, service, user)
@@ -253,8 +254,10 @@ class GroupAppCopyService(object):
                         event_id = make_uuid()
                         plugin_version.event_id = event_id
                         image_tag = (plugin_version.image_tag if plugin_version.image_tag else "latest")
-                        plugin_service.create_region_plugin(session, region_name, tenant_env, plugin, image_tag=image_tag)
-                        ret = plugin_service.build_plugin(session, region_name, plugin, plugin_version, user, tenant_env, event_id)
+                        plugin_service.create_region_plugin(session, region_name, tenant_env, plugin,
+                                                            image_tag=image_tag, user_name=user.nick_name)
+                        ret = plugin_service.build_plugin(session, region_name, plugin, plugin_version, user,
+                                                          tenant_env, event_id)
                         plugin_version.build_status = ret.get('bean').get('status')
                         # plugin_version.save()
                     except Exception as e:
@@ -270,6 +273,7 @@ class GroupAppCopyService(object):
                         data["version_id"] = service_plugin.build_version
                         data["plugin_cpu"] = service_plugin.min_cpu
                         data["plugin_memory"] = service_plugin.min_memory
+                        data["operator"] = user.nick_name
                         data.update(region_config)
                         remote_plugin_client.install_service_plugin(session,
                                                                     region_name, tenant_env,

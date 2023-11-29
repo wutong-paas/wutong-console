@@ -102,6 +102,14 @@ class PlatformDataBackupServices(object):
         else:
             raise ServiceHandleException(msg="The file does not exist", msg_show="该备份文件不存在", status_code=404)
 
+    def download_env_resource_file(self, file_name):
+        if os.path.exists(file_name):
+            with open(file_name, 'rb') as fh:
+                content = fh.read()
+                yield content
+        else:
+            raise ServiceHandleException(msg="The file does not exist", msg_show="该导出文件不存在", status_code=404)
+
     def un_compressed_file_by_tar(self, recover_path, tarname):
         dump_resp = subprocess.run(
             "tar -xzf {0} -C {1}".format(tarname, recover_path),

@@ -191,7 +191,7 @@ class AppMntService(object):
                                                                         data)
             logger.debug("add service mnt info res: {0}, body:{1}".format(res, body))
 
-        mnt_relation = mnt_repo.add_service_mnt_relation(session, tenant_env, service.service_id,
+        mnt_relation = mnt_repo.add_service_mnt_relation(session, tenant_env.env_id, service.service_id,
                                                          dep_volume.service_id,
                                                          dep_volume.volume_name, source_path)
         logger.debug(

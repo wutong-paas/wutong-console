@@ -22,12 +22,9 @@ router = APIRouter()
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/upgrade-records", response_model=Response,
             name="查询升级记录集合")
 async def get_app_model(request: Request,
-                        env_id: Optional[str] = None,
                         group_id: Optional[str] = None,
+                        env=Depends(deps.get_current_team_env),
                         session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -44,14 +41,11 @@ async def get_app_model(request: Request,
 
 @router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/upgrade-records", response_model=Response,
              name="升级应用模型")
-async def upgrade_app_model(request: Request,
-                            env_id: Optional[str] = None,
-                            group_id: Optional[str] = None,
-                            session: SessionClass = Depends(deps.get_session),
-                            user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+async def upgrade_app_model(
+        request: Request,
+        group_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
     app = application_repo.get_group_by_id(session, group_id)
     upgrade_group_id = await parse_item(request, 'upgrade_group_id', required=True)
     try:
@@ -66,12 +60,9 @@ async def upgrade_app_model(request: Request,
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/last-upgrade-record", response_model=Response,
             name="查询上一次升级记录")
 async def get_app_ver(request: Request,
-                      env_id: Optional[str] = None,
                       group_id: Optional[str] = None,
+                      env=Depends(deps.get_current_team_env),
                       session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     app = application_repo.get_group_by_id(session, group_id)
     upgrade_group_id = parse_argument(request, "upgrade_group_id")
     record_type = parse_argument(request, "record_type")
@@ -85,13 +76,10 @@ async def get_app_ver(request: Request,
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/upgrade-info", response_model=Response,
             name="查询某云市应用下组件的更新信息")
 async def get_cloud_upgrade(request: Request,
-                            env_id: Optional[str] = None,
                             group_id: Optional[str] = None,
+                            env=Depends(deps.get_current_team_env),
                             session: SessionClass = Depends(deps.get_session),
                             user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     upgrade_group_id = parse_argument(
         request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
     version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
@@ -108,11 +96,8 @@ async def get_cloud_upgrade(request: Request,
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/apps/{upgrade_group_id}", response_model=Response,
             name="查询某个升级应用的详情")
 async def get_app_upgrade_info(request: Request,
-                               env_id: Optional[str] = None,
+                               env=Depends(deps.get_current_team_env),
                                session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     record_id = parse_argument(
         request, 'record_id', value_type=str, required=True, error='record_id is a required parameter')
     record = upgrade_repo.get_by_record_id(session, record_id)
@@ -126,16 +111,14 @@ async def get_app_upgrade_info(request: Request,
 @router.post("/teams/{team_name}/env/{env_id}/groups/{group_id}/upgrade-records/{record_id}/upgrade",
              response_model=Response,
              name="升级组件")
-async def upgrade_component(request: Request,
-                            env_id: Optional[str] = None,
-                            group_id: Optional[str] = None,
-                            record_id: Optional[str] = None,
-                            session: SessionClass = Depends(deps.get_session),
-                            user=Depends(deps.get_current_user)
-                            ) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+async def upgrade_component(
+        request: Request,
+        group_id: Optional[str] = None,
+        record_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+        user=Depends(deps.get_current_user)
+) -> Any:
     version = await parse_item(request, "version", required=True)
     # It is not yet possible to upgrade based on services, which is user-specified attribute changes
     components = await parse_item(request, "services", default=[])
@@ -163,12 +146,9 @@ async def upgrade_component(request: Request,
             name="查询某一条升级记录")
 async def get_upgrade_log(
         request: Request,
-        env_id: Optional[str] = None,
         record_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -182,13 +162,10 @@ async def get_upgrade_log(
              name="重试组件升级")
 async def retry_upgrade(
         request: Request,
-        env_id: Optional[str] = None,
         record_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -202,21 +179,18 @@ async def retry_upgrade(
              name="回滚某一条升级记录")
 async def rollback_upgrade(
         request: Request,
-        env_id: Optional[str] = None,
         group_id: Optional[str] = None,
         record_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     app_upgrade_record = upgrade_repo.get_by_record_id(session, record_id)
     application = application_repo.get_by_primary_key(session=session, primary_key=group_id)
     record, _ = upgrade_service.restore(session, env, region, user, application, app_upgrade_record)
-    return JSONResponse(general_message("0", msg="success", msg_show="部署成功", bean=jsonable_encoder(record)),
+    return JSONResponse(general_message("0", msg="success", msg_show="回滚成功", bean=jsonable_encoder(record)),
                         status_code=200)
 
 
@@ -224,12 +198,9 @@ async def rollback_upgrade(
             response_model=Response,
             name="查看回滚记录")
 async def get_rollback_upgrade(
-        env_id: Optional[str] = None,
         record_id: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
     app_upgrade_record = upgrade_repo.get_by_record_id(session, record_id)
     records = upgrade_service.list_rollback_record(session, app_upgrade_record)
     return JSONResponse(general_message("0", msg="success", msg_show="获取成功", list=records), status_code=200)

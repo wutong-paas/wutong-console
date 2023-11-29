@@ -31,7 +31,7 @@ def _delete_check(session: SessionClass, tenant_env, service):
     # 判断组件是否是运行状态
     try:
         if service.create_status != "complete":
-            return False
+            return True, ""
         status_info = remote_component_client.check_service_status(session,
                                                                    service.service_region, tenant_env,
                                                                    service.service_alias)
@@ -101,29 +101,35 @@ class ComponentDeleteService(object):
             # 不进行校验 强制删除 todo
             logger.info("强制删除组件")
 
-        check_result, msg = _delete_check(session=session, tenant_env=tenant_env, service=service)
-        if check_result:
-            # 停用集群资源
-            _stop_component(session=session, tenant_env=tenant_env, user=user, service=service)
-            # 组件主表标记删除
-            service.is_delete = True
-            service.delete_time = datetime.datetime.now()
-            service.delete_operator = user.nick_name
-            tcp_domains = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
-            for tcp_domain in tcp_domains:
-                tcp_domain.is_delete = True
-                tcp_domain.delete_time = datetime.datetime.now()
-                tcp_domain.delete_operator = user.nick_name
-            service_domains = domain_repo.get_service_domains(session, service.service_id)
-            for service_domain in service_domains:
-                service_domain.is_delete = True
-                service_domain.delete_time = datetime.datetime.now()
-                service_domain.delete_operator = user.nick_name
-            service_info_repo.update_by_primary_key(session=session, update_model=service)
-            # 组件从表标记删除 todo
-            return 200, "删除成功"
+        msg = "删除失败"
+        try:
+            check_result, msg = _delete_check(session=session, tenant_env=tenant_env, service=service)
+            if check_result:
+                # 停用集群资源
+                _stop_component(session=session, tenant_env=tenant_env, user=user, service=service)
+                # 组件主表标记删除
+                service.is_delete = True
+                service.delete_time = datetime.datetime.now()
+                service.delete_operator = user.nick_name
+                tcp_domains = tcp_domain_repo.get_service_tcpdomains(session, service.service_id)
+                for tcp_domain in tcp_domains:
+                    tcp_domain.is_delete = True
+                    tcp_domain.delete_time = datetime.datetime.now()
+                    tcp_domain.delete_operator = user.nick_name
+                service_domains = domain_repo.get_service_domains(session, service.service_id)
+                for service_domain in service_domains:
+                    service_domain.is_delete = True
+                    service_domain.delete_time = datetime.datetime.now()
+                    service_domain.delete_operator = user.nick_name
+                service_info_repo.update_by_primary_key(session=session, update_model=service)
+                # 组件从表标记删除 todo
+                return "0", "删除成功"
+        except Exception as e:
+            logger.error(e)
+            return 400, "删除失败"
         # 不满足删除前提
-        return 500, msg
+        logger.info(msg)
+        return 400, msg
 
     def __really_delete_service(self, session: SessionClass, tenant_env, service, user_nickname=None,
                                 ignore_cluster_result=False,
