@@ -10,9 +10,9 @@ client = nacos.NacosClient(
 
 async def beat():
     logger.info("==========发送nacos心跳包===========")
-    client.send_heartbeat(
-        settings.SERVICE_NAME, settings.SERVICE_IP, settings.SERVICE_PORT,
-        group_name=settings.SERVICE_GROUP_NAME)
+    # client.send_heartbeat(
+    #     settings.SERVICE_NAME, settings.SERVICE_IP, settings.SERVICE_PORT,
+    #     group_name=settings.SERVICE_GROUP_NAME)
 
 
 # 微服务注册nacos

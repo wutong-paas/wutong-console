@@ -87,7 +87,7 @@ def startup_event():
     Base.metadata.create_all(engine)
     app.state.redis = get_redis_pool()
     # 微服务注册
-    register_nacos()
+    # register_nacos()
     # 启动定时任务调度器
     scheduler.start()
 
