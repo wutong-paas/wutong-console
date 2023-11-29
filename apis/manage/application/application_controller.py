@@ -34,6 +34,7 @@ from service.helm_app_service import helm_app_service
 from service.market_app_service import market_app_service
 from service.region_service import region_services
 from service.share_services import share_service
+from service.tenant_env_service import env_services
 
 router = APIRouter()
 
@@ -812,5 +813,8 @@ async def update_team_app(
     apps = application_repo.get_apps_by_team_code(session, team_code)
     for app in apps:
         app.tenant_name = team_name
+    envs = env_services.get_envs_by_tenant_name(session, team_code)
+    for env in envs:
+        env.team_alias = team_name
     result = general_message("0", "success", "更新成功")
     return JSONResponse(result, status_code=200)

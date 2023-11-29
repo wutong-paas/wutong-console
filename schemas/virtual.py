@@ -24,6 +24,8 @@ class CreateVirtualParam(BaseModel):
     user: Optional[str] = "ubuntu"
     # 默认登录密码
     password: Optional[str] = "ubuntu"
+    # 调度标签
+    node_selector_labels: Optional[list] = []
 
 
 class UpdateVirtualParam(BaseModel):
@@ -86,3 +88,19 @@ class VirtualConnectSSHParam(BaseModel):
     vm_user: Optional[str] = "root"
     # 虚拟机 SSH 端口，空值使用 22 端口
     vm_port: Optional[int] = 22
+
+
+# 创建虚拟机镜像参数
+class CreateVirtualImageParam(BaseModel):
+    # 镜像名称
+    image_name: Optional[str] = None
+    # 镜像类型
+    image_type: Optional[str] = None
+    # 镜像地址
+    image_address: Optional[str] = None
+    # 操作系统
+    os_name: Optional[str] = None
+    # 版本
+    version: Optional[str] = None
+    # 描述
+    desc: Optional[str] = ""

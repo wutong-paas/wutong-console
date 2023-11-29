@@ -116,6 +116,7 @@ async def create_virtual_machine(
         "user": param.user,
         "password": param.password,
         "operator": user.nick_name,
+        "nodeSelectorLabels": param.node_selector_labels
     }
     data = remote_virtual_client.create_virtual_machine(
         session, region.region_name, env, body
