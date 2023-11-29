@@ -23,6 +23,7 @@ from service.plugin.plugin_version_service import plugin_version_service
 from service.plugin_service import plugin_service, allow_plugins
 from service.region_service import region_services, get_region_list_by_team_name, get_team_env_list
 from service.tenant_env_service import env_services
+from core.api.team_api import team_api
 
 router = APIRouter()
 
@@ -726,12 +727,13 @@ async def get_user_details(
     user_detail["phone"] = user.phone
 
     if team_codes:
+        is_auth = team_api.get_user_env_auth(user, None, "1")
         for team_code in team_codes:
             envs = env_services.get_envs_by_tenant_name(session, team_code)
             # 查询团队信息
             tenant_info = dict()
             team_region_list = get_region_list_by_team_name(session=session, envs=envs)
-            team_env_list = get_team_env_list(session=session, envs=envs, user=user)
+            team_env_list = get_team_env_list(session=session, envs=envs, user=user, is_auth=is_auth)
             tenant_info["team_name"] = team_code
             tenant_info["region"] = team_region_list
             tenant_info["envs"] = team_env_list
