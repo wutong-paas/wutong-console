@@ -56,21 +56,21 @@ def get_region_list_by_team_name(session: SessionClass, envs):
         return []
 
 
-def get_team_env_list(session, envs, user):
+def get_team_env_list(session, envs, user, is_auth):
     """
+    :param session:
     :param envs:
     :param user:
+    :param is_auth:
     :return:
     """
     team_env_list = []
     if envs:
         for env in envs:
             # 判断是否拥有权限
-            is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
-            is_super_admin = team_api.get_user_env_auth(user, None, "1")
-            if is_team_admin or is_super_admin:
-                is_auth = True
-            else:
+            if not is_auth:
+                is_auth = team_api.get_user_env_auth(user, env.tenant_id, "3")
+            if not is_auth:
                 is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
             if not is_auth:
                 continue
