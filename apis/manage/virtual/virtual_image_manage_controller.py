@@ -126,9 +126,15 @@ async def update_virtual_image(
 
     id_image = virtual_image_repo.get_virtual_imagever_by_id(session, param.image_id)
     name_image = virtual_image_repo.get_virtual_image_by_name(session, param.image_name)
+    version_image = virtual_image_repo.get_virtual_image_by_os_name(session, id_image.os_name, param.version)
     if name_image and name_image.ID != id_image.ID:
         return JSONResponse(
             general_message(500, "image name is already exists", "镜像名称已存在"),
+            status_code=501,
+        )
+    if version_image and version_image.ID != id_image.ID:
+        return JSONResponse(
+            general_message(500, "version is already exists", "镜像版本已存在"),
             status_code=501,
         )
     id_image.image_name = param.image_name

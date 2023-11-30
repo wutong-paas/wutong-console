@@ -27,7 +27,7 @@ class VirtualImageRepository(BaseRepository[VirtualImageInfo]):
 
     def get_virtual_imagever_by_id(self, session, id):
         return session.execute(
-            select(VirtualImageInfo.version).where(
+            select(VirtualImageInfo).where(
                 VirtualImageInfo.ID == id)).scalars().first()
 
     def get_virtual_image_by_os_name(self, session, os_name, version):
