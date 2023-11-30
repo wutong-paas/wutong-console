@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from starlette.responses import JSONResponse
@@ -9,10 +9,10 @@ from clients.remote_virtual_client import remote_virtual_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from repository.teams.team_region_repo import team_region_repo
 from repository.virtual.virtual_image_repo import virtual_image_repo
 from schemas.response import Response
 from schemas.virtual import (CreateVirtualImageParam, UpdateVirtualImageParam)
+from service.region_service import region_services
 
 router = APIRouter()
 
@@ -155,6 +155,7 @@ async def update_virtual_image(
     name="创建虚拟机获取虚拟机镜像地址",
 )
 async def create_virtual_image(
+        request: Request,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     """
@@ -170,6 +171,10 @@ async def create_virtual_image(
         for version in versions:
             image = virtual_image_repo.get_virtual_image_by_os_name(session, os_name, version)
             image_info[os_name].update({version: image.image_address})
+
+    region = await region_services.get_region_by_request(session, request)
+    labels = remote_virtual_client.get_virtual_label(session, region)
+    image_info.update({"labels": labels})
 
     return JSONResponse(
         general_message(200, "create virtual machine success", "获取虚拟机镜像成功", bean=image_info),

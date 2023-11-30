@@ -466,5 +466,25 @@ class RemoteVirtualClient(ApiBaseHttpClient):
         )
         return None
 
+    def get_virtual_label(self, session, region):
+        """
+        获取虚拟机调度标签
+        :param session:
+        :param region:
+        :return:
+        """
+        url, token = get_region_access_info(region.region_name, session)
+
+        url = (
+                url
+                + "/v2/cluster/nodes/vm-selector-labels"
+        )
+
+        self._set_headers(token)
+        res, body = self._get(
+            session, url, self.default_headers, region=region.region_name
+        )
+        return body["list"]
+
 
 remote_virtual_client = RemoteVirtualClient()
