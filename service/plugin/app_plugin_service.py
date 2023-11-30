@@ -746,7 +746,7 @@ class AppPluginService(object):
                     tenant_env=tenant_env,
                     service=service,
                     volume_path=volume_path,
-                    volume_type="share-file",
+                    volume_type="memoryfs",
                     volume_name=volume_name,
                     file_content="",
                     settings=settings,
