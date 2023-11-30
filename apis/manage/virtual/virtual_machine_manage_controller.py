@@ -9,6 +9,7 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.region.region_info_repo import region_repo
 from repository.teams.team_region_repo import team_region_repo
+from repository.virtual.virtual_image_repo import virtual_image_repo
 from schemas.response import Response
 from schemas.virtual import (
     CreateVirtualParam,
@@ -25,9 +26,9 @@ router = APIRouter()
     name="查询单个虚拟机",
 )
 async def get_virtual_machine(
-    vm_id: Optional[str] = None,
-    session: SessionClass = Depends(deps.get_session),
-    env=Depends(deps.get_current_team_env),
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     查询单个虚拟机
@@ -57,8 +58,8 @@ async def get_virtual_machine(
     "/teams/{team_name}/env/{env_id}/vms", response_model=Response, name="查询虚拟机列表"
 )
 async def get_virtual_machine_list(
-    session: SessionClass = Depends(deps.get_session),
-    env=Depends(deps.get_current_team_env),
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     查询虚拟机列表
@@ -89,10 +90,10 @@ async def get_virtual_machine_list(
     "/teams/{team_name}/env/{env_id}/vms", response_model=Response, name="创建虚拟机"
 )
 async def create_virtual_machine(
-    param: CreateVirtualParam = CreateVirtualParam(),
-    session: SessionClass = Depends(deps.get_session),
-    user=Depends(deps.get_current_user),
-    env=Depends(deps.get_current_team_env),
+        param: CreateVirtualParam = CreateVirtualParam(),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     创建虚拟机
@@ -104,12 +105,15 @@ async def create_virtual_machine(
             general_message(400, "not found region", "数据中心不存在"), status_code=400
         )
 
+    image = virtual_image_repo.get_virtual_image_by_os_name(session, param.os_name,
+                                                            param.os_version)
+
     body = {
         "name": param.name,
         "displayName": param.display_name,
         "desc": param.desc,
-        "osSourceFrom": param.os_source_from,
-        "osSourceURL": param.os_source_url,
+        "osSourceFrom": image.image_type,
+        "osSourceURL": image.image_address,
         "osDiskSize": param.os_disk_size,
         "requestCPU": param.request_cpu,
         "requestMemory": param.request_memory,
@@ -131,11 +135,11 @@ async def create_virtual_machine(
     "/teams/{team_name}/env/{env_id}/vms/{vm_id}", response_model=Response, name="更新虚拟机"
 )
 async def update_virtual_machine(
-    vm_id: Optional[str] = None,
-    param: UpdateVirtualParam = UpdateVirtualParam(),
-    session: SessionClass = Depends(deps.get_session),
-    user=Depends(deps.get_current_user),
-    env=Depends(deps.get_current_team_env),
+        vm_id: Optional[str] = None,
+        param: UpdateVirtualParam = UpdateVirtualParam(),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     更新虚拟机
@@ -173,9 +177,9 @@ async def update_virtual_machine(
     "/teams/{team_name}/env/{env_id}/vms/{vm_id}", response_model=Response, name="删除虚拟机"
 )
 async def delete_virtual_machine(
-    vm_id: Optional[str] = None,
-    session: SessionClass = Depends(deps.get_session),
-    env=Depends(deps.get_current_team_env),
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     删除虚拟机
@@ -207,9 +211,9 @@ async def delete_virtual_machine(
     name="启动虚拟机",
 )
 async def start_virtual_machine(
-    vm_id: Optional[str] = None,
-    session: SessionClass = Depends(deps.get_session),
-    env=Depends(deps.get_current_team_env),
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     启动虚拟机
@@ -241,9 +245,9 @@ async def start_virtual_machine(
     name="停止虚拟机",
 )
 async def stop_virtual_machine(
-    vm_id: Optional[str] = None,
-    session: SessionClass = Depends(deps.get_session),
-    env=Depends(deps.get_current_team_env),
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     停止虚拟机
@@ -275,9 +279,9 @@ async def stop_virtual_machine(
     name="重启虚拟机",
 )
 async def restart_virtual_machine(
-    vm_id: Optional[str] = None,
-    session: SessionClass = Depends(deps.get_session),
-    env=Depends(deps.get_current_team_env),
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     重启虚拟机
@@ -309,9 +313,9 @@ async def restart_virtual_machine(
     name="虚拟机连接 virtctl-console",
 )
 async def virtctl_console(
-    vm_id: Optional[str] = None,
-    session: SessionClass = Depends(deps.get_session),
-    env=Depends(deps.get_current_team_env),
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     虚拟机连接 virtctl-console
@@ -348,10 +352,10 @@ async def virtctl_console(
     name="虚拟机连接 ssh",
 )
 async def virtual_connect_ssh(
-    vm_id: Optional[str] = None,
-    param: VirtualConnectSSHParam = VirtualConnectSSHParam(),
-    session: SessionClass = Depends(deps.get_session),
-    env=Depends(deps.get_current_team_env),
+        vm_id: Optional[str] = None,
+        param: VirtualConnectSSHParam = VirtualConnectSSHParam(),
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     虚拟机连接 ssh

@@ -12,7 +12,7 @@ from database.session import SessionClass
 from repository.teams.team_region_repo import team_region_repo
 from repository.virtual.virtual_image_repo import virtual_image_repo
 from schemas.response import Response
-from schemas.virtual import (CreateVirtualImageParam)
+from schemas.virtual import (CreateVirtualImageParam, UpdateVirtualImageParam)
 
 router = APIRouter()
 
@@ -87,6 +87,62 @@ async def create_virtual_image(
     )
 
 
+@router.delete(
+    "/plat/virtual/image",
+    response_model=Response,
+    name="删除虚拟机镜像",
+)
+async def delete_virtual_image(
+        image_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)
+) -> Any:
+    """
+    删除虚拟机镜像
+    """
+    if not image_name:
+        return JSONResponse(
+            general_message(400, "param error", "参数错误"), status_code=400
+        )
+
+    virtual_image_repo.delete_virtual_imagever_by_image_name(session, image_name)
+    return JSONResponse(
+        general_message(200, "create virtual machine success", "删除虚拟机镜像成功"),
+        status_code=200
+    )
+
+
+@router.put(
+    "/plat/virtual/image",
+    response_model=Response,
+    name="更新虚拟机镜像",
+)
+async def update_virtual_image(
+        param: UpdateVirtualImageParam = UpdateVirtualImageParam(),
+        session: SessionClass = Depends(deps.get_session)
+) -> Any:
+    """
+    更新虚拟机镜像
+    """
+
+    id_image = virtual_image_repo.get_virtual_imagever_by_id(session, param.image_id)
+    name_image = virtual_image_repo.get_virtual_image_by_name(session, param.image_name)
+    if name_image and name_image.ID != id_image.ID:
+        return JSONResponse(
+            general_message(500, "image name is already exists", "镜像名称已存在"),
+            status_code=501,
+        )
+    id_image.image_name = param.image_name
+    id_image.image_type = param.image_type
+    id_image.image_address = param.image_address
+    id_image.version = param.version
+    id_image.desc = param.desc
+
+    return JSONResponse(
+        general_message(200, "create virtual machine success", "更新虚拟机镜像成功"),
+        status_code=200
+    )
+
+
 @router.get(
     "/virtual/image",
     response_model=Response,
@@ -106,8 +162,8 @@ async def create_virtual_image(
         image_info[os_name] = {}
         versions = virtual_image_repo.get_virtual_imagever_by_os_name(session, os_name)
         for version in versions:
-            image_address = virtual_image_repo.get_virtual_image_by_os_name(session, os_name, version)
-            image_info[os_name].update({version: image_address})
+            image = virtual_image_repo.get_virtual_image_by_os_name(session, os_name, version)
+            image_info[os_name].update({version: image.image_address})
 
     return JSONResponse(
         general_message(200, "create virtual machine success", "获取虚拟机镜像成功", bean=image_info),

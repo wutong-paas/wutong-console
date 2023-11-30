@@ -7,13 +7,12 @@ class CreateVirtualParam(BaseModel):
     name: Optional[str] = None
     # 虚拟机显示名称
     display_name: Optional[str] = None
+    # 操作系统名称
+    os_name: Optional[str] = None
+    # 操作系统版本
+    os_version: Optional[str] = None
     # 描述信息
     desc: Optional[str] = None
-    # 支持 http、registry
-    os_source_from: Optional[str] = None
-    # registry 时 URL 为系统 Docker 镜像
-    # http 时 URL 为系统包下载地址
-    os_source_url: Optional[str] = None
     # 系统盘大小，单位为 Gi
     os_disk_size: Optional[int] = None
     # CPU 单位为 m
@@ -100,6 +99,22 @@ class CreateVirtualImageParam(BaseModel):
     image_address: Optional[str] = None
     # 操作系统
     os_name: Optional[str] = None
+    # 版本
+    version: Optional[str] = None
+    # 描述
+    desc: Optional[str] = ""
+
+
+# 更新虚拟机镜像参数
+class UpdateVirtualImageParam(BaseModel):
+    # 镜像id
+    image_id: Optional[int] = None
+    # 镜像名称
+    image_name: Optional[str] = None
+    # 镜像类型
+    image_type: Optional[str] = None
+    # 镜像地址
+    image_address: Optional[str] = None
     # 版本
     version: Optional[str] = None
     # 描述
