@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from starlette.responses import JSONResponse
 
 from clients.remote_virtual_client import remote_virtual_client
@@ -58,12 +58,17 @@ async def get_virtual_machine(
     "/teams/{team_name}/env/{env_id}/vms", response_model=Response, name="查询虚拟机列表"
 )
 async def get_virtual_machine_list(
+        page: int = Query(default=1, ge=1, le=9999),
+        page_size: int = Query(default=10, ge=1, le=500),
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
     查询虚拟机列表
     """
+
+    start = (page - 1) * page_size
+    end = page * page_size
 
     region = team_region_repo.get_region_by_env_id(session, env.env_id)
     if not region:
@@ -74,13 +79,18 @@ async def get_virtual_machine_list(
     data = remote_virtual_client.get_virtual_machine_list(
         session, region.region_name, env
     )
+    total = len(data) if data else 0
+    pages = int(total / page_size)
+    if pages == 0:
+        pages = 1
     return JSONResponse(
         general_message(
             200,
             "get virtual machine success",
             "获取虚拟机列表成功",
-            list=data,
-            total=len(data) if data else 0,
+            list=data[start:end] if data else [],
+            total=total,
+            current=page, pages=pages, size=page_size
         ),
         status_code=200,
     )
