@@ -25,6 +25,8 @@ class CreateVirtualParam(BaseModel):
     password: Optional[str] = "ubuntu"
     # 调度标签
     node_selector_labels: Optional[list] = []
+    # 是否启动
+    running: Optional[bool] = False
 
 
 class UpdateVirtualParam(BaseModel):

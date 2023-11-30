@@ -124,13 +124,16 @@ async def create_virtual_machine(
         "desc": param.desc,
         "osSourceFrom": image.image_type,
         "osSourceURL": image.image_address,
+        "osName": param.os_name,
+        "osVersion": param.os_version,
         "osDiskSize": param.os_disk_size,
         "requestCPU": param.request_cpu,
         "requestMemory": param.request_memory,
         "user": param.user,
         "password": param.password,
         "operator": user.nick_name,
-        "nodeSelectorLabels": param.node_selector_labels
+        "nodeSelectorLabels": param.node_selector_labels,
+        "running": param.running
     }
     data = remote_virtual_client.create_virtual_machine(
         session, region.region_name, env, body
