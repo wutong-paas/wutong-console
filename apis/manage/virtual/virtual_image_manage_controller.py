@@ -174,9 +174,8 @@ async def create_virtual_image(
 
     region = await region_services.get_region_by_request(session, request)
     labels = remote_virtual_client.get_virtual_label(session, region)
-    image_info.update({"labels": labels})
 
     return JSONResponse(
-        general_message(200, "create virtual machine success", "获取虚拟机镜像成功", bean=image_info),
+        general_message(200, "create virtual machine success", "获取虚拟机镜像成功", bean=image_info, labels=labels),
         status_code=200
     )
