@@ -85,3 +85,31 @@ async def create_virtual_image(
         general_message(200, "create virtual machine success", "获取虚拟机镜像成功", list=jsonable_encoder(images)),
         status_code=200
     )
+
+
+@router.get(
+    "/virtual/image",
+    response_model=Response,
+    name="创建虚拟机获取虚拟机镜像地址",
+)
+async def create_virtual_image(
+        session: SessionClass = Depends(deps.get_session)
+) -> Any:
+    """
+    创建虚拟机获取虚拟机镜像地址
+    """
+    image_info = {}
+    images = virtual_image_repo.get_all_virtual_image(session)
+    os_names = [image.os_name for image in images]
+    for os_name in os_names:
+
+        image_info[os_name] = {}
+        versions = virtual_image_repo.get_virtual_imagever_by_os_name(session, os_name)
+        for version in versions:
+            image_address = virtual_image_repo.get_virtual_image_by_os_name(session, os_name, version)
+            image_info[os_name].update({version: image_address})
+
+    return JSONResponse(
+        general_message(200, "create virtual machine success", "获取虚拟机镜像成功", bean=image_info),
+        status_code=200
+    )

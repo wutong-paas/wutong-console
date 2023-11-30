@@ -20,5 +20,16 @@ class VirtualImageRepository(BaseRepository[VirtualImageInfo]):
         return session.execute(
             select(VirtualImageInfo)).scalars().all()
 
+    def get_virtual_imagever_by_os_name(self, session, os_name):
+        return session.execute(
+            select(VirtualImageInfo.version).where(
+                VirtualImageInfo.os_name == os_name)).scalars().all()
+
+    def get_virtual_image_by_os_name(self, session, os_name, version):
+        return session.execute(
+            select(VirtualImageInfo.image_address).where(
+                VirtualImageInfo.os_name == os_name,
+                VirtualImageInfo.version == version)).scalars().first()
+
 
 virtual_image_repo = VirtualImageRepository(VirtualImageInfo)
