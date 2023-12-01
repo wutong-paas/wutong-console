@@ -40,6 +40,8 @@ class UpdateVirtualParam(BaseModel):
     request_memory: Optional[int] = None
     # 默认登录用户
     default_login_user: Optional[str] = "ubuntu"
+    # 调度标签
+    node_selector_labels: Optional[list] = []
 
 
 class VirtualPortsParam(BaseModel):

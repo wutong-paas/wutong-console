@@ -176,6 +176,7 @@ async def update_virtual_machine(
         "requestMemory": param.request_memory,
         "defaultLoginUser": param.default_login_user,
         "operator": user.nick_name,
+        "nodeSelectorLabels": param.node_selector_labels
     }
     data = remote_virtual_client.update_virtual_machine(
         session, region.region_name, env, vm_id, body
