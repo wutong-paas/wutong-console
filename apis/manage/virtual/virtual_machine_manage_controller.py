@@ -48,6 +48,25 @@ async def get_virtual_machine(
     data = remote_virtual_client.get_virtual_machine(
         session, region.region_name, env, vm_id
     )
+
+    port_info = remote_virtual_client.get_virtual_port_gateway(
+        session, region.region_name, env, vm_id
+    )
+
+    gateway_host = []
+    ports = port_info["ports"]
+    if ports:
+        for port in ports:
+            protocol = port.get("protocol", 'http')
+            gateways = port.get("gateways", [])
+            if gateways:
+                for gateway in gateways:
+                    if protocol == 'http':
+                        gateway_host.append(gateway["gatewayHost"])
+                    else:
+                        gateway_host.append(gateway["gatewayIP"] + ":" + str(gateway["gatewayPort"]))
+
+    data["gateway_host_list"] = gateway_host
     return JSONResponse(
         general_message(200, "get virtual machine success", "获取虚拟机成功", bean=data),
         status_code=200,
