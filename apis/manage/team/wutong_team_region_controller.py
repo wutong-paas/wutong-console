@@ -175,36 +175,11 @@ async def get_sort_service_query(region_name: Optional[str] = None,
 
 
 @router.get("/teams/{team_name}/env/{env_id}/protocols", response_model=Response, name="获取数据中心支持的协议")
-async def get_protocol_info(request: Request,
-                            region_name: Optional[str] = None,
-                            env=Depends(deps.get_current_team_env),
-                            session: SessionClass = Depends(deps.get_session)) -> Any:
+async def get_protocol_info() -> Any:
     """
      获取数据中心支持的协议
-     ---
-     parameters:
-         - name: tenantName
-           description: 团队名称
-           required: true
-           type: string
-           paramType: path
-         - name: region_name
-           description: 数据中心名称
-           required: false
-           type: string
-           paramType: query
      """
-    try:
-        region_name = request.query_params.get("region_name", region_name)
-        protocols_info = remote_build_client.get_protocols(session, region_name, env)
-        protocols = protocols_info["list"]
-        p_list = []
-        for p in protocols:
-            p_list.append(p["protocol_child"])
-        result = general_message("0", "success", "查询成功", list=list(set(p_list)))
-    except Exception as e:
-        logger.exception(e)
-        result = general_message("0", "", "查询成功", list=["http", "stream"])
+    result = general_message("0", "success", "查询成功", list=["http", "grpc", "tcp", "udp", "mysql"])
     return JSONResponse(result, 200)
 
 
