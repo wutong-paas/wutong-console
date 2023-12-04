@@ -299,9 +299,9 @@ class TenantServiceMntRelationRepository(BaseRepository[TeamComponentMountRelati
 
     def get_service_mnts_filter_volume_type(self, session, tenant_env_id, service_id, volume_types=None):
         query = "mnt.tenant_env_id = '%s' and mnt.service_id = '%s'" % (tenant_env_id, service_id)
-        # if volume_types:
-        #     vol_type_sql = " and volume.volume_type in ({})".format(','.join(["'%s'"] * len(volume_types)))
-        #     query += vol_type_sql % tuple(volume_types)
+        if volume_types:
+            vol_type_sql = " and volume.volume_type in ({})".format(','.join(["'%s'"] * len(volume_types)))
+            query += vol_type_sql % tuple(volume_types)
 
         sql = """
         select mnt.mnt_name,

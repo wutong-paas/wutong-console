@@ -69,7 +69,7 @@ async def get_mnt(request: Request,
 
     if query_type == "mnt":
         mnt_list, total = mnt_service.get_service_mnt_details(session=session, tenant_env=env, service=service,
-                                                              volume_types='share-file')
+                                                              volume_types=volume_types)
     elif query_type == "unmnt":
         services = app_repo.get_app_list(session, env.env_id, service.service_region, query)
         services_ids = [s.service_id for s in services]
