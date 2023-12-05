@@ -24,7 +24,7 @@ from apis.manage.env import env_manage_controller
 from apis.manage.yaml import yaml_manage_controller
 from apis.manage.components import backup_restore_controller
 from apis.manage.virtual import virtual_machine_manage_controller, virtual_machine_ports_controller, \
-    virtual_image_manage_controller
+    virtual_image_manage_controller, virtual_os_manage_controller
 
 api_router = APIRouter()
 
@@ -106,3 +106,4 @@ api_router.include_router(backup_restore_controller.router, tags=["backup"])
 api_router.include_router(virtual_machine_manage_controller.router, tags=["虚拟机管理"])
 api_router.include_router(virtual_machine_ports_controller.router, tags=["虚拟机端口"])
 api_router.include_router(virtual_image_manage_controller.router, tags=["虚拟机镜像管理"])
+api_router.include_router(virtual_os_manage_controller.router, tags=["虚拟机操作系统管理"])
