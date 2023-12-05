@@ -486,5 +486,63 @@ class RemoteVirtualClient(ApiBaseHttpClient):
         )
         return body["list"]
 
+    def open_port_external_service(self, session, tenant_env, region, vm_id, body):
+        """
+        开启端口对外服务
+        :param session:
+        :param tenant_env:
+        :param region:
+        :param vm_id:
+        :param body:
+        :return:
+        """
+        url, token = get_region_access_info(region.region_name, session)
+
+        url = (
+                url
+                + "/v2/tenants/"
+                + tenant_env.tenant_name
+                + "/envs/"
+                + tenant_env.env_name
+                + "/vms/"
+                + vm_id
+                + "/ports/enable"
+        )
+
+        self._set_headers(token)
+        res, body = self._post(
+            session, url, self.default_headers, json.dumps(body), region=region.region_name
+        )
+        return body["list"]
+
+    def close_port_external_service(self, session, tenant_env, region, vm_id, body):
+        """
+        关闭端口对外服务
+        :param session:
+        :param tenant_env:
+        :param region:
+        :param vm_id:
+        :param body:
+        :return:
+        """
+        url, token = get_region_access_info(region.region_name, session)
+
+        url = (
+                url
+                + "/v2/tenants/"
+                + tenant_env.tenant_name
+                + "/envs/"
+                + tenant_env.env_name
+                + "/vms/"
+                + vm_id
+                + "/ports/disable"
+        )
+
+        self._set_headers(token)
+        res, body = self._post(
+            session, url, self.default_headers, json.dumps(body), region=region.region_name
+        )
+        return body["list"]
+
 
 remote_virtual_client = RemoteVirtualClient()

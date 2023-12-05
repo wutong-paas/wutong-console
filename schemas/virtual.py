@@ -55,10 +55,8 @@ class VirtualPortsParam(BaseModel):
     """
     虚拟机端口数据模型
     """
-    # 虚拟机端口
-    vm_port: Optional[int] = None
-    # 虚拟机端口协议
-    protocol: Optional[str] = None
+    vm_port: Annotated[int, Field(title="虚拟机端口")] = None
+    protocol: Annotated[str, Field(title="虚拟机端口协议")] = None
 
 
 class PortsGatewayParam(BaseModel):
