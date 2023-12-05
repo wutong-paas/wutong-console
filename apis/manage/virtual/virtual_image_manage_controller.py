@@ -82,7 +82,9 @@ async def create_virtual_image(
     """
     images = virtual_image_repo.get_all_virtual_image(session)
     return JSONResponse(
-        general_message(200, "create virtual machine success", "获取虚拟机镜像成功", list=jsonable_encoder(images)),
+        general_message(200, "create virtual machine success", "获取虚拟机镜像成功",
+                        list=jsonable_encoder(images),
+                        total=len(images) if images else 0),
         status_code=200
     )
 

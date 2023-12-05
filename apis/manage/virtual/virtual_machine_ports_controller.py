@@ -168,12 +168,23 @@ async def get_virtual_port_gateway(
             general_message(400, "not found region", "数据中心不存在"), status_code=400
         )
 
-    data = remote_virtual_client.get_virtual_port_gateway(
+    port_gateways = remote_virtual_client.get_virtual_port_gateway(
         session, region.region_name, env, vm_id
     )
+    ports = port_gateways["ports"]
+    if ports:
+        for port in ports:
+            protocol = port.get("protocol", 'http')
+            gateways = port.get("gateways", [])
+            if gateways:
+                for gateway in gateways:
+                    if protocol == 'http':
+                        gateway.update({"gatewayUrl": gateway["gatewayHost"] + gateway["gatewayPath"]})
+                    else:
+                        gateway.update({"gatewayUrl": gateway["gatewayIP"] + ":" + str(gateway["gatewayPort"])})
     return JSONResponse(
         general_message(
-            200, "get virtual machine port gateway success", "获取虚拟机端口网关成功", bean=data
+            200, "get virtual machine port gateway success", "获取虚拟机端口网关成功", bean=port_gateways
         ),
         status_code=200,
     )
@@ -262,16 +273,17 @@ async def delete_virtual_port_gateway(
 @router.post(
     "/teams/{team_name}/env/{env_id}/vms/{vm_id}/ports/enable",
     response_model=Response,
-    name="开启端口对外服务",
+    name="开启/关闭端口对外服务",
 )
 async def open_port_external_service(
         vm_id: Optional[str] = None,
+        operate: Optional[str] = None,
         param: VirtualPortsParam = VirtualPortsParam(),
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
-    开启端口对外服务
+    开启/关闭端口对外服
     """
 
     if not vm_id or not param.vm_port or not param.protocol:
@@ -279,68 +291,23 @@ async def open_port_external_service(
             general_message(400, "param error", "参数错误"), status_code=400
         )
 
-    region = team_region_repo.get_region_by_env_id(session, env.env_id)
-    if not region:
-        return JSONResponse(
-            general_message(400, "not found region", "数据中心不存在"), status_code=400
-        )
-
     body = {
         "vmPort": param.vm_port,
         "protocol": param.protocol
     }
-    data = remote_virtual_client.open_port_external_service(
-        session, region.region_name, env, vm_id, body
-    )
+    if operate == "open":
+        data = remote_virtual_client.open_port_external_service(
+            session, env, vm_id, body
+        )
+    else:
+        data = remote_virtual_client.close_port_external_service(
+            session, env, vm_id, body
+        )
     return JSONResponse(
         general_message(
             200,
-            "open port external service success",
-            "开启端口对外服务成功",
-            bean=data,
-        ),
-        status_code=200,
-    )
-
-
-@router.post(
-    "/teams/{team_name}/env/{env_id}/vms/{vm_id}/ports/close",
-    response_model=Response,
-    name="关闭端口对外服务",
-)
-async def close_port_external_service(
-        vm_id: Optional[str] = None,
-        param: VirtualPortsParam = VirtualPortsParam(),
-        session: SessionClass = Depends(deps.get_session),
-        env=Depends(deps.get_current_team_env),
-) -> Any:
-    """
-    关闭端口对外服务
-    """
-
-    if not vm_id or not param.vm_port or not param.protocol:
-        return JSONResponse(
-            general_message(400, "param error", "参数错误"), status_code=400
-        )
-
-    region = team_region_repo.get_region_by_env_id(session, env.env_id)
-    if not region:
-        return JSONResponse(
-            general_message(400, "not found region", "数据中心不存在"), status_code=400
-        )
-
-    body = {
-        "vmPort": param.vm_port,
-        "protocol": param.protocol
-    }
-    data = remote_virtual_client.close_port_external_service(
-        session, region.region_name, env, vm_id, body
-    )
-    return JSONResponse(
-        general_message(
-            200,
-            "close port external service success",
-            "关闭端口对外服务成功",
+            "operate success",
+            "操作成功",
             bean=data,
         ),
         status_code=200,

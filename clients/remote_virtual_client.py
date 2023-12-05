@@ -486,17 +486,16 @@ class RemoteVirtualClient(ApiBaseHttpClient):
         )
         return body["list"]
 
-    def open_port_external_service(self, session, tenant_env, region, vm_id, body):
+    def open_port_external_service(self, session, tenant_env, vm_id, body):
         """
         开启端口对外服务
         :param session:
         :param tenant_env:
-        :param region:
         :param vm_id:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(region.region_name, session)
+        url, token = get_region_access_info(tenant_env.region_code, session)
 
         url = (
                 url
@@ -511,21 +510,20 @@ class RemoteVirtualClient(ApiBaseHttpClient):
 
         self._set_headers(token)
         res, body = self._post(
-            session, url, self.default_headers, json.dumps(body), region=region.region_name
+            session, url, self.default_headers, json.dumps(body), region=tenant_env.region_code
         )
         return body["list"]
 
-    def close_port_external_service(self, session, tenant_env, region, vm_id, body):
+    def close_port_external_service(self, session, tenant_env, vm_id, body):
         """
         关闭端口对外服务
         :param session:
         :param tenant_env:
-        :param region:
         :param vm_id:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(region.region_name, session)
+        url, token = get_region_access_info(tenant_env.region_code, session)
 
         url = (
                 url
@@ -540,7 +538,7 @@ class RemoteVirtualClient(ApiBaseHttpClient):
 
         self._set_headers(token)
         res, body = self._post(
-            session, url, self.default_headers, json.dumps(body), region=region.region_name
+            session, url, self.default_headers, json.dumps(body), region=tenant_env.region_code
         )
         return body["list"]
 

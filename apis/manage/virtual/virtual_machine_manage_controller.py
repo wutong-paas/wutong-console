@@ -62,7 +62,7 @@ async def get_virtual_machine(
             if gateways:
                 for gateway in gateways:
                     if protocol == 'http':
-                        gateway_host.append(gateway["gatewayHost"])
+                        gateway_host.append(gateway["gatewayHost"] + gateway["gatewayPath"])
                     else:
                         gateway_host.append(gateway["gatewayIP"] + ":" + str(gateway["gatewayPort"]))
 
