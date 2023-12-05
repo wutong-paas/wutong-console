@@ -1,8 +1,8 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from starlette.responses import JSONResponse
-
+from service.region_service import region_services
 from clients.remote_virtual_client import remote_virtual_client
 from core import deps
 from core.utils.return_message import general_message
@@ -149,6 +149,7 @@ async def create_virtual_port_gateway(
     name="获取虚拟机端口网关",
 )
 async def get_virtual_port_gateway(
+        request: Request,
         vm_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env),
@@ -162,11 +163,9 @@ async def get_virtual_port_gateway(
             general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
         )
 
-    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
-        return JSONResponse(
-            general_message(400, "not found region", "数据中心不存在"), status_code=400
-        )
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     port_gateways = remote_virtual_client.get_virtual_port_gateway(
         session, region.region_name, env, vm_id
@@ -179,9 +178,10 @@ async def get_virtual_port_gateway(
             if gateways:
                 for gateway in gateways:
                     if protocol == 'http':
-                        gateway.update({"gatewayUrl": gateway["gatewayHost"] + gateway["gatewayPath"]})
+                        gateway.update({"gatewayUrl": "http://" + gateway["gatewayHost"] + gateway["gatewayPath"]})
                     else:
-                        gateway.update({"gatewayUrl": gateway["gatewayIP"] + ":" + str(gateway["gatewayPort"])})
+                        host_ip = region.tcpdomain if gateway["gatewayIP"] == "0.0.0.0" else gateway["gatewayIP"]
+                        gateway.update({"gatewayUrl": host_ip + ":" + str(gateway["gatewayPort"])})
     return JSONResponse(
         general_message(
             200, "get virtual machine port gateway success", "获取虚拟机端口网关成功", bean=port_gateways

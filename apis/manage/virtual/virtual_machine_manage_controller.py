@@ -1,8 +1,8 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from starlette.responses import JSONResponse
-
+from service.region_service import region_services
 from clients.remote_virtual_client import remote_virtual_client
 from core import deps
 from core.utils.return_message import general_message
@@ -26,6 +26,7 @@ router = APIRouter()
     name="查询单个虚拟机",
 )
 async def get_virtual_machine(
+        request: Request,
         vm_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env),
@@ -39,11 +40,9 @@ async def get_virtual_machine(
             general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
         )
 
-    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    region = await region_services.get_region_by_request(session, request)
     if not region:
-        return JSONResponse(
-            general_message(400, "not found region", "数据中心不存在"), status_code=400
-        )
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     data = remote_virtual_client.get_virtual_machine(
         session, region.region_name, env, vm_id
@@ -62,9 +61,10 @@ async def get_virtual_machine(
             if gateways:
                 for gateway in gateways:
                     if protocol == 'http':
-                        gateway_host.append(gateway["gatewayHost"] + gateway["gatewayPath"])
+                        gateway_host.append("http://" + gateway["gatewayHost"] + gateway["gatewayPath"])
                     else:
-                        gateway_host.append(gateway["gatewayIP"] + ":" + str(gateway["gatewayPort"]))
+                        host_ip = region.tcpdomain if gateway["gatewayIP"] == "0.0.0.0" else gateway["gatewayIP"]
+                        gateway_host.append(host_ip + ":" + str(gateway["gatewayPort"]))
 
     data["gateway_host_list"] = gateway_host
     return JSONResponse(
