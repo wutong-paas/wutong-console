@@ -37,7 +37,7 @@ async def exception_handler(request: Request, exc: ApiBaseHttpClient.CallApiErro
     """
     logger.error("catch exception,request:{},error_message:{}", request.url, exc.body.msg)
     return JSONResponse(
-        general_message(exc.message["http_code"], exc.body.msg, "" if type(exc.body.msg) != str else exc.body.msg),
+        general_message(exc.message["http_code"], exc.body.msg, "服务出现异常" if type(exc.body.msg) != str else exc.body.msg),
         status_code=200)
 
 
