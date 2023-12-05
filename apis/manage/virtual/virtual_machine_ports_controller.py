@@ -1,5 +1,5 @@
 from typing import Any, Optional
-
+from clients.remote_build_client import remote_build_client
 from fastapi import APIRouter, Depends, Request
 from starlette.responses import JSONResponse
 from service.region_service import region_services
@@ -309,6 +309,32 @@ async def open_port_external_service(
             "operate success",
             "操作成功",
             bean=data,
+        ),
+        status_code=200,
+    )
+
+
+@router.get(
+    "/teams/{team_name}/env/{env_id}/get-available-port",
+    response_model=Response,
+    name="获取当前可用端口",
+)
+async def get_available_port(
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env)
+) -> Any:
+    """
+    获取当前可用端口
+    """
+    res, data = remote_build_client.get_port(session, env.region_code, env, True)
+    if int(res.status) != 200:
+        return 400, "请求数据中心异常"
+    return JSONResponse(
+        general_message(
+            200,
+            "get available port success",
+            "获取当前可用端口成功",
+            bean={"port": data["bean"]},
         ),
         status_code=200,
     )
