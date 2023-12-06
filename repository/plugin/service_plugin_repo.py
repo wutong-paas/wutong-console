@@ -1,7 +1,6 @@
 import json
 import os
 from sqlalchemy import select, delete, text
-
 from core.setting import settings
 from core.utils.crypt import make_uuid
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar, \
@@ -9,7 +8,7 @@ from models.application.plugin import TeamComponentPluginRelation, ComponentPlug
 from repository.base import BaseRepository
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.teams.team_plugin_repo import plugin_repo
-from service.plugin.config_service import config_service
+from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
 
 
@@ -293,7 +292,6 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
 
     def get_plugins_by_origin(self, session, region, tenant_env, service, origin, user):
         """获取组件已开通和未开通的插件"""
-
         QUERY_INSTALLED_SQL = """
         SELECT
             tp.plugin_id AS plugin_id,
@@ -405,15 +403,16 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
 
                         if plugin.origin == origin and plugin.origin_share_id == plugin_type:
-                            config_groups = config_service.get_service_plugin_config(session=session,
+                            config_groups = plugin_service.get_service_plugin_config(session=session,
                                                                                      tenant_env=tenant_env,
                                                                                      service=service,
                                                                                      plugin_id=plugin_id,
                                                                                      build_version=build_version)
-                            svc_plugin_relation = config_service.get_service_plugin_relation(
-                                session=session,
-                                service_id=service.service_id,
-                                plugin_id=plugin_id)
+
+                            svc_plugin_relation = session.execute(select(TeamComponentPluginRelation).where(
+                                TeamComponentPluginRelation.service_id == service.service_id,
+                                TeamComponentPluginRelation.plugin_id == plugin_id)).scalars().first()
+
                             pbv = plugin_version_service.get_by_id_and_version(session=session,
                                                                                tenant_env_id=tenant_env.env_id,
                                                                                plugin_id=plugin_id,

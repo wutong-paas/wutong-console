@@ -2,14 +2,14 @@ import copy
 import json
 
 from addict import Dict
+from sqlalchemy import select, delete
 
 from clients.remote_plugin_client import remote_plugin_client
 from core.utils.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
 from database.session import SessionClass
-from models.application.plugin import ComponentPluginConfigVar
+from models.application.plugin import ComponentPluginConfigVar, TeamComponentPluginRelation
 from repository.component.group_service_repo import service_info_repo
 from repository.component.service_config_repo import port_repo, dep_relation_repo
-from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from service.plugin.plugin_config_service import plugin_config_service
 from service.plugin.plugin_version_service import plugin_version_service
@@ -19,10 +19,10 @@ class PluginService(object):
     def get_service_plugin_config(self, session: SessionClass, tenant_env, service, plugin_id, build_version):
         config_groups = plugin_config_service.get_config_group(session=session, plugin_id=plugin_id,
                                                                build_version=build_version)
-        service_plugin_vars = service_plugin_config_repo.get_service_plugin_config_var(session=session,
-                                                                                       service_id=service.service_id,
-                                                                                       plugin_id=plugin_id,
-                                                                                       build_version=build_version)
+        service_plugin_vars = session.execute(select(ComponentPluginConfigVar).where(
+            ComponentPluginConfigVar.plugin_id == plugin_id,
+            ComponentPluginConfigVar.service_id == service.service_id,
+            ComponentPluginConfigVar.build_version == build_version)).scalars().all()
         result_bean = dict()
 
         undefine_env = dict()
@@ -145,8 +145,11 @@ class PluginService(object):
         return result_bean
 
     def get_service_abled_plugin(self, session: SessionClass, service):
-        plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
-            session, service.service_id)
+        plugins = session.execute(select(TeamComponentPluginRelation).where(
+            TeamComponentPluginRelation.service_id == service.service_id,
+            TeamComponentPluginRelation.plugin_status == 1)).scalars().all()
+        # plugins = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
+        #     session, service.service_id)
         plugin_ids = [p.plugin_id for p in plugins]
         base_plugins = plugin_repo.get_plugin_by_plugin_ids(session, plugin_ids)
         return base_plugins
@@ -168,8 +171,11 @@ class PluginService(object):
                                                       response_region=service.service_region)
 
     def delete_service_plugin_config(self, session: SessionClass, service, plugin_id):
-        service_plugin_config_repo.delete_service_plugin_config_var(session=session, service_id=service.service_id,
-                                                                    plugin_id=plugin_id)
+        session.execute(delete(ComponentPluginConfigVar).where(
+            ComponentPluginConfigVar.plugin_id == plugin_id,
+            ComponentPluginConfigVar.service_id == service.service_id))
+        # service_plugin_config_repo.delete_service_plugin_config_var(session=session, service_id=service.service_id,
+        #                                                             plugin_id=plugin_id)
 
     def __update_service_plugin_config(self, session: SessionClass, service, plugin_id, build_version, config_bean):
         config_bean = Dict(config_bean)
@@ -220,13 +226,19 @@ class PluginService(object):
                     attrs=json.dumps(attrs_map),
                     protocol=dowstream_config.protocol))
 
-        service_plugin_config_repo.create_bulk_service_plugin_config_var(session=session,
-                                                                         service_plugin_var=service_plugin_var)
+        session.add_all(service_plugin_var)
+        session.flush()
+        # service_plugin_config_repo.create_bulk_service_plugin_config_var(session=session,
+        #                                                                  service_plugin_var=service_plugin_var)
 
     def get_region_config_from_db(self, session: SessionClass, service, plugin_id, build_version, user=None):
-        attrs = service_plugin_config_repo.get_service_plugin_config_var(session=session, service_id=service.service_id,
-                                                                         plugin_id=plugin_id,
-                                                                         build_version=build_version)
+        attrs = session.execute(select(ComponentPluginConfigVar).where(
+            ComponentPluginConfigVar.plugin_id == plugin_id,
+            ComponentPluginConfigVar.service_id == service.service_id,
+            ComponentPluginConfigVar.build_version == build_version)).scalars().all()
+        # attrs = service_plugin_config_repo.get_service_plugin_config_var(session=session, service_id=service.service_id,
+        #                                                                  plugin_id=plugin_id,
+        #                                                                  build_version=build_version)
         normal_envs = []
         base_normal = dict()
         # 上游组件
@@ -291,7 +303,8 @@ class PluginService(object):
                                                           region_config)
 
     def __get_dep_service_ids(self, session: SessionClass, tenant_env, service):
-        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id, service.service_id)
+        service_dependencies = dep_relation_repo.get_service_dependencies(session, tenant_env.env_id,
+                                                                          service.service_id)
         return [service_dep.dep_service_id for service_dep in service_dependencies]
 
     def get_service_dependencies(self, session: SessionClass, tenant_env, service):
