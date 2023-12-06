@@ -63,7 +63,7 @@ async def get_plugin_list(request: Request,
     installed_plugins, not_install_plugins = service_plugin_config_repo.get_plugins_by_origin(session=session,
                                                                                               region=service.service_region,
                                                                                               tenant_env=env,
-                                                                                              service_id=service.service_id,
+                                                                                              service=service,
                                                                                               origin=origin,
                                                                                               user=user)
     bean = {"installed_plugins": installed_plugins, "not_install_plugins": not_install_plugins}
