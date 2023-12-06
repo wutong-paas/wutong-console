@@ -103,16 +103,6 @@ class DeleteGatewayParam(BaseModel):
     gateway_id: Optional[str] = None
 
 
-class VirtualConnectSSHParam(BaseModel):
-    """
-    虚拟机 SSH 连接参数
-    """
-    # 虚拟机登录用户，空值使用 root 账号
-    vm_user: Optional[str] = "root"
-    # 虚拟机 SSH 端口，空值使用 22 端口
-    vm_port: Optional[int] = 22
-
-
 # 创建虚拟机镜像参数
 class CreateVirtualImageParam(BaseModel):
     """

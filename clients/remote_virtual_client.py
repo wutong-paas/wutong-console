@@ -424,48 +424,6 @@ class RemoteVirtualClient(ApiBaseHttpClient):
         )
         return None
 
-    def connect_virtctl_console(self, session, region, body):
-        """
-        虚拟机连接 virtctl-console
-        :param session:
-        :param region:
-        :param body:
-        :return:
-        """
-        url, token = get_region_access_info(region.region_name, session)
-
-        url = (
-                region.wsurl
-                + "/docker_virtctl_console"
-        )
-
-        self._set_headers(token)
-        self._get(
-            session, url, self.default_headers, json.dumps(body), region=region.region_name
-        )
-        return None
-
-    def virtual_connect_shh(self, session, region, body):
-        """
-        虚拟机连接 ssh
-        :param session:
-        :param region:
-        :param body:
-        :return:
-        """
-        url, token = get_region_access_info(region.region_name, session)
-
-        url = (
-                region.wsurl
-                + "/docker_vm_ssh"
-        )
-
-        self._set_headers(token)
-        self._get(
-            session, url, self.default_headers, json.dumps(body), region=region.region_name
-        )
-        return None
-
     def get_virtual_label(self, session, region):
         """
         获取虚拟机调度标签
