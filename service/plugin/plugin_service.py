@@ -35,7 +35,10 @@ class PluginService(object):
                                                            service_meta_type=config_group.service_meta_type)
             if config_group.service_meta_type == PluginMetaType.UNDEFINE:
                 options = []
-                normal_envs = service_plugin_vars.filter(service_meta_type=PluginMetaType.UNDEFINE)
+                normal_envs = []
+                for service_plugin_var in service_plugin_vars:
+                    if service_plugin_var.service_meta_type == PluginMetaType.UNDEFINE:
+                        normal_envs.append(service_plugin_var)
                 undefine_options = None
                 if normal_envs:
                     normal_env = normal_envs[0]
@@ -64,8 +67,11 @@ class PluginService(object):
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
                 ports = port_repo.get_service_ports(service.tenant_env_id, service.service_id)
                 for port in ports:
-                    upstream_envs = service_plugin_vars.filter(
-                        service_meta_type=PluginMetaType.UPSTREAM_PORT, container_port=port.container_port)
+                    upstream_envs = []
+                    for service_plugin_var in service_plugin_vars:
+                        if service_plugin_var.service_meta_type == PluginMetaType.UPSTREAM_PORT \
+                                and (service_plugin_var.container_port == port.container_port):
+                            upstream_envs.append(service_plugin_var)
                     upstream_options = None
                     if upstream_envs:
                         upstream_env = upstream_envs[0]
@@ -99,12 +105,15 @@ class PluginService(object):
                 dep_services = plugin_config_service.get_service_dependencies(session=session, tenant_env=tenant_env,
                                                                               service=service)
                 for dep_service in dep_services:
-                    ports = port_repo.list_inner_ports(dep_service.tenant_env_id, dep_service.service_id)
+                    ports = port_repo.list_inner_ports(session, dep_service.tenant_env_id, dep_service.service_id)
                     for port in ports:
-                        downstream_envs = service_plugin_vars.filter(
-                            service_meta_type=PluginMetaType.DOWNSTREAM_PORT,
-                            dest_service_id=dep_service.service_id,
-                            container_port=port.container_port)
+                        downstream_envs = session.execute(select(ComponentPluginConfigVar).where(
+                            ComponentPluginConfigVar.plugin_id == plugin_id,
+                            ComponentPluginConfigVar.service_id == service.service_id,
+                            ComponentPluginConfigVar.build_version == build_version,
+                            ComponentPluginConfigVar.service_meta_type == PluginMetaType.DOWNSTREAM_PORT,
+                            ComponentPluginConfigVar.dest_service_id == dep_service.service_id,
+                            ComponentPluginConfigVar.container_port == port.container_port)).scalars().all()
                         downstream_options = None
                         if downstream_envs:
                             downstream_env = downstream_envs[0]

@@ -328,7 +328,9 @@ async def get_available_port(
     """
     res, data = remote_build_client.get_port(session, env.region_code, env, True)
     if int(res.status) != 200:
-        return 400, "请求数据中心异常"
+        return JSONResponse(
+            general_message(500, "get port error", "请求数据中心当前可用端口失败"), status_code=501
+        )
     return JSONResponse(
         general_message(
             200,

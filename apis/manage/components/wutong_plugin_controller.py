@@ -14,6 +14,7 @@ from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo
 from repository.teams.env_repo import env_repo
 from repository.teams.team_plugin_repo import plugin_repo
+from schemas.plugin import InstallSysPlugin
 from schemas.response import Response
 from service.app_config.port_service import port_service
 from service.plugin.app_plugin_service import app_plugin_service
@@ -74,13 +75,14 @@ async def get_plugin_list(request: Request,
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
              name="安装并开通系统插件")
 async def install_sys_plugin(request: Request,
+                             params: Optional[InstallSysPlugin] = InstallSysPlugin(),
                              env_id: Optional[str] = None,
                              serviceAlias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
                              user=Depends(deps.get_current_user)) -> Any:
-    data = await request.json()
-    plugin_type = data.get("plugin_type", None)
-    build_version = data.get("build_version", None)
+
+    plugin_type = params.plugin_type
+    build_version = params.build_version
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
