@@ -65,7 +65,7 @@ class PluginService(object):
                     "config_group_name": config_group.config_name,
                 })
             if config_group.service_meta_type == PluginMetaType.UPSTREAM_PORT:
-                ports = port_repo.get_service_ports(service.tenant_env_id, service.service_id)
+                ports = port_repo.get_service_ports(session, service.tenant_env_id, service.service_id)
                 for port in ports:
                     upstream_envs = []
                     for service_plugin_var in service_plugin_vars:
