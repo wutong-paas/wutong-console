@@ -159,8 +159,9 @@ async def install_sys_plugin(request: Request,
                                             plugin_version=build_version, user=user)
     app_plugin_service.add_init_agent_mount(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
-    app_plugin_service.modify_init_agent_env(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
-                                             user=user)
+    # v1.9.0版本移除环境变量添加步骤
+    # app_plugin_service.modify_init_agent_env(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
+    #                                          user=user)
 
     result = general_message("0", "success", "安装成功")
     return JSONResponse(result, status_code=200)
@@ -298,8 +299,9 @@ async def delete_plugin(
                                                                  response_region=response_region,
                                                                  plugin_info=plugin_info,
                                                                  container_port=config_attr_port, user=user)
-    app_plugin_service.update_java_agent_plugin_env(session=session, tenant_env=env, service=service,
-                                                    plugin_info=plugin_info, user=user)
+    # v1.9.0版本移除环境变量删除步骤
+    # app_plugin_service.update_java_agent_plugin_env(session=session, tenant_env=env, service=service,
+    #                                                 plugin_info=plugin_info, user=user)
     app_plugin_service.delete_java_agent_plugin_volume(session=session, env=env, service=service,
                                                        volume_path="/agent", user=user, plugin_info=plugin_info)
 
