@@ -72,6 +72,18 @@ async def get_plugin_list(request: Request,
     return JSONResponse(result, status_code=200)
 
 
+@router.get("/teams/pluginlist", response_model=Response,
+            name="获取系统插件列表")
+async def get_plugin_list() -> Any:
+    """
+    获取系统插件列表
+    """
+    plugins = service_plugin_config_repo.get_sys_plugins_by_origin()
+    bean = {"sys_plugins": plugins}
+    result = general_message("0", "success", "查询成功", bean=jsonable_encoder(bean))
+    return JSONResponse(result, status_code=200)
+
+
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
              name="安装并开通系统插件")
 async def install_sys_plugin(request: Request,

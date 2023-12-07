@@ -290,6 +290,32 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         result_bean["memory"] = min_memory
         return result_bean
 
+    def get_sys_plugins_by_origin(self):
+        plugins_list = []
+        all_default_config = self.all_default_config
+        if not all_default_config:
+            raise Exception("no config was found")
+
+        plugins_type = all_default_config.keys()
+        for plugin_type in plugins_type:
+            needed_plugin_config = all_default_config[plugin_type]
+            plugin_id = needed_plugin_config.get("plugin_id", "")
+            desc = needed_plugin_config.get("desc", "")
+            plugin_alias = needed_plugin_config.get("plugin_alias", "")
+            category = needed_plugin_config.get("category", "")
+            build_version = needed_plugin_config.get("build_version", "")
+
+            plugin_dict = {
+                "plugin_type": plugin_type,
+                "plugin_id": plugin_id,
+                "desc": desc,
+                "plugin_alias": plugin_alias,
+                "category": category,
+                "build_version": build_version
+            }
+            plugins_list.append(plugin_dict)
+        return plugins_list
+
     def get_plugins_by_origin(self, session, region, tenant_env, service, origin, user):
         """获取组件已开通和未开通的插件"""
         QUERY_INSTALLED_SQL = """
