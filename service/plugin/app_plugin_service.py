@@ -746,7 +746,7 @@ class AppPluginService(object):
                     tenant_env=tenant_env,
                     service=service,
                     volume_path=volume_path,
-                    volume_type="share-file",
+                    volume_type="memoryfs",
                     volume_name=volume_name,
                     file_content="",
                     settings=settings,
@@ -801,6 +801,8 @@ class AppPluginService(object):
                 else:
                     attr_value = options + " " + env.attr_value
                     env.attr_value = attr_value
+
+                service.monitor = "plugin"
 
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):
         app_plugin_relation_repo.delete_service_plugin(session=session, service_id=service.service_id,

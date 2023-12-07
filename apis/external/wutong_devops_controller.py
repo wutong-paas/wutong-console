@@ -189,6 +189,7 @@ async def deploy_business_component(
 
         session.flush()
         result = devops_repo.component_build(session, user, env, new_service)
+        new_service.monitor = "devops"
     except ResourceNotEnoughException as re:
         raise re
     except AccountOverdueException as re:

@@ -28,7 +28,8 @@ default_plugins = [
     DefaultPluginConstants.LOGTAIL_LOG_PLUGIN, DefaultPluginConstants.MYSQLD_EXPORTER_PLUGIN,
     DefaultPluginConstants.FILEBROWSER_PLUGIN, DefaultPluginConstants.MYSQL_DBGATE_PLUGIN,
     DefaultPluginConstants.REDIS_DBGATE_PLUGIN, DefaultPluginConstants.JAVA_AGENT_PLUGIN,
-    DefaultPluginConstants.JAVA_AGENT_WEB_PLUGIN
+    DefaultPluginConstants.JAVA_AGENT_WEB_PLUGIN, DefaultPluginConstants.JAVA_ACTUATOR_MONITOR_PLUGIN,
+    DefaultPluginConstants.JAVA_MYSQL_MONITOR_PLUGIN, DefaultPluginConstants.JAVA_REDIS_MONITOR_PLUGIN
 ]
 
 

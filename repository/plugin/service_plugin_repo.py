@@ -1,9 +1,6 @@
 import json
 import os
-
-from fastapi.encoders import jsonable_encoder
-from sqlalchemy import select, delete, text, update
-
+from sqlalchemy import select, delete, text
 from core.setting import settings
 from core.utils.crypt import make_uuid
 from models.application.plugin import TeamComponentPluginRelation, ComponentPluginConfigVar, \
@@ -11,6 +8,7 @@ from models.application.plugin import TeamComponentPluginRelation, ComponentPlug
 from repository.base import BaseRepository
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.teams.team_plugin_repo import plugin_repo
+from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
 
 
@@ -230,9 +228,70 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         plugin_build_version.plugin_version_status = "fixed"
         return plugin_build_version
 
-    def get_plugins_by_origin(self, session, region, tenant_env, service_id, origin, user):
-        """获取组件已开通和未开通的插件"""
+    def get_plugin_config_groups(self, plugin_type, needed_plugin_config):
 
+        result_bean = {}
+        undefine_env = {}
+        upstream_env_list = []
+        downstream_env_list = []
+        config_groups = needed_plugin_config["config_group"]
+
+        if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin":
+            min_memory = 512
+        elif plugin_type == "filebrowser_plugin":
+            min_memory = 256
+        else:
+            min_memory = 64
+
+        for config_group in config_groups:
+            service_meta_type = config_group["service_meta_type"]
+            injection = config_group["injection"]
+            options = config_group["options"]
+            config_name = config_group["config_name"]
+            if service_meta_type == "un_define":
+                undefine_env.update({
+                    "service_id": "",
+                    "service_meta_type": service_meta_type,
+                    "injection": injection,
+                    "service_alias": "",
+                    "config": options,
+                    "config_group_name": config_name,
+                })
+            elif service_meta_type == "downstream_port":
+                downstream_env_list.append({
+                    "config_group_name": config_name,
+                    "service_id": "",
+                    "service_meta_type": service_meta_type,
+                    "injection": injection,
+                    "service_alias": "",
+                    "protocol": "",
+                    "port": "",
+                    "config": options,
+                    "dest_service_id": "",
+                    "dest_service_cname": "",
+                    "dest_service_alias": ""
+                })
+            else:
+                upstream_env_list.append({
+                    "config_group_name": config_name,
+                    "service_id": "",
+                    "service_meta_type": service_meta_type,
+                    "injection": injection,
+                    "service_alias": "",
+                    "protocol": "",
+                    "port": "",
+                    "config": options
+                })
+
+        result_bean["undefine_env"] = undefine_env
+        result_bean["upstream_env"] = upstream_env_list
+        result_bean["downstream_env"] = downstream_env_list
+        result_bean["build_info"] = ""
+        result_bean["memory"] = min_memory
+        return result_bean
+
+    def get_plugins_by_origin(self, session, region, tenant_env, service, origin, user):
+        """获取组件已开通和未开通的插件"""
         QUERY_INSTALLED_SQL = """
         SELECT
             tp.plugin_id AS plugin_id,
@@ -253,7 +312,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         WHERE
             tsp.service_id = "{0}"
             AND tp.region = "{1}"
-            AND tp.tenant_env_id = "{2}" """.format(service_id, region, tenant_env.env_id)
+            AND tp.tenant_env_id = "{2}" """.format(service.service_id, region, tenant_env.env_id)
 
         QUERI_UNINSTALLED_SQL = """
             SELECT
@@ -271,7 +330,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                 AND tp.tenant_env_id = "{1}"
                 AND tp.region = "{2}"
                 AND pbv.build_status = "{3}"
-        """.format(service_id, tenant_env.env_id, region, "build_success")
+        """.format(service.service_id, tenant_env.env_id, region, "build_success")
 
         SHARED_QUERI_UNINSTALLED_SQL = """
             SELECT
@@ -287,7 +346,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             WHERE
                 pbv.plugin_id NOT IN ( SELECT plugin_id FROM tenant_service_plugin_relation WHERE service_id = "{0}")
                 AND tp.region = "{1}"
-        """.format(service_id, region)
+        """.format(service.service_id, region)
 
         SHARED_QUERY_INSTALLED_SQL = """
         SELECT
@@ -308,7 +367,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             AND tp.tenant_env_id = pbv.tenant_env_id
         WHERE
             tsp.service_id = "{0}"
-            AND tp.region = "{1}" """.format(service_id, region)
+            AND tp.region = "{1}" """.format(service.service_id, region)
         uninstalled_plugins = []
         installed_plugins = []
         if origin == "sys":
@@ -319,6 +378,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             plugins_type = all_default_config.keys()
             for plugin_type in plugins_type:
                 needed_plugin_config = all_default_config[plugin_type]
+                config_groups = self.get_plugin_config_groups(plugin_type, needed_plugin_config)
                 plugin_id = needed_plugin_config.get("plugin_id", "")
                 desc = needed_plugin_config.get("desc", "")
                 plugin_alias = needed_plugin_config.get("plugin_alias", "")
@@ -335,7 +395,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                     "build_version": build_version
                 }
 
-                install_plugins_rel = app_plugin_relation_repo.get_service_plugin_relation(session, service_id)
+                install_plugins_rel = app_plugin_relation_repo.get_service_plugin_relation(session, service.service_id)
                 if install_plugins_rel:
                     is_open = False
                     for plugin_rel in install_plugins_rel:
@@ -343,6 +403,25 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
 
                         if plugin.origin == origin and plugin.origin_share_id == plugin_type:
+                            config_groups = plugin_service.get_service_plugin_config(session=session,
+                                                                                     tenant_env=tenant_env,
+                                                                                     service=service,
+                                                                                     plugin_id=plugin_id,
+                                                                                     build_version=build_version)
+
+                            svc_plugin_relation = session.execute(select(TeamComponentPluginRelation).where(
+                                TeamComponentPluginRelation.service_id == service.service_id,
+                                TeamComponentPluginRelation.plugin_id == plugin_id)).scalars().first()
+
+                            pbv = plugin_version_service.get_by_id_and_version(session=session,
+                                                                               tenant_env_id=tenant_env.env_id,
+                                                                               plugin_id=plugin_id,
+                                                                               plugin_version=build_version)
+                            if pbv:
+                                config_groups["build_info"] = pbv.update_info
+                                config_groups[
+                                    "memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
+                            plugin_dict.update({"configs": config_groups})
                             plugin_dict.update({"origin_share_id": origin_share_id})
                             plugin_dict.update({"min_memory": plugin_rel.min_memory})
                             plugin_dict.update({"plugin_status": plugin_rel.plugin_status})
@@ -350,11 +429,14 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                             plugin_dict.update({"build_version": plugin_rel.build_version})
                             plugin_dict.update({"new_build_version": build_version})
                             plugin_dict.update({"plugin_id": plugin_id})
+                            plugin_dict.update({"configs": config_groups})
                             installed_plugins.append(plugin_dict.copy())
                             is_open = True
                     if not is_open:
+                        plugin_dict.update({"configs": config_groups})
                         uninstalled_plugins.append(plugin_dict)
                 else:
+                    plugin_dict.update({"configs": config_groups})
                     uninstalled_plugins.append(plugin_dict)
         elif origin == "shared":
             query_installed_plugin = """{0} AND tp.origin="{1}" """.format(SHARED_QUERY_INSTALLED_SQL, origin)

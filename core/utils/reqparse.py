@@ -28,7 +28,7 @@ def parse_argument(request, key, default=None, value_type=str, required=False, e
 
     get = request.query_params
 
-    value = get.get(key, default=default) if value_type is list else get.get(key, default=default)
+    value = get.getlist(key) if value_type is list else get.get(key, default=default)
     if required and (value is None or value == []):
         raise AbortRequest(error)
     return (value or None) if value_type is list else (None if value is None else value_type(value))

@@ -424,47 +424,81 @@ class RemoteVirtualClient(ApiBaseHttpClient):
         )
         return None
 
-    def connect_virtctl_console(self, session, region, body):
+    def get_virtual_label(self, session, region):
         """
-        虚拟机连接 virtctl-console
+        获取虚拟机调度标签
         :param session:
         :param region:
-        :param body:
         :return:
         """
         url, token = get_region_access_info(region.region_name, session)
 
         url = (
-                region.wsurl
-                + "/docker_virtctl_console"
+                url
+                + "/v2/cluster/nodes/vm-selector-labels"
         )
 
         self._set_headers(token)
-        self._get(
-            session, url, self.default_headers, json.dumps(body), region=region.region_name
+        res, body = self._get(
+            session, url, self.default_headers, region=region.region_name
         )
-        return None
+        return body["list"]
 
-    def virtual_connect_shh(self, session, region, body):
+    def open_port_external_service(self, session, tenant_env, vm_id, body):
         """
-        虚拟机连接 ssh
+        开启端口对外服务
         :param session:
-        :param region:
+        :param tenant_env:
+        :param vm_id:
         :param body:
         :return:
         """
-        url, token = get_region_access_info(region.region_name, session)
+        url, token = get_region_access_info(tenant_env.region_code, session)
 
         url = (
-                region.wsurl
-                + "/docker_vm_ssh"
+                url
+                + "/v2/tenants/"
+                + tenant_env.tenant_name
+                + "/envs/"
+                + tenant_env.env_name
+                + "/vms/"
+                + vm_id
+                + "/ports/enable"
         )
 
         self._set_headers(token)
-        self._get(
-            session, url, self.default_headers, json.dumps(body), region=region.region_name
+        res, body = self._post(
+            session, url, self.default_headers, json.dumps(body), region=tenant_env.region_code
         )
-        return None
+        return body["list"]
+
+    def close_port_external_service(self, session, tenant_env, vm_id, body):
+        """
+        关闭端口对外服务
+        :param session:
+        :param tenant_env:
+        :param vm_id:
+        :param body:
+        :return:
+        """
+        url, token = get_region_access_info(tenant_env.region_code, session)
+
+        url = (
+                url
+                + "/v2/tenants/"
+                + tenant_env.tenant_name
+                + "/envs/"
+                + tenant_env.env_name
+                + "/vms/"
+                + vm_id
+                + "/ports/disable"
+        )
+
+        self._set_headers(token)
+        res, body = self._post(
+            session, url, self.default_headers, json.dumps(body), region=tenant_env.region_code
+        )
+        return body["list"]
 
 
 remote_virtual_client = RemoteVirtualClient()
