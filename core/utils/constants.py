@@ -80,25 +80,20 @@ class PluginCategoryConstants(object):
     INPUT_NET = "net-plugin:up"
     OUTPUT_INPUT_NET = "net-plugin:in-and-out"
     INIT_TYPE = "init-plugin"
-    PERFORMANCE_ANALYSIS = "analyst-plugin:perf"
+    # PERFORMANCE_ANALYSIS = "analyst-plugin:perf"
     COMMON_TYPE = "general-plugin"
-    EXPORTER_TYPE = "exporter-plugin"
+    # EXPORTER_TYPE = "exporter-plugin"
     DBGATE_TYPE = "dbgate-plugin"
+    OBSERVABILITY_TYPE = "observability-plugin"
 
 
 class DefaultPluginConstants(object):
-    PERF_ANALYZE_PLUGIN = "perf_analyze_plugin"
     DOWNSTREAM_NET_PLUGIN = "downstream_net_plugin"
     INANDOUT_NET_PLUGIN = "inandout_net_plugin"
-    FILEBEAT_LOG_PLUGIN = "filebeat_log_plugin"
-    LOGTAIL_LOG_PLUGIN = "logtail_log_plugin"
-    MYSQLD_EXPORTER_PLUGIN = "mysqld_exporter"
     FILEBROWSER_PLUGIN = "filebrowser_plugin"
     MYSQL_DBGATE_PLUGIN = "mysql_dbgate_plugin"
     REDIS_DBGATE_PLUGIN = "redis_dbgate_plugin"
     JAVA_AGENT_PLUGIN = "java_agent_plugin"
-    JAVA_AGENT_WEB_PLUGIN = "java_agent_web_plugin"
-    JAVA_ACTUATOR_MONITOR_PLUGIN = "java_actuator_monitor_plugin"
     JAVA_REDIS_MONITOR_PLUGIN = "obs_redis_monitor_plugin"
     JAVA_MYSQL_MONITOR_PLUGIN = "obs_mysql_monitor_plugin"
 
