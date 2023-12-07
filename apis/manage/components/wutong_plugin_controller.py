@@ -14,7 +14,7 @@ from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo
 from repository.teams.env_repo import env_repo
 from repository.teams.team_plugin_repo import plugin_repo
-from schemas.plugin import InstallSysPlugin
+from schemas.plugin import InstallSysPlugin, BatchInstallPlugin
 from schemas.response import Response
 from service.app_config.port_service import port_service
 from service.plugin.app_plugin_service import app_plugin_service
@@ -23,6 +23,7 @@ from service.plugin_service import default_plugins, plugin_service
 from service.region_service import region_services
 from repository.component.service_config_repo import volume_repo
 from clients.remote_component_client import remote_component_client
+from exceptions.main import ServiceHandleException
 
 router = APIRouter()
 
@@ -84,6 +85,51 @@ async def get_plugin_list() -> Any:
     return JSONResponse(result, status_code=200)
 
 
+@router.post("/teams/{team_name}/env/{env_id}/plugins/batch-install", response_model=Response,
+             name="批量开通插件")
+async def install_sys_plugin(request: Request,
+                             params: Optional[BatchInstallPlugin] = BatchInstallPlugin(),
+                             env_id: Optional[str] = None,
+                             session: SessionClass = Depends(deps.get_session),
+                             user=Depends(deps.get_current_user)) -> Any:
+    service_ids = params.service_ids
+    build_version = params.build_version
+    plugin_id = params.plugin_id
+    err_msg = []
+    if not plugin_id:
+        return JSONResponse(general_message(400, "not found plugin_id", "参数错误"), status_code=400)
+    region = await region_services.get_region_by_request(session, request)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+    env = env_repo.get_env_by_env_id(session, env_id)
+    if not env:
+        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+    response_region = region.region_name
+
+    for service_id in service_ids:
+        service = service_info_repo.get_service_by_tenant_and_id(session, env.env_id, service_id)
+        try:
+            app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_env_id=env.env_id,
+                                                     service_id=service.service_id)
+            app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env,
+                                                  service=service,
+                                                  plugin_id=plugin_id, plugin_version=build_version, user=user)
+        except ServiceHandleException as e:
+            msg = {
+                "service_id": e.msg_show
+            }
+            err_msg.append(msg)
+        except Exception as e:
+            logger.error(e)
+            msg = {
+                "service_id": "未知错误"
+            }
+            err_msg.append(msg)
+
+    result = general_message("0", "success", "安装成功", list=err_msg)
+    return JSONResponse(result, status_code=200)
+
+
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
              name="安装并开通系统插件")
 async def install_sys_plugin(request: Request,
@@ -92,7 +138,6 @@ async def install_sys_plugin(request: Request,
                              serviceAlias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
                              user=Depends(deps.get_current_user)) -> Any:
-
     plugin_type = params.plugin_type
     build_version = params.build_version
     env = env_repo.get_env_by_env_id(session, env_id)
