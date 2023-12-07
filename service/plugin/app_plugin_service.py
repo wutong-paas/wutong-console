@@ -802,6 +802,8 @@ class AppPluginService(object):
                     attr_value = options + " " + env.attr_value
                     env.attr_value = attr_value
 
+                service.monitor = "plugin"
+
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):
         app_plugin_relation_repo.delete_service_plugin(session=session, service_id=service.service_id,
                                                        plugin_id=plugin_id)
