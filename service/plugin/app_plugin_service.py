@@ -323,6 +323,7 @@ class AppPluginService(object):
     def delete_java_agent_plugin_volume(self, session, env, service, volume_path, user, plugin_info):
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
+                service.monitor = None
                 volume = volume_service.get_volume_by_path(session, service, volume_path)
                 if volume:
                     code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env,

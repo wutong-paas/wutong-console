@@ -410,7 +410,7 @@ class TenantServiceVolumnRepository(BaseRepository[TeamComponentVolume]):
         return session.execute(select(TeamComponentVolume).where(
             TeamComponentVolume.service_id == service_id,
             TeamComponentVolume.volume_path == volume_path,
-            TeamComponentVolume.volume_type == "share-file")).scalars().first()
+            TeamComponentVolume.volume_type == "memoryfs")).scalars().first()
 
     def get_service_volume_by_path(self, session, service_id, volume_path):
         return session.execute(select(TeamComponentVolume).where(
