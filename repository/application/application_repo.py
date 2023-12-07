@@ -129,7 +129,8 @@ class ApplicationRepository(BaseRepository[Application]):
 
     def get_groups_by_env_id(self, session, env_id):
         service_group_info = session.execute(
-            select(Application).where(Application.tenant_env_id == env_id)
+            select(Application).where(Application.tenant_env_id == env_id,
+                                      Application.is_delete == 0)
         ).scalars().all()
         return service_group_info
 

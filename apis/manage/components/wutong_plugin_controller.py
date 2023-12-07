@@ -8,6 +8,8 @@ from clients.remote_plugin_client import remote_plugin_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
+from repository.application.application_repo import application_repo
+from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.plugin.plugin_config_repo import config_group_repo, config_item_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
@@ -85,11 +87,37 @@ async def get_plugin_list() -> Any:
     return JSONResponse(result, status_code=200)
 
 
+@router.get("/teams/{team_name}/env/{env_id}/plugins/services", response_model=Response,
+            name="查询组件列表")
+async def get_service_list(request: Request,
+                           env=Depends(deps.get_current_team_env),
+                           session: SessionClass = Depends(deps.get_session),
+                           user=Depends(deps.get_current_user)) -> Any:
+
+    apps_data = []
+    apps = application_repo.get_groups_by_env_id(session, env.env_id)
+    for app in apps:
+        app_id = app.app_id
+        app_name = app.group_name
+        services_data = []
+        gsr = app_component_relation_repo.get_services_by_group(session, app_id)
+        service_ids = [service.service_id for service in gsr]
+        services = service_info_repo.list_by_component_ids(session, service_ids)
+        for service in services:
+            service_id = service.service_id
+            service_name = service.service_cname
+            service_data = {service_id: service_name}
+            services_data.append(service_data)
+        apps_data.append({"app_name": app_name, "services": services_data})
+    result = general_message("0", "success", "查询成功", list=apps_data)
+    return JSONResponse(result, status_code=200)
+
+
 @router.post("/teams/{team_name}/env/{env_id}/plugins/batch-install", response_model=Response,
              name="批量开通插件")
 async def install_sys_plugin(request: Request,
                              params: Optional[BatchInstallPlugin] = BatchInstallPlugin(),
-                             env_id: Optional[str] = None,
+                             env=Depends(deps.get_current_team_env),
                              session: SessionClass = Depends(deps.get_session),
                              user=Depends(deps.get_current_user)) -> Any:
     service_ids = params.service_ids
@@ -101,9 +129,6 @@ async def install_sys_plugin(request: Request,
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     response_region = region.region_name
 
     for service_id in service_ids:
@@ -134,15 +159,13 @@ async def install_sys_plugin(request: Request,
              name="安装并开通系统插件")
 async def install_sys_plugin(request: Request,
                              params: Optional[InstallSysPlugin] = InstallSysPlugin(),
-                             env_id: Optional[str] = None,
+                             env=Depends(deps.get_current_team_env),
                              serviceAlias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
                              user=Depends(deps.get_current_user)) -> Any:
     plugin_type = params.plugin_type
     build_version = params.build_version
-    env = env_repo.get_env_by_env_id(session, env_id)
-    if not env:
-        return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
+
     if not plugin_type:
         return JSONResponse(general_message(400, "plugin type is null", "请指明插件类型"), status_code=400)
     if plugin_type not in default_plugins:
