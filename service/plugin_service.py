@@ -1,6 +1,8 @@
 import json
 import os
 from loguru import logger
+from sqlalchemy import select, delete
+
 from clients.remote_plugin_client import remote_plugin_client
 from core.setting import settings
 from core.utils.constants import PluginCategoryConstants, DefaultPluginConstants, PluginImage
@@ -8,10 +10,9 @@ from core.utils.crypt import make_uuid
 from database.session import SessionClass
 from exceptions.bcode import ErrPluginIsUsed
 from exceptions.main import ServiceHandleException
-from models.application.plugin import PluginConfigGroup, PluginConfigItems
+from models.application.plugin import PluginConfigGroup, PluginConfigItems, TeamComponentPluginRelation
 from repository.plugin.plugin_config_repo import config_item_repo, config_group_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
-from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
 from service.plugin.plugin_version_service import plugin_version_service
 
@@ -102,7 +103,9 @@ class PluginService(object):
 
     def delete_plugin(self, session: SessionClass, region, tenant_env, plugin_id, ignore_cluster_resource=False,
                       is_force=False):
-        services = app_plugin_relation_repo.get_used_plugin_services(session=session, plugin_id=plugin_id)
+
+        services = session.execute(select(TeamComponentPluginRelation).where(
+            TeamComponentPluginRelation.plugin_id == plugin_id)).scalars().all()
         if services and not is_force:
             raise ErrPluginIsUsed
         if not ignore_cluster_resource:
@@ -111,7 +114,8 @@ class PluginService(object):
             except remote_plugin_client.CallApiError as e:
                 if e.status != 404:
                     raise ServiceHandleException(msg="delete plugin form cluster failure", msg_show="从集群删除插件失败")
-        app_plugin_relation_repo.delete_service_plugin_relation_by_plugin_id(session=session, plugin_id=plugin_id)
+        session.execute(delete(TeamComponentPluginRelation).where(
+            TeamComponentPluginRelation.plugin_id == plugin_id))
         plugin_version_repo.delete_build_version_by_plugin_id(session=session, tenant_env_id=tenant_env.env_id,
                                                               plugin_id=plugin_id)
         plugin_repo.delete_by_plugin_id(session=session, tenant_env_id=tenant_env.env_id, plugin_id=plugin_id)

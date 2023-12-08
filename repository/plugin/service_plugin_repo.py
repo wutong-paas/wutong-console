@@ -11,6 +11,7 @@ from repository.teams.team_plugin_repo import plugin_repo
 from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
 from fastapi.encoders import jsonable_encoder
+from service.plugin_service import plugin_service as default_plugin_service
 
 
 class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
@@ -448,13 +449,28 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             plugins_type = all_default_config.keys()
             for plugin_type in plugins_type:
                 needed_plugin_config = all_default_config[plugin_type]
-                config_groups = self.get_plugin_config_groups(plugin_type, needed_plugin_config)
+                config_file_groups = self.get_plugin_config_groups(plugin_type, needed_plugin_config)
                 plugin_id = needed_plugin_config.get("plugin_id", "")
                 desc = needed_plugin_config.get("desc", "")
                 plugin_alias = needed_plugin_config.get("plugin_alias", "")
                 category = needed_plugin_config.get("category", "")
                 build_version = needed_plugin_config.get("build_version", "")
                 origin_share_id = needed_plugin_config.get("origin_share_id", "")
+
+                plugins = default_plugin_service.get_by_type_plugins(session, plugin_type, "sys",
+                                                                     tenant_env.region_code)
+                if not plugins:
+                    plugin_id = default_plugin_service.add_default_plugin(session=session, user=user,
+                                                                          tenant_env=tenant_env,
+                                                                          region=tenant_env.region_cod,
+                                                                          plugin_type=plugin_type,
+                                                                          build_version=build_version)
+                else:
+                    for plugin in plugins:
+                        plugin_id = plugin.plugin_id
+
+                config_groups = self.get_plugin_config(session, tenant_env, service, plugin_id,
+                                                       build_version)
 
                 plugin_dict = {
                     "plugin_type": plugin_type,
@@ -475,8 +491,6 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
 
                         if plugin.origin == origin and plugin.origin_share_id == plugin_type:
-                            config_groups = self.get_plugin_config(session, tenant_env, service, plugin_id,
-                                                                   build_version)
                             plugin_dict.update({"configs": config_groups})
                             plugin_dict.update({"origin_share_id": origin_share_id})
                             plugin_dict.update({"min_memory": plugin_rel.min_memory})
@@ -489,9 +503,12 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                             installed_plugins.append(plugin_dict.copy())
                             is_open = True
                     if not is_open:
+                        config_groups.update({"undefine_env": config_file_groups["undefine_env"]})
                         plugin_dict.update({"configs": config_groups})
                         uninstalled_plugins.append(plugin_dict)
                 else:
+                    # 未安装的系统插件需要更新 undefine_env
+                    config_groups.update({"undefine_env": config_file_groups["undefine_env"]})
                     plugin_dict.update({"configs": config_groups})
                     uninstalled_plugins.append(plugin_dict)
         elif origin == "shared":
