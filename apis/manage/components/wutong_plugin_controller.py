@@ -26,6 +26,7 @@ from service.region_service import region_services
 from repository.component.service_config_repo import volume_repo
 from clients.remote_component_client import remote_component_client
 from exceptions.main import ServiceHandleException
+from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 
 router = APIRouter()
 
@@ -89,12 +90,20 @@ async def get_plugin_list() -> Any:
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/services", response_model=Response,
             name="查询组件列表")
-async def get_service_list(request: Request,
-                           env=Depends(deps.get_current_team_env),
-                           session: SessionClass = Depends(deps.get_session),
-                           user=Depends(deps.get_current_user)) -> Any:
+async def get_service_list(
+        plugin_id: Optional[str] = None,
+        plugin_type: Optional[str] = None,
+        env=Depends(deps.get_current_team_env),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+
+    if not plugin_id and not plugin_type:
+        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
 
     apps_data = []
+    if not plugin_id:
+        plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys", env.region_code)
+        for plugin in plugins:
+            plugin_id = plugin.plugin_id
     apps = application_repo.get_groups_by_env_id(session, env.env_id)
     for app in apps:
         app_id = app.app_id
@@ -104,11 +113,18 @@ async def get_service_list(request: Request,
         service_ids = [service.service_id for service in gsr]
         services = service_info_repo.list_by_component_ids(session, service_ids)
         for service in services:
+            status = True
             service_id = service.service_id
             service_name = service.service_cname
-            service_data = {service_id: service_name}
+            if plugin_id:
+                sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(session=session,
+                                                                                   service_id=service_id,
+                                                                                   plugin_id=plugin_id)
+                if sprs:
+                    status = False
+            service_data = {"service_id": service_id, "service_name": service_name, "status": status}
             services_data.append(service_data)
-        apps_data.append({"app_name": app_name, "services": services_data})
+        apps_data.append({"app_name": app_name, "app_id": app_id, "services": services_data})
     result = general_message("0", "success", "查询成功", list=apps_data)
     return JSONResponse(result, status_code=200)
 
@@ -141,7 +157,8 @@ async def install_sys_plugin(request: Request,
                                                   plugin_id=plugin_id, plugin_version=build_version, user=user)
         except ServiceHandleException as e:
             msg = {
-                "service_id": e.msg_show
+                "err_msg": e.msg_show,
+                "service_id": service.service_id,
             }
             err_msg.append(msg)
         except Exception as e:

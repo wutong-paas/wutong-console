@@ -10,6 +10,7 @@ from repository.plugin.plugin_config_repo import config_group_repo, config_item_
 from repository.teams.team_plugin_repo import plugin_repo
 from service.plugin.plugin_service import plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
+from fastapi.encoders import jsonable_encoder
 
 
 class AppPluginRelationRepository(BaseRepository[TeamComponentPluginRelation]):
@@ -316,6 +317,49 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             plugins_list.append(plugin_dict)
         return plugins_list
 
+    def get_plugin_config(self, session, tenant_env, service, plugin_id, build_version):
+        config_groups = plugin_service.get_service_plugin_config(session=session,
+                                                                 tenant_env=tenant_env,
+                                                                 service=service,
+                                                                 plugin_id=plugin_id,
+                                                                 build_version=build_version)
+
+        svc_plugin_relation = session.execute(select(TeamComponentPluginRelation).where(
+            TeamComponentPluginRelation.service_id == service.service_id,
+            TeamComponentPluginRelation.plugin_id == plugin_id)).scalars().first()
+
+        pbv = plugin_version_service.get_by_id_and_version(session=session,
+                                                           tenant_env_id=tenant_env.env_id,
+                                                           plugin_id=plugin_id,
+                                                           plugin_version=build_version)
+        if pbv:
+            config_groups["build_info"] = pbv.update_info
+            config_groups[
+                "memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
+        return config_groups
+
+    def get_plugin_config_as_tenant(self, session, installed_plugins, uninstalled_plugins, tenant_env, service):
+        installed_plugins_list = []
+        uninstalled_plugins_list = []
+        for uninstalled_plugin in uninstalled_plugins:
+            plugin_dict = jsonable_encoder(uninstalled_plugin)
+            plugin_id = uninstalled_plugin.plugin_id
+            build_version = uninstalled_plugin.build_version
+            config_groups = self.get_plugin_config(session, tenant_env, service, plugin_id,
+                                                   build_version)
+            plugin_dict.update({"configs": config_groups})
+            uninstalled_plugins_list.append(plugin_dict)
+
+        for installed_plugin in installed_plugins:
+            plugin_dict = jsonable_encoder(installed_plugin)
+            plugin_id = installed_plugin.plugin_id
+            build_version = installed_plugin.build_version
+            config_groups = self.get_plugin_config(session, tenant_env, service, plugin_id,
+                                                   build_version)
+            plugin_dict.update({"configs": config_groups})
+            installed_plugins_list.append(plugin_dict)
+        return installed_plugins_list, uninstalled_plugins_list
+
     def get_plugins_by_origin(self, session, region, tenant_env, service, origin, user):
         """获取组件已开通和未开通的插件"""
         QUERY_INSTALLED_SQL = """
@@ -418,7 +462,9 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                     "desc": desc,
                     "plugin_alias": plugin_alias,
                     "category": category,
-                    "build_version": build_version
+                    "build_version": build_version,
+                    "min_cpu": 0,
+                    "min_memory": config_groups["memory"]
                 }
 
                 install_plugins_rel = app_plugin_relation_repo.get_service_plugin_relation(session, service.service_id)
@@ -429,24 +475,8 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                         plugin = plugin_repo.get_by_plugin_id(session, plugin_id)
 
                         if plugin.origin == origin and plugin.origin_share_id == plugin_type:
-                            config_groups = plugin_service.get_service_plugin_config(session=session,
-                                                                                     tenant_env=tenant_env,
-                                                                                     service=service,
-                                                                                     plugin_id=plugin_id,
-                                                                                     build_version=build_version)
-
-                            svc_plugin_relation = session.execute(select(TeamComponentPluginRelation).where(
-                                TeamComponentPluginRelation.service_id == service.service_id,
-                                TeamComponentPluginRelation.plugin_id == plugin_id)).scalars().first()
-
-                            pbv = plugin_version_service.get_by_id_and_version(session=session,
-                                                                               tenant_env_id=tenant_env.env_id,
-                                                                               plugin_id=plugin_id,
-                                                                               plugin_version=build_version)
-                            if pbv:
-                                config_groups["build_info"] = pbv.update_info
-                                config_groups[
-                                    "memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
+                            config_groups = self.get_plugin_config(session, tenant_env, service, plugin_id,
+                                                                   build_version)
                             plugin_dict.update({"configs": config_groups})
                             plugin_dict.update({"origin_share_id": origin_share_id})
                             plugin_dict.update({"min_memory": plugin_rel.min_memory})
@@ -472,6 +502,12 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             installed_plugins = (session.execute(query_installed_plugin)).fetchall()
             uninstalled_plugins = (session.execute(query_uninstalled_plugin)).fetchall()
 
+            installed_plugins_list, uninstalled_plugins_list = self.get_plugin_config_as_tenant(session,
+                                                                                                installed_plugins,
+                                                                                                uninstalled_plugins,
+                                                                                                tenant_env, service)
+            return installed_plugins_list, uninstalled_plugins_list
+
         else:
             query_installed_plugin = """{0} AND tp.origin="{1}" """.format(QUERY_INSTALLED_SQL, origin)
 
@@ -479,6 +515,12 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
 
             installed_plugins = (session.execute(query_installed_plugin)).fetchall()
             uninstalled_plugins = (session.execute(query_uninstalled_plugin)).fetchall()
+
+            installed_plugins_list, uninstalled_plugins_list = self.get_plugin_config_as_tenant(session,
+                                                                                                installed_plugins,
+                                                                                                uninstalled_plugins,
+                                                                                                tenant_env, service)
+            return installed_plugins_list, uninstalled_plugins_list
         return installed_plugins, uninstalled_plugins
 
     def delete_service_plugin_config_var(self, session, service_id, plugin_id):

@@ -41,7 +41,14 @@ async def create_virtual_image(
     if image:
         return JSONResponse(
             general_message(500, "image name is already exists", "镜像名称已存在"),
-            status_code=501,
+            status_code=200,
+        )
+
+    version_image = virtual_image_repo.get_virtual_image_by_os_name(session, param.os_name, param.version)
+    if version_image:
+        return JSONResponse(
+            general_message(500, "version is already exists", "镜像版本已存在"),
+            status_code=200,
         )
 
     image_info = {
@@ -59,8 +66,8 @@ async def create_virtual_image(
     except Exception as err:
         logger.error(err)
         return JSONResponse(
-            general_message(500, "create virtual machine success", "创建虚拟机镜像失败"),
-            status_code=501,
+            general_message(500, "create virtual machine failed", "创建虚拟机镜像失败"),
+            status_code=200,
         )
 
     return JSONResponse(

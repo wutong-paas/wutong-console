@@ -174,7 +174,8 @@ class ComponentRepository(BaseRepository[Component]):
 
     def list_by_component_ids(self, session, service_ids: []):
         return session.execute(select(Component).where(
-            Component.service_id.in_(service_ids))).scalars().all()
+            Component.service_id.in_(service_ids),
+            Component.is_delete == 0)).scalars().all()
 
     def get_service_by_service_id(self, session, service_id, is_delete=False):
         return session.execute(select(Component).where(
