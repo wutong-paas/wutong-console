@@ -181,6 +181,7 @@ async def install_sys_plugin(request: Request,
                              user=Depends(deps.get_current_user)) -> Any:
     plugin_type = params.plugin_type
     build_version = params.build_version
+    configs = params.configs
 
     if not plugin_type:
         return JSONResponse(general_message(400, "plugin type is null", "请指明插件类型"), status_code=400)
@@ -256,9 +257,13 @@ async def install_sys_plugin(request: Request,
     app_plugin_service.add_init_agent_mount(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
 
+    config_list = configs["undefine_env"]["config"]
+    for config_info in config_list:
+        config_info.update({"attr_value": config_info.get("attr_default_value")})
+
     # 配置插件环境变量
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
-                                             plugin_id=plugin_id, build_version=build_version, config=params.config,
+                                             plugin_id=plugin_id, build_version=build_version, config=configs,
                                              user=user)
     # 配置插件cpu和内存
     app_plugin_service.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id,

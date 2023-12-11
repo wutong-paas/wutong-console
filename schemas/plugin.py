@@ -8,7 +8,7 @@ class InstallSysPlugin(BaseModel):
     """
     plugin_type: Annotated[str, Field(title="插件类型")] = None
     build_version: Annotated[str, Field(title="插件版本")] = None
-    config: Annotated[dict, Field(title="插件配置项")] = None
+    configs: Annotated[dict, Field(title="插件配置项")] = None
     min_cpu: Annotated[int, Field(title="插件cpu")] = None
     min_memory: Annotated[int, Field(title="插件内存")] = None
 
