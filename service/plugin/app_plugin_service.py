@@ -9,6 +9,7 @@ from jsonpath import jsonpath
 from loguru import logger
 from sqlalchemy import select
 
+from clients.remote_component_client import remote_component_client
 from clients.remote_plugin_client import remote_plugin_client
 from core.setting import settings
 from core.utils.constants import PluginCategoryConstants, PluginMetaType, PluginInjection
@@ -19,7 +20,7 @@ from exceptions.main import ServiceHandleException
 from models.application.plugin import ComponentPluginConfigVar
 from models.component.models import ComponentEnvVar
 from repository.component.group_service_repo import service_info_repo
-from repository.component.service_config_repo import port_repo
+from repository.component.service_config_repo import port_repo, volume_repo
 from repository.plugin.plugin_version_repo import plugin_version_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo, app_plugin_relation_repo
 from repository.teams.team_plugin_repo import plugin_repo
@@ -840,6 +841,98 @@ class AppPluginService(object):
             data["build_version"] = service_plugin_version_map[s.service_id]
             result_list.append(data)
         return result_list, total
+
+    def update_plugin_configs(self, session: SessionClass, env, service, plugin_id, config, user, build_version):
+        result_bean = self.get_service_plugin_config(session=session, tenant_env=env, service=service,
+                                                     plugin_id=plugin_id, build_version=build_version)
+
+        # update service plugin config
+        self.update_service_plugin_config(session=session, tenant_env=env, service=service,
+                                          plugin_id=plugin_id, build_version=build_version,
+                                          config=config,
+                                          response_region=env.region_code, user=user)
+
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
+        if plugin_info:
+            if plugin_info.origin_share_id == "filebrowser_plugin":
+                old_config_attr_info = result_bean["undefine_env"]["config"]
+                old_config_attr_dir = old_config_attr_info[1]["attr_value"]
+                volume = volume_repo.get_service_volume_by_path(session, service.service_id, old_config_attr_dir)
+                config_attr_info = config["undefine_env"]["config"]
+                config_attr_dir = config_attr_info[1]["attr_value"]
+
+                if old_config_attr_dir != config_attr_dir:
+                    data = {
+                        "volume_name": volume.volume_name,
+                        "volume_path": config_attr_dir,
+                        "volume_type": volume.volume_type,
+                        "file_content": None,
+                        "operator": user.nick_name,
+                        "mode": None,
+                    }
+                    res, body = remote_component_client.upgrade_service_volumes(session,
+                                                                                service.service_region, env,
+                                                                                service.service_alias, data)
+                    if res.status == 200:
+                        volume.volume_path = config_attr_dir
+            if plugin_info.origin_share_id == "redis_dbgate_plugin" or plugin_info.origin_share_id == "mysql_dbgate_plugin":
+                port = 0
+                old_port = 0
+                old_config_attr_info = result_bean["undefine_env"]["config"]
+
+                for old_config in old_config_attr_info:
+                    if old_config["attr_name"] == "PORT":
+                        old_port = old_config["attr_value"]
+                        break
+
+                config_attr_info = config["undefine_env"]["config"]
+                for config in config_attr_info:
+                    if config["attr_name"] == "PORT":
+                        port = config["attr_value"]
+                        break
+                if old_port != port:
+                    code, msg, data = port_service.manage_port(session=session, tenant_env=env, service=service,
+                                                               region_name=env.region_code, container_port=old_port,
+                                                               action="close_inner",
+                                                               protocol="http", port_alias=None,
+                                                               k8s_service_name="", user_name=user.nick_name)
+
+                    if code != 200:
+                        logger.debug("close file manager inner error", msg)
+                    port_service.delete_port_by_container_port(session=session, tenant_env=env, service=service,
+                                                               container_port=int(old_port),
+                                                               user_name=user.nick_name)
+                    port_alias = service.service_alias.upper().replace("-", "_") + str(port)
+                    try:
+                        port_service.add_service_port(session=session, tenant_env=env, service=service,
+                                                      container_port=port, protocol="http",
+                                                      port_alias=port_alias,
+                                                      is_inner_service=True,
+                                                      is_outer_service=False,
+                                                      k8s_service_name=None,
+                                                      user_name=user.nick_name)
+                    except:
+                        pass
+
+    def update_plugin_cpu_mem(self, session: SessionClass, env, service, plugin_id, memory, cpu, user, build_version):
+        data = dict()
+        data["plugin_id"] = plugin_id
+        data["switch"] = True
+        data["version_id"] = build_version
+        data["operator"] = user.nick_name
+        if memory is not None:
+            data["plugin_memory"] = int(memory)
+        if cpu is not None:
+            data["plugin_cpu"] = int(cpu)
+        # 更新数据中心数据参数
+        remote_plugin_client.update_plugin_service_relation(session,
+                                                            env.region_code, env,
+                                                            service.service_alias,
+                                                            data)
+        # 更新本地数据
+        self.start_stop_service_plugin(session=session, service_id=service.service_id,
+                                       plugin_id=plugin_id,
+                                       is_active=True, cpu=cpu, memory=memory)
 
 
 app_plugin_service = AppPluginService()
