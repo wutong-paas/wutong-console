@@ -259,7 +259,9 @@ async def install_sys_plugin(request: Request,
 
     config_list = configs["undefine_env"]["config"]
     for config_info in config_list:
-        config_info.update({"attr_value": config_info.get("attr_default_value")})
+        attr_value = config_info.get("attr_value")
+        if not attr_value:
+            config_info.update({"attr_value": config_info.get("attr_default_value")})
 
     # 配置插件环境变量
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
