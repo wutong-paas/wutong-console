@@ -755,57 +755,6 @@ class AppPluginService(object):
                     user_name=user.nick_name,
                     mode=None)
 
-    def modify_init_agent_env(self, session: SessionClass, tenant_env, service, plugin_id, user=None):
-
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
-        if plugin_info:
-            if plugin_info.origin_share_id == "java_agent_plugin":
-                env_name = "JAVA_TOOL_OPTIONS"
-                env = session.execute(select(ComponentEnvVar).where(
-                    ComponentEnvVar.attr_name == env_name,
-                    ComponentEnvVar.service_id == service.service_id
-                )).scalars().first()
-
-                options = "-javaagent:/agent/agent.jar"
-                attributes = "service.name=" + service.k8s_component_name + ",namespace=" + tenant_env.namespace
-                agent = settings.PLUGIN_AGENT_SERVER_ADDRESS
-
-                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                    container_port=0, name="OTEL_RESOURCE_ATTRIBUTES",
-                                                    attr_name="OTEL_RESOURCE_ATTRIBUTES",
-                                                    attr_value=attributes,
-                                                    is_change=True, scope="inner",
-                                                    user_name=user.nick_name)
-                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                    container_port=0, name="OTEL_TRACES_EXPORTER",
-                                                    attr_name="OTEL_TRACES_EXPORTER",
-                                                    attr_value="otlp",
-                                                    is_change=True, scope="inner",
-                                                    user_name=user.nick_name)
-                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                    container_port=0, name="OTEL_METRICS_EXPORTER",
-                                                    attr_name="OTEL_METRICS_EXPORTER",
-                                                    attr_value="none",
-                                                    is_change=True, scope="inner",
-                                                    user_name=user.nick_name)
-                env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                    container_port=0, name="OTEL_EXPORTER_OTLP_ENDPOINT",
-                                                    attr_name="OTEL_EXPORTER_OTLP_ENDPOINT",
-                                                    attr_value=agent,
-                                                    is_change=True, scope="inner",
-                                                    user_name=user.nick_name)
-                if not env:
-                    env_var_service.add_service_env_var(session=session, tenant_env=tenant_env, service=service,
-                                                        container_port=0, name=env_name, attr_name=env_name,
-                                                        attr_value=options,
-                                                        is_change=True, scope="inner",
-                                                        user_name=user.nick_name)
-                else:
-                    attr_value = options + " " + env.attr_value
-                    env.attr_value = attr_value
-
-                service.monitor = "plugin"
-
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):
         app_plugin_relation_repo.delete_service_plugin(session=session, service_id=service.service_id,
                                                        plugin_id=plugin_id)
@@ -842,7 +791,11 @@ class AppPluginService(object):
             result_list.append(data)
         return result_list, total
 
-    def update_plugin_configs(self, session: SessionClass, env, service, plugin_id, config, user, build_version):
+    def update_plugin_configs(self, session: SessionClass, env, service, plugin_id, config, user, build_version, memory,
+                              cpu):
+        # 更新配置项attr_value值
+        self.update_config_attr_value(config)
+
         result_bean = self.get_service_plugin_config(session=session, tenant_env=env, service=service,
                                                      plugin_id=plugin_id, build_version=build_version)
 
@@ -914,6 +867,12 @@ class AppPluginService(object):
                     except:
                         pass
 
+        # 配置插件cpu和内存
+        self.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id,
+                                   memory=memory, cpu=cpu,
+                                   build_version=build_version,
+                                   user=user, env=env)
+
     def update_plugin_cpu_mem(self, session: SessionClass, env, service, plugin_id, memory, cpu, user, build_version):
         data = dict()
         data["plugin_id"] = plugin_id
@@ -933,6 +892,16 @@ class AppPluginService(object):
         self.start_stop_service_plugin(session=session, service_id=service.service_id,
                                        plugin_id=plugin_id,
                                        is_active=True, cpu=cpu, memory=memory)
+
+    def update_config_attr_value(self, configs):
+        for config_type in ["undefine_env", "downstream_env", "upstream_env"]:
+            config_env = configs[config_type]
+            if config_env:
+                config_list = config_env["config"]
+                for config_info in config_list:
+                    attr_value = config_info.get("attr_value")
+                    if not attr_value:
+                        config_info.update({"attr_value": config_info.get("attr_default_value")})
 
 
 app_plugin_service = AppPluginService()

@@ -67,9 +67,6 @@ class Settings(BaseSettings):
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_DAY = 15
 
-    PLUGIN_AGENT_SERVER_ADDRESS = os.getenv("AGENT_SERVER_ADDRESS",
-                                      "http://wutong-obs-system-trace-agent.wutong-obs:4317")
-
     EVENT_WEBSOCKET_URL = {
         'cloudbang': 'auto',
     }

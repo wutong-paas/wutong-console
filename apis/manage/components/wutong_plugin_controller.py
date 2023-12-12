@@ -21,7 +21,7 @@ from repository.plugin.service_plugin_repo import app_plugin_relation_repo
 from repository.plugin.service_plugin_repo import service_plugin_config_repo
 from repository.teams.env_repo import env_repo
 from repository.teams.team_plugin_repo import plugin_repo
-from schemas.plugin import InstallSysPlugin, BatchInstallPlugin
+from schemas.plugin import InstallPlugin, BatchInstallPlugin, UpdatePluginConfig
 from schemas.response import Response
 from service.plugin.app_plugin_service import app_plugin_service
 from service.plugin.plugin_version_service import plugin_version_service
@@ -174,7 +174,7 @@ async def install_sys_plugin(request: Request,
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
              name="安装并开通系统插件")
 async def install_sys_plugin(request: Request,
-                             params: Optional[InstallSysPlugin] = InstallSysPlugin(),
+                             params: Optional[InstallPlugin] = InstallPlugin(),
                              env=Depends(deps.get_current_team_env),
                              serviceAlias: Optional[str] = None,
                              session: SessionClass = Depends(deps.get_session),
@@ -257,20 +257,10 @@ async def install_sys_plugin(request: Request,
     app_plugin_service.add_init_agent_mount(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
 
-    config_list = configs["undefine_env"]["config"]
-    for config_info in config_list:
-        attr_value = config_info.get("attr_value")
-        if not attr_value:
-            config_info.update({"attr_value": config_info.get("attr_default_value")})
-
     # 配置插件环境变量
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
                                              plugin_id=plugin_id, build_version=build_version, config=configs,
-                                             user=user)
-    # 配置插件cpu和内存
-    app_plugin_service.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id,
-                                             memory=params.min_memory, cpu=params.min_cpu, build_version=build_version,
-                                             user=user, env=env)
+                                             user=user, memory=params.min_memory, cpu=params.min_cpu)
 
     result = general_message("0", "success", "安装成功")
     return JSONResponse(result, status_code=200)
@@ -282,6 +272,7 @@ async def install_plugin(request: Request,
                          env_id: Optional[str] = None,
                          plugin_id: Optional[str] = None,
                          serviceAlias: Optional[str] = None,
+                         params: Optional[InstallPlugin] = InstallPlugin(),
                          session: SessionClass = Depends(deps.get_session),
                          user=Depends(deps.get_current_user)) -> Any:
     """
@@ -309,6 +300,9 @@ async def install_plugin(request: Request,
           type: string
           paramType: form
     """
+    configs = params.configs
+    build_version = params.build_version
+
     region = await region_services.get_region_by_request(session, request)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
@@ -317,11 +311,13 @@ async def install_plugin(request: Request,
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     response_region = region.region_name
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-    data = await request.json()
-    build_version = data.get("build_version", None)
+
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin_id", "参数错误"), status_code=400)
     pbv = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
+    if not pbv:
+        return JSONResponse(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status_code=400)
+
     if pbv.build_status == "building":
         status = plugin_version_service.get_region_plugin_build_status(session, response_region, env,
                                                                        pbv.plugin_id,
@@ -338,6 +334,11 @@ async def install_plugin(request: Request,
                                              service_id=service.service_id)
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
+
+    # 配置插件环境变量
+    app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
+                                             plugin_id=plugin_id, build_version=build_version, config=configs,
+                                             user=user, memory=params.min_memory, cpu=params.min_cpu)
 
     result = general_message("0", "success", "安装成功")
     return JSONResponse(result, status_code=200)
@@ -408,9 +409,7 @@ async def delete_plugin(
                                                                  response_region=response_region,
                                                                  plugin_info=plugin_info,
                                                                  container_port=config_attr_port, user=user)
-    # v1.9.0版本移除环境变量删除步骤
-    # app_plugin_service.update_java_agent_plugin_env(session=session, tenant_env=env, service=service,
-    #                                                 plugin_info=plugin_info, user=user)
+
     app_plugin_service.delete_java_agent_plugin_volume(session=session, env=env, service=service,
                                                        volume_path="/agent", user=user, plugin_info=plugin_info)
 
@@ -531,12 +530,13 @@ async def get_plugin_config(request: Request,
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/configs", response_model=Response,
             name="更新组件插件配置")
-async def update_plugin_config(request: Request,
-                               env_id: Optional[str] = None,
-                               plugin_id: Optional[str] = None,
-                               serviceAlias: Optional[str] = None,
-                               session: SessionClass = Depends(deps.get_session),
-                               user=Depends(deps.get_current_user)) -> Any:
+async def update_plugin_config(
+        env_id: Optional[str] = None,
+        plugin_id: Optional[str] = None,
+        serviceAlias: Optional[str] = None,
+        params: Optional[UpdatePluginConfig] = UpdatePluginConfig(),
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     """
     组件插件配置更新
     ---
@@ -566,8 +566,8 @@ async def update_plugin_config(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    config = await request.json()
-    if not config:
+    configs = params.configs
+    if not configs:
         return JSONResponse(general_message(400, "params error", "参数配置不可为空"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     pbv = plugin_version_service.get_newest_usable_plugin_version(session=session, tenant_env_id=env.env_id,
@@ -575,9 +575,10 @@ async def update_plugin_config(request: Request,
     if not pbv:
         return JSONResponse(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status_code=400)
 
+    # 配置插件环境变量
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
-                                             plugin_id=plugin_id, build_version=pbv.build_version, config=config,
-                                             user=user)
+                                             plugin_id=plugin_id, build_version=pbv.build_version, config=configs,
+                                             user=user, memory=params.min_memory, cpu=params.min_cpu, )
 
     result = general_message("0", "success", "配置更新成功")
     return JSONResponse(result, 200)
