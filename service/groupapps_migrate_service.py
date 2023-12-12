@@ -162,7 +162,7 @@ class GroupappsMigrateService(object):
             "restore_mode": restore_mode,
             "tenant_env_id": migrate_env.env_id
         }
-        body = remote_migrate_client_api.star_apps_migrate_task(session, migrate_region, tenant_env,
+        body = remote_migrate_client_api.star_apps_migrate_task(session, migrate_region, migrate_env,
                                                                 new_backup_record.backup_id,
                                                                 data)
 
