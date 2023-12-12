@@ -233,10 +233,14 @@ async def install_sys_plugin(request: Request,
                                                                                             service.service_region,
                                                                                             needed_plugin_config,
                                                                                             build_version)
-                        plugin_repo.build_plugin(session=session, region=service.service_region, plugin=plugin,
-                                                 plugin_version=plugin_build_version, user=user,
-                                                 tenant_env=env,
-                                                 event_id=plugin_build_version.event_id)
+                        try:
+                            plugin_repo.build_plugin(session=session, region=service.service_region, plugin=plugin,
+                                                     plugin_version=plugin_build_version, user=user,
+                                                     tenant_env=env,
+                                                     event_id=plugin_build_version.event_id)
+                        except Exception as e:
+                            logger.error(e)
+                            return JSONResponse(general_message(500, "failed", "开通失败"), status_code=200)
                         plugin_build_version.build_status = "build_success"
 
         if not plugin_id:
@@ -256,6 +260,8 @@ async def install_sys_plugin(request: Request,
                                             plugin_version=build_version, user=user)
     app_plugin_service.add_init_agent_mount(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
                                             plugin_version=build_version, user=user)
+
+    app_plugin_service.update_obs_monitor(session=session, tenant_env=env, service=service, plugin_id=plugin_id)
 
     # 配置插件环境变量
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service,

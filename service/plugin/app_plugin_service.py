@@ -755,6 +755,16 @@ class AppPluginService(object):
                     user_name=user.nick_name,
                     mode=None)
 
+    def update_obs_monitor(self, session: SessionClass, tenant_env, service, plugin_id):
+        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
+        if plugin_info:
+            if plugin_info.origin_share_id == "java_agent_plugin":
+                service.monitor = "plugin-java"
+            elif plugin_info.origin_share_id == "obs_redis_monitor_plugin":
+                service.monitor = "plugin-redis"
+            elif plugin_info.origin_share_id == "obs_mysql_monitor_plugin":
+                service.monitor = "plugin-mysql"
+
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):
         app_plugin_relation_repo.delete_service_plugin(session=session, service_id=service.service_id,
                                                        plugin_id=plugin_id)
