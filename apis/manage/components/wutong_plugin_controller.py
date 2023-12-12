@@ -238,9 +238,15 @@ async def install_sys_plugin(request: Request,
                                                      plugin_version=plugin_build_version, user=user,
                                                      tenant_env=env,
                                                      event_id=plugin_build_version.event_id)
+                        except remote_plugin_client.CallApiError as e:
+                            logger.error(e)
+                            if "body" in e.message and "msg" in e.message["body"]:
+                                return JSONResponse(general_message(500, "failed", e.message["body"]["msg"]),
+                                                    status_code=501)
+                            return JSONResponse(general_message(500, "failed", "开通失败"), status_code=501)
                         except Exception as e:
                             logger.error(e)
-                            return JSONResponse(general_message(500, "failed", "开通失败"), status_code=200)
+                            return JSONResponse(general_message(500, "failed", "开通失败"), status_code=501)
                         plugin_build_version.build_status = "build_success"
 
         if not plugin_id:

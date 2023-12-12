@@ -81,7 +81,7 @@ async def create_virtual_image(
     response_model=Response,
     name="获取虚拟机镜像",
 )
-async def create_virtual_image(
+async def get_virtual_image(
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     """

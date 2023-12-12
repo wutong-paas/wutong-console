@@ -17,7 +17,8 @@ class VirtualOsRepository(BaseRepository[VirtualOsInfo]):
         )).scalars().first()
 
     def get_all_os_info(self, session):
-        return session.execute(select(VirtualOsInfo)).scalars().all()
+        return session.execute(select(VirtualOsInfo).order_by(
+            VirtualOsInfo.create_time.desc())).scalars().all()
 
 
 virtual_os_repo = VirtualOsRepository(VirtualOsInfo)

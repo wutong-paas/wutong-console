@@ -18,7 +18,8 @@ class VirtualImageRepository(BaseRepository[VirtualImageInfo]):
 
     def get_all_virtual_image(self, session):
         return session.execute(
-            select(VirtualImageInfo)).scalars().all()
+            select(VirtualImageInfo).order_by(
+                    VirtualImageInfo.create_time.desc())).scalars().all()
 
     def get_virtual_imagever_by_os_name(self, session, os_name):
         return session.execute(
