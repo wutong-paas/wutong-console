@@ -324,7 +324,6 @@ class AppPluginService(object):
     def delete_java_agent_plugin_volume(self, session, env, service, volume_path, user, plugin_info):
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
-                service.monitor = None
                 volume = volume_service.get_volume_by_path(session, service, volume_path)
                 if volume:
                     code, msg, volume = volume_service.delete_service_volume_by_id(session=session, tenant_env=env,
@@ -755,15 +754,20 @@ class AppPluginService(object):
                     user_name=user.nick_name,
                     mode=None)
 
-    def update_obs_monitor(self, session: SessionClass, tenant_env, service, plugin_id):
+    def update_obs_monitor(self, session: SessionClass, tenant_env, service, plugin_id, operate="install"):
         plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
         if plugin_info:
-            if plugin_info.origin_share_id == "java_agent_plugin":
-                service.monitor = "plugin-java"
-            elif plugin_info.origin_share_id == "obs_redis_monitor_plugin":
-                service.monitor = "plugin-redis"
-            elif plugin_info.origin_share_id == "obs_mysql_monitor_plugin":
-                service.monitor = "plugin-mysql"
+            if operate == "install":
+                if plugin_info.origin_share_id == "java_agent_plugin":
+                    service.monitor = "plugin-java"
+                elif plugin_info.origin_share_id == "obs_redis_monitor_plugin":
+                    service.monitor = "plugin-redis"
+                elif plugin_info.origin_share_id == "obs_mysql_monitor_plugin":
+                    service.monitor = "plugin-mysql"
+            else:
+                if plugin_info.origin_share_id in ["java_agent_plugin", "obs_redis_monitor_plugin",
+                                                   "obs_mysql_monitor_plugin"]:
+                    service.monitor = None
 
     def delete_service_plugin_relation(self, session: SessionClass, service, plugin_id):
         app_plugin_relation_repo.delete_service_plugin(session=session, service_id=service.service_id,

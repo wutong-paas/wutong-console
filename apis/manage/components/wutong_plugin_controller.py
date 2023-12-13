@@ -425,6 +425,9 @@ async def delete_plugin(
     app_plugin_service.delete_java_agent_plugin_volume(session=session, env=env, service=service,
                                                        volume_path="/agent", user=user, plugin_info=plugin_info)
 
+    app_plugin_service.update_obs_monitor(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
+                                          operate="uninstall")
+
     return JSONResponse(general_message("0", "success", "卸载成功"), status_code=200)
 
 
