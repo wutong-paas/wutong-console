@@ -883,16 +883,24 @@ class AppPluginService(object):
                                    build_version=build_version,
                                    user=user, env=env)
 
-    def update_plugin_cpu_mem(self, session: SessionClass, env, service, plugin_id, memory, cpu, user, build_version):
+    def update_plugin_cpu_mem(self, session: SessionClass, env, service, plugin_id, memory, cpu, user, build_version,
+                              is_switch=True):
         data = dict()
         data["plugin_id"] = plugin_id
-        data["switch"] = True
+        data["switch"] = is_switch
         data["version_id"] = build_version
         data["operator"] = user.nick_name
         if memory is not None:
             data["plugin_memory"] = int(memory)
         if cpu is not None:
             data["plugin_cpu"] = int(cpu)
+
+        # 可观测插件状态位更改
+        if is_switch:
+            self.update_obs_monitor(session=session, tenant_env=env, service=service, plugin_id=plugin_id)
+        else:
+            service.monitor = None
+
         # 更新数据中心数据参数
         remote_plugin_client.update_plugin_service_relation(session,
                                                             env.region_code, env,
@@ -901,7 +909,7 @@ class AppPluginService(object):
         # 更新本地数据
         self.start_stop_service_plugin(session=session, service_id=service.service_id,
                                        plugin_id=plugin_id,
-                                       is_active=True, cpu=cpu, memory=memory)
+                                       is_active=is_switch, cpu=cpu, memory=memory)
 
     def update_config_attr_value(self, configs):
         for config_type in ["undefine_env", "downstream_env", "upstream_env"]:

@@ -1,16 +1,16 @@
 import json
 from typing import Any, Optional
-
+from service.application_service import application_service
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-
+from service.app_actions.app_manage import app_manage_service
 from clients.remote_plugin_client import remote_plugin_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from exceptions.main import ServiceHandleException
+from exceptions.main import ServiceHandleException, ResourceNotEnoughException
 from repository.application.application_repo import application_repo
 from repository.component.app_component_relation_repo import app_component_relation_repo
 from repository.component.group_service_repo import service_info_repo
@@ -483,9 +483,11 @@ async def open_or_stop_plugin(request: Request,
     # 更新内存和cpu
     memory = data.get("min_memory")
     cpu = data.get("min_cpu")
+    is_switch = data.get("is_switch")
 
     app_plugin_service.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id, memory=memory,
-                                             cpu=cpu, build_version=build_version, user=user, env=env)
+                                             cpu=cpu, build_version=build_version, user=user, env=env,
+                                             is_switch=is_switch)
     result = general_message("0", "success", "操作成功")
     return JSONResponse(result, status_code=200)
 
@@ -541,7 +543,7 @@ async def get_plugin_config(request: Request,
 
 
 @router.put("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/{plugin_id}/configs", response_model=Response,
-            name="更新组件插件配置")
+            name="组件插件配置并更新组件")
 async def update_plugin_config(
         env_id: Optional[str] = None,
         plugin_id: Optional[str] = None,
@@ -550,7 +552,7 @@ async def update_plugin_config(
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user)) -> Any:
     """
-    组件插件配置更新
+    组件插件配置并更新组件
     ---
     parameters:
         - name: tenantName
@@ -591,6 +593,22 @@ async def update_plugin_config(
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
                                              plugin_id=plugin_id, build_version=pbv.build_version, config=configs,
                                              user=user, memory=params.min_memory, cpu=params.min_cpu, )
+
+    # 更新组件
+    is_dep_running = app_manage_service.is_dep_service_running(session, env, service)
+    status_map = application_service.get_service_status(session=session, tenant_env=env, service=service)
+    status = status_map.get("status")
+    if status != "closed" and status != "undeploy" and is_dep_running:
+        try:
+            code, msg, _ = app_manage_service.upgrade(session=session, tenant_env=env, service=service, user=user)
+            bean = {}
+            if code != 200:
+                return JSONResponse(general_message(code, "upgrade app error", msg, bean=bean), status_code=code)
+        except ResourceNotEnoughException as re:
+            raise re
+        except AccountOverdueException as re:
+            logger.exception(re)
+            return JSONResponse(general_message(10410, "resource is not enough", "操作失败"), status_code=412)
 
     result = general_message("0", "success", "配置更新成功")
     return JSONResponse(result, 200)
