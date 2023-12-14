@@ -98,6 +98,7 @@ async def get_app_detail(request: Request,
     group_map = application_service.get_services_group_name(session=session, service_ids=[service.service_id])
     group_name = group_map.get(service.service_id)["group_name"]
     group_id = group_map.get(service.service_id)["group_id"]
+    group_code = group_map.get(service.service_id)["group_code"]
 
     service_plugin_relations = app_plugin_relation_repo.get_service_plugin_relation_by_service_id(
         session, service.service_id)
@@ -108,6 +109,7 @@ async def get_app_detail(request: Request,
             is_filebrowser_plugin = True
             continue
 
+    service_model["group_code"] = group_code
     service_model["group_name"] = group_name
     service_model["group_id"] = group_id
     service_model["namespace"] = namespace

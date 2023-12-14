@@ -260,17 +260,19 @@ async def install_sys_plugin(request: Request,
                                              service_id=service.service_id)
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
-    app_plugin_service.add_filemanage_port(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
-                                           container_port="6173", user=user)
-    app_plugin_service.add_filemanage_mount(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
-                                            plugin_version=build_version, user=user)
-    app_plugin_service.add_init_agent_mount(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
-                                            plugin_version=build_version, user=user)
 
-    app_plugin_service.update_obs_monitor(session=session, tenant_env=env, service=service, plugin_id=plugin_id)
+    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
+    app_plugin_service.add_filemanage_port(session=session, tenant_env=env, service=service, plugin_info=plugin_info,
+                                           user=user)
+    app_plugin_service.add_filemanage_mount(session=session, tenant_env=env, service=service, plugin_info=plugin_info,
+                                            plugin_id=plugin_id, plugin_version=build_version, user=user)
+    app_plugin_service.add_init_agent_mount(session=session, tenant_env=env, service=service, user=user,
+                                            plugin_info=plugin_info)
+
+    app_plugin_service.update_obs_monitor(service=service, plugin_info=plugin_info, operate="install")
 
     # 配置插件环境变量
-    app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
+    app_plugin_service.update_plugin_configs(session=session, env=env, service=service, plugin_info=plugin_info,
                                              plugin_id=plugin_id, build_version=build_version, config=configs,
                                              user=user, memory=params.min_memory, cpu=params.min_cpu)
 
@@ -347,8 +349,9 @@ async def install_plugin(request: Request,
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
                                           plugin_id=plugin_id, plugin_version=build_version, user=user)
 
+    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
     # 配置插件环境变量
-    app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
+    app_plugin_service.update_plugin_configs(session=session, env=env, service=service, plugin_info=plugin_info,
                                              plugin_id=plugin_id, build_version=build_version, config=configs,
                                              user=user, memory=params.min_memory, cpu=params.min_cpu)
 
@@ -425,8 +428,7 @@ async def delete_plugin(
     app_plugin_service.delete_java_agent_plugin_volume(session=session, env=env, service=service,
                                                        volume_path="/agent", user=user, plugin_info=plugin_info)
 
-    app_plugin_service.update_obs_monitor(session=session, tenant_env=env, service=service, plugin_id=plugin_id,
-                                          operate="uninstall")
+    app_plugin_service.update_obs_monitor(service=service, operate="uninstall", plugin_info=plugin_info)
 
     return JSONResponse(general_message("0", "success", "卸载成功"), status_code=200)
 
@@ -488,9 +490,10 @@ async def open_or_stop_plugin(request: Request,
     cpu = data.get("min_cpu")
     is_switch = data.get("is_switch")
 
+    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
     app_plugin_service.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id, memory=memory,
                                              cpu=cpu, build_version=build_version, user=user, env=env,
-                                             is_switch=is_switch)
+                                             is_switch=is_switch, plugin_info=plugin_info)
     result = general_message("0", "success", "操作成功")
     return JSONResponse(result, status_code=200)
 
@@ -592,8 +595,9 @@ async def update_plugin_config(
     if not pbv:
         return JSONResponse(general_message(400, "no usable plugin version", "无最新更新的版本信息，无法更新配置"), status_code=400)
 
+    plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
     # 配置插件环境变量
-    app_plugin_service.update_plugin_configs(session=session, env=env, service=service,
+    app_plugin_service.update_plugin_configs(session=session, env=env, service=service, plugin_info=plugin_info,
                                              plugin_id=plugin_id, build_version=pbv.build_version, config=configs,
                                              user=user, memory=params.min_memory, cpu=params.min_cpu, )
 

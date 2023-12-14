@@ -78,6 +78,7 @@ class ComponentApplicationRelationRepository(BaseRepository[ComponentApplication
         group_ids = [g.group_id for g in sgr]
         groups = session.execute(select(Application).where(
             Application.ID.in_(group_ids))).scalars().all()
+        group_code = {g.ID: g.k8s_app for g in groups}
         group_map = {g.ID: g.group_name for g in groups}
         project_map = {g.ID: g.project_id for g in groups}
         env_map = {g.ID: g.tenant_env_id for g in groups}
@@ -87,6 +88,7 @@ class ComponentApplicationRelationRepository(BaseRepository[ComponentApplication
             group_id = sgr_map.get(service_id, None)
             group_info = dict()
             if group_id:
+                group_info["group_code"] = group_code[group_id]
                 group_info["group_name"] = group_map[group_id]
                 group_info["group_id"] = group_id
                 group_info["project_id"] = project_map[group_id]
