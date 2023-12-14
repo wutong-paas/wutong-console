@@ -147,8 +147,14 @@ class AppMntService(object):
                 continue
             id_to_services[svc.service_id].append(svc)
 
-        result = []
+        exist_mnts = []
+        service_ids = [svc.service_id for svc in services]
         for mnt in mnts:
+            if mnt.service_id in service_ids:
+                exist_mnts.append(mnt)
+
+        result = []
+        for mnt in exist_mnts:
             # get volume
             vol = volume_repo.get_service_volume_by_name(session, service.service_id, mnt.mnt_name)
             if not vol:
