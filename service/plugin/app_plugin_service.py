@@ -476,6 +476,9 @@ class AppPluginService(object):
                 raise has_the_same_category_plugin
             if category_info[1] == "in-and-out" and ("net-plugin:up" in categories or "net-plugin:down" in categories):
                 raise has_the_same_category_plugin
+        if category_info[0] == "observability-plugin":
+            if plugin_info.category in categories:
+                raise has_the_same_category_plugin
 
     def __check_ports_for_config_items(self, session: SessionClass, ports, items):
         for item in items:
@@ -670,9 +673,7 @@ class AppPluginService(object):
                     and "a same kind plugin has been linked" in e.message["body"]["msg"]:
                 raise ServiceHandleException(msg="install plugin fail", msg_show="相同类插件已开通不能重复安装", status_code=409)
 
-    def add_filemanage_port(self, session: SessionClass, tenant_env, service, plugin_id, container_port, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
-
+    def add_filemanage_port(self, session: SessionClass, tenant_env, service, plugin_info, user=None):
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin" \
                     or plugin_info.origin_share_id == "redis_dbgate_plugin" \
@@ -695,8 +696,8 @@ class AppPluginService(object):
                                               k8s_service_name=None,
                                               user_name=user.nick_name)
 
-    def add_filemanage_mount(self, session: SessionClass, tenant_env, service, plugin_id, plugin_version, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
+    def add_filemanage_mount(self, session: SessionClass, tenant_env, service, plugin_id, plugin_version, plugin_info,
+                             user=None):
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
@@ -731,8 +732,7 @@ class AppPluginService(object):
                     user_name=user.nick_name,
                     mode=None)
 
-    def add_init_agent_mount(self, session: SessionClass, tenant_env, service, plugin_id, plugin_version, user=None):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
+    def add_init_agent_mount(self, session: SessionClass, tenant_env, service, plugin_info, user=None):
         volume_name = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         if plugin_info:
             if plugin_info.origin_share_id == "java_agent_plugin":
@@ -754,8 +754,7 @@ class AppPluginService(object):
                     user_name=user.nick_name,
                     mode=None)
 
-    def update_obs_monitor(self, session: SessionClass, tenant_env, service, plugin_id, operate="install"):
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, tenant_env.env_id, plugin_id)
+    def update_obs_monitor(self, service, plugin_info, operate="install"):
         if plugin_info:
             if operate == "install":
                 if plugin_info.origin_share_id == "java_agent_plugin":
@@ -806,7 +805,7 @@ class AppPluginService(object):
         return result_list, total
 
     def update_plugin_configs(self, session: SessionClass, env, service, plugin_id, config, user, build_version, memory,
-                              cpu):
+                              cpu, plugin_info):
         # 更新配置项attr_value值
         self.update_config_attr_value(config)
 
@@ -819,7 +818,6 @@ class AppPluginService(object):
                                           config=config,
                                           response_region=env.region_code, user=user)
 
-        plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
         if plugin_info:
             if plugin_info.origin_share_id == "filebrowser_plugin":
                 old_config_attr_info = result_bean["undefine_env"]["config"]
@@ -883,11 +881,12 @@ class AppPluginService(object):
 
         # 配置插件cpu和内存
         self.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id,
-                                   memory=memory, cpu=cpu,
+                                   memory=memory, cpu=cpu, plugin_info=plugin_info,
                                    build_version=build_version,
                                    user=user, env=env)
 
     def update_plugin_cpu_mem(self, session: SessionClass, env, service, plugin_id, memory, cpu, user, build_version,
+                              plugin_info,
                               is_switch=True):
         data = dict()
         data["plugin_id"] = plugin_id
@@ -901,7 +900,7 @@ class AppPluginService(object):
 
         # 可观测插件状态位更改
         if is_switch:
-            self.update_obs_monitor(session=session, tenant_env=env, service=service, plugin_id=plugin_id)
+            self.update_obs_monitor(service=service, plugin_info=plugin_info)
         else:
             service.monitor = None
 
