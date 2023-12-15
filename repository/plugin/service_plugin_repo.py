@@ -462,7 +462,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                 if not plugins:
                     plugin_id = default_plugin_service.add_default_plugin(session=session, user=user,
                                                                           tenant_env=tenant_env,
-                                                                          region=tenant_env.region_cod,
+                                                                          region=tenant_env.region_code,
                                                                           plugin_type=plugin_type,
                                                                           build_version=build_version)
                 else:

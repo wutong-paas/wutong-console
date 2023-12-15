@@ -18,7 +18,8 @@ from service.plugin.plugin_version_service import plugin_version_service
 
 allow_plugins = [
     PluginCategoryConstants.OUTPUT_INPUT_NET, PluginCategoryConstants.OUTPUT_NET, PluginCategoryConstants.INPUT_NET,
-    PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE, PluginCategoryConstants.DBGATE_TYPE
+    PluginCategoryConstants.INIT_TYPE, PluginCategoryConstants.COMMON_TYPE, PluginCategoryConstants.DBGATE_TYPE,
+    PluginCategoryConstants.OBSERVABILITY_TYPE
 ]
 
 default_plugins = [
@@ -161,6 +162,8 @@ class PluginService(object):
                 "password": ""
             }
             code, msg, plugin_base_info = self.create_tenant_plugin(session=session, plugin_params=plugin_params)
+            if code != 200:
+                raise ServiceHandleException("create plugin error", msg, code, code)
             plugin_base_info.origin = "sys"
             plugin_base_info.origin_share_id = plugin_type
             # plugin_base_info.save()
