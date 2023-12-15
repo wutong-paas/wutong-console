@@ -56,7 +56,8 @@ async def get_virtual_machine(
         for port in ports:
             protocol = port.get("protocol", 'http')
             gateways = port.get("gateways", [])
-            if gateways:
+            gateway_enabled = port.get("gatewayEnabled", False)
+            if gateways and gateway_enabled:
                 for gateway in gateways:
                     if protocol == 'http':
                         gateway_host.append("http://" + gateway["gatewayHost"] + gateway["gatewayPath"])
