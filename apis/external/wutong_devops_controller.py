@@ -135,7 +135,7 @@ async def deploy_business_component(
             return JSONResponse(general_message(400, "docker_cmd cannot be null", "参数错误"), status_code=400)
         application = application_repo.get_by_primary_key(session=session, primary_key=application_id)
         if application and application.tenant_env_id != env.env_id:
-            return JSONResponse(general_message(400, "not found app at team", "应用不属于该团队"), status_code=400)
+            return JSONResponse(general_message(400, "not found app at team", "应用不属于该环境"), status_code=400)
 
         user_dict = {
             "nick_name": "超级管理员"

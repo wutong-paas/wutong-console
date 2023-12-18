@@ -238,7 +238,9 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         downstream_env_list = []
         config_groups = needed_plugin_config["config_group"]
 
-        if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin":
+        if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin" or \
+                plugin_type == "java_agent_plugin" or plugin_type == "obs_redis_monitor_plugin" or \
+                plugin_type == "obs_mysql_monitor_plugin":
             min_memory = 512
         elif plugin_type == "filebrowser_plugin":
             min_memory = 256
@@ -510,6 +512,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                     # 未安装的系统插件需要更新 undefine_env
                     config_groups.update({"undefine_env": config_file_groups["undefine_env"]})
                     plugin_dict.update({"configs": config_groups})
+                    plugin_dict.update({"min_memory": config_file_groups["memory"]})
                     uninstalled_plugins.append(plugin_dict)
         elif origin == "shared":
             query_installed_plugin = """{0} AND tp.origin="{1}" """.format(SHARED_QUERY_INSTALLED_SQL, origin)
