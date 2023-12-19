@@ -20,5 +20,10 @@ class VirtualOsRepository(BaseRepository[VirtualOsInfo]):
         return session.execute(select(VirtualOsInfo).order_by(
             VirtualOsInfo.create_time.desc())).scalars().all()
 
+    def delete_os_info_by_os_name(self, session, os_name):
+        session.execute(delete(VirtualOsInfo).where(
+            VirtualOsInfo.os_name == os_name
+        ))
+
 
 virtual_os_repo = VirtualOsRepository(VirtualOsInfo)

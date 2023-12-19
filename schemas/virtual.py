@@ -122,7 +122,6 @@ class CreateVirtualImageParam(BaseModel):
     desc: Optional[str] = ""
 
 
-# 更新虚拟机镜像参数
 class UpdateVirtualImageParam(BaseModel):
     """
     更新虚拟机镜像参数
@@ -133,3 +132,11 @@ class UpdateVirtualImageParam(BaseModel):
     image_address: Annotated[str, Field(title="镜像地址")] = None
     version: Annotated[str, Field(title="版本")] = None
     desc: Annotated[str, Field(title="描述")] = ""
+
+
+class CreateImageOSParam(BaseModel):
+    """
+    创建虚拟机镜像系统参数
+    """
+    os_name: Annotated[str, Field(title="系统名称")] = None
+    logo: Annotated[str, Field(title="系统logo")] = None

@@ -28,3 +28,4 @@ class VirtualOsInfo(Base):
     os_name = Column(String(32), nullable=False, unique=True, comment="操作系统名称")
     operator = Column(String(64), nullable=True, comment="操作人")
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
+    logo = Column(String(255), comment="操作系统logo", nullable=True)
