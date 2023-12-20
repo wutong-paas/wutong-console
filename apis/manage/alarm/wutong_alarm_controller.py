@@ -43,7 +43,10 @@ async def get_alarm_group(
         else:
             for alarm_group_item in alarm_group_list:
                 if alarm_group_item["name"] == team_name:
-                    alarm_group_item["children"].append({"name": group_name, "key": 1, "id": group_id})
+                    if alarm_group_item.get("children"):
+                        alarm_group_item["children"].append({"name": group_name, "key": 1, "id": group_id})
+                    else:
+                        alarm_group_item.update({"children": [{"name": group_name, "key": 1, "id": group_id}]})
 
     return JSONResponse(general_message(200, "create group success", "查询通知分组成功", list=alarm_group_list),
                         status_code=200)
