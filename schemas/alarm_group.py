@@ -14,5 +14,13 @@ class PutAlarmGroupParam(BaseModel):
     """
     修改告警分组参数
     """
-    group_id: Annotated[str, Field(title="分组id")] = None
+    group_id: Annotated[int, Field(title="分组id")] = None
     group_name: Annotated[str, Field(title="分组名称")] = None
+
+
+class AddAlarmUserParam(BaseModel):
+    """
+    添加联系人参数
+    """
+    group_id: Annotated[int, Field(title="分组id")] = None
+    users: Annotated[list, Field(title="联系人列表")] = None

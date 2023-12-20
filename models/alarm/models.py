@@ -32,3 +32,16 @@ class AlarmGroup(Base):
     team_name = Column(String(64), comment="团队名", nullable=True)
     operator = Column(String(64), comment="创建人", nullable=True)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
+
+
+class AlarmGroupUserRelation(Base):
+    """告警分组人员"""
+
+    __tablename__ = "alarm_group_user_relation"
+
+    ID = Column(Integer, primary_key=True)
+    group_id = Column(Integer, comment="分组名", nullable=False)
+    user_name = Column(String(64), comment="团队名", nullable=True)
+    user_alias = Column(String(64), comment="创建人", nullable=True)
+    phone = Column(String(11), comment="手机号", nullable=True)
+    email = Column(String(64), comment="邮箱", nullable=True)

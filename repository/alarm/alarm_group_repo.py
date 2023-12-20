@@ -1,4 +1,4 @@
-from sqlalchemy import select, func, delete, update
+from sqlalchemy import select, delete
 
 from models.alarm.models import AlarmGroup
 from repository.base import BaseRepository

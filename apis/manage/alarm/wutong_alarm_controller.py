@@ -1,12 +1,14 @@
 from typing import Any, Optional
 from fastapi import APIRouter, Depends
+from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from starlette.responses import JSONResponse
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.alarm.alarm_group_repo import alarm_group_repo
-from schemas.alarm_group import CreateAlarmGroupParam, PutAlarmGroupParam
+from repository.alarm.alarm_user_repo import alarm_group_user_repo
+from schemas.alarm_group import CreateAlarmGroupParam, PutAlarmGroupParam, AddAlarmUserParam
 from schemas.response import Response
 
 router = APIRouter()
@@ -29,9 +31,14 @@ async def get_alarm_group(
             team_name = "平台"
         if team_name not in team_names:
             team_names.append(team_name)
-            alarm_group_list.append({"children": [{"name": group_name, "key": 1, "id": group_id}],
-                                     "name": team_name,
-                                     "key": 0})
+            if group_name:
+                data = {"children": [{"name": group_name, "key": 1, "id": group_id}],
+                        "name": team_name,
+                        "key": 0}
+            else:
+                data = {"name": team_name,
+                        "key": 0}
+            alarm_group_list.append(data)
         else:
             for alarm_group_item in alarm_group_list:
                 if alarm_group_item["name"] == team_name:
@@ -109,3 +116,47 @@ async def put_alarm_group(
         return JSONResponse(general_message(500, "delete group failed", "编辑通知分组失败"), status_code=500)
 
     return JSONResponse(general_message(200, "delete group success", "编辑通知分组成功"), status_code=200)
+
+
+@router.post("/plat/alarm/group/users", response_model=Response, name="添加联系人")
+async def add_alarm_group_user(
+        params: Optional[AddAlarmUserParam] = AddAlarmUserParam(),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    添加联系人
+    """
+    group_id = params.group_id
+    users = params.users
+
+    alarm_group = alarm_group_repo.get_alarm_group_by_id(session, group_id)
+    if not alarm_group:
+        return JSONResponse(general_message(500, "group is not exist", "分组不存在"), status_code=500)
+
+    for user in users:
+        user.update({"group_id": group_id})
+        group_users = alarm_group_user_repo.get_alarm_user_by_group_id(session, group_id)
+        for group_user in group_users:
+            user_name = group_user.user_name
+            if user_name == user.get("user_name"):
+                return JSONResponse(general_message(500, "user is exist", "联系人已存在"), status_code=500)
+
+    try:
+        alarm_group_user_repo.add_alarm_user(session, users)
+    except Exception as err:
+        logger.error(err)
+        return JSONResponse(general_message(500, "add user failed", "添加联系人失败"), status_code=500)
+
+    return JSONResponse(general_message(200, "add user success", "添加联系人成功"), status_code=200)
+
+
+@router.get("/plat/alarm/group/users", response_model=Response, name="查询联系人")
+async def get_alarm_group_user(
+        group_id: Optional[int] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    查询联系人
+    """
+    group_users = alarm_group_user_repo.get_alarm_user_by_group_id(session, group_id)
+    return JSONResponse(
+        general_message(200, "add user success", "查询联系人成功", list=jsonable_encoder(group_users) if group_users else []),
+        status_code=200)
