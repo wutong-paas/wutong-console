@@ -19,5 +19,12 @@ class AlarmGroupRepo(BaseRepository[AlarmGroup]):
             AlarmGroup.group_name == group_name,
             AlarmGroup.team_name == team_name)).scalars().first()
 
+    def delete_alarm_group_by_id(self, session, group_id):
+        session.execute(delete(AlarmGroup).where(AlarmGroup.ID == group_id))
+        session.flush()
+
+    def get_alarm_group_by_id(self, session, group_id):
+        return session.execute(select(AlarmGroup).where(AlarmGroup.ID == group_id)).scalars().first()
+
 
 alarm_group_repo = AlarmGroupRepo(AlarmGroup)
