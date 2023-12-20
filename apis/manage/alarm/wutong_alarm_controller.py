@@ -27,7 +27,8 @@ async def get_alarm_group(
         group_name = alarm_group.group_name
         team_name = alarm_group.team_name
         group_id = alarm_group.ID
-        if not team_name:
+        group_type = alarm_group.group_type
+        if group_type == "plat":
             team_name = "平台"
         if team_name not in team_names:
             team_names.append(team_name)
@@ -57,16 +58,19 @@ async def create_alarm_group(
     创建通知分组
     """
     group_name = params.group_name
+    team_name = params.team_name
+    group_type = params.group_type
     if not group_name:
         return JSONResponse(general_message(400, "group name is not null", "分组名称不能为空"), status_code=400)
 
-    alarm_group = alarm_group_repo.get_alarm_group_by_team(session, group_name, params.team_name)
+    alarm_group = alarm_group_repo.get_alarm_group_by_team(session, group_name, group_type, team_name)
     if alarm_group:
         return JSONResponse(general_message(500, "group name is exist", "分组名称已存在"), status_code=500)
 
     alarm_group_info = {
         "group_name": group_name,
-        "team_name": params.team_name,
+        "team_name": team_name,
+        "group_type": group_type,
         "operator": user.nick_name
     }
     try:
