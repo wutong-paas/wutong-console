@@ -93,13 +93,13 @@ async def get_app_state(request: Request,
 
 
 @router.get("/teams/{team_name}/env/{env_id}/overview", response_model=Response, name="总览环境信息")
-async def overview_team_env_info(region_name: Optional[str] = None,
-                                 env_id: Optional[str] = None,
-                                 project_id: Optional[str] = None,
-                                 user=Depends(deps.get_current_user),
-                                 env=Depends(deps.get_current_team_env),
-                                 session: SessionClass = Depends(deps.get_session)
-                                 ) -> Any:
+async def overview_team_env_info(
+        env_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env),
+        session: SessionClass = Depends(deps.get_session)
+) -> Any:
     """
      总览 团队信息
      ---
@@ -119,7 +119,7 @@ async def overview_team_env_info(region_name: Optional[str] = None,
 
     overview_detail = dict()
 
-    region = region_repo.get_region_by_region_name(session, region_name)
+    region = region_repo.get_region_by_region_name(session, env.region_code)
     if not region:
         overview_detail["region_health"] = False
         return JSONResponse(general_message("0", "success", "查询成功", bean=overview_detail), status_code=200)

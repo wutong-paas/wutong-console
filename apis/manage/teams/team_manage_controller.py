@@ -61,7 +61,7 @@ def __sort_events(event1, event2):
 @router.get("/teams/{team_name}/env/{env_id}/apps", response_model=Response, name="总览环境应用信息")
 async def overview_env_app_info(request: Request,
                                 page: int = Query(default=1, ge=1, le=9999),
-                                page_size: int = Query(default=10, ge=1, le=500),
+                                page_size: int = Query(default=10, ge=1, le=999),
                                 status: Optional[str] = "all",
                                 project_ids: Optional[str] = None,
                                 query: Optional[str] = "",
