@@ -13,5 +13,11 @@ class AlarmGroupUserRepo(BaseRepository[AlarmGroupUserRelation]):
         session.add_all(group_users)
         session.flush()
 
+    def delete_alarm_user_by_group_id(self, session, group_id, user_name):
+        session.execute(delete(AlarmGroupUserRelation).where(
+            AlarmGroupUserRelation.group_id == group_id,
+            AlarmGroupUserRelation.user_name == user_name))
+        session.flush()
+
 
 alarm_group_user_repo = AlarmGroupUserRepo(AlarmGroupUserRelation)

@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, or_
 
 from models.alarm.models import AlarmGroup
 from repository.base import BaseRepository
@@ -11,7 +11,11 @@ class AlarmGroupRepo(BaseRepository[AlarmGroup]):
         session.add(alarm_group)
         session.flush()
 
-    def get_alarm_group(self, session):
+    def get_alarm_group(self, session, query):
+        if query:
+            return session.execute(select(AlarmGroup).where(
+                or_(AlarmGroup.team_name.contains(query),
+                    AlarmGroup.group_name.contains(query)))).scalars().all()
         return session.execute(select(AlarmGroup)).scalars().all()
 
     def get_alarm_group_by_team(self, session, group_name, group_type, team_name):
