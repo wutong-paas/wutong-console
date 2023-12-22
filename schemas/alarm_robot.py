@@ -7,7 +7,7 @@ class AlarmRobotParam(BaseModel):
     机器人参数
     """
     robot_name: Annotated[str, Field(title="机器人名称")] = None
-    webhook_address: Annotated[str, Field(title="webhook地址")] = None
+    webhook_addr: Annotated[str, Field(title="webhook地址")] = None
 
 
 class UpdateAlarmRobotParam(BaseModel):
@@ -16,4 +16,4 @@ class UpdateAlarmRobotParam(BaseModel):
     """
     robot_id: Annotated[str, Field(title="机器人ID")] = None
     robot_name: Annotated[str, Field(title="机器人名称")] = None
-    webhook_address: Annotated[str, Field(title="webhook地址")] = None
+    webhook_addr: Annotated[str, Field(title="webhook地址")] = None

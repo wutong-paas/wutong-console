@@ -84,7 +84,7 @@ async def put_alarm_robot(
     """
 
     try:
-        robot = alarm_robot_repo.get_alarm_robot_by_name(session, params.robot_id)
+        robot = alarm_robot_repo.get_alarm_robot_by_id(session, params.robot_id)
         robot_by_name = alarm_robot_repo.get_alarm_robot_by_name(session, params.robot_name)
         if robot_by_name and robot_by_name.ID != robot.ID:
             return JSONResponse(general_message(500, "robot already exists", "已存在该名字机器人"), status_code=200)
@@ -93,6 +93,6 @@ async def put_alarm_robot(
         robot.webhook_addr = params.webhook_addr
     except Exception as err:
         logger.error(err)
-        return JSONResponse(general_message(500, "add robot failed", "查询机器人失败"), status_code=200)
-    return JSONResponse(general_message(200, "add robot success", "查询机器人成功", list=jsonable_encoder(robots)),
+        return JSONResponse(general_message(500, "add robot failed", "编辑机器人失败"), status_code=200)
+    return JSONResponse(general_message(200, "add robot success", "编辑机器人成功"),
                         status_code=200)
