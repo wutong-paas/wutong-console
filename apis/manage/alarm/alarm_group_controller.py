@@ -8,6 +8,7 @@ from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.alarm.alarm_group_repo import alarm_group_repo
+from repository.alarm.alarm_robot_repo import alarm_robot_repo
 from schemas.alarm_group import CreateAlarmGroupParam, PutAlarmGroupParam, AddAlarmUserParam, DeleteAlarmUserParam
 from schemas.response import Response
 

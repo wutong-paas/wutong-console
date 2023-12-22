@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from apis.external import wutong_devops_controller, wutong_hunan_expressway
-from apis.manage.alarm import wutong_alarm_controller
+from apis.manage.alarm import alarm_group_controller, alarm_rebot_controller
 from apis.manage.application import application_controller, wutong_topological_controller, wutong_temas_controller, \
     domain_controller, app_backup_controller, app_upgrade_controller
 from apis.manage.common import common_controller
@@ -109,4 +109,5 @@ api_router.include_router(virtual_machine_ports_controller.router, tags=["虚拟
 api_router.include_router(virtual_image_manage_controller.router, tags=["虚拟机镜像管理"])
 api_router.include_router(virtual_os_manage_controller.router, tags=["虚拟机操作系统管理"])
 # alarm
-api_router.include_router(wutong_alarm_controller.router, tags=["告警管理"])
+api_router.include_router(alarm_group_controller.router, tags=["告警分组管理"])
+api_router.include_router(alarm_rebot_controller.router, tags=["告警分组管理"])

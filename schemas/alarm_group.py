@@ -33,3 +33,11 @@ class DeleteAlarmUserParam(BaseModel):
     """
     group_id: Annotated[int, Field(title="分组id")] = None
     user_names: Annotated[list, Field(title="联系人账号列表")] = None
+
+
+class AddAlarmRobotParam(BaseModel):
+    """
+    添加机器人参数
+    """
+    robot_name: Annotated[str, Field(title="机器人名称")] = None
+    webhook_address: Annotated[str, Field(title="webhook地址")] = None

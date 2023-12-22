@@ -36,14 +36,13 @@ class AlarmGroup(Base):
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
 
 
-class AlarmGroupUserRelation(Base):
-    """告警分组人员"""
+class AlarmRobot(Base):
+    """告警机器人"""
 
-    __tablename__ = "alarm_group_user_relation"
+    __tablename__ = "alarm_robot"
 
     ID = Column(Integer, primary_key=True)
-    group_id = Column(Integer, comment="分组名", nullable=False)
-    user_name = Column(String(64), comment="团队名", nullable=True)
-    user_alias = Column(String(64), comment="创建人", nullable=True)
-    phone = Column(String(11), comment="手机号", nullable=True)
-    email = Column(String(64), comment="邮箱", nullable=True)
+    robot_name = Column(String(32), comment="机器人名称", nullable=False)
+    webhook_addr = Column(String(255), comment="webhook地址", nullable=False)
+    operator = Column(String(64), comment="创建人", nullable=False)
+    create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
