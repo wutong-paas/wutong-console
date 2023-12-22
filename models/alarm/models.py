@@ -32,6 +32,7 @@ class AlarmGroup(Base):
     team_name = Column(String(64), comment="团队名", nullable=True)
     group_type = Column(String(32), comment="分组类型(plat/team)", nullable=False)
     contacts = Column(LONGTEXT, comment="联系人", nullable=True)
+    obs_uid = Column(String(64), comment="obs uid", nullable=True)
     operator = Column(String(64), comment="创建人", nullable=False)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
 
@@ -44,5 +45,6 @@ class AlarmRobot(Base):
     ID = Column(Integer, primary_key=True)
     robot_name = Column(String(32), comment="机器人名称", nullable=False)
     webhook_addr = Column(String(255), comment="webhook地址", nullable=False)
+    obs_uid = Column(String(64), comment="obs uid", nullable=True)
     operator = Column(String(64), comment="创建人", nullable=False)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
