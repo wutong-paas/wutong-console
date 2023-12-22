@@ -28,7 +28,7 @@ class AlarmGroup(Base):
     __tablename__ = "alarm_group"
 
     ID = Column(Integer, primary_key=True)
-    group_name = Column(String(32), comment="分组名", nullable=False)
+    group_name = Column(String(32), comment="分组名", nullable=True)
     team_name = Column(String(64), comment="团队名", nullable=True)
     group_type = Column(String(32), comment="分组类型(plat/team)", nullable=False)
     contacts = Column(LONGTEXT, comment="联系人", nullable=True)

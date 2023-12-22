@@ -118,6 +118,14 @@ def startup_event():
     # 启动定时任务调度器
     start_scheduler()
 
+    # 初始化告警分组
+    session = SessionClass()
+    alarm_group = session.execute("select * from alarm_group where group_type='plat'").fetchall()
+    if len(alarm_group) == 0:
+        session.execute("insert into alarm_group(operator,group_type) values('超级管理员','plat')")
+        session.commit()
+    session.close()
+
 
 @app.on_event('shutdown')
 def shutdown_event():
