@@ -115,7 +115,7 @@ async def put_alarm_robot(
                         status_code=200)
 
 
-@router.get("/plat/alarm/group/robot/test", response_model=Response, name="测试机器人")
+@router.post("/plat/alarm/group/robot/test", response_model=Response, name="测试机器人")
 async def test_alarm_robot(
         request: Request,
         params: Optional[AlarmRobotParam] = AlarmRobotParam(),
@@ -140,11 +140,15 @@ async def test_alarm_robot(
         regions = team_region_repo.get_regions(session)
         for region in regions:
             region_name = region.region_name
-            body = await alarm_service.obs_service_alarm(session, request, "/v1/alert/contact/test", body, region_name)
+            try:
+                body = await alarm_service.obs_service_alarm(session, request, "/v1/alert/contact/test", body,
+                                                             region_name)
+            except Exception as err:
+                logger.error(err)
+                continue
             if body and body["code"] == 200 and body["data"]["status"] == 200:
                 return JSONResponse(general_message(200, "test success", "测试成功"), status_code=200)
-            else:
-                return JSONResponse(general_message(500, "test failed", "测试失败"), status_code=200)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "test failed", "测试失败"), status_code=200)
+    return JSONResponse(general_message(500, "test failed", "测试失败"), status_code=200)

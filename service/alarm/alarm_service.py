@@ -22,7 +22,7 @@ class AlarmService:
             body)
         if response.status_code != 200:
             raise ServiceHandleException("obs service error", msg_show=bytes.decode(response.body),
-                                         error_code=response.status)
+                                         error_code=response.status_code)
         return json.loads(response.body)
 
 
