@@ -183,7 +183,7 @@ async def overview_team_env_info(
     cpu_usage = 0
     memory_usage = 0
     try:
-        resp = remote_build_client.list_app_statuses_by_app_ids(session, env, region_name,
+        resp = remote_build_client.list_app_statuses_by_app_ids(session, env, env.region_code,
                                                                 {"app_ids": region_app_ids})
         app_statuses = resp.get("list", [])
         if app_statuses:

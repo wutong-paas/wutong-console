@@ -154,7 +154,10 @@ async def add_alarm_group_user(
 
     try:
         user_names = ','.join(user_names)
-        contacts = alarm_group.contacts + "," + user_names
+        if alarm_group.contacts:
+            contacts = alarm_group.contacts + "," + user_names
+        else:
+            contacts = user_names
         contacts = contacts.split(",")
         contacts = list(set(contacts))
         alarm_group.contacts = ','.join(contacts)
@@ -202,9 +205,18 @@ async def get_alarm_group_user(
     """
     删除联系人
     """
+
     try:
-        pass
-        # alarm_group_user_repo.delete_alarm_user_by_group_id(session, params.group_id, params.user_name)
+        alarm_group = alarm_group_repo.get_alarm_group_by_id(session, params.group_id)
+        if not alarm_group:
+            return JSONResponse(general_message(500, "group is not exist", "分组不存在"), status_code=200)
+        contacts = alarm_group.contacts
+        contacts = contacts.split(",") if contacts else []
+        new_contacts = []
+        for contact in contacts:
+            if contact not in params.user_names:
+                new_contacts.append(contact)
+        alarm_group.contacts = ','.join(new_contacts)
     except:
         return JSONResponse(general_message(500, "delete user failed", "删除联系人失败"), status_code=200)
     return JSONResponse(

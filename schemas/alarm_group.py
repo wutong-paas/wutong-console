@@ -32,4 +32,4 @@ class DeleteAlarmUserParam(BaseModel):
     删除联系人参数
     """
     group_id: Annotated[int, Field(title="分组id")] = None
-    user_name: Annotated[str, Field(title="联系人账号")] = None
+    user_names: Annotated[list, Field(title="联系人账号列表")] = None
