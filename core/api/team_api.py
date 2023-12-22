@@ -45,5 +45,22 @@ class TeamApi(object):
             raise ServiceHandleException(msg="get user project auth error", msg_show=msg, status_code=500)
         return project_ids
 
+    def get_users_info(self, user_names, token):
+        params = {
+            "usernameList": user_names
+        }
+
+        self.headers.update({"Authorization": token})
+        url = "{}/wutong-cube-core/user/find-list-by-username-list".format(settings.USER_AUTH_API_URL)
+        response = requests.post(url, json=params, headers=self.headers)
+
+        data = response.json()
+        code = data["code"]
+        msg = data["msg"]
+        users_info = data["data"]
+        if code != '0':
+            raise ServiceHandleException(msg="get user project auth error", msg_show=msg, status_code=500)
+        return users_info
+
 
 team_api = TeamApi()

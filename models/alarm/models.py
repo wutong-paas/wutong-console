@@ -31,6 +31,7 @@ class AlarmGroup(Base):
     group_name = Column(String(32), comment="分组名", nullable=False)
     team_name = Column(String(64), comment="团队名", nullable=True)
     group_type = Column(String(32), comment="分组类型(plat/team)", nullable=False)
+    contacts = Column(LONGTEXT, comment="联系人", nullable=True)
     operator = Column(String(64), comment="创建人", nullable=False)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
 
