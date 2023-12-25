@@ -9,7 +9,9 @@ class AlarmRegionService:
     async def add_or_update_alarm_region(self, session, request, users_info, group_id, alarm_group, contacts):
         address = []
         for user_info in users_info:
-            address.append(user_info.get("email"))
+            email = user_info.get("email")
+            if email:
+                address.append(email)
         body = {
             "name": "测试",  # alarm_group.group_name,
             "type": "email",
