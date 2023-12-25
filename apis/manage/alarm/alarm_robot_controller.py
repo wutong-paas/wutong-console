@@ -79,6 +79,7 @@ async def add_alarm_robot(
 
 @router.delete("/plat/alarm/group/robot", response_model=Response, name="删除机器人")
 async def delete_alarm_robot(
+        request: Request,
         robot_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -101,8 +102,8 @@ async def delete_alarm_robot(
                 logger.warning(err)
                 continue
 
-        alarm_region_repo.delete_alarm_region_by_group_id(session, robot.ID)
-        alarm_robot_repo.delete_alarm_region(session, robot_name, "wechat")
+        alarm_region_repo.delete_alarm_region(session, robot.ID, "wechat")
+        alarm_robot_repo.delete_alarm_robot_by_name(session, robot_name)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add robot failed", "删除机器人失败"), status_code=200)
@@ -128,6 +129,7 @@ async def get_alarm_robot(
 
 @router.put("/plat/alarm/group/robot", response_model=Response, name="编辑机器人")
 async def put_alarm_robot(
+        request: Request,
         params: Optional[UpdateAlarmRobotParam] = UpdateAlarmRobotParam(),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -141,9 +143,9 @@ async def put_alarm_robot(
             return JSONResponse(general_message(500, "robot already exists", "已存在该名字机器人"), status_code=200)
 
         body = {
-            "name": robot_name,
+            "name": params.robot_name,
             "type": "wechat",
-            "address": webhook_addr
+            "address": params.webhook_addr
         }
         status = 0
         alarm_region_rels = alarm_region_repo.get_alarm_regions(session, robot.ID, "wechat")
@@ -152,8 +154,7 @@ async def put_alarm_robot(
             try:
                 if alarm_region_rel:
                     obs_uid = alarm_region_rel.obs_uid
-                    body.update({"uid": obs_uid})
-                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
+                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/" + obs_uid, body, region)
                     if body and body["code"] == 200:
                         status = 1
             except Exception as err:

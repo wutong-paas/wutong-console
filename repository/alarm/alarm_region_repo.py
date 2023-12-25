@@ -22,10 +22,10 @@ class AlarmRegionRepo(BaseRepository[AlarmRegionRelation]):
             AlarmRegionRelation.group_id == group_id,
             AlarmRegionRelation.alarm_type == type)).scalars().all()
 
-    def delete_alarm_region(self, session, group_id, type):
+    def delete_alarm_region(self, session, group_id, alarm_type):
         session.execute(delete(AlarmRegionRelation).where(
             AlarmRegionRelation.group_id == group_id,
-            AlarmRegionRelation.alarm_type == type))
+            AlarmRegionRelation.alarm_type == alarm_type))
 
 
 alarm_region_repo = AlarmRegionRepo(AlarmRegionRelation)
