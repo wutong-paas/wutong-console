@@ -19,7 +19,7 @@ class AlarmRegionService:
         for region in regions:
             region_code = region.region_name
             try:
-                alarm_region_rel = alarm_region_repo.get_alarm_region(session, group_id, region_code)
+                alarm_region_rel = alarm_region_repo.get_alarm_region(session, group_id, region_code, "email")
                 if alarm_region_rel:
                     obs_uid = alarm_region_rel.obs_uid
                     body.update({"uid": obs_uid})

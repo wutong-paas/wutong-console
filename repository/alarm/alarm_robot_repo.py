@@ -10,6 +10,8 @@ class AlarmRobotRepo(BaseRepository[AlarmRobot]):
         alarm_robot = AlarmRobot(**alarm_robot_info)
         session.add(alarm_robot)
         session.flush()
+        session.refresh(alarm_robot)
+        return alarm_robot
 
     def get_alarm_robot_by_id(self, session, alarm_robot_id):
         return session.execute(select(AlarmRobot).where(AlarmRobot.ID == alarm_robot_id)).scalars().first()

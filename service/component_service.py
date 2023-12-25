@@ -333,7 +333,7 @@ class ComponentCheckService(object):
                                                              port_alias=service.service_alias.upper() + str(5000),
                                                              is_inner_service=False,
                                                              is_outer_service=True)
-                region_info = region_repo.get_enterprise_region_by_region_name(session=session,
+                region_info = region_repo.get_region_by_region_name(session=session,
                                                                                region_name=service.service_region)
                 if region_info:
                     domain_service.create_default_gateway_rule(session=session, tenant_env=tenant_env,

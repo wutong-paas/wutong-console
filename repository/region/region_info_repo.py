@@ -70,10 +70,6 @@ class RegionRepo(BaseRepository[RegionConfig]):
                 EnvRegionInfo.is_init == is_init))
         return results.scalars().all()
 
-    def get_enterprise_region_by_region_name(self, session: SessionClass, region_name):
-        return session.execute(select(RegionConfig).where(
-            RegionConfig.region_name == region_name)).scalars().first()
-
     def get_env_region_by_env_and_region(self, session: SessionClass, env_id, region):
         return session.execute(select(EnvRegionInfo).where(
             EnvRegionInfo.region_env_id == env_id,

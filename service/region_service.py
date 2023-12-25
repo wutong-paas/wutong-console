@@ -288,7 +288,7 @@ class RegionService(object):
 
     def create_env_on_region(self, session: SessionClass, team_id, team_name, env, region_name,
                              namespace):
-        region_config = region_repo.get_enterprise_region_by_region_name(session, region_name)
+        region_config = region_repo.get_region_by_region_name(session, region_name)
         if not region_config:
             raise ServiceHandleException(msg="cluster not found", msg_show="需要开通的集群不存在")
         env_region = region_repo.get_env_region_by_env_and_region(session, env.env_id, region_name)
@@ -321,7 +321,7 @@ class RegionService(object):
         if not env_region:
             raise ServiceHandleException(msg="env not open cluster, not need close", msg_show="该环境未开通此集群，无需关闭")
         # start delete
-        region_config = region_repo.get_enterprise_region_by_region_name(session, region_name)
+        region_config = region_repo.get_region_by_region_name(session, region_name)
         ignore_cluster_resource = False
         if not region_config:
             # cluster spec info not found, cluster side resources are no longer operated on

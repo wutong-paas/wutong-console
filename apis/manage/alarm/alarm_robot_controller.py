@@ -11,6 +11,8 @@ from schemas.alarm_robot import AlarmRobotParam, UpdateAlarmRobotParam
 from schemas.response import Response
 from fastapi.encoders import jsonable_encoder
 from service.alarm.alarm_service import alarm_service
+from repository.alarm.alarm_region_repo import alarm_region_repo
+from repository.region.region_info_repo import region_repo
 
 router = APIRouter()
 
@@ -46,12 +48,29 @@ async def add_alarm_robot(
             "type": "wechat",
             "address": webhook_addr
         }
-        response = await alarm_service.obs_service_alarm(session, request, "/v1/alert/contact", body)
-        if response.status_code == 200:
-            alarm_robot_repo.add_alarm_robot(session, robot_info)
-        else:
-            return JSONResponse(general_message(response.status_code, bytes.decode(response.body), ""),
-                                status_code=200)
+        alarm_robot = alarm_robot_repo.add_alarm_robot(session, robot_info)
+        regions = team_region_repo.get_regions(session)
+        for region in regions:
+            region_code = region.region_name
+            try:
+                alarm_region_rel = alarm_region_repo.get_alarm_region(session, alarm_robot.ID, region_code, "wechat")
+                if alarm_region_rel:
+                    obs_uid = alarm_region_rel.obs_uid
+                    body.update({"uid": obs_uid})
+                body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
+            except Exception as err:
+                logger.warning(err)
+                continue
+            if body and body["code"] == 200:
+                uid = body["data"]["uid"]
+                data = {
+                    "group_id": alarm_robot.ID,
+                    "alarm_type": "wechat",
+                    "obs_uid": uid,
+                    "region_code": region_code
+                }
+                if not alarm_region_rel:
+                    alarm_region_repo.create_alarm_region(session, data)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add robot failed", "添加机器人失败"), status_code=200)
@@ -67,7 +86,23 @@ async def delete_alarm_robot(
     """
 
     try:
-        alarm_robot_repo.delete_alarm_robot_by_name(session, robot_name)
+        robot = alarm_robot_repo.get_alarm_robot_by_name(session, robot_name)
+        if not robot:
+            return JSONResponse(general_message(500, "robot not exists", "机器人不存在"), status_code=200)
+
+        alarm_region_rels = alarm_region_repo.get_alarm_regions(session, robot.ID, "wechat")
+        for alarm_region_rel in alarm_region_rels:
+            region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
+            try:
+                if alarm_region_rel:
+                    obs_uid = alarm_region_rel.obs_uid
+                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/" + obs_uid, {}, region)
+            except Exception as err:
+                logger.warning(err)
+                continue
+
+        alarm_region_repo.delete_alarm_region_by_group_id(session, robot.ID)
+        alarm_robot_repo.delete_alarm_region(session, robot_name, "wechat")
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add robot failed", "删除机器人失败"), status_code=200)
@@ -105,6 +140,28 @@ async def put_alarm_robot(
         if robot_by_name and robot_by_name.ID != robot.ID:
             return JSONResponse(general_message(500, "robot already exists", "已存在该名字机器人"), status_code=200)
 
+        body = {
+            "name": robot_name,
+            "type": "wechat",
+            "address": webhook_addr
+        }
+        status = 0
+        alarm_region_rels = alarm_region_repo.get_alarm_regions(session, robot.ID, "wechat")
+        for alarm_region_rel in alarm_region_rels:
+            region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
+            try:
+                if alarm_region_rel:
+                    obs_uid = alarm_region_rel.obs_uid
+                    body.update({"uid": obs_uid})
+                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
+                    if body and body["code"] == 200:
+                        status = 1
+            except Exception as err:
+                logger.warning(err)
+                continue
+
+        if not status:
+            return JSONResponse(general_message(500, "add robot failed", "编辑机器人失败"), status_code=200)
         robot.robot_name = params.robot_name
         robot.webhook_addr = params.webhook_addr
     except Exception as err:
