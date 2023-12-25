@@ -71,6 +71,7 @@ async def create_alarm_group(
     group_name = params.group_name
     team_name = params.team_name
     group_type = params.group_type
+    team_code = params.team_code
     if not group_name:
         return JSONResponse(general_message(400, "group name is not null", "分组名称不能为空"), status_code=200)
 
@@ -81,6 +82,7 @@ async def create_alarm_group(
     alarm_group_info = {
         "group_name": group_name,
         "team_name": team_name,
+        "team_code": team_code,
         "group_type": group_type,
         "operator": user.nick_name
     }

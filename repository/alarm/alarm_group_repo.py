@@ -34,5 +34,9 @@ class AlarmGroupRepo(BaseRepository[AlarmGroup]):
     def get_alarm_group_by_id(self, session, group_id):
         return session.execute(select(AlarmGroup).where(AlarmGroup.ID == group_id)).scalars().first()
 
+    def get_alarm_group_by_team_code(self, session, team_code):
+        return session.execute(select(AlarmGroup).where(AlarmGroup.team_code == team_code,
+                                                        AlarmGroup.group_type == 'team')).scalars().all()
+
 
 alarm_group_repo = AlarmGroupRepo(AlarmGroup)
