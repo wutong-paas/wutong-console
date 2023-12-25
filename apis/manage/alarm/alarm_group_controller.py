@@ -1,5 +1,5 @@
 from typing import Any, Optional
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from loguru import logger
 from starlette.responses import JSONResponse
 from core import deps
@@ -8,9 +8,12 @@ from core.utils.crypt import make_uuid
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.alarm.alarm_group_repo import alarm_group_repo
-from repository.alarm.alarm_robot_repo import alarm_robot_repo
+from repository.alarm.alarm_region_repo import alarm_region_repo
+from repository.teams.team_region_repo import team_region_repo
 from schemas.alarm_group import CreateAlarmGroupParam, PutAlarmGroupParam, AddAlarmUserParam, DeleteAlarmUserParam
 from schemas.response import Response
+from service.alarm.alarm_region_service import alarm_region_service
+from service.alarm.alarm_service import alarm_service
 
 router = APIRouter()
 
@@ -37,9 +40,9 @@ async def get_alarm_group(
             if group_name:
                 data = {"children": [
                     {"name": group_name, "node": 1, "id": group_id, "key": make_uuid(), "team_name": team_name}],
-                        "name": team_name,
-                        "node": 0,
-                        "key": make_uuid()}
+                    "name": team_name,
+                    "node": 0,
+                    "key": make_uuid()}
             else:
                 data = {"name": team_name,
                         "node": 0,
@@ -138,6 +141,8 @@ async def put_alarm_group(
 
 @router.post("/plat/alarm/group/users", response_model=Response, name="添加联系人")
 async def add_alarm_group_user(
+        request: Request,
+        current_user=Depends(deps.get_current_user),
         params: Optional[AddAlarmUserParam] = AddAlarmUserParam(),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -162,8 +167,9 @@ async def add_alarm_group_user(
         else:
             contacts = user_names
         contacts = contacts.split(",")
-        contacts = list(set(contacts))
-        alarm_group.contacts = ','.join(contacts)
+        users_info = team_api.get_users_info(contacts, current_user.token)
+        await alarm_region_service.add_or_update_alarm_region(session, request, users_info, group_id, alarm_group,
+                                                              contacts)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add user failed", "添加联系人失败"), status_code=200)

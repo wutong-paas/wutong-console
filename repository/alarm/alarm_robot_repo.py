@@ -17,7 +17,9 @@ class AlarmRobotRepo(BaseRepository[AlarmRobot]):
     def get_alarm_robot_by_name(self, session, alarm_robot_name):
         return session.execute(select(AlarmRobot).where(AlarmRobot.robot_name == alarm_robot_name)).scalars().first()
 
-    def get_all_alarm_robot(self, session):
+    def get_all_alarm_robot(self, session, team_code):
+        if team_code:
+            return session.execute(select(AlarmRobot).where(AlarmRobot.team_code == team_code)).scalars().all()
         return session.execute(select(AlarmRobot)).scalars().all()
 
     def delete_alarm_robot_by_name(self, session, alarm_robot_name):

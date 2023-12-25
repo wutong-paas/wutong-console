@@ -2,8 +2,6 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, Request
 from loguru import logger
 from starlette.responses import JSONResponse
-
-from clients.remote_app_client import remote_app_client
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
@@ -12,9 +10,7 @@ from repository.teams.team_region_repo import team_region_repo
 from schemas.alarm_robot import AlarmRobotParam, UpdateAlarmRobotParam
 from schemas.response import Response
 from fastapi.encoders import jsonable_encoder
-
 from service.alarm.alarm_service import alarm_service
-from service.region_service import region_services
 
 router = APIRouter()
 
@@ -32,6 +28,7 @@ async def add_alarm_robot(
     user_name = user.nick_name
     robot_name = params.robot_name
     webhook_addr = params.webhook_addr
+    team_code = params.team_code
 
     robot = alarm_robot_repo.get_alarm_robot_by_name(session, robot_name)
     if robot:
@@ -41,6 +38,7 @@ async def add_alarm_robot(
         "robot_name": robot_name,
         "webhook_addr": webhook_addr,
         "operator": user_name,
+        "team_code": team_code
     }
     try:
         body = {
@@ -78,13 +76,14 @@ async def delete_alarm_robot(
 
 @router.get("/plat/alarm/group/robot", response_model=Response, name="查询机器人列表")
 async def get_alarm_robot(
+        team_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询机器人列表
     """
 
     try:
-        robots = alarm_robot_repo.get_all_alarm_robot(session)
+        robots = alarm_robot_repo.get_all_alarm_robot(session, team_code)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add robot failed", "查询机器人失败"), status_code=200)
@@ -139,10 +138,8 @@ async def test_alarm_robot(
         }
         regions = team_region_repo.get_regions(session)
         for region in regions:
-            region_name = region.region_name
             try:
-                body = await alarm_service.obs_service_alarm(session, request, "/v1/alert/contact/test", body,
-                                                             region_name)
+                body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/test", body, region)
             except Exception as err:
                 logger.error(err)
                 continue

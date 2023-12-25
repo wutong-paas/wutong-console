@@ -45,5 +45,18 @@ class AlarmRobot(Base):
     ID = Column(Integer, primary_key=True)
     robot_name = Column(String(32), comment="机器人名称", nullable=False)
     webhook_addr = Column(String(255), comment="webhook地址", nullable=False)
+    team_code = Column(String(32), comment="团队标识", nullable=True)
     operator = Column(String(64), comment="创建人", nullable=False)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
+
+
+class AlarmRegionRelation(Base):
+    """分组及机器人uuid与集群关联"""
+
+    __tablename__ = "alarm_region_relation"
+
+    ID = Column(Integer, primary_key=True)
+    alarm_type = Column(String(32), comment="告警类型(email/robot)", nullable=False)
+    group_id = Column(Integer, comment="机器人名称", nullable=False)
+    obs_uid = Column(String(64), comment="obs uid", nullable=True)
+    region_code = Column(String(33), comment="集群标识", nullable=False)
