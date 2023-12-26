@@ -159,13 +159,15 @@ async def put_alarm_group(
             contacts = alarm_group.contacts.split(",")
             users_info = team_api.get_users_info(contacts, user.token)
 
-        status = alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
+        alarm_group.group_name = group_name
+        status = await alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
         if not status:
+            session.rollback()
             return JSONResponse(general_message(500, "add robot failed", "编辑通知分组失败"), status_code=200)
 
-        alarm_group.group_name = group_name
     except Exception as err:
         logger.error(err)
+        session.rollback()
         return JSONResponse(general_message(500, "put group failed", "编辑通知分组失败"), status_code=200)
 
     return JSONResponse(general_message(200, "put group success", "编辑通知分组成功"), status_code=200)
@@ -264,7 +266,7 @@ async def get_alarm_group_user(
         if new_contacts:
             users_info = team_api.get_users_info(new_contacts, user.token)
 
-        status = alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
+        status = await alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
         if not status:
             return JSONResponse(general_message(500, "delete user failed", "删除联系人失败"), status_code=200)
 

@@ -154,7 +154,9 @@ async def put_alarm_robot(
             try:
                 if alarm_region_rel:
                     obs_uid = alarm_region_rel.obs_uid
-                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/" + obs_uid, body, region)
+                    body.update({"uid": obs_uid})
+                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region,
+                                                                 method="POST")
                     if body and body["code"] == 200:
                         status = 1
             except Exception as err:
