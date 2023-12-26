@@ -5,14 +5,15 @@ from exceptions.main import ServiceHandleException
 
 class AlarmService:
 
-    async def obs_service_alarm(self, request, url, body, region):
+    async def obs_service_alarm(self, request, url, body, region, method=None):
         remoteurl = "{}/obs{}".format(region.url, url)
         response = await remote_app_client.proxy(
             request,
             remoteurl,
             region,
             body,
-            {})
+            {},
+            method=method)
         if response.status_code != 200:
             raise ServiceHandleException("obs service error", msg_show=bytes.decode(response.body),
                                          error_code=response.status_code)

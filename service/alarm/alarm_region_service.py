@@ -13,7 +13,7 @@ class AlarmRegionService:
             if email:
                 address.append(email)
         body = {
-            "name": "测试",  # alarm_group.group_name,
+            "name": alarm_group.group_name,
             "type": "email",
             "address": ';'.join(address),
         }

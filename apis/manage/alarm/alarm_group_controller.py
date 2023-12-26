@@ -9,9 +9,10 @@ from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.alarm.alarm_group_repo import alarm_group_repo
 from repository.alarm.alarm_region_repo import alarm_region_repo
-from repository.teams.team_region_repo import team_region_repo
+from repository.region.region_info_repo import region_repo
 from schemas.alarm_group import CreateAlarmGroupParam, PutAlarmGroupParam, AddAlarmUserParam, DeleteAlarmUserParam
 from schemas.response import Response
+from service.alarm.alarm_group_service import alarm_group_service
 from service.alarm.alarm_region_service import alarm_region_service
 from service.alarm.alarm_service import alarm_service
 
@@ -99,12 +100,31 @@ async def create_alarm_group(
 
 @router.delete("/plat/alarm/group", response_model=Response, name="删除通知分组")
 async def delete_alarm_group(
+        request: Request,
         group_id: Optional[int] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     删除通知分组
     """
     try:
+        alarm_group = alarm_group_repo.get_alarm_group_by_id(session, group_id)
+        if not alarm_group:
+            return JSONResponse(general_message(500, "robot not exists", "分组不存在"), status_code=200)
+
+        alarm_region_rels = alarm_region_repo.get_alarm_regions(session, alarm_group.ID, "email")
+        if alarm_region_rels:
+            for alarm_region_rel in alarm_region_rels:
+                region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
+                try:
+                    if alarm_region_rel:
+                        obs_uid = alarm_region_rel.obs_uid
+                        body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/" + obs_uid, {},
+                                                                     region)
+                except Exception as err:
+                    logger.warning(err)
+                    continue
+
+            alarm_region_repo.delete_alarm_region(session, alarm_group.ID, "email")
         alarm_group_repo.delete_alarm_group_by_id(session, group_id)
     except:
         return JSONResponse(general_message(500, "delete group failed", "删除通知分组失败"), status_code=200)
@@ -114,7 +134,9 @@ async def delete_alarm_group(
 
 @router.put("/plat/alarm/group", response_model=Response, name="编辑通知分组")
 async def put_alarm_group(
+        request: Request,
         params: Optional[PutAlarmGroupParam] = PutAlarmGroupParam(),
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     编辑通知分组
@@ -131,6 +153,16 @@ async def put_alarm_group(
         is_alarm_group = alarm_group_repo.get_alarm_group_by_team(session, group_name, group_type, team_name)
         if is_alarm_group:
             return JSONResponse(general_message(500, "group name is exist", "分组名称已存在"), status_code=200)
+
+        users_info = []
+        if alarm_group.contacts:
+            contacts = alarm_group.contacts.split(",")
+            users_info = team_api.get_users_info(contacts, user.token)
+
+        status = alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
+        if not status:
+            return JSONResponse(general_message(500, "add robot failed", "编辑通知分组失败"), status_code=200)
+
         alarm_group.group_name = group_name
     except Exception as err:
         logger.error(err)
@@ -209,6 +241,8 @@ async def get_alarm_group_user(
 
 @router.delete("/plat/alarm/group/users", response_model=Response, name="删除联系人")
 async def get_alarm_group_user(
+        request: Request,
+        user=Depends(deps.get_current_user),
         params: Optional[DeleteAlarmUserParam] = DeleteAlarmUserParam(),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -225,6 +259,15 @@ async def get_alarm_group_user(
         for contact in contacts:
             if contact not in params.user_names:
                 new_contacts.append(contact)
+
+        users_info = []
+        if new_contacts:
+            users_info = team_api.get_users_info(new_contacts, user.token)
+
+        status = alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
+        if not status:
+            return JSONResponse(general_message(500, "delete user failed", "删除联系人失败"), status_code=200)
+
         alarm_group.contacts = ','.join(new_contacts)
     except:
         return JSONResponse(general_message(500, "delete user failed", "删除联系人失败"), status_code=200)
