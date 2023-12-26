@@ -172,6 +172,13 @@ class ComponentRepository(BaseRepository[Component]):
             raise ServiceHandleException(msg="not found service", msg_show="该组件不存在或已被删除", status_code=400)
         return service
 
+    def get_service_by_k8s(self, session, k8s_code, env_id):
+        service = session.execute(select(Component).where(
+            Component.k8s_component_name == k8s_code,
+            Component.tenant_env_id == env_id,
+            Component.is_delete == 0)).scalars().first()
+        return service
+
     def list_by_component_ids(self, session, service_ids: []):
         return session.execute(select(Component).where(
             Component.service_id.in_(service_ids),
