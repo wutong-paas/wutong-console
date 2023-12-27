@@ -3,19 +3,17 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, Request
 from loguru import logger
 from starlette.responses import JSONResponse
-
 from core import deps
 from core.utils.return_message import general_message
 from core.utils.validation import is_qualified_code
 from database.session import SessionClass
+from exceptions.main import ServiceHandleException
 from repository.alarm.alarm_strategy_repo import alarm_strategy_repo
-from repository.application.application_repo import application_repo
-from repository.component.group_service_repo import service_info_repo
 from repository.region.region_info_repo import region_repo
-from repository.teams.team_region_repo import team_region_repo
 from schemas.alarm_strategy import AlarmStrategyParam
 from schemas.response import Response
 from service.alarm.alarm_service import alarm_service
+from service.alarm.alarm_strategy_service import alarm_strategy_service
 from service.tenant_env_service import env_services
 
 router = APIRouter()
@@ -95,7 +93,6 @@ async def create_alarm_strategy(
 
 @router.get("/plat/alarm/strategy", response_model=Response, name="查询告警策略")
 async def get_alarm_strategy(
-        request: Request,
         strategy_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -106,49 +103,199 @@ async def get_alarm_strategy(
     if not alarm_strategy:
         return JSONResponse(general_message(500, "param error", "策略不存在"), status_code=200)
 
+    try:
+        data = alarm_strategy_service.get_alarm_strategy_data(session, alarm_strategy)
+    except ServiceHandleException as err:
+        return JSONResponse(general_message(err.status_code, err.msg, err.msg_show), status_code=200)
+    except Exception as err:
+        logger.error(err)
+        return JSONResponse(general_message(500, "query strategy error", "查询策略失败"), status_code=200)
+
+    return JSONResponse(general_message(200, "success", "查询成功", bean=data), status_code=200)
+
+
+@router.get("/plat/alarm/strategy-list", response_model=Response, name="查询告警策略列表")
+async def get_alarm_strategy(
+        team_code: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    查询告警策略列表
+    """
+    data_list = []
+    alarm_strategys = alarm_strategy_repo.get_alarm_strategy_by_team_code(session, team_code)
+
+    for alarm_strategy in alarm_strategys:
+        try:
+            data = alarm_strategy_service.get_alarm_strategy_data(session, alarm_strategy)
+        except ServiceHandleException as err:
+            logger.warning(err)
+            continue
+        except Exception as err:
+            logger.error(err)
+            return JSONResponse(general_message(500, "query strategy error", "查询策略失败"), status_code=200)
+        data_list.append(data)
+
+    return JSONResponse(general_message(200, "success", "查询成功", list=data_list), status_code=200)
+
+
+@router.put("/plat/alarm/strategy", response_model=Response, name="更新告警策略")
+async def update_alarm_strategy(
+        request: Request,
+        strategy_code: Optional[str] = None,
+        params: Optional[AlarmStrategyParam] = AlarmStrategyParam(),
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    更新告警策略
+    """
+
+    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
+    if not alarm_strategy:
+        return JSONResponse(general_message(500, "param error", "策略不存在"), status_code=200)
+
     team_code = alarm_strategy.team_code
     env_code = alarm_strategy.env_code
-    alarm_objects = json.loads(alarm_strategy.alarm_object)
-    alarm_rules = json.loads(alarm_strategy.alarm_rules)
-    alarm_notice = json.loads(alarm_strategy.alarm_notice)
+    obs_uid = alarm_strategy.obs_uid
 
     env = env_services.get_env_by_team_code(session, team_code, env_code)
     if not env:
         return JSONResponse(general_message(500, "param error", "环境不存在"), status_code=200)
 
-    team_name = env.team_alias
-    env_name = env.env_alias
+    region_code = env.region_code
+    try:
+        body = {
+            "title": params.strategy_name,
+            "team": team_code,
+            "env": env_code,
+            "envId": env.env_id,
+            "regionCode": env.region_code,
+            "objects": params.alarm_object,
+            "rules": params.alarm_rules,
+            "notifies": params.alarm_notice,
+        }
+        region = region_repo.get_region_by_region_name(session, region_code)
+        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + obs_uid, body, region)
+    except Exception as err:
+        logger.error(err)
+        return JSONResponse(general_message(500, "update strategy error", "更新obs策略失败"), status_code=200)
+    if res and res["code"] != 200:
+        return JSONResponse(general_message(500, "update strategy error", "更新obs策略失败"), status_code=200)
 
-    alarm_object_data = []
-    for alarm_object in alarm_objects:
-        app_code = alarm_object.get("app")
-        service_code = alarm_object.get("serviceAlias")
-        app = application_repo.get_app_by_k8s_app(session, env.env_id, env.region_code, app_code, None)
-        service = service_info_repo.get_service(session, service_code, env.env_id)
-        if not app or not service:
-            return JSONResponse(general_message(500, "param error", "应用或组件不存在"), status_code=200)
-        app_name = app.group_name
-        service_name = service.service_cname
-        alarm_object_data.append({
-            "app": app_code,
-            "app_name": app_name,
-            "component": service.k8s_component_name,
-            "serviceAlias": service_code,
-            "service_name": service_name,
-            "projectId": app.project_id,
-        })
+    try:
+        alarm_strategy_info = {
+            "strategy_name": params.strategy_name,
+            "desc": params.desc,
+            "team_code": team_code,
+            "env_code": env_code,
+            "alarm_object": json.dumps(params.alarm_object),
+            "alarm_rules": json.dumps(params.alarm_rules),
+            "alarm_notice": json.dumps(params.alarm_notice),
+            "obs_uid": obs_uid,
+            "enable": True
+        }
+        alarm_strategy_repo.update_alarm_strategy(session, alarm_strategy.ID, alarm_strategy_info)
+    except Exception as err:
+        logger.error(err)
+        return JSONResponse(general_message(500, "update strategy error", "更新策略失败"), status_code=200)
 
-    data = {
-        "strategy_name": alarm_strategy.strategy_name,
-        "strategy_code": alarm_strategy.strategy_code,
-        "desc": alarm_strategy.desc,
-        "team_code": alarm_strategy.team_code,
-        "team_name": team_name,
-        "env_code": alarm_strategy.env_code,
-        "env_name": env_name,
-        "alarm_object": alarm_object_data,
-        "alarm_rules": alarm_rules,
-        "alarm_notice": alarm_notice
-    }
+    return JSONResponse(general_message(200, "success", "更新成功"), status_code=200)
 
-    return JSONResponse(general_message(200, "success", "查询成功", bean=data), status_code=200)
+
+@router.delete("/plat/alarm/strategy", response_model=Response, name="删除告警策略")
+async def delete_alarm_strategy(
+        request: Request,
+        strategy_code: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    删除告警策略
+    """
+
+    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
+    if not alarm_strategy:
+        return JSONResponse(general_message(500, "param error", "策略不存在"), status_code=200)
+
+    team_code = alarm_strategy.team_code
+    env_code = alarm_strategy.env_code
+    obs_uid = alarm_strategy.obs_uid
+
+    env = env_services.get_env_by_team_code(session, team_code, env_code)
+    if not env:
+        return JSONResponse(general_message(500, "param error", "环境不存在"), status_code=200)
+
+    region_code = env.region_code
+    try:
+        region = region_repo.get_region_by_region_name(session, region_code)
+        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + obs_uid, {}, region)
+    except Exception as err:
+        logger.error(err)
+        return JSONResponse(general_message(500, "update strategy error", "删除obs策略失败"), status_code=200)
+    if res and res["code"] != 200:
+        return JSONResponse(general_message(500, "update strategy error", "删除obs策略失败"), status_code=200)
+
+    try:
+        alarm_strategy_repo.delete_alarm_strategy(session, alarm_strategy.ID)
+    except Exception as err:
+        logger.error(err)
+        return JSONResponse(general_message(500, "update strategy error", "删除策略失败"), status_code=200)
+    return JSONResponse(general_message(200, "success", "删除成功"), status_code=200)
+
+
+@router.put("/plat/alarm/strategy/enable", response_model=Response, name="开关告警策略")
+async def put_alarm_strategy(
+        request: Request,
+        enable: Optional[int] = 1,
+        strategy_code: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    开关告警策略
+    """
+
+    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
+    if not alarm_strategy:
+        return JSONResponse(general_message(500, "param error", "策略不存在"), status_code=200)
+
+    team_code = alarm_strategy.team_code
+    env_code = alarm_strategy.env_code
+    obs_uid = alarm_strategy.obs_uid
+
+    env = env_services.get_env_by_team_code(session, team_code, env_code)
+    if not env:
+        return JSONResponse(general_message(500, "param error", "环境不存在"), status_code=200)
+
+    region_code = env.region_code
+    try:
+        region = region_repo.get_region_by_region_name(session, region_code)
+        if not enable:
+            res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + obs_uid, {}, region, method="DELETE")
+        else:
+            body = {
+                "title": alarm_strategy.strategy_name,
+                "team": team_code,
+                "env": env_code,
+                "envId": env.env_id,
+                "regionCode": env.region_code,
+                "objects": json.loads(alarm_strategy.alarm_object),
+                "rules": json.loads(alarm_strategy.alarm_rules),
+                "notifies": json.loads(alarm_strategy.alarm_notice),
+            }
+            region_code = env.region_code
+            try:
+                region = region_repo.get_region_by_region_name(session, region_code)
+                res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region, method="POST")
+            except Exception as err:
+                logger.error(err)
+                return JSONResponse(general_message(500, "enable strategy error", "开关策略失败"), status_code=200)
+            if res and res["code"] == 200:
+                obs_uid = res["data"]["uid"]
+    except Exception as err:
+        logger.error(err)
+        return JSONResponse(general_message(500, "enable strategy error", "开关obs策略失败"), status_code=200)
+    if res and res["code"] != 200:
+        return JSONResponse(general_message(500, "enable strategy error", "开关obs策略失败"), status_code=200)
+
+    try:
+        alarm_strategy.enable = enable
+        alarm_strategy.obs_uid = obs_uid
+    except Exception as err:
+        logger.error(err)
+        return JSONResponse(general_message(500, "enable strategy error", "开关策略失败"), status_code=200)
+    return JSONResponse(general_message(200, "success", "开关成功"), status_code=200)
