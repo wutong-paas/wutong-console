@@ -19,6 +19,7 @@ router = APIRouter()
 @router.get("/plat/alarm/message", response_model=Response, name="查询告警消息")
 async def get_alarm_message(
         request: Request,
+        query: Optional[str] = "alerting",
         team_code: Optional[str] = "",
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -28,7 +29,10 @@ async def get_alarm_message(
     regions = team_region_repo.get_regions(session)
     data_list = []
     for region in regions:
-        body = {"team": team_code}
+        body = {
+            "team": team_code,
+            "type": query
+        }
         try:
             res = await alarm_service.obs_service_alarm(request, "/v1/alert/alerts", body, region)
         except Exception as err:
@@ -61,6 +65,7 @@ async def get_alarm_message(
                 "message": data.get("content"),
                 "status": data.get("status"),
                 "title": data.get("title"),
+                "time": data.get("time"),
             })
 
     return JSONResponse(general_message(200, "get alarm message success", "查询成功", list=result), status_code=200)

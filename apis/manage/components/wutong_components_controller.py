@@ -12,7 +12,7 @@ from core.enum.component_enum import is_support
 from core.utils.constants import PluginCategoryConstants
 from core.utils.reqparse import parse_argument, parse_item
 from core.utils.return_message import general_message
-from core.utils.validation import is_qualified_component_name
+from core.utils.validation import is_qualified_code
 from database.session import SessionClass
 from exceptions.bcode import ErrK8sComponentNameExists, ErrQualifiedName
 from exceptions.main import ServiceHandleException, MarketAppLost, RbdAppNotFound, ResourceNotEnoughException, \
@@ -231,7 +231,7 @@ async def modify_components_name(
         result = general_message(400, "k8s component name too long", "组件英文名长度限制32")
         return JSONResponse(result, status_code=result["code"])
 
-    if not is_qualified_component_name(k8s_component_name):
+    if not is_qualified_code(k8s_component_name):
         raise ErrQualifiedName(msg="invalid component name", msg_show="组件英文名称只支持小写字母、数字或“-”，并且必须以字母开始、以数字或字母结尾")
 
     app = application_service.get_service_group_info(session, service.service_id)

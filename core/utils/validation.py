@@ -81,8 +81,10 @@ def is_qualified_name(name):
 
 
 # 验证组件英文名称
-def is_qualified_component_name(name):
+def is_qualified_code(code):
+    if len(code) > 32:
+        return False
     # 只支持小写字母、数字或“-”，并且必须以字母开始、以数字或字母结尾
-    if re.match(r'^[a-z]([-a-z0-9]*[a-z0-9])?$', name):
+    if re.match(r'^[a-z]([-a-z0-9]*[a-z0-9])?$', code):
         return True
     return False

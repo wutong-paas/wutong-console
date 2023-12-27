@@ -13,7 +13,7 @@ from core import deps
 from core.setting import settings
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message, general_data
-from core.utils.validation import is_qualified_component_name
+from core.utils.validation import is_qualified_code
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentBuildFailed, ErrQualifiedName
 from exceptions.main import AccountOverdueException, ResourceNotEnoughException, ErrInsufficientResource, \
@@ -68,7 +68,7 @@ async def docker_run(
         result = general_message(400, "k8s component name too long", "组件英文名长度限制32")
         return JSONResponse(result, status_code=result["code"])
 
-    if not is_qualified_component_name(params.k8s_component_name):
+    if not is_qualified_code(params.k8s_component_name):
         raise ErrQualifiedName(msg="invalid component name", msg_show="组件英文名称只支持小写字母、数字或“-”，并且必须以字母开始、以数字或字母结尾")
 
     if application_service.is_k8s_component_name_duplicate(session,
