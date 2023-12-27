@@ -113,17 +113,25 @@ async def delete_alarm_robot(
 @router.get("/plat/alarm/group/robot", response_model=Response, name="查询机器人列表")
 async def get_alarm_robot(
         team_code: Optional[str] = None,
+        region_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询机器人列表
     """
 
     try:
+        robots_json = []
         robots = alarm_robot_repo.get_all_alarm_robot(session, team_code)
+        if robots:
+            robots_json = jsonable_encoder(robots)
+            for robot in robots_json:
+                alarm_region_rel = alarm_region_repo.get_alarm_region(session, robot["ID"], region_code, "wechat")
+                if alarm_region_rel:
+                    robot.update({"obs_uid": alarm_region_rel.obs_uid})
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add robot failed", "查询机器人失败"), status_code=200)
-    return JSONResponse(general_message(200, "add robot success", "查询机器人成功", list=jsonable_encoder(robots)),
+    return JSONResponse(general_message(200, "add robot success", "查询机器人成功", list=robots_json),
                         status_code=200)
 
 

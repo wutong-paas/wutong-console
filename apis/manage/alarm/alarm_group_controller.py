@@ -21,6 +21,7 @@ router = APIRouter()
 
 @router.get("/plat/alarm/group", response_model=Response, name="查询通知分组")
 async def get_alarm_group(
+        region_code: Optional[str] = None,
         query: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -34,6 +35,11 @@ async def get_alarm_group(
         team_name = alarm_group.team_name
         group_id = alarm_group.ID
         group_type = alarm_group.group_type
+        obs_uid = ""
+        if region_code:
+            alarm_region_rel = alarm_region_repo.get_alarm_region(session, group_id, region_code, "email")
+            if alarm_region_rel:
+                obs_uid = alarm_region_rel.obs_uid
         if group_type == "plat":
             team_name = "平台"
         if team_name not in team_names:
@@ -43,7 +49,8 @@ async def get_alarm_group(
                     {"name": group_name, "node": 1, "id": group_id, "key": make_uuid(), "team_name": team_name}],
                     "name": team_name,
                     "node": 0,
-                    "key": make_uuid()}
+                    "key": make_uuid(),
+                    "obs_uid": obs_uid}
             else:
                 data = {"name": team_name,
                         "node": 0,
@@ -58,7 +65,8 @@ async def get_alarm_group(
                     else:
                         alarm_group_item.update(
                             {"children": [{"name": group_name, "node": 1, "id": group_id, "key": make_uuid(),
-                                           "team_name": team_name}]})
+                                           "team_name": team_name,
+                                           "obs_uid": obs_uid}]})
 
     return JSONResponse(general_message(200, "create group success", "查询通知分组成功", list=alarm_group_list),
                         status_code=200)
