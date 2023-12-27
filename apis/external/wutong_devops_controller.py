@@ -66,11 +66,11 @@ async def get_app_state(
         application_id = request.query_params.get("application_id")
         env = env_repo.get_env_by_env_id(session, env_id)
         if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=200)
         if application_id is None or not application_id.isdigit():
             code = 400
             result = general_message(code, "group_id is missing or not digit!", "group_id缺失或非数字")
-            return JSONResponse(result, status_code=code)
+            return JSONResponse(result, status_code=200)
         # region_name = request.headers.get("X_REGION_NAME")
 
         if application_id == "-1":
@@ -93,7 +93,7 @@ async def get_app_state(
                                                                                group_id=application_id)
         if group_count == 0:
             result = general_message(202, "group is not yours!", "当前组已删除或您无权限查看！", bean={})
-            return JSONResponse(result, status_code=202)
+            return JSONResponse(result, status_code=200)
 
         group_service_list = service_info_repo.get_group_service_by_group_id(
             session=session,
@@ -108,7 +108,7 @@ async def get_app_state(
         return JSONResponse(result, status_code=200)
     except GroupNotExistError as e:
         logger.exception(e)
-        return JSONResponse(general_message(400, "query success", "该应用不存在"), status_code=400)
+        return JSONResponse(general_message(400, "query success", "该应用不存在"), status_code=200)
 
 
 @router.post("/teams/{team_code}/env/{env_id}/applications/{application_id}/build", response_model=Response,
@@ -120,7 +120,7 @@ async def deploy_business_component(
         session: SessionClass = Depends(deps.get_session)) -> Any:
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
-        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+        return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=200)
     result = general_message(200, "success", "成功")
     image_type = "docker_image"
     p = Pinyin()
@@ -129,13 +129,13 @@ async def deploy_business_component(
     if k8s_component_name and application_service.is_k8s_component_name_duplicate(session,
                                                                                   application_id,
                                                                                   k8s_component_name):
-        return JSONResponse(general_message(400, "k8s component name exists", "组件英文名已存在"), status_code=400)
+        return JSONResponse(general_message(400, "k8s component name exists", "组件英文名已存在"), status_code=200)
     try:
         if not params.docker_image:
-            return JSONResponse(general_message(400, "docker_cmd cannot be null", "参数错误"), status_code=400)
+            return JSONResponse(general_message(400, "docker_cmd cannot be null", "参数错误"), status_code=200)
         application = application_repo.get_by_primary_key(session=session, primary_key=application_id)
         if application and application.tenant_env_id != env.env_id:
-            return JSONResponse(general_message(400, "not found app at team", "应用不属于该环境"), status_code=400)
+            return JSONResponse(general_message(400, "not found app at team", "应用不属于该环境"), status_code=200)
 
         user_dict = {
             "nick_name": "超级管理员"
@@ -178,14 +178,14 @@ async def deploy_business_component(
 
         if result["code"] != 200:
             session.rollback()
-            return JSONResponse(result, status_code=result["code"])
+            return JSONResponse(result, status_code=200)
 
         if params.dep_service_ids is not None:
             result = devops_repo.add_dep(session, user, env, new_service, params.dep_service_ids)
 
         if result["code"] != 200:
             session.rollback()
-            return JSONResponse(result, status_code=result["code"])
+            return JSONResponse(result, status_code=200)
 
         session.flush()
         result = devops_repo.component_build(session, user, env, new_service)
@@ -195,8 +195,8 @@ async def deploy_business_component(
     except AccountOverdueException as re:
         logger.exception(re)
         session.rollback()
-        return JSONResponse(general_message(10410, "resource is not enough", re), status_code=10410)
-    return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(general_message(10410, "resource is not enough", re), status_code=200)
+    return JSONResponse(result, status_code=200)
 
 
 @router.post("/teams/{team_code}/env/{env_id}/buildsource", response_model=Response, name="构建组件")
@@ -224,7 +224,7 @@ async def deploy_component(
     try:
         env = env_repo.get_env_by_env_id(session, env_id)
         if not env:
-            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
+            return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=200)
         result = general_message(200, "success", "成功")
         service = service_info_repo.get_service(session, params.component_code, env.env_id)
         oauth_instance, _ = None, None
@@ -243,7 +243,7 @@ async def deploy_component(
 
         if result["code"] != 200:
             session.rollback()
-            return JSONResponse(result, status_code=result["code"])
+            return JSONResponse(result, status_code=200)
 
         if params.update_env_variables is not None:
             for env_variables in params.update_env_variables:
@@ -253,7 +253,7 @@ async def deploy_component(
 
         if result["code"] != 200:
             session.rollback()
-            return JSONResponse(result, status_code=result["code"])
+            return JSONResponse(result, status_code=200)
 
         if params.delete_env_variables is not None:
             for env_variables in params.delete_env_variables:
@@ -262,14 +262,14 @@ async def deploy_component(
 
         if result["code"] != 200:
             session.rollback()
-            return JSONResponse(result, status_code=result["code"])
+            return JSONResponse(result, status_code=200)
 
         if params.dep_service_ids is not None:
             result = devops_repo.add_dep(session, user, env, service, params.dep_service_ids)
 
         if result["code"] != 200:
             session.rollback()
-            return JSONResponse(result, status_code=result["code"])
+            return JSONResponse(result, status_code=200)
 
         if params.delete_dep_service_ids is not None:
             result = devops_repo.delete_dependency_component(session, user, env, service,
@@ -277,7 +277,7 @@ async def deploy_component(
 
         if result["code"] != 200:
             session.rollback()
-            return JSONResponse(result, status_code=result["code"])
+            return JSONResponse(result, status_code=200)
 
         session.flush()
         group_version = None
@@ -286,7 +286,7 @@ async def deploy_component(
         bean = {}
         if code != 200:
             session.rollback()
-            return JSONResponse(general_message(code, "deploy app error", msg, bean=bean), status_code=code)
+            return JSONResponse(general_message(code, "deploy app error", msg, bean=bean), status_code=200)
         service.is_delete = 0
         service.delete_time = None
         service.delete_operator = None
@@ -294,13 +294,13 @@ async def deploy_component(
     except ErrServiceSourceNotFound as e:
         logger.exception(e)
         session.rollback()
-        return JSONResponse(general_message(412, "not found source", "无法找到云市应用的构建源"), status_code=412)
+        return JSONResponse(general_message(412, "not found source", "无法找到云市应用的构建源"), status_code=200)
     except ResourceNotEnoughException as re:
         raise re
     except AccountOverdueException as re:
         logger.exception(re)
         session.rollback()
-        return JSONResponse(general_message(10410, "resource is not enough", "构建失败"), status_code=412)
+        return JSONResponse(general_message(10410, "resource is not enough", "构建失败"), status_code=200)
     return JSONResponse(result, status_code=result["code"])
 
 
@@ -336,7 +336,7 @@ async def get_team_envs(
     查询团队下环境
     """
     if not team_id:
-        return JSONResponse(general_message(400, "failed", "参数错误"), status_code=400)
+        return JSONResponse(general_message(400, "failed", "参数错误"), status_code=200)
     try:
         env_list = []
         envs = env_services.get_envs_by_tenant_name(session, team_name)
@@ -353,5 +353,5 @@ async def get_team_envs(
     except Exception as e:
         logger.exception(e)
         result = error_message("错误")
-        return JSONResponse(result, status_code=result["code"])
+        return JSONResponse(result, status_code=200)
     return JSONResponse(result, status_code=200)

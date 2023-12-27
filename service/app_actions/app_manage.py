@@ -1070,6 +1070,8 @@ class AppManageService(object):
                                                        service.service_alias, body)
             if re and re.get("bean") and re.get("bean").get("status") != "success":
                 logger.error("deploy component failure {}".format(re))
+                if re.get("bean").get("err_message"):
+                    return 507, re.get("bean").get("err_message"), ""
                 return 507, "构建异常", ""
             event_id = re["bean"].get("event_id", "")
         except remote_component_client.CallApiError as e:
@@ -1077,6 +1079,8 @@ class AppManageService(object):
                 logger.warning("failed to deploy service: {}".format(e))
                 raise ErrVersionAlreadyExists()
             logger.exception(e)
+            if e.body.msg:
+                return 507, e.body.msg, ""
             return 507, "构建异常", ""
         except remote_component_client.CallApiFrequentError as e:
             logger.exception(e)
