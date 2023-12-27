@@ -1,3 +1,4 @@
+import json
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, Request
 from loguru import logger
@@ -82,11 +83,72 @@ async def create_alarm_strategy(
         "desc": desc,
         "team_code": team_code,
         "env_code": env_code,
-        "alarm_object": str(alarm_object),
-        "alarm_rules": str(alarm_rules),
-        "alarm_notice": str(alarm_notice),
+        "alarm_object": json.dumps(alarm_object),
+        "alarm_rules": json.dumps(alarm_rules),
+        "alarm_notice": json.dumps(alarm_notice),
         "obs_uid": obs_uid,
         "enable": True
     }
     alarm_strategy_repo.create_alarm_strategy(session, alarm_strategy_info)
     return JSONResponse(general_message(200, "success", "创建成功"), status_code=200)
+
+
+@router.get("/plat/alarm/strategy", response_model=Response, name="查询告警策略")
+async def get_alarm_strategy(
+        request: Request,
+        strategy_code: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    查询告警策略
+    """
+
+    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
+    if not alarm_strategy:
+        return JSONResponse(general_message(500, "param error", "策略不存在"), status_code=200)
+
+    team_code = alarm_strategy.team_code
+    env_code = alarm_strategy.env_code
+    alarm_objects = json.loads(alarm_strategy.alarm_object)
+    alarm_rules = json.loads(alarm_strategy.alarm_rules)
+    alarm_notice = json.loads(alarm_strategy.alarm_notice)
+
+    env = env_services.get_env_by_team_code(session, team_code, env_code)
+    if not env:
+        return JSONResponse(general_message(500, "param error", "环境不存在"), status_code=200)
+
+    team_name = env.team_alias
+    env_name = env.env_alias
+
+    alarm_object_data = []
+    for alarm_object in alarm_objects:
+        app_code = alarm_object.get("app")
+        service_code = alarm_object.get("serviceAlias")
+        app = application_repo.get_app_by_k8s_app(session, env.env_id, env.region_code, app_code, None)
+        service = service_info_repo.get_service(session, service_code, env.env_id)
+        if not app or not service:
+            return JSONResponse(general_message(500, "param error", "应用或组件不存在"), status_code=200)
+        app_name = app.group_name
+        service_name = service.service_cname
+        alarm_object_data.append({
+            "app": app_code,
+            "app_name": app_name,
+            "component": service.k8s_component_name,
+            "serviceAlias": service_code,
+            "service_name": service_name,
+            "projectId": app.project_id,
+        })
+
+    data = {
+        "strategy_name": alarm_strategy.strategy_name,
+        "strategy_code": alarm_strategy.strategy_code,
+        "desc": alarm_strategy.desc,
+        "team_code": alarm_strategy.team_code,
+        "team_name": team_name,
+        "env_code": alarm_strategy.env_code,
+        "env_name": env_name,
+        "alarm_object": alarm_object_data,
+        "alarm_rules": alarm_rules,
+        "alarm_notice": alarm_notice
+    }
+
+    return JSONResponse(general_message(200, "success", "查询成功", bean=data), status_code=200)
