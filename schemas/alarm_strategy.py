@@ -13,5 +13,4 @@ class AlarmStrategyParam(BaseModel):
     env_code: Annotated[str, Field(title="环境标识")] = None
     alarm_object: Annotated[list, Field(title="告警对象")] = None
     alarm_rules: Annotated[list, Field(title="告警规则")] = None
-    period: Annotated[int, Field(title="告警持续时间")] = None
     alarm_notice: Annotated[dict, Field(title="告警通知")] = None

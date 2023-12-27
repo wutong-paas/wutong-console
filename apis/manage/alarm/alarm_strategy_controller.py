@@ -37,7 +37,6 @@ async def create_alarm_strategy(
     alarm_object = params.alarm_object
     alarm_rules = params.alarm_rules
     alarm_notice = params.alarm_notice
-    period = params.period
 
     if not strategy_name or not strategy_code:
         return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
@@ -57,10 +56,11 @@ async def create_alarm_strategy(
         "title": strategy_name,
         "team": team_code,
         "env": env_code,
+        "envId": env.env_id,
+        "regionCode": env.region_code,
         "objects": alarm_object,
         "rules": alarm_rules,
         "notifies": alarm_notice,
-        "period": period
     }
     obs_uid = None
     region_code = env.region_code
@@ -69,12 +69,12 @@ async def create_alarm_strategy(
         res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
     except Exception as err:
         logger.error(err)
-        return JSONResponse(general_message(500, "param error", "创建策略失败"), status_code=200)
+        return JSONResponse(general_message(500, "create strategy error", "创建策略失败"), status_code=200)
     if res and res["code"] == 200:
         obs_uid = res["data"]["uid"]
 
     if not obs_uid:
-        return JSONResponse(general_message(500, "param error", "创建策略失败"), status_code=200)
+        return JSONResponse(general_message(500, "create strategy error", "创建策略失败"), status_code=200)
 
     alarm_strategy_info = {
         "strategy_name": strategy_name,
@@ -82,11 +82,11 @@ async def create_alarm_strategy(
         "desc": desc,
         "team_code": team_code,
         "env_code": env_code,
-        "period": str(period),
         "alarm_object": str(alarm_object),
         "alarm_rules": str(alarm_rules),
         "alarm_notice": str(alarm_notice),
-        "obs_uid": obs_uid
+        "obs_uid": obs_uid,
+        "enable": True
     }
     alarm_strategy_repo.create_alarm_strategy(session, alarm_strategy_info)
     return JSONResponse(general_message(200, "success", "创建成功"), status_code=200)
