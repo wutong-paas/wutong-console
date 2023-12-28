@@ -51,10 +51,14 @@ async def create_alarm_strategy(
     if not env:
         return JSONResponse(general_message(500, "param error", "环境不存在"), status_code=200)
 
+    alarm_object = alarm_strategy_service.analysis_object(session, alarm_object)
+
     body = {
         "title": strategy_name,
         "team": team_code,
+        "teamName": env.team_alias,
         "env": env_code,
+        "envName": env.env_alias,
         "envId": env.env_id,
         "regionCode": env.region_code,
         "objects": alarm_object,
@@ -68,12 +72,12 @@ async def create_alarm_strategy(
         res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
     except Exception as err:
         logger.error(err)
-        return JSONResponse(general_message(500, "create strategy error", "创建策略失败"), status_code=200)
+        return JSONResponse(general_message(500, "create strategy error", "创建obs策略失败"), status_code=200)
     if res and res["code"] == 200:
         obs_uid = res["data"]["uid"]
 
     if not obs_uid:
-        return JSONResponse(general_message(500, "create strategy error", "创建策略失败"), status_code=200)
+        return JSONResponse(general_message(500, "create strategy error", "创建obs策略失败"), status_code=200)
 
     alarm_strategy_info = {
         "strategy_name": strategy_name,
@@ -160,6 +164,8 @@ async def update_alarm_strategy(
     if not env:
         return JSONResponse(general_message(500, "param error", "环境不存在"), status_code=200)
 
+    alarm_object = alarm_strategy_service.analysis_object(session, params.alarm_object)
+
     region_code = env.region_code
     try:
         body = {
@@ -168,7 +174,7 @@ async def update_alarm_strategy(
             "env": env_code,
             "envId": env.env_id,
             "regionCode": env.region_code,
-            "objects": params.alarm_object,
+            "objects": alarm_object,
             "rules": params.alarm_rules,
             "notifies": params.alarm_notice,
         }
@@ -186,7 +192,7 @@ async def update_alarm_strategy(
             "desc": params.desc,
             "team_code": team_code,
             "env_code": env_code,
-            "alarm_object": json.dumps(params.alarm_object),
+            "alarm_object": json.dumps(alarm_object),
             "alarm_rules": json.dumps(params.alarm_rules),
             "alarm_notice": json.dumps(params.alarm_notice),
             "obs_uid": obs_uid,

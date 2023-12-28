@@ -93,7 +93,8 @@ class ApplicationRepository(BaseRepository[Application]):
     def get_group_by_id(self, session, group_id):
         return (
             session.execute(
-                select(Application).where(Application.ID == group_id)
+                select(Application).where(Application.ID == group_id,
+                                          Application.is_delete == 0)
             )
         ).scalars().first()
 

@@ -24,21 +24,27 @@ class AlarmStrategyService:
         alarm_object_data = []
         for alarm_object in alarm_objects:
             app_code = alarm_object.get("app")
-            service_code = alarm_object.get("serviceAlias")
+            group_id = alarm_object.get("groupId")
             app = application_repo.get_app_by_k8s_app(session, env.env_id, env.region_code, app_code, None)
-            service = service_info_repo.get_service(session, service_code, env.env_id)
-            if not app or not service:
-                raise ServiceHandleException(msg_show="应用或组件不存在", msg="param error", status_code=404)
             app_name = app.group_name
-            service_name = service.service_cname
+            components = alarm_object.get("components")
+            services = []
+            for component in components:
+                service_code = component.get("serviceAlias")
+                service = service_info_repo.get_service(session, service_code, env.env_id)
+                if not app or not service:
+                    raise ServiceHandleException(msg_show="应用或组件不存在", msg="param error", status_code=404)
+                services.append({
+                    "serviceId": service.service_id,
+                    "serviceCname": service.service_cname,
+                    "serviceAlias": service.service_alias,
+                })
             alarm_object_data.append({
-                "app": app_code,
-                "app_name": app_name,
-                "component": service.k8s_component_name,
-                "serviceId": service.service_id,
-                "serviceAlias": service_code,
-                "service_name": service_name,
+                "groupId": group_id,
+                "groupName": app_name,
                 "projectId": app.project_id,
+                "projectName": app.project_name,
+                "components": services,
             })
 
         data = {
@@ -56,6 +62,34 @@ class AlarmStrategyService:
             "alarm_notice": alarm_notice
         }
         return data
+
+    def analysis_object(self, session, objects):
+        alarm_objects = []
+        for alarm_object in objects:
+            alarm_components = []
+            group_id = alarm_object.get("groupId")
+            app = application_repo.get_group_by_id(session, group_id)
+            if not app:
+                continue
+
+            app_code = app.k8s_app
+            components = alarm_object.get("components")
+            for component in components:
+                service_id = component.get("serviceId")
+                service = service_info_repo.get_service_by_service_id(session, service_id)
+                if not service:
+                    continue
+                service_code = service.k8s_component_name
+                component.update({
+                    "component": service_code
+                })
+                alarm_components.append(component)
+            alarm_object.update({
+                "app": app_code,
+                "components": alarm_components
+            })
+            alarm_objects.append(alarm_object)
+        return alarm_objects
 
 
 alarm_strategy_service = AlarmStrategyService()
