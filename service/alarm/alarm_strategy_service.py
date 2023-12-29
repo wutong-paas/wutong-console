@@ -52,7 +52,6 @@ class AlarmStrategyService:
             "strategy_code": alarm_strategy.strategy_code,
             "desc": alarm_strategy.desc,
             "enable": alarm_strategy.enable,
-            "obs_uid": alarm_strategy.obs_uid,
             "team_code": alarm_strategy.team_code,
             "team_name": team_name,
             "env_code": alarm_strategy.env_code,

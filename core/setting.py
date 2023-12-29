@@ -42,7 +42,8 @@ class Settings(BaseSettings):
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
     if not DEBUG:
-        SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+        # SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
+        SQLALCHEMY_DATABASE_URI: str = 'mysql://root:0O9zvQ00@192.168.36.74:64248/console'
     else:
         SQLALCHEMY_DATABASE_URI: str = 'mysql://root:123456@127.0.0.1:3306/console'
 

@@ -15,6 +15,8 @@ from schemas.response import Response
 from service.alarm.alarm_group_service import alarm_group_service
 from service.alarm.alarm_region_service import alarm_region_service
 from service.alarm.alarm_service import alarm_service
+from core.utils.validation import name_rule_verification
+from exceptions.main import ServiceHandleException
 
 router = APIRouter()
 
@@ -22,6 +24,7 @@ router = APIRouter()
 @router.get("/plat/alarm/group", response_model=Response, name="查询通知分组")
 async def get_alarm_group(
         region_code: Optional[str] = None,
+        team_code: Optional[str] = None,
         query: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
@@ -29,28 +32,29 @@ async def get_alarm_group(
     """
     alarm_group_list = []
     team_names = []
-    alarm_groups = alarm_group_repo.get_alarm_group(session, query)
+    alarm_groups = alarm_group_repo.get_alarm_group(session, query, team_code)
     for alarm_group in alarm_groups:
         group_name = alarm_group.group_name
+        group_code = alarm_group.group_code
         team_name = alarm_group.team_name
         group_id = alarm_group.ID
         group_type = alarm_group.group_type
-        obs_uid = ""
-        if region_code:
-            alarm_region_rel = alarm_region_repo.get_alarm_region(session, group_id, region_code, "email")
-            if alarm_region_rel:
-                obs_uid = alarm_region_rel.obs_uid
+        num = 0
+        if alarm_group.contacts:
+            contacts = alarm_group.contacts.split(",")
+            num = len(contacts)
+
         if group_type == "plat":
             team_name = "平台"
         if team_name not in team_names:
             team_names.append(team_name)
             if group_name:
                 data = {"children": [
-                    {"name": group_name, "node": 1, "id": group_id, "key": make_uuid(), "team_name": team_name}],
+                    {"name": group_name, "node": 1, "id": group_id, "key": make_uuid(), "team_name": team_name,
+                     "group_code": group_code, "num": num}],
                     "name": team_name,
                     "node": 0,
-                    "key": make_uuid(),
-                    "obs_uid": obs_uid}
+                    "key": make_uuid()}
             else:
                 data = {"name": team_name,
                         "node": 0,
@@ -61,12 +65,14 @@ async def get_alarm_group(
                 if alarm_group_item["name"] == team_name:
                     if alarm_group_item.get("children"):
                         alarm_group_item["children"].append(
-                            {"name": group_name, "node": 1, "id": group_id, "key": make_uuid(), "team_name": team_name})
+                            {"name": group_name, "node": 1, "id": group_id, "key": make_uuid(), "team_name": team_name,
+                             "group_code": group_code, "num": num})
                     else:
                         alarm_group_item.update(
                             {"children": [{"name": group_name, "node": 1, "id": group_id, "key": make_uuid(),
                                            "team_name": team_name,
-                                           "obs_uid": obs_uid}]})
+                                           "group_code": group_code,
+                                           "num": num}]})
 
     return JSONResponse(general_message(200, "create group success", "查询通知分组成功", list=alarm_group_list),
                         status_code=200)
@@ -81,18 +87,27 @@ async def create_alarm_group(
     创建通知分组
     """
     group_name = params.group_name
+    group_code = params.group_code
     team_name = params.team_name
     group_type = params.group_type
     team_code = params.team_code
-    if not group_name:
-        return JSONResponse(general_message(400, "group name is not null", "分组名称不能为空"), status_code=200)
+
+    try:
+        name_rule_verification(group_name, group_code)
+    except ServiceHandleException as err:
+        return JSONResponse(general_message(err.status_code, err.msg, err.msg_show), status_code=200)
 
     alarm_group = alarm_group_repo.get_alarm_group_by_team(session, group_name, group_type, team_name)
     if alarm_group:
         return JSONResponse(general_message(500, "group name is exist", "分组名称已存在"), status_code=200)
 
+    alarm_group = alarm_group_repo.get_alarm_group_by_code(session, group_code)
+    if alarm_group:
+        return JSONResponse(general_message(500, "group name is exist", "分组标识已存在"), status_code=200)
+
     alarm_group_info = {
         "group_name": group_name,
+        "group_code": group_code,
         "team_name": team_name,
         "team_code": team_code,
         "group_type": group_type,
@@ -125,8 +140,8 @@ async def delete_alarm_group(
                 region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
                 try:
                     if alarm_region_rel:
-                        obs_uid = alarm_region_rel.obs_uid
-                        body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/" + obs_uid, {},
+                        code = alarm_region_rel.code
+                        body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/" + code, {},
                                                                      region)
                 except Exception as err:
                     logger.warning(err)
@@ -151,10 +166,16 @@ async def put_alarm_group(
     """
     group_name = params.group_name
     group_id = params.group_id
+
     try:
         alarm_group = alarm_group_repo.get_alarm_group_by_id(session, group_id)
         if not alarm_group:
             return JSONResponse(general_message(500, "group is not exist", "分组不存在"), status_code=200)
+
+        try:
+            name_rule_verification(group_name, alarm_group.group_code)
+        except ServiceHandleException as err:
+            return JSONResponse(general_message(err.status_code, err.msg, err.msg_show), status_code=200)
 
         team_name = alarm_group.team_name
         group_type = alarm_group.group_type

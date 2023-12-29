@@ -15,6 +15,7 @@ class AlarmGroupService:
                 address.append(email)
         body = {
             "name": alarm_group.group_name,
+            "code": alarm_group.group_code,
             "type": "email",
             "address": ';'.join(address),
         }
@@ -25,8 +26,6 @@ class AlarmGroupService:
             region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
             try:
                 if alarm_region_rel:
-                    obs_uid = alarm_region_rel.obs_uid
-                    body.update({"uid": obs_uid})
                     body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body,
                                                                  region,
                                                                  method="POST")

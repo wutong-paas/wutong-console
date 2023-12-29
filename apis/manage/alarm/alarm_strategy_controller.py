@@ -5,7 +5,7 @@ from loguru import logger
 from starlette.responses import JSONResponse
 from core import deps
 from core.utils.return_message import general_message
-from core.utils.validation import is_qualified_code
+from core.utils.validation import name_rule_verification
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.alarm.alarm_strategy_repo import alarm_strategy_repo
@@ -37,15 +37,18 @@ async def create_alarm_strategy(
     alarm_rules = params.alarm_rules
     alarm_notice = params.alarm_notice
 
-    if not strategy_name or not strategy_code:
-        return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
+    try:
+        name_rule_verification(strategy_name, strategy_code)
+    except ServiceHandleException as err:
+        return JSONResponse(general_message(err.status_code, err.msg, err.msg_show), status_code=200)
 
-    if not is_qualified_code(strategy_code):
-        return JSONResponse(general_message(400, "param error", "策略编码不合法"), status_code=400)
+    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_name(session, strategy_name)
+    if alarm_strategy:
+        return JSONResponse(general_message(500, "param error", "告警策略名称已存在"), status_code=200)
 
     alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
     if alarm_strategy:
-        return JSONResponse(general_message(500, "param error", "策略已存在"), status_code=200)
+        return JSONResponse(general_message(500, "param error", "告警策略标识已存在"), status_code=200)
 
     env = env_services.get_env_by_team_code(session, team_code, env_code)
     if not env:
@@ -56,6 +59,7 @@ async def create_alarm_strategy(
     body = {
         "title": strategy_name,
         "team": team_code,
+        "code": strategy_code,
         "teamName": env.team_alias,
         "env": env_code,
         "envName": env.env_alias,
@@ -65,7 +69,7 @@ async def create_alarm_strategy(
         "rules": alarm_rules,
         "notifies": alarm_notice,
     }
-    obs_uid = None
+
     region_code = env.region_code
     try:
         region = region_repo.get_region_by_region_name(session, region_code)
@@ -74,9 +78,8 @@ async def create_alarm_strategy(
         logger.error(err)
         return JSONResponse(general_message(500, "create strategy error", "创建obs策略失败"), status_code=200)
     if res and res["code"] == 200:
-        obs_uid = res["data"]["uid"]
-
-    if not obs_uid:
+        pass
+    else:
         return JSONResponse(general_message(500, "create strategy error", "创建obs策略失败"), status_code=200)
 
     alarm_strategy_info = {
@@ -88,7 +91,6 @@ async def create_alarm_strategy(
         "alarm_object": json.dumps(alarm_object),
         "alarm_rules": json.dumps(alarm_rules),
         "alarm_notice": json.dumps(alarm_notice),
-        "obs_uid": obs_uid,
         "enable": True
     }
     alarm_strategy_repo.create_alarm_strategy(session, alarm_strategy_info)
@@ -152,13 +154,17 @@ async def update_alarm_strategy(
     更新告警策略
     """
 
+    try:
+        name_rule_verification(params.strategy_name, strategy_code)
+    except ServiceHandleException as err:
+        return JSONResponse(general_message(err.status_code, err.msg, err.msg_show), status_code=200)
+
     alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
     if not alarm_strategy:
         return JSONResponse(general_message(500, "param error", "策略不存在"), status_code=200)
 
     team_code = alarm_strategy.team_code
     env_code = alarm_strategy.env_code
-    obs_uid = alarm_strategy.obs_uid
 
     env = env_services.get_env_by_team_code(session, team_code, env_code)
     if not env:
@@ -171,6 +177,7 @@ async def update_alarm_strategy(
         body = {
             "title": params.strategy_name,
             "team": team_code,
+            "code": alarm_strategy.strategy_code,
             "env": env_code,
             "envId": env.env_id,
             "regionCode": env.region_code,
@@ -179,7 +186,7 @@ async def update_alarm_strategy(
             "notifies": params.alarm_notice,
         }
         region = region_repo.get_region_by_region_name(session, region_code)
-        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + obs_uid, body, region)
+        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "update strategy error", "更新obs策略失败"), status_code=200)
@@ -195,7 +202,6 @@ async def update_alarm_strategy(
             "alarm_object": json.dumps(alarm_object),
             "alarm_rules": json.dumps(params.alarm_rules),
             "alarm_notice": json.dumps(params.alarm_notice),
-            "obs_uid": obs_uid,
             "enable": True
         }
         alarm_strategy_repo.update_alarm_strategy(session, alarm_strategy.ID, alarm_strategy_info)
@@ -221,7 +227,6 @@ async def delete_alarm_strategy(
 
     team_code = alarm_strategy.team_code
     env_code = alarm_strategy.env_code
-    obs_uid = alarm_strategy.obs_uid
 
     env = env_services.get_env_by_team_code(session, team_code, env_code)
     if not env:
@@ -230,7 +235,7 @@ async def delete_alarm_strategy(
     region_code = env.region_code
     try:
         region = region_repo.get_region_by_region_name(session, region_code)
-        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + obs_uid, {}, region)
+        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {}, region)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "update strategy error", "删除obs策略失败"), status_code=200)
@@ -261,7 +266,6 @@ async def put_alarm_strategy(
 
     team_code = alarm_strategy.team_code
     env_code = alarm_strategy.env_code
-    obs_uid = alarm_strategy.obs_uid
 
     env = env_services.get_env_by_team_code(session, team_code, env_code)
     if not env:
@@ -271,11 +275,13 @@ async def put_alarm_strategy(
     try:
         region = region_repo.get_region_by_region_name(session, region_code)
         if not enable:
-            res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + obs_uid, {}, region, method="DELETE")
+            res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {}, region,
+                                                        method="DELETE")
         else:
             body = {
                 "title": alarm_strategy.strategy_name,
                 "team": team_code,
+                "code": alarm_strategy.strategy_code
                 "env": env_code,
                 "envId": env.env_id,
                 "regionCode": env.region_code,
@@ -291,7 +297,9 @@ async def put_alarm_strategy(
                 logger.error(err)
                 return JSONResponse(general_message(500, "enable strategy error", "开关策略失败"), status_code=200)
             if res and res["code"] == 200:
-                obs_uid = res["data"]["uid"]
+                pass
+            else:
+                return JSONResponse(general_message(500, "enable strategy error", "开关obs策略失败"), status_code=200)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "enable strategy error", "开关obs策略失败"), status_code=200)
@@ -300,8 +308,32 @@ async def put_alarm_strategy(
 
     try:
         alarm_strategy.enable = enable
-        alarm_strategy.obs_uid = obs_uid
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "enable strategy error", "开关策略失败"), status_code=200)
     return JSONResponse(general_message(200, "success", "开关成功"), status_code=200)
+
+
+@router.get("/plat/alarm/strategy/check", response_model=Response, name="验证告警策略")
+async def create_alarm_strategy(
+        strategy_name: Optional[str] = None,
+        strategy_code: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session)) -> Any:
+    """
+    验证告警策略
+    """
+
+    try:
+        name_rule_verification(strategy_name, strategy_code)
+    except ServiceHandleException as err:
+        return JSONResponse(general_message(err.status_code, err.msg, err.msg_show), status_code=200)
+
+    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_name(session, strategy_name)
+    if alarm_strategy:
+        return JSONResponse(general_message(500, "param error", "告警策略名称已存在"), status_code=200)
+
+    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
+    if alarm_strategy:
+        return JSONResponse(general_message(500, "param error", "告警策略标识已存在"), status_code=200)
+
+    return JSONResponse(general_message(200, "success", "验证成功"), status_code=200)

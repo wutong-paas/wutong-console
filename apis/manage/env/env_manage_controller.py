@@ -7,7 +7,7 @@ from loguru import logger
 from core import deps
 from core.api.team_api import team_api
 from core.utils.return_message import general_message, error_message
-from core.utils.validation import is_qualified_name
+from core.utils.validation import is_qualified_code
 from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrNamespaceExists
 from exceptions.main import ServiceHandleException
@@ -35,8 +35,9 @@ async def add_env(
         result = general_message(400, "env_code too long", "环境标识长度限制31")
         return JSONResponse(result, status_code=result["code"])
 
-    if not is_qualified_name(params.env_name):
-        raise ErrQualifiedName(msg="invalid namespace name", msg_show="环境标识只支持英文、数字、中横线、下划线组合，需以英文、数字开头，中横线、下划线不能位于首尾")
+    if not is_qualified_code(params.env_name):
+        raise ErrQualifiedName(msg="invalid namespace name",
+                               msg_show="环境标识只支持小写字母、数字、以及短横杠“-”组成，标识只能以小写字母开头，不能以数字开头且短横杠不能位于首尾")
 
     namespace = team_name + "-" + params.env_name
     namespace = namespace.lower().replace("_", "-")

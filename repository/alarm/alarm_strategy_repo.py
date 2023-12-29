@@ -15,6 +15,10 @@ class AlarmStrategyRepo(BaseRepository[AlarmStrategy]):
         return session.execute(select(AlarmStrategy).where(
             AlarmStrategy.strategy_code == strategy_code)).scalars().first()
 
+    def get_alarm_strategy_by_name(self, session, strategy_name):
+        return session.execute(select(AlarmStrategy).where(
+            AlarmStrategy.strategy_name == strategy_name)).scalars().first()
+
     def get_alarm_strategy_by_team_code(self, session, team_code):
         if team_code:
             alarm_strategys = session.execute(select(AlarmStrategy).where(

@@ -44,7 +44,8 @@ def validate_endpoints_info(endpoints_info):
     exist_address = dict()
     for address in endpoints_info:
         if exist_address.get(address):
-            raise ServiceHandleException(msg="Multiple instances of the same address are not allowed", msg_show="不允许多实例地址相同")
+            raise ServiceHandleException(msg="Multiple instances of the same address are not allowed",
+                                         msg_show="不允许多实例地址相同")
         exist_address[address] = address
         if "https://" in address:
             address = address.partition("https://")[2]
@@ -71,20 +72,40 @@ def validate_name(name):
     return False
 
 
-# Verification k8s resource name, refer to:
-# https://github.com/kubernetes/kubernetes/blob/b0bc8adbc2178e15872f9ef040355c51c45d04bb/staging/src/k8s.io/apimachinery/pkg/util/validation/validation.go#L43
+# 验证名称
 def is_qualified_name(name):
-    # 只支持英文、数字、中横线、下划线组合，需以英文、数字开头，中横线、下划线不能位于首尾
-    if re.match(r'^[A-Za-z0-9]([-_A-Za-z0-9]*[A-Za-z0-9])?$', name):
+    # 只支持英文、数字、中横线、下划线、空格组合
+    if re.match(r'^[\u4E00-\u9FA5\sA-Za-z0-9_-]+$', name):
         return True
     return False
 
 
-# 验证组件英文名称
+# 验证标识
 def is_qualified_code(code):
-    if len(code) > 32:
-        return False
     # 只支持小写字母、数字或“-”，并且必须以字母开始、以数字或字母结尾
     if re.match(r'^[a-z]([-a-z0-9]*[a-z0-9])?$', code):
         return True
     return False
+
+
+def name_rule_verification(name, code):
+
+    if not name:
+        raise ServiceHandleException(status_code=400, error_code=400, msg="param error", msg_show="名称不能为空")
+
+    if not code:
+        raise ServiceHandleException(status_code=400, error_code=400, msg="param error", msg_show="标识不能为空")
+
+    if len(name) > 32:
+        raise ServiceHandleException(status_code=400, error_code=400, msg="param error", msg_show="名称不能超过32个字符")
+
+    if len(code) > 32:
+        raise ServiceHandleException(status_code=400, error_code=400, msg="param error", msg_show="标识不能超过32个字符")
+
+    if not is_qualified_name(name):
+        raise ServiceHandleException(status_code=400, error_code=400, msg="param error",
+                                     msg_show="名称只支持中英文、数字、空格、中横线、下划线组合")
+
+    if not is_qualified_code(code):
+        raise ServiceHandleException(status_code=400, error_code=400, msg="param error",
+                                     msg_show="标识只支持小写字母、数字、以及短横杠“-”组成，标识只能以小写字母开头，不能以数字开头且短横杠不能位于首尾")

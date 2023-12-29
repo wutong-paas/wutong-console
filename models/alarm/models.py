@@ -18,7 +18,6 @@ class AlarmStrategy(Base):
     alarm_rules = Column(LONGTEXT, comment="告警规则", nullable=False)
     alarm_notice = Column(LONGTEXT, comment="告警通知", nullable=False)
     operator = Column(String(64), comment="创建人名", nullable=True)
-    obs_uid = Column(String(64), comment="uid", nullable=False)
     enable = Column(Boolean, comment="是否启用", nullable=False, default=True)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
     update_time = Column(DateTime(), nullable=True, default=datetime.now, onupdate=datetime.now, comment="更新时间")
@@ -32,6 +31,7 @@ class AlarmGroup(Base):
 
     ID = Column(Integer, primary_key=True)
     group_name = Column(String(32), comment="分组名", nullable=True)
+    group_code = Column(String(32), comment="分组标识", nullable=True)
     team_name = Column(String(64), comment="团队名", nullable=True)
     group_type = Column(String(32), comment="分组类型(plat/team)", nullable=False)
     contacts = Column(LONGTEXT, comment="联系人", nullable=True)
@@ -47,6 +47,7 @@ class AlarmRobot(Base):
 
     ID = Column(Integer, primary_key=True)
     robot_name = Column(String(32), comment="机器人名称", nullable=False)
+    robot_code = Column(String(32), comment="机器人标识", nullable=False)
     webhook_addr = Column(String(255), comment="webhook地址", nullable=False)
     team_code = Column(String(32), comment="团队标识", nullable=True)
     operator = Column(String(64), comment="创建人", nullable=False)
@@ -61,5 +62,5 @@ class AlarmRegionRelation(Base):
     ID = Column(Integer, primary_key=True)
     alarm_type = Column(String(32), comment="告警类型(email/robot)", nullable=False)
     group_id = Column(Integer, comment="机器人名称", nullable=False)
-    obs_uid = Column(String(64), comment="obs uid", nullable=True)
+    code = Column(String(64), comment="分组或机器人code", nullable=True)
     region_code = Column(String(33), comment="集群标识", nullable=False)

@@ -14,6 +14,7 @@ class AlarmRegionService:
                 address.append(email)
         body = {
             "name": alarm_group.group_name,
+            "code": alarm_group.group_code,
             "type": "email",
             "address": ';'.join(address),
         }
@@ -22,19 +23,15 @@ class AlarmRegionService:
             region_code = region.region_name
             try:
                 alarm_region_rel = alarm_region_repo.get_alarm_region(session, group_id, region_code, "email")
-                if alarm_region_rel:
-                    obs_uid = alarm_region_rel.obs_uid
-                    body.update({"uid": obs_uid})
                 body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
             except Exception as err:
                 logger.warning(err)
                 continue
             if body and body["code"] == 200:
-                uid = body["data"]["uid"]
                 data = {
                     "group_id": group_id,
                     "alarm_type": "email",
-                    "obs_uid": uid,
+                    "code": alarm_group.group_code,
                     "region_code": region_code
                 }
                 if not alarm_region_rel:

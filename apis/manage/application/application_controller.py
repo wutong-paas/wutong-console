@@ -11,7 +11,7 @@ from core.enum.app import GovernanceModeEnum
 from core.utils.crypt import make_uuid
 from core.utils.reqparse import parse_item
 from core.utils.return_message import general_message, error_message
-from core.utils.validation import is_qualified_name
+from core.utils.validation import is_qualified_code
 from database.session import SessionClass
 from exceptions.bcode import ErrQualifiedName, ErrApplicationNotFound
 from exceptions.main import ServiceHandleException, AbortRequest
@@ -79,8 +79,8 @@ async def create_app(params: TeamAppCreateRequest,
     app_code = params.app_code
     if not app_code and params.app_alias:
         app_code = params.app_alias
-    if app_code and not is_qualified_name(app_code):
-        raise ErrQualifiedName(msg_show="应用标识只支持英文、数字、中横线、下划线组合，需以英文、数字开头，中横线、下划线不能位于首尾")
+    if app_code and not is_qualified_code(app_code):
+        raise ErrQualifiedName(msg_show="应用标识只支持小写字母、数字、以及短横杠“-”组成，标识只能以小写字母开头，不能以数字开头且短横杠不能位于首尾")
 
     k8s_app = app_code.lower().replace("_", "-")
 

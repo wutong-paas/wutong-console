@@ -189,7 +189,7 @@ async def overview_team_env_info(
         if app_statuses:
             for app_status in app_statuses:
                 k8s_app = app_status.get("k8s_app")
-                app = application_repo.get_app_by_k8s_app(session, env_id, region_name, k8s_app, project_id)
+                app = application_repo.get_app_by_k8s_app(session, env_id, env.region_code, k8s_app, project_id)
                 if app:
                     if app_status.get("status") == "RUNNING":
                         running_app_num += 1
