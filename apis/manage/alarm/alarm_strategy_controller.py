@@ -281,7 +281,7 @@ async def put_alarm_strategy(
             body = {
                 "title": alarm_strategy.strategy_name,
                 "team": team_code,
-                "code": alarm_strategy.strategy_code
+                "code": alarm_strategy.strategy_code,
                 "env": env_code,
                 "envId": env.env_id,
                 "regionCode": env.region_code,

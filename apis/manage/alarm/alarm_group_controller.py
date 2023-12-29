@@ -23,7 +23,6 @@ router = APIRouter()
 
 @router.get("/plat/alarm/group", response_model=Response, name="查询通知分组")
 async def get_alarm_group(
-        region_code: Optional[str] = None,
         team_code: Optional[str] = None,
         query: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -141,11 +140,12 @@ async def delete_alarm_group(
                 try:
                     if alarm_region_rel:
                         code = alarm_region_rel.code
-                        body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/" + code, {},
+                        body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/email_" + code, {},
                                                                      region)
+                except ServiceHandleException as err:
+                    return JSONResponse(general_message(err.error_code, "delete group failed", err.msg), status_code=200)
                 except Exception as err:
-                    logger.warning(err)
-                    continue
+                    return JSONResponse(general_message(500, "delete group failed", "删除通知分组失败"), status_code=200)
 
             alarm_region_repo.delete_alarm_region(session, alarm_group.ID, "email")
         alarm_group_repo.delete_alarm_group_by_id(session, group_id)

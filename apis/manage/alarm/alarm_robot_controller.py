@@ -63,6 +63,7 @@ async def add_alarm_robot(
             "type": "wechat",
             "address": webhook_addr
         }
+        err_message = None
         alarm_robot = alarm_robot_repo.add_alarm_robot(session, robot_info)
         regions = team_region_repo.get_regions(session)
         for region in regions:
@@ -83,13 +84,16 @@ async def add_alarm_robot(
                 status = 1
                 if not alarm_region_rel:
                     alarm_region_repo.create_alarm_region(session, data)
+            if body and body["code"] != 200:
+                err_message = body["message"]
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add robot failed", "添加机器人失败"), status_code=200)
 
     if not status:
         session.rollback()
-        return JSONResponse(general_message(500, "add robot failed", "添加机器人失败"), status_code=200)
+        return JSONResponse(general_message(500, "add robot failed", err_message if err_message else "添加机器人失败"),
+                            status_code=200)
     return JSONResponse(general_message(200, "add robot success", "添加机器人成功"), status_code=200)
 
 
@@ -113,10 +117,11 @@ async def delete_alarm_robot(
             try:
                 if alarm_region_rel:
                     code = alarm_region_rel.code
-                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/" + code, {}, region)
-            except Exception as err:
-                logger.warning(err)
-                continue
+                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/wechat_" + code, {}, region)
+            except ServiceHandleException as err:
+                return JSONResponse(general_message(err.error_code, "delete robot failed", err.msg), status_code=200)
+            except:
+                return JSONResponse(general_message(500, "delete robot failed", "删除通知分组失败"), status_code=200)
 
         alarm_region_repo.delete_alarm_region(session, robot.ID, "wechat")
         alarm_robot_repo.delete_alarm_robot_by_name(session, robot_name)
@@ -129,7 +134,6 @@ async def delete_alarm_robot(
 @router.get("/plat/alarm/group/robot", response_model=Response, name="查询机器人列表")
 async def get_alarm_robot(
         team_code: Optional[str] = None,
-        region_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询机器人列表
