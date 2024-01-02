@@ -12,7 +12,12 @@ class AlarmStrategyService:
         env_code = alarm_strategy.env_code
         alarm_objects = json.loads(alarm_strategy.alarm_object)
         alarm_rules = json.loads(alarm_strategy.alarm_rules)
-        alarm_notice = json.loads(alarm_strategy.alarm_notice)
+        object_code = alarm_strategy.object_code
+        object_type = alarm_strategy.object_type
+        alarm_notice = {
+            "object_code": object_code,
+            "object_type": object_type
+        }
 
         env = env_services.get_env_by_team_code(session, team_code, env_code)
         if not env:
