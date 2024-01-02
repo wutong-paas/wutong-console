@@ -96,6 +96,7 @@ class Component(Base):
     k8s_component_name = Column(String(100), comment="集群组件名称", nullable=True)
 
     monitor = Column(String(32), comment="组件监控类型(devops、plugin、None)", nullable=True, default=None)
+    obs_strategy_code = Column(String(32), comment="告警策略标识", nullable=True, default=None)
 
     is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)
     delete_time = Column(DateTime(), nullable=True, comment="删除时间")

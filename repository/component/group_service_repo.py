@@ -321,9 +321,10 @@ class ComponentRepository(BaseRepository[Component]):
         ).scalars().all()
 
     def get_services_by_service_ids(self, session, service_ids):
-        return session.execute(
+        services = session.execute(
             select(Component).where(Component.service_id.in_(service_ids),
                                     Component.is_delete == 0)).scalars().all()
+        return services if services else []
 
     def get_services_by_service_ids_tenant_env_id(self, session, service_ids, tenant_env_id):
         return session.execute(

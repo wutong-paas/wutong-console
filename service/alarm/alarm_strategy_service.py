@@ -3,6 +3,7 @@ from exceptions.main import ServiceHandleException
 from repository.application.application_repo import application_repo
 from repository.component.group_service_repo import service_info_repo
 from service.tenant_env_service import env_services
+from repository.alarm.alarm_strategy_repo import alarm_strategy_repo
 
 
 class AlarmStrategyService:
@@ -15,8 +16,8 @@ class AlarmStrategyService:
         object_code = alarm_strategy.object_code
         object_type = alarm_strategy.object_type
         alarm_notice = {
-            "object_code": object_code,
-            "object_type": object_type
+            "code": object_code,
+            "type": object_type
         }
 
         env = env_services.get_env_by_team_code(session, team_code, env_code)
@@ -94,6 +95,41 @@ class AlarmStrategyService:
             })
             alarm_objects.append(alarm_object)
         return alarm_objects
+
+    async def update_alarm_strategy_service(self, session, env, service):
+        strategy_code = service.obs_strategy_code
+        if strategy_code:
+            alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
+            if alarm_strategy:
+                alarm_objects = json.loads(alarm_strategy.alarm_object)
+                for alarm_object in alarm_objects:
+                    component_list = []
+                    components = alarm_object.get("components")
+                    for component in components:
+                        service_id = component.get("serviceId")
+                        if service_id != service.service_id:
+                            component_list.append(component)
+                    alarm_object.update({"components": component_list})
+                alarm_strategy.alarm_object = json.dumps(alarm_objects)
+
+            service.obs_strategy_code = None
+
+            body = {
+                "title": alarm_strategy.strategy_name,
+                "team": alarm_strategy.team_code,
+                "code": alarm_strategy.strategy_code,
+                "env": alarm_strategy.env_code,
+                "envId": env.env_id,
+                "regionCode": env.region_code,
+                "objects": json.loads(alarm_strategy.alarm_object),
+                "rules": json.loads(alarm_strategy.alarm_rules),
+                "notifies": {
+                    "code": alarm_strategy.object_code,
+                    "type": alarm_strategy.object_type,
+                },
+            }
+            region = region_repo.get_region_by_region_name(session, region_code)
+            await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
 
 
 alarm_strategy_service = AlarmStrategyService()

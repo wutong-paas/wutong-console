@@ -12,22 +12,20 @@ class AlarmGroupRepo(BaseRepository[AlarmGroup]):
         session.flush()
 
     def get_alarm_group(self, session, query, team_code):
+
+        sql = "select * from alarm_group where 1"
+        params = {
+            "team_code": team_code,
+            "query": query,
+        }
         if team_code:
-            if query:
-                return session.execute(select(AlarmGroup).where(
-                    AlarmGroup.team_code == team_code,
-                    or_(AlarmGroup.team_name.contains(query),
-                        AlarmGroup.group_name.contains(query)))).scalars().all()
-            else:
-                return session.execute(select(AlarmGroup).where(
-                    AlarmGroup.team_code == team_code)).scalars().all()
-        else:
-            if query:
-                return session.execute(select(AlarmGroup).where(
-                    or_(AlarmGroup.team_name.contains(query),
-                        AlarmGroup.group_name.contains(query)))).scalars().all()
-            else:
-                return session.execute(select(AlarmGroup)).scalars().all()
+            sql += " and team_code=:team_code"
+        if query:
+            sql += " and (team_name like '%' :query '%' \
+                    or group_name like '%' :query '%')"
+
+        alarm_groups = session.execute(sql, params).fetchall()
+        return alarm_groups
 
     def get_alarm_group_by_team(self, session, group_name, group_type, team_name):
         if group_type == 'team':

@@ -35,6 +35,7 @@ from service.market_app_service import market_app_service
 from service.plugin.app_plugin_service import app_plugin_service
 from service.region_service import region_services
 from service.upgrade_service import upgrade_service
+from service.alarm.alarm_strategy_service import alarm_strategy_service
 
 router = APIRouter()
 
@@ -449,15 +450,16 @@ async def group_component(request: Request,
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{component_alias}/delete", response_model=Response, name="删除组件")
-async def delete_component(request: Request,
-                           component_alias: Optional[str] = None,
-                           session: SessionClass = Depends(deps.get_session),
-                           user=Depends(deps.get_current_user),
-                           env=Depends(deps.get_current_team_env)) -> Any:
-    data = await request.json()
-    is_force = data.get("is_force", False)
+async def delete_component(
+        component_alias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user),
+        env=Depends(deps.get_current_team_env)) -> Any:
     service = service_info_repo.get_service(session, component_alias, env.env_id)
-    # code, msg = app_manage_service.delete(session=session, tenant_env=env, service=service, user=user)
+
+    # 更新obs告警策略
+    await alarm_strategy_service.update_alarm_strategy_service(session, env, service)
+
     code, msg = component_delete_service.logic_delete(session=session, tenant_env=env, service=service, user=user,
                                                       is_force=True)
     if code != "0":

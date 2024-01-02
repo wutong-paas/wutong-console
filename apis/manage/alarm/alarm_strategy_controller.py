@@ -15,6 +15,7 @@ from schemas.response import Response
 from service.alarm.alarm_service import alarm_service
 from service.alarm.alarm_strategy_service import alarm_strategy_service
 from service.tenant_env_service import env_services
+from repository.component.group_service_repo import service_info_repo
 
 router = APIRouter()
 
@@ -93,6 +94,20 @@ async def create_alarm_strategy(
         "object_type": object_type,
         "enable": True
     }
+
+    service_ids = []
+    for object in alarm_object:
+        components = object.get("components")
+        for component in components:
+            service_ids.append(component.get("serviceId"))
+
+    services = service_info_repo.get_services_by_service_ids(session, service_ids)
+    for service in services:
+        if service.obs_strategy_code:
+            service.obs_strategy_code = service.obs_strategy_code + "," + strategy_code
+        else:
+            service.obs_strategy_code = strategy_code
+
     alarm_strategy_repo.create_alarm_strategy(session, alarm_strategy_info)
     return JSONResponse(general_message(200, "success", "创建成功"), status_code=200)
 
@@ -123,12 +138,13 @@ async def get_alarm_strategy(
 @router.get("/plat/alarm/strategy-list", response_model=Response, name="查询告警策略列表")
 async def get_alarm_strategy(
         team_code: Optional[str] = None,
+        query: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询告警策略列表
     """
     data_list = []
-    alarm_strategys = alarm_strategy_repo.get_alarm_strategy_by_team_code(session, team_code)
+    alarm_strategys = alarm_strategy_repo.get_alarm_strategy_by_team_code(session, team_code, query)
 
     for alarm_strategy in alarm_strategys:
         try:
@@ -237,17 +253,30 @@ async def delete_alarm_strategy(
         return JSONResponse(general_message(500, "param error", "环境不存在"), status_code=200)
 
     region_code = env.region_code
-    try:
-        region = region_repo.get_region_by_region_name(session, region_code)
-        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {},
-                                                    region)
-    except Exception as err:
-        logger.error(err)
-        return JSONResponse(general_message(500, "update strategy error", "删除obs策略失败"), status_code=200)
-    if res and res["code"] != 200:
-        return JSONResponse(general_message(500, "update strategy error", "删除obs策略失败"), status_code=200)
+
+    # 开启后删除obs策略
+    if alarm_strategy.enable:
+        try:
+            region = region_repo.get_region_by_region_name(session, region_code)
+            res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {},
+                                                        region)
+            if res["code"] != 200:
+                return JSONResponse(general_message(res["code"], "update strategy error", res["message"]), status_code=200)
+        except Exception as err:
+            logger.error(err)
+            return JSONResponse(general_message(500, "update strategy error", "删除obs策略失败"), status_code=200)
 
     try:
+        service_ids = []
+        alarm_objects = json.loads(alarm_strategy.alarm_object)
+        for alarm_object in alarm_objects:
+            components = alarm_object.get("components")
+            for component in components:
+                service_ids.append(component.get("serviceId"))
+
+        services = service_info_repo.get_services_by_service_ids(session, service_ids)
+        for service in services:
+            service.obs_strategy_code = None
         alarm_strategy_repo.delete_alarm_strategy(session, alarm_strategy.ID)
     except Exception as err:
         logger.error(err)
@@ -294,7 +323,10 @@ async def put_alarm_strategy(
                 "regionCode": env.region_code,
                 "objects": json.loads(alarm_strategy.alarm_object),
                 "rules": json.loads(alarm_strategy.alarm_rules),
-                "notifies": json.loads(alarm_strategy.alarm_notice),
+                "notifies": {
+                    "code": alarm_strategy.object_code,
+                    "type": alarm_strategy.object_type,
+                },
             }
             region_code = env.region_code
             try:
@@ -303,14 +335,11 @@ async def put_alarm_strategy(
             except Exception as err:
                 logger.error(err)
                 return JSONResponse(general_message(500, "enable strategy error", "开关策略失败"), status_code=200)
-            if res and res["code"] == 200:
-                pass
-            else:
-                return JSONResponse(general_message(500, "enable strategy error", "开关obs策略失败"), status_code=200)
+            if res["code"] != 200:
+                return JSONResponse(general_message(res["code"], "enable strategy error", res["message"]),
+                                    status_code=200)
     except Exception as err:
         logger.error(err)
-        return JSONResponse(general_message(500, "enable strategy error", "开关obs策略失败"), status_code=200)
-    if res and res["code"] != 200:
         return JSONResponse(general_message(500, "enable strategy error", "开关obs策略失败"), status_code=200)
 
     try:
