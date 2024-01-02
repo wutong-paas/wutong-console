@@ -37,5 +37,10 @@ class AlarmStrategyRepo(BaseRepository[AlarmStrategy]):
             AlarmStrategy.ID == strategy_id))
         session.flush()
 
+    def get_alarm_strategys_by_object(self, session, object_code, object_type):
+        return session.execute(select(AlarmStrategy).where(
+            AlarmStrategy.object_code == object_code,
+        AlarmStrategy.object_type == object_type)).scalars().all()
+
 
 alarm_strategy_repo = AlarmStrategyRepo(AlarmStrategy)

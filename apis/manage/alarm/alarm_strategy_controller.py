@@ -10,7 +10,7 @@ from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from repository.alarm.alarm_strategy_repo import alarm_strategy_repo
 from repository.region.region_info_repo import region_repo
-from schemas.alarm_strategy import AlarmStrategyParam
+from schemas.alarm_strategy import AlarmStrategyParam, StrategyEnableParam
 from schemas.response import Response
 from service.alarm.alarm_service import alarm_service
 from service.alarm.alarm_strategy_service import alarm_strategy_service
@@ -42,10 +42,6 @@ async def create_alarm_strategy(
     except ServiceHandleException as err:
         return JSONResponse(general_message(err.status_code, err.msg, err.msg_show), status_code=200)
 
-    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_name(session, strategy_name)
-    if alarm_strategy:
-        return JSONResponse(general_message(500, "param error", "告警策略名称已存在"), status_code=200)
-
     alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
     if alarm_strategy:
         return JSONResponse(general_message(500, "param error", "告警策略标识已存在"), status_code=200)
@@ -74,13 +70,13 @@ async def create_alarm_strategy(
     try:
         region = region_repo.get_region_by_region_name(session, region_code)
         res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
+    except ServiceHandleException as err:
+        return JSONResponse(general_message(err.error_code, "create strategy error", err.msg), status_code=200)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "create strategy error", "创建obs策略失败"), status_code=200)
-    if res and res["code"] == 200:
-        pass
-    else:
-        return JSONResponse(general_message(500, "create strategy error", "创建obs策略失败"), status_code=200)
+    if res["code"] != 200:
+        return JSONResponse(general_message(res["code"], "create strategy error", res["message"]), status_code=200)
 
     object_code = alarm_notice.get("code")
     object_type = alarm_notice.get("type")
@@ -262,13 +258,14 @@ async def delete_alarm_strategy(
 @router.put("/plat/alarm/strategy/enable", response_model=Response, name="开关告警策略")
 async def put_alarm_strategy(
         request: Request,
-        enable: Optional[int] = 1,
-        strategy_code: Optional[str] = None,
+        params: Optional[StrategyEnableParam] = StrategyEnableParam(),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     开关告警策略
     """
 
+    strategy_code = params.strategy_code
+    enable = params.enable
     alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
     if not alarm_strategy:
         return JSONResponse(general_message(500, "param error", "策略不存在"), status_code=200)
@@ -325,7 +322,7 @@ async def put_alarm_strategy(
 
 
 @router.get("/plat/alarm/strategy/check", response_model=Response, name="验证告警策略")
-async def create_alarm_strategy(
+async def check_alarm_strategy(
         strategy_name: Optional[str] = None,
         strategy_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -337,10 +334,6 @@ async def create_alarm_strategy(
         name_rule_verification(strategy_name, strategy_code)
     except ServiceHandleException as err:
         return JSONResponse(general_message(err.status_code, err.msg, err.msg_show), status_code=200)
-
-    alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_name(session, strategy_name)
-    if alarm_strategy:
-        return JSONResponse(general_message(500, "param error", "告警策略名称已存在"), status_code=200)
 
     alarm_strategy = alarm_strategy_repo.get_alarm_strategy_by_code(session, strategy_code)
     if alarm_strategy:

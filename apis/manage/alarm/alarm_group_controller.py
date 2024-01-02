@@ -17,6 +17,7 @@ from service.alarm.alarm_region_service import alarm_region_service
 from service.alarm.alarm_service import alarm_service
 from core.utils.validation import name_rule_verification
 from exceptions.main import ServiceHandleException
+from repository.alarm.alarm_strategy_repo import alarm_strategy_repo
 
 router = APIRouter()
 
@@ -140,10 +141,14 @@ async def delete_alarm_group(
                 try:
                     if alarm_region_rel:
                         code = alarm_region_rel.code
+                        alarm_strategys = alarm_strategy_repo.get_alarm_strategys_by_object(session, code, "email")
+                        if alarm_strategys:
+                            return JSONResponse(general_message(500, "delete failed", "该分组已有策略正在使用"), status_code=200)
                         body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/email_" + code, {},
                                                                      region)
                 except ServiceHandleException as err:
-                    return JSONResponse(general_message(err.error_code, "delete group failed", err.msg), status_code=200)
+                    return JSONResponse(general_message(err.error_code, "delete group failed", err.msg),
+                                        status_code=200)
                 except Exception as err:
                     return JSONResponse(general_message(500, "delete group failed", "删除通知分组失败"), status_code=200)
 

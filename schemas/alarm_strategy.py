@@ -14,3 +14,11 @@ class AlarmStrategyParam(BaseModel):
     alarm_object: Annotated[list, Field(title="告警对象")] = None
     alarm_rules: Annotated[list, Field(title="告警规则")] = None
     alarm_notice: Annotated[dict, Field(title="告警通知")] = None
+
+
+class StrategyEnableParam(BaseModel):
+    """
+    告警策略开关参数
+    """
+    strategy_code: Annotated[str, Field(title="策略标识")] = None
+    enable: Annotated[bool, Field(title="是否启用")] = None
