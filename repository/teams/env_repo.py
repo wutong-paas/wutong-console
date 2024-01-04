@@ -184,5 +184,12 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
             )
         ).scalars().all()
 
+    def get_env_by_team_code(self, session, team_code, env_code):
+        env = session.execute(
+            select(TeamEnvInfo).where(TeamEnvInfo.tenant_name == team_code,
+                                      TeamEnvInfo.env_name == env_code,
+                                      TeamEnvInfo.is_delete == 0)).scalars().first()
+        return env
+
 
 env_repo = EnvRepository(TeamEnvInfo)

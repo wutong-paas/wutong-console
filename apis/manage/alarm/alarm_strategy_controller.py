@@ -179,8 +179,8 @@ async def update_alarm_strategy(
     if not alarm_strategy:
         return JSONResponse(general_message(500, "param error", "策略不存在"), status_code=200)
 
-    team_code = alarm_strategy.team_code
-    env_code = alarm_strategy.env_code
+    team_code = params.team_code
+    env_code = params.env_code
 
     env = env_services.get_env_by_team_code(session, team_code, env_code)
     if not env:
@@ -189,27 +189,44 @@ async def update_alarm_strategy(
     alarm_object = alarm_strategy_service.analysis_object(session, params.alarm_object)
 
     region_code = env.region_code
-    try:
-        body = {
-            "title": params.strategy_name,
-            "team": team_code,
-            "code": alarm_strategy.strategy_code,
-            "env": env_code,
-            "envId": env.env_id,
-            "regionCode": env.region_code,
-            "objects": alarm_object,
-            "rules": params.alarm_rules,
-            "notifies": params.alarm_notice,
-        }
-        region = region_repo.get_region_by_region_name(session, region_code)
-        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
-    except Exception as err:
-        logger.error(err)
-        return JSONResponse(general_message(500, "update strategy error", "更新obs策略失败"), status_code=200)
-    if res and res["code"] != 200:
-        return JSONResponse(general_message(500, "update strategy error", "更新obs策略失败"), status_code=200)
+    if alarm_strategy.enable:
+        try:
+            body = {
+                "title": params.strategy_name,
+                "team": team_code,
+                "code": alarm_strategy.strategy_code,
+                "env": env_code,
+                "envId": env.env_id,
+                "regionCode": env.region_code,
+                "objects": alarm_object,
+                "rules": params.alarm_rules,
+                "notifies": params.alarm_notice,
+            }
+            region = region_repo.get_region_by_region_name(session, region_code)
+            res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
+        except Exception as err:
+            logger.error(err)
+            return JSONResponse(general_message(500, "update strategy error", "更新obs策略失败"), status_code=200)
+        if res and res["code"] != 200:
+            return JSONResponse(general_message(res["code"], "update strategy error", res["message"]), status_code=200)
 
     try:
+        service_ids = []
+        for object in alarm_object:
+            components = object.get("components")
+            for component in components:
+                service_ids.append(component.get("serviceId"))
+
+        services = service_info_repo.get_services_by_service_ids(session, service_ids)
+        for service in services:
+            if service.obs_strategy_code:
+                obs_strategy_code = service.obs_strategy_code.split(",")
+                if strategy_code in obs_strategy_code:
+                    continue
+                service.obs_strategy_code = service.obs_strategy_code + "," + strategy_code
+            else:
+                service.obs_strategy_code = strategy_code
+
         alarm_notice = params.alarm_notice
         object_code = alarm_notice.get("code")
         object_type = alarm_notice.get("type")
@@ -222,7 +239,7 @@ async def update_alarm_strategy(
             "alarm_rules": json.dumps(params.alarm_rules),
             "object_code": object_code,
             "object_type": object_type,
-            "enable": True
+            "enable": alarm_strategy.enable,
         }
         alarm_strategy_repo.update_alarm_strategy(session, alarm_strategy.ID, alarm_strategy_info)
     except Exception as err:

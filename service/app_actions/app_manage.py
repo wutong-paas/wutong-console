@@ -58,6 +58,7 @@ from service.app_env_service import env_var_service
 from service.application_service import application_service
 from service.base_services import baseService, base_service
 from service.market_app_service import market_app_service
+from service.alarm.alarm_strategy_service import alarm_strategy_service
 
 
 # class AppManageBase(object):
@@ -1151,7 +1152,7 @@ class AppManageService(object):
         return False
 
     # 批量删除组件
-    def batch_delete(self, session: SessionClass, user, tenant_env, service):
+    async def batch_delete(self, session: SessionClass, user, tenant_env, service, request):
         # 判断组件是否是运行状态
         if self.__is_service_running(session=session, tenant_env=tenant_env,
                                      service=service) and service.service_source != "third_party":
@@ -1188,6 +1189,8 @@ class AppManageService(object):
             if code != "0":
                 return code, msg
             else:
+                # 更新obs告警策略
+                await alarm_strategy_service.update_alarm_strategy_service(request, session, tenant_env, service)
                 msg = "success"
                 return code, msg
         except Exception as e:

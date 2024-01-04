@@ -29,12 +29,10 @@ async def get_alarm_message(
     regions = team_region_repo.get_regions(session)
     data_list = []
     for region in regions:
-        body = {
-            "team": team_code,
-            "type": query
-        }
         try:
-            res = await alarm_service.obs_service_alarm(request, "/v1/alert/alerts", body, region)
+            res = await alarm_service.obs_service_alarm(request,
+                                                        "/v1/alert/alerts?type=" + query + "&team=" + team_code, {},
+                                                        region)
         except Exception as err:
             logger.warning(err)
             continue

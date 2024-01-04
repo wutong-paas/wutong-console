@@ -236,8 +236,13 @@ async def add_alarm_group_user(
             contacts = user_names
         contacts = contacts.split(",")
         users_info = team_api.get_users_info(contacts, current_user.token)
-        await alarm_region_service.add_or_update_alarm_region(session, request, users_info, group_id, alarm_group,
-                                                              contacts)
+        status, err_message = await alarm_region_service.add_or_update_alarm_region(session, request, users_info,
+                                                                                    group_id,
+                                                                                    alarm_group,
+                                                                                    contacts)
+        if not status:
+            return JSONResponse(general_message(500, "add user failed", err_message if err_message else "添加联系人失败"),
+                                status_code=200)
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add user failed", "添加联系人失败"), status_code=200)

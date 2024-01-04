@@ -103,6 +103,7 @@ async def add_env(
 
 @router.delete("/teams/{team_name}/env/{env_id}/delete-env", response_model=Response, name="删除环境")
 async def delete_env(
+        request: Request,
         env_id: Optional[str] = None,
         params: Optional[DeleteEnvParam] = DeleteEnvParam(),
         user=Depends(deps.get_current_user),
@@ -117,7 +118,7 @@ async def delete_env(
         return JSONResponse(general_message(400, "env name error", "环境名不匹配"), status_code=400)
     try:
         # env_services.delete_by_env_id(session=session, user_nickname=user.nick_name, env=env)
-        stop_env_resource(session=session, user=user, env=env, region_code=env.region_code)
+        await stop_env_resource(request=request, session=session, user=user, env=env, region_code=env.region_code)
         # 删除环境用户关系表
         env_repo.delete_env_rel(session, env.env_id)
         result = general_message("0", "delete a team successfully", "删除环境成功")

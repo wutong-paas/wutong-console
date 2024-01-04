@@ -8,6 +8,8 @@ class AlarmRegionService:
 
     async def add_or_update_alarm_region(self, session, request, users_info, group_id, alarm_group, contacts):
         address = []
+        err_message = None
+        status = False
         for user_info in users_info:
             email = user_info.get("email")
             if email:
@@ -39,6 +41,12 @@ class AlarmRegionService:
                 contacts = list(set(contacts))
                 contacts = ','.join(contacts)
                 alarm_group.contacts = contacts
+                status = True
+            else:
+                err_message = body["message"]
+                logger.warning(err_message)
+
+        return status, err_message
 
 
 alarm_region_service = AlarmRegionService()

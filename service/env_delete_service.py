@@ -6,15 +6,16 @@ from repository.component.service_domain_repo import domain_repo
 from repository.component.service_tcp_domain_repo import tcp_domain_repo
 from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_visit_service
+from service.alarm.alarm_strategy_service import alarm_strategy_service
 
 
-def logic_delete_by_env_id(session, user, env, region_code):
+async def logic_delete_by_env_id(request, session, user, env, region_code):
     # 查询环境下全部应用，停用全部组件
     # 环境、应用、组件 标记为逻辑删除
-    stop_env_resource(session=session, env=env, region_code=region_code, user=user)
+    await stop_env_resource(request=request, session=session, env=env, region_code=region_code, user=user)
 
 
-def stop_env_resource(session, env, region_code, user):
+async def stop_env_resource(request, session, env, region_code, user):
     action = "stop"
     apps = application_repo.get_tenant_region_groups(session, env.env_id, region_code)
     for app in apps:
@@ -37,13 +38,17 @@ def stop_env_resource(session, env, region_code, user):
             app.delete_operator = user.nick_name
             session.merge(app)
             continue
-        service_ids = [service.service_id for service in services]
+        service_ids = []
+        for service in services:
+            service_ids.append(service.service_id)
+
         # 去除掉第三方组件
         for service_id in service_ids:
             service_obj = service_info_repo.delete_service_by_service_id(session, service_id)
             service_obj.is_delete = True
             service_obj.delete_time = datetime.datetime.now()
             service_obj.delete_operator = user.nick_name
+            await alarm_strategy_service.update_alarm_strategy_service(request, session, env, service_obj)
             if service_obj and service_obj.service_source == "third_party":
                 service_ids.remove(service_id)
 

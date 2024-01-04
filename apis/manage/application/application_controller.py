@@ -172,7 +172,7 @@ async def update_app(
     return JSONResponse(result, status_code=200)
 
 
-@router.delete("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="删除团队应用")
+@router.delete("/teams/{team_name}/env/{env_id}/groups/{app_id}", response_model=Response, name="删除环境应用")
 async def delete_app(
         request: Request,
         app_id: Optional[str] = None,
@@ -204,12 +204,12 @@ async def delete_app(
     if not group:
         raise ErrApplicationNotFound
 
-    app_type = group.app_type
     try:
         # application_service.delete_app(session=session, tenant_env=env, region_name=region_name, app_id=app_id,
         #                                app_type=app_type)
-        application_delete_service.logic_delete_application(session=session, app_id=app_id, region_name=region_name,
-                                                            user=user, env=env)
+        await application_delete_service.logic_delete_application(request=request, session=session, app_id=app_id,
+                                                                  region_name=region_name,
+                                                                  user=user, env=env)
         result = general_message("0", "success", "删除成功")
     except AbortRequest as e:
         result = general_message(e.status_code, e.msg, e.msg_show)
@@ -807,7 +807,6 @@ async def update_team_app(
         team_code: Optional[str] = None,
         team_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     if not team_code or not team_name:
         return JSONResponse(general_message(400, "param error", "参数错误"), status_code=400)
 

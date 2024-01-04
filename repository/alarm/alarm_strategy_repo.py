@@ -32,6 +32,7 @@ class AlarmStrategyRepo(BaseRepository[AlarmStrategy]):
             sql += " and (strategy_code like '%' :query '%' \
                     or strategy_name like '%' :query '%')"
 
+        sql += " ORDER BY update_time DESC"
         alarm_strategys = session.execute(sql, params).fetchall()
         return alarm_strategys if alarm_strategys else []
 

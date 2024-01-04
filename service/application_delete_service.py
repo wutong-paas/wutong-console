@@ -1,8 +1,7 @@
 import datetime
-
 from loguru import logger
 from sqlalchemy import update
-
+from service.alarm.alarm_strategy_service import alarm_strategy_service
 from database.session import SessionClass
 from exceptions.main import ServiceHandleException
 from models.application.models import Application, ComponentApplicationRelation
@@ -14,12 +13,12 @@ from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_visit_service
 
 
-def logic_delete_application(session, app_id, region_name, user, env):
+async def logic_delete_application(request, session, app_id, region_name, user, env):
     # 停止当前组件
-    _stop_app(session=session, app_id=app_id, region_name=region_name, user=user, env=env)
+    await _stop_app(request=request, session=session, app_id=app_id, region_name=region_name, user=user, env=env)
 
 
-def _stop_app(session, app_id, region_name, user, env):
+async def _stop_app(request, session, app_id, region_name, user, env):
 
     app = application_repo.get_group_by_id(session, app_id)
     if not app:
@@ -49,6 +48,7 @@ def _stop_app(session, app_id, region_name, user, env):
         service_obj.is_delete = True
         service_obj.delete_time = datetime.datetime.now()
         service_obj.delete_operator = user.nick_name
+        await alarm_strategy_service.update_alarm_strategy_service(request, session, env, service_obj)
         if service_obj and service_obj.service_source == "third_party":
             service_ids.remove(service_id)
 

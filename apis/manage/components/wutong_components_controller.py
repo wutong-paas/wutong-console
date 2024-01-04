@@ -451,6 +451,7 @@ async def group_component(request: Request,
 
 @router.delete("/teams/{team_name}/env/{env_id}/apps/{component_alias}/delete", response_model=Response, name="删除组件")
 async def delete_component(
+        request: Request,
         component_alias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
@@ -458,7 +459,7 @@ async def delete_component(
     service = service_info_repo.get_service(session, component_alias, env.env_id)
 
     # 更新obs告警策略
-    await alarm_strategy_service.update_alarm_strategy_service(session, env, service)
+    await alarm_strategy_service.update_alarm_strategy_service(request, session, env, service)
 
     code, msg = component_delete_service.logic_delete(session=session, tenant_env=env, service=service, user=user,
                                                       is_force=True)
