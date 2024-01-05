@@ -15,6 +15,7 @@ from repository.alarm.alarm_region_repo import alarm_region_repo
 from repository.region.region_info_repo import region_repo
 from core.utils.validation import name_rule_verification
 from exceptions.main import ServiceHandleException
+from service.alarm.alarm_robot_service import alarm_robot_service
 
 router = APIRouter()
 
@@ -47,6 +48,11 @@ async def add_alarm_robot(
     robot = alarm_robot_repo.get_alarm_robot_by_code(session, robot_code)
     if robot:
         return JSONResponse(general_message(500, "robot already exists", "机器人标识已存在"), status_code=200)
+
+    status, err_message = await alarm_robot_service.test_robot(session, request, webhook_addr)
+    if not status:
+        return JSONResponse(general_message(500, "test failed", err_message if err_message else "Webhook地址连接失败"),
+                            status_code=200)
 
     status = 0
     robot_info = {
@@ -167,6 +173,11 @@ async def put_alarm_robot(
         if robot_by_name and robot_by_name.ID != robot.ID:
             return JSONResponse(general_message(500, "robot already exists", "已存在该名字机器人"), status_code=200)
 
+        status, err_message = await alarm_robot_service.test_robot(session, request, params.webhook_addr)
+        if not status:
+            return JSONResponse(general_message(500, "test failed", err_message if err_message else "Webhook地址连接失败"),
+                                status_code=200)
+
         body = {
             "name": params.robot_name,
             "code": robot.robot_code,
@@ -207,31 +218,10 @@ async def test_alarm_robot(
     测试机器人
     """
 
-    status = False
-    err_message = None
     webhook_addr = params.webhook_addr
 
-    try:
-        # https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a70ff990-c290-4a08-a349-12a7700a175d
-        body = {
-            "type": "wechat",
-            "address": webhook_addr
-        }
-        regions = team_region_repo.get_regions(session)
-        for region in regions:
-            try:
-                body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/test", body, region)
-            except Exception as err:
-                logger.error(err)
-                continue
-            if body and body["code"] == 200:
-                status = True
-            if body and body["code"] != 200 and body["code"] != 404:
-                err_message = body["message"]
-    except Exception as err:
-        logger.error(err)
-        return JSONResponse(general_message(500, "test failed", "测试失败"), status_code=200)
-
+    status, err_message = await alarm_robot_service.test_robot(session, request, webhook_addr)
     if not status:
         return JSONResponse(general_message(500, "test failed", err_message if err_message else "测试失败"), status_code=200)
+
     return JSONResponse(general_message(200, "test success", "测试成功"), status_code=200)
