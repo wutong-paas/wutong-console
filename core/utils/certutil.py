@@ -38,7 +38,7 @@ def analyze_cert(content):
     # data["issuer"] = issuer
     data["has_expired"] = has_expired
 
-    if issued_by == "rainbond":
+    if issued_by == "wutong":
         cert_source = "Let's Encrypt签发"
     else:
         cert_source = "第三方签发"

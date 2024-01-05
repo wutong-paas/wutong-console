@@ -117,7 +117,8 @@ async def delete_alarm_robot(
             try:
                 if alarm_region_rel:
                     code = alarm_region_rel.code
-                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/wechat_" + code, {}, region)
+                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/wechat_" + code, {},
+                                                                 region)
             except ServiceHandleException as err:
                 return JSONResponse(general_message(err.error_code, "delete robot failed", err.msg), status_code=200)
             except:
@@ -206,12 +207,9 @@ async def test_alarm_robot(
     测试机器人
     """
 
-    robot_name = params.robot_name
+    status = False
+    err_message = None
     webhook_addr = params.webhook_addr
-
-    robot = alarm_robot_repo.get_alarm_robot_by_name(session, robot_name)
-    if robot:
-        return JSONResponse(general_message(500, "robot already exists", "机器人已存在"), status_code=200)
 
     try:
         # https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a70ff990-c290-4a08-a349-12a7700a175d
@@ -226,9 +224,14 @@ async def test_alarm_robot(
             except Exception as err:
                 logger.error(err)
                 continue
-            if body and body["code"] == 200 and body["data"]["status"] == 200:
-                return JSONResponse(general_message(200, "test success", "测试成功"), status_code=200)
+            if body and body["code"] == 200:
+                status = True
+            if body and body["code"] != 200 and body["code"] != 404:
+                err_message = body["message"]
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "test failed", "测试失败"), status_code=200)
-    return JSONResponse(general_message(500, "test failed", "测试失败"), status_code=200)
+
+    if not status:
+        return JSONResponse(general_message(500, "test failed", err_message if err_message else "测试失败"), status_code=200)
+    return JSONResponse(general_message(200, "test success", "测试成功"), status_code=200)

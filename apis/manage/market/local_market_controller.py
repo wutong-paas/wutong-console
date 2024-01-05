@@ -401,7 +401,7 @@ async def export_app_models(
           type: string
           paramType: path
         - name: format
-          description: 导出类型 rainbond-app | docker-compose
+          description: 导出类型 wutong-app | docker-compose
           required: true
           type: string
           paramType: form

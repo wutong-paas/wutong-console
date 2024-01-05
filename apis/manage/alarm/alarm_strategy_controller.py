@@ -195,7 +195,9 @@ async def update_alarm_strategy(
                 "title": params.strategy_name,
                 "team": team_code,
                 "code": alarm_strategy.strategy_code,
+                "teamName": env.team_alias,
                 "env": env_code,
+                "envName": env.env_alias,
                 "envId": env.env_id,
                 "regionCode": env.region_code,
                 "objects": alarm_object,
@@ -278,7 +280,8 @@ async def delete_alarm_strategy(
             res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {},
                                                         region)
             if res["code"] != 200:
-                return JSONResponse(general_message(res["code"], "update strategy error", res["message"]), status_code=200)
+                return JSONResponse(general_message(res["code"], "update strategy error", res["message"]),
+                                    status_code=200)
         except Exception as err:
             logger.error(err)
             return JSONResponse(general_message(500, "update strategy error", "删除obs策略失败"), status_code=200)

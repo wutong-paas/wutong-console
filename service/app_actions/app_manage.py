@@ -1324,7 +1324,7 @@ class AppManageService(object):
         tenant_service.extend_method = ComponentType.stateless_multiple.value
         tenant_service.env = ""
         tenant_service.min_node = 0
-        tenant_service.min_memory = 0
+        tenant_service.min_memory = 512
         tenant_service.min_cpu = 0
         tenant_service.version = "81701"
         tenant_service.namespace = "third_party"

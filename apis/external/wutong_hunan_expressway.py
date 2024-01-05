@@ -229,7 +229,7 @@ async def get_region_event(
         now_time = now.strftime("%Y-%m-%d %H:%M:%S")
         for event in event_list:
             events.append({
-                "time": now_time,
+                "time": event["created_at"],
                 "name": "集群事件",
                 "mesc": event["message"],
                 "level": "警告",

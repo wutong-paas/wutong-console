@@ -1,6 +1,6 @@
 import re
 from typing import Any, Optional
-
+import base64
 from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -98,10 +98,11 @@ async def docker_run(
             return JSONResponse(general_message(code, "service create fail", msg_show), status_code=200)
 
         # 添加username,password信息
+        password = str(base64.b64decode(params.password), 'utf-8')
         if params.password or params.user_name:
             application_service.create_service_source_info(session=session, tenant_env=env, service=new_service,
                                                            user_name=params.user_name,
-                                                           password=params.password)
+                                                           password=password)
 
         code, msg_show = application_service.add_component_to_app(session=session, tenant_env=env,
                                                                   region_name=region_name,

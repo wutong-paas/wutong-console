@@ -74,7 +74,7 @@ class PlatformDataBackupServices(object):
         self.export_console_data(backup_path)
         self.export_adaptor_data(backup_path)
         self.write_version(backup_path)
-        tarname = "rainbond-console-backup-data-{0}.tar.gz".format(time.strftime("%Y%m%d%H%M%S", time.localtime()))
+        tarname = "wutong-console-backup-data-{0}.tar.gz".format(time.strftime("%Y%m%d%H%M%S", time.localtime()))
         full_tarname = os.path.join(settings.DATA_DIR, "backups", tarname)
         self.compressed_file_by_tar(backup_path, full_tarname)
         shutil.rmtree(backup_path)

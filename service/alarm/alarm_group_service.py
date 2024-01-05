@@ -9,6 +9,7 @@ class AlarmGroupService:
 
     async def update_alarm_group(self, session, request, users_info, alarm_group):
         address = []
+        err_message = None
         for user_info in users_info:
             email = user_info.get("email")
             if email:
@@ -20,8 +21,11 @@ class AlarmGroupService:
             "address": ';'.join(address),
         }
 
-        status = 0
+        status = False
         alarm_region_rels = alarm_region_repo.get_alarm_regions(session, alarm_group.ID, "email")
+        if not alarm_region_rels:
+            return True, None
+
         for alarm_region_rel in alarm_region_rels:
             region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
             try:
@@ -30,13 +34,16 @@ class AlarmGroupService:
                                                                  region,
                                                                  method="POST")
                     if body and body["code"] == 200:
-                        status = 1
-                    elif body:
+                        status = True
+                    if body and body["code"] != 200 and body["code"] != 404:
+                        logger.warning(body["message"])
+                        err_message = body["message"]
+                    if body and body["code"] != 200:
                         logger.warning(body["message"])
             except Exception as err:
                 logger.warning(err)
                 continue
-        return status
+        return status, err_message
 
 
 alarm_group_service = AlarmGroupService()

@@ -136,7 +136,7 @@ class MarketAppService(object):
                 apps_list.append(app_dict)
                 continue
             versions = []
-            # sort rainbond app versions by version
+            # sort wutong app versions by version
             release_ver_nums = app_release_ver_nums.get(app.app_id, [])
             not_release_ver_nums = app_not_release_ver_nums.get(app.app_id, [])
             # If there is a version to release, set the application to release state
@@ -204,7 +204,7 @@ class MarketAppService(object):
 
     def list_wutong_app_components(self, session, tenant_env, app_id, model_app_key, upgrade_group_id):
         """
-        return the list of the rainbond app.
+        return the list of the wutong app.
         """
         # list components by app_id
         component_sources_list = []
@@ -420,52 +420,6 @@ class MarketAppService(object):
 
         return add_model
 
-    def app_models_serializers(self, session: SessionClass, market, data):
-        app_models = []
-
-        if data:
-            for dt in data:
-                versions = []
-                for version in dt.versions:
-                    versions.append({
-                        "app_key_id": version.app_key_id,
-                        "app_version": version.app_version,
-                        "app_version_alias": version.app_version_alias,
-                        "create_time": version.create_time,
-                        "desc": version.desc,
-                        "rainbond_version": version.desc,
-                        "update_time": version.update_time,
-                        "update_version": version.update_version,
-                    })
-
-                market_info = {
-                    "app_id": dt.app_key_id,
-                    "app_name": dt.name,
-                    "update_time": dt.update_time,
-                    "local_market_id": market.ID,
-                    "local_market_name": market.name,
-                    "source": "market",
-                    "versions": versions,
-                    "tags": [t for t in dt.tags],
-                    "logo": dt.logo,
-                    "market_id": dt.market_id,
-                    "market_name": dt.market_name,
-                    "market_url": dt.market_url,
-                    "install_number": dt.install_count,
-                    "describe": dt.desc,
-                    "dev_status": dt.dev_status,
-                    "app_detail_url": dt.app_detail_url,
-                    "create_time": dt.create_time,
-                    "download_number": dt.download_count,
-                    "details": dt.introduction,
-                    "details_html": dt.introduction_html,
-                    "is_official": dt.is_official,
-                    "publish_type": dt.publish_type,
-                    "start_count": dt.start_count,
-                }
-                app_models.append(Dict(market_info))
-        return app_models
-
     def count_upgradeable_market_apps(self, session: SessionClass, tenant_env, region_name, app_id):
         market_apps = self.get_market_apps_in_app(session, region_name, tenant_env, app_id)
         apps = [app for app in market_apps if app["can_upgrade"]]
@@ -583,24 +537,6 @@ class MarketAppService(object):
                 versions.append(version.version)
         versions = sorted_versions(list(set(versions)))
         return versions
-
-    def app_model_versions_serializers(self, market, data, extend=False):
-        app_models = []
-        if data:
-            for dt in data:
-                version = {
-                    "app_id": dt.app_key_id,
-                    "version": dt.app_version,
-                    "version_alias": dt.app_version_alias,
-                    "update_version": dt.update_version,
-                    "app_version_info": dt.desc,
-                    "rainbond_version": dt.rainbond_version,
-                    "create_time": dt.create_time,
-                    "update_time": dt.update_time,
-                    "local_market_id": market.ID,
-                }
-                app_models.append(Dict(version))
-        return app_models
 
     def get_wutong_app_and_version(self, session: SessionClass, app_id, app_version):
         app, app_version = center_app_repo.get_wutong_app_and_version(session, app_id, app_version)

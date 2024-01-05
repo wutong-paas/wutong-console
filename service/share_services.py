@@ -426,7 +426,7 @@ class ShareService(object):
             ).scalars().first()
 
             if last_shared_app_info:
-                self._patch_rainbond_app_tag(app=last_shared_app_info, session=session)
+                self._patch_wutong_app_tag(app=last_shared_app_info, session=session)
                 dt["last_shared_app"] = {
                     "app_name": last_shared_app_info.app_name,
                     "app_id": last_shared.app_id,
@@ -439,7 +439,7 @@ class ShareService(object):
                 }
         app_list = self.get_team_local_apps_versions(tenant_env.tenant_name, session,
                                                      market=scope == "market")
-        self._patch_rainbond_apps_tag(app_list, session)
+        self._patch_wutong_apps_tag(app_list, session)
         dt["app_model_list"] = app_list
         return dt
 
@@ -488,7 +488,7 @@ class ShareService(object):
                 })
         return app_list
 
-    def _patch_rainbond_apps_tag(self, apps, session: SessionClass):
+    def _patch_wutong_apps_tag(self, apps, session: SessionClass):
         app_ids = [app["app_id"] for app in apps]
         tags = app_tag_repo.get_multi_apps_tags(session, app_ids)
         if not tags:
@@ -516,7 +516,7 @@ class ShareService(object):
         result = (session.execute(text(sql))).fetchall()
         return result
 
-    def _patch_rainbond_app_tag(self, app, session: SessionClass):
+    def _patch_wutong_app_tag(self, app, session: SessionClass):
         sql = """
             select
                  tag.*

@@ -7,7 +7,7 @@ from repository.application.app_repository import app_repo
 class RbdCenterAppService(object):
     def get_version_app(self, version, service_source):
         """
-        Get the specified version of the rainbond center(market) application
+        Get the specified version of the wutong center(market) application
         raise: RecordNotFound
         raise: RbdAppNotFound
         """
