@@ -35,6 +35,7 @@ async def add_alarm_robot(
     robot_code = params.robot_code
     webhook_addr = params.webhook_addr
     team_code = params.team_code
+    team_name = params.team_name
 
     try:
         name_rule_verification(robot_name, robot_code)
@@ -60,7 +61,8 @@ async def add_alarm_robot(
         "robot_code": robot_code,
         "webhook_addr": webhook_addr,
         "operator": user_name,
-        "team_code": team_code
+        "team_code": team_code,
+        "team_name": team_name
     }
     try:
         body = {

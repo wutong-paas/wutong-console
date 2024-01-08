@@ -16,6 +16,8 @@ from service.alarm.alarm_service import alarm_service
 from service.alarm.alarm_strategy_service import alarm_strategy_service
 from service.tenant_env_service import env_services
 from repository.component.group_service_repo import service_info_repo
+from core.api.team_api import team_api
+from repository.env.user_env_auth_repo import user_env_auth_repo
 
 router = APIRouter()
 
@@ -139,12 +141,21 @@ async def get_alarm_strategy(
 async def get_alarm_strategy(
         team_code: Optional[str] = None,
         query: Optional[str] = None,
+        user=Depends(deps.get_current_user),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询告警策略列表
     """
     data_list = []
+    is_auth = False
     alarm_strategys = alarm_strategy_repo.get_alarm_strategy_by_team_code(session, team_code, query)
+
+    # 判断是否是平台、团队管理员
+    is_super_admin = team_api.get_user_env_auth(user, None, "1")
+    auth_teams = team_api.get_auth_by_teams(user)
+    auth_teams_dict = {}
+    for auth_team in auth_teams:
+        auth_teams_dict.update({auth_team.get("teamId"): auth_team.get("teamManage")})
 
     for alarm_strategy in alarm_strategys:
         try:
@@ -155,7 +166,20 @@ async def get_alarm_strategy(
         except Exception as err:
             logger.error(err)
             return JSONResponse(general_message(500, "query strategy error", "查询策略失败"), status_code=200)
-        data_list.append(data)
+
+        env = env_services.get_env_by_team_code(session, alarm_strategy.team_code, alarm_strategy.env_code)
+        if not env:
+            continue
+
+        # 判断用户权限
+        if is_super_admin:
+            is_auth = True
+        if not is_auth:
+            is_auth = auth_teams_dict.get(env.tenant_id, False)
+        if not is_auth:
+            is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
+        if is_auth:
+            data_list.append(data)
 
     return JSONResponse(general_message(200, "success", "查询成功", list=data_list), status_code=200)
 

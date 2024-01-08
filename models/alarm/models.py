@@ -50,6 +50,7 @@ class AlarmRobot(Base):
     robot_name = Column(String(32), comment="机器人名称", nullable=False)
     robot_code = Column(String(32), comment="机器人标识", nullable=False)
     webhook_addr = Column(String(255), comment="webhook地址", nullable=False)
+    team_name = Column(String(64), comment="团队名", nullable=True)
     team_code = Column(String(32), comment="团队标识", nullable=True)
     operator = Column(String(64), comment="创建人", nullable=False)
     create_time = Column(DateTime(), nullable=True, default=datetime.now, comment="创建时间")
