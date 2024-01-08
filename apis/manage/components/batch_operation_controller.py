@@ -23,10 +23,8 @@ async def batch_actions(
     """
     批量操作组件
     """
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+
+    region_name = env.region_code
 
     if params.action not in ("stop", "start", "restart", "move", "upgrade", "deploy"):
         return JSONResponse(general_message(400, "param error", "操作类型错误"), status_code=400)

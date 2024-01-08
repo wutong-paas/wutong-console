@@ -46,10 +46,7 @@ async def get_version(
     page = int(request.query_params.get("page_num", 1))
     page_size = int(request.query_params.get("page_size", 10))
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
 
     body = remote_build_client.get_service_build_versions(session, region_name, env,
                                                           service.service_alias)

@@ -37,10 +37,8 @@ async def third_party(request: Request,
     创建第三方组件
 
     """
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+
+    region_name = env.region_code
 
     endpoints_type = params.endpoints_type
     # todo 驼峰
@@ -169,10 +167,8 @@ async def delete_third_party_pods(request: Request,
     endpoint_dict = dict()
     endpoint_dict["ep_id"] = ep_id
     service = service_info_repo.get_service_by_service_alias(session=session, service_alias=service_alias)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     res, body = remote_build_client.delete_third_party_service_endpoints(session,
                                                                          response_region, env,
                                                                          service.service_alias, endpoint_dict)

@@ -52,10 +52,7 @@ async def get_available_labels(
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     # 节点添加的标签和数据中心查询回来的标签才可被组件使用
     node_labels = node_label_repo.get_all_labels(session)

@@ -40,7 +40,6 @@ default_plugins = [
 
 @router.get("/teams/{team_name}/env/{env_id}/plugins/all", response_model=Response, name="获取租户下所有插件基础信息")
 async def get_team_all_plugins(
-        request: Request,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
     """
@@ -53,10 +52,8 @@ async def get_team_all_plugins(
           type: string
           paramType: path
     """
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+
+    region_name = env.region_code
     plugin_list = plugin_service.get_tenant_plugins(session=session, region=region_name, tenant_env=env)
     return general_message("0", "success", "查询成功", list=plugin_list)
 
@@ -88,10 +85,7 @@ async def add_default_plugins(request: Request,
     if plugin_type not in default_plugins:
         return JSONResponse(general_message(400, "plugin type not support", "插件类型不支持"), status_code=400)
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     plugin_service.add_default_plugin(session=session, user=user, tenant_env=env, region=region_name,
                                       plugin_type=plugin_type)
     return general_message("0", "success", "创建成功")
@@ -112,10 +106,8 @@ async def get_default_plugins(
           type: string
           paramType: path
     """
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+
+    region_name = env.region_code
     default_plugin_dict = plugin_service.get_default_plugin_from_cache(session=session, region=region_name,
                                                                        tenant_env=env)
 
@@ -159,10 +151,7 @@ async def create_plugins(request: Request,
         if not desc:
             return JSONResponse(general_message(400, "plugin desc is null", "请填写插件描述"), status_code=400)
 
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+        response_region = env.region_code
         image_tag = ""
         if image and build_source == "image":
             image_and_tag = image.rsplit(":", 1)
@@ -242,10 +231,8 @@ async def get_build_history(request: Request,
                             plugin_id: Optional[str] = None,
                             env=Depends(deps.get_current_team_env),
                             session: SessionClass = Depends(deps.get_session)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     plugin = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
     page = request.query_params.get("page", 1)
     page_size = request.query_params.get("page_size", 8)
@@ -299,14 +286,11 @@ async def get_share_record(plugin_id: Optional[str] = None,
             response_model=Response,
             name="获取某个插件的配置信息")
 async def get_plugin_config(
-        request: Request,
         plugin_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
                                                                              tenant_env_id=env.env_id,
                                                                              plugin_id=plugin_id)
@@ -323,14 +307,11 @@ async def get_plugin_config(
 @router.get("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/version/{build_version}", response_model=Response,
             name="获取插件某个版本的信息")
 async def get_plugin_version(
-        request: Request,
         plugin_id: Optional[str] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
                                                                              tenant_env_id=env.env_id,
                                                                              plugin_id=plugin_id)
@@ -350,10 +331,7 @@ async def modify_plugin_version(request: Request,
                                 session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
         data = await request.json()
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+        response_region = env.region_code
         plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
                                                                                  tenant_env_id=env.env_id,
                                                                                  plugin_id=plugin_id)
@@ -410,16 +388,13 @@ async def modify_plugin_version(request: Request,
              response_model=Response,
              name="构建插件")
 async def build_plugin(
-        request: Request,
         plugin_id: Optional[str] = None,
         update_info: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
                                                                              tenant_env_id=env.env_id,
                                                                              plugin_id=plugin_id)
@@ -457,14 +432,14 @@ async def build_plugin(
             response_model=Response,
             name="获取插件构建状态")
 async def get_build_status(
-        request: Request,
         plugin_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    """
+    获取插件构建状态
+    """
+
+    response_region = env.region_code
     plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
                                                                              tenant_env_id=env.env_id,
                                                                              plugin_id=plugin_id)
@@ -482,10 +457,8 @@ async def get_build_log(request: Request,
                         plugin_id: Optional[str] = None,
                         env=Depends(deps.get_current_team_env),
                         session: SessionClass = Depends(deps.get_session)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
                                                                              tenant_env_id=env.env_id,
                                                                              plugin_id=plugin_id)
@@ -598,10 +571,8 @@ async def delete_plugin(request: Request,
                         session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
     is_force = data.get("is_force", False)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     plugin = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
     plugin_service.delete_plugin(session, response_region, env, plugin.plugin_id, is_force=is_force)
     result = general_message("0", "success", "删除成功")
@@ -609,18 +580,16 @@ async def delete_plugin(request: Request,
 
 
 @router.post("/teams/{team_name}/env/{env_id}/plugins/{plugin_id}/share", response_model=Response, name="团队插件共享")
-async def plugin_share(request: Request,
+async def plugin_share(
                        plugin_id: Optional[str] = None,
                        session: SessionClass = Depends(deps.get_session),
                        env=Depends(deps.get_current_team_env),
                        user=Depends(deps.get_current_user)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
     plugin_version = plugin_version_service.get_plugin_version_by_id(session, env.env_id, plugin_id)
     if plugin_version.build_status != "build_success":
         if plugin_version.build_status == "building":
-            status = plugin_version_service.get_region_plugin_build_status(session, region.region_name,
+            status = plugin_version_service.get_region_plugin_build_status(session, env.region_code,
                                                                            env,
                                                                            plugin_version.plugin_id,
                                                                            plugin_version.build_version)
@@ -642,7 +611,7 @@ async def plugin_share(request: Request,
     # 创建插件版本信息
     plugin_build_version = plugin_version_service.create_build_version(
         session,
-        region.region_name,
+        env.region_code,
         tenant_plugin.plugin_id,
         env.env_id,
         user.user_id,
@@ -654,7 +623,7 @@ async def plugin_share(request: Request,
         plugin_version.code_version,
         min_cpu=plugin_version.min_cpu)
     # 数据中心创建插件
-    code, msg = plugin_service.create_region_plugin(session, region.region_name, env, tenant_plugin,
+    code, msg = plugin_service.create_region_plugin(session, env.region_code, env, tenant_plugin,
                                                     plugin_build_version.image_tag, user_name=user.nick_name)
     if code != 200:
         plugin_service.delete_console_tenant_plugin(session, env.env_id, tenant_plugin.plugin_id)
@@ -692,7 +661,7 @@ async def plugin_share(request: Request,
         "hub_password": tenant_plugin.password,
     }
     try:
-        plugin_service.build_plugin(session, region.region_name, tenant_plugin, plugin_build_version, user, env,
+        plugin_service.build_plugin(session, env.region_code, tenant_plugin, plugin_build_version, user, env,
                                     event_id, image_info)
         plugin_build_version.build_status = "building"
         plugin_build_version.event_id = event_id

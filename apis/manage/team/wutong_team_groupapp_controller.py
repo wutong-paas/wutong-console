@@ -34,10 +34,8 @@ async def get_backup_info(request: Request,
         return JSONResponse(general_message(400, "group id is not found", "请指定需要查询的组"), status_code=400)
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+
+    region_name = env.region_code
 
     backups = groupapp_backup_service.get_group_back_up_info(session=session, tenant_env=env, region=region_name,
                                                              group_id=group_id)
@@ -77,10 +75,7 @@ async def get_backup_info(request: Request,
     if not mode:
         return JSONResponse(general_message(400, "mode is null", "请选择备份模式"), status_code=400)
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     force = data.get("force", False)
     if not force:
         # state service can't backup while it is running
@@ -132,10 +127,8 @@ async def backup_app(request: Request,
         backup_id = request.query_params.get("backup_id", None)
         if not backup_id:
             return JSONResponse(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status_code=400)
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+
+        response_region = env.region_code
         code, msg, backup_record = groupapp_backup_service.get_groupapp_backup_status_by_backup_id(session=session,
                                                                                                    tenant_env=env,
                                                                                                    region=response_region,
@@ -164,10 +157,7 @@ async def delete_backup_app(request: Request,
     backup_id = data.get("backup_id", None)
     if not backup_id:
         return JSONResponse(general_message(400, "backup id is null", "请指明当前组的具体备份项"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     groupapp_backup_service.delete_group_backup_by_backup_id(session=session, tenant_env=env, region=response_region,
                                                              backup_id=backup_id)
     result = general_message("0", "success", "删除成功")
@@ -264,10 +254,7 @@ async def get_app_migrate_state(request: Request,
     if not restore_id:
         return JSONResponse(general_message(400, "restore id is null", "请指明查询的备份ID"), status_code=400)
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     migrate_record = migrate_service.get_and_save_migrate_status(session=session,
                                                                  user=user, restore_id=restore_id,
                                                                  current_env_name=env.env_name,
@@ -294,10 +281,7 @@ async def set_backup_info(request: Request,
         if len(file_data) > StorageUnit.ONE_MB * 2:
             return JSONResponse(general_message(400, "file is too large", "文件大小不能超过2M"), status_code=400)
 
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+        response_region = env.region_code
         code, msg, record = groupapp_backup_service.import_group_backup(session, env, response_region,
                                                                         group_id,
                                                                         file_data)
@@ -312,14 +296,11 @@ async def set_backup_info(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/groupapp/{group_id}/copy", response_model=Response, name="获取应用复制信息")
 async def get_app_copy(
-        request: Request,
         group_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+
+    region_name = env.region_code
     group_services = groupapp_copy_service.get_group_services_with_build_source(session, env, region_name, group_id)
     result = general_message("0", "success", "获取成功", list=jsonable_encoder(group_services))
     return JSONResponse(result, status_code=200)
@@ -345,10 +326,7 @@ async def app_copy(request: Request,
         raise ServiceHandleException(msg_show="目标环境不存在", msg="not found tar env", status_code=404)
     tar_group = groupapp_copy_service.check_and_get_env_group(session, tar_env_id, tar_group_id)
     try:
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        region_name = region.region_name
+        region_name = env.region_code
         groupapp_copy_service.copy_group_services(session, user, env, region_name, tar_env,
                                                   tar_region_name,
                                                   tar_group, group_id, services)

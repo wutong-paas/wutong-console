@@ -1,5 +1,5 @@
 from typing import Any, Optional
-
+from repository.region.region_info_repo import region_repo
 from fastapi import APIRouter, Depends, Query, Request
 from starlette.responses import JSONResponse
 from service.region_service import region_services
@@ -38,7 +38,7 @@ async def get_virtual_machine(
             general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
         )
 
-    region = await region_services.get_region_by_request(session, request)
+    region = region_repo.get_region_by_region_name(session, env.region_code)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 

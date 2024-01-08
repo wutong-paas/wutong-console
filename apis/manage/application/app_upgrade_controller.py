@@ -15,6 +15,7 @@ from schemas.response import Response
 from service.market_app_service import market_app_service
 from service.region_service import region_services
 from service.upgrade_service import upgrade_service
+from repository.region.region_info_repo import region_repo
 
 router = APIRouter()
 
@@ -25,10 +26,11 @@ async def get_app_model(request: Request,
                         group_id: Optional[str] = None,
                         env=Depends(deps.get_current_team_env),
                         session: SessionClass = Depends(deps.get_session)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    """
+    查询升级记录集合
+    """
+
+    region_name = env.region_code
     page = parse_argument(request, 'page', value_type=int, default=1)
     page_size = parse_argument(request, 'page_size', value_type=int, default=10)
     records, total = upgrade_service.list_records(session=session, tenant_env=env, region_name=region_name,
@@ -83,7 +85,8 @@ async def get_cloud_upgrade(request: Request,
     upgrade_group_id = parse_argument(
         request, 'upgrade_group_id', default=None, value_type=int, error='upgrade_group_id is a required parameter')
     version = parse_argument(request, 'version', value_type=str, required=True, error='version is a required parameter')
-    region = await region_services.get_region_by_request(session, request)
+
+    region = region_repo.get_region_by_region_name(session, env.region_code)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     application = application_repo.get_by_primary_key(session=session, primary_key=group_id)
@@ -123,9 +126,8 @@ async def upgrade_component(
     # It is not yet possible to upgrade based on services, which is user-specified attribute changes
     components = await parse_item(request, "services", default=[])
     component_keys = [cpt["service"]["service_key"] for cpt in components]
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    region = region_repo.get_region_by_region_name(session, env.region_code)
     application = application_repo.get_by_primary_key(session=session, primary_key=group_id)
     app_upgrade_record = upgrade_repo.get_by_record_id(session, record_id)
     record, _ = upgrade_service.upgrade(
@@ -145,14 +147,11 @@ async def upgrade_component(
 @router.get("/teams/{team_name}/env/{env_id}/groups/{group_id}/upgrade-records/{record_id}", response_model=Response,
             name="查询某一条升级记录")
 async def get_upgrade_log(
-        request: Request,
         record_id: Optional[str] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    record = upgrade_service.get_app_upgrade_record(session, env, region.region_name, record_id)
+
+    record = upgrade_service.get_app_upgrade_record(session, env, env.region_code, record_id)
     return JSONResponse(general_message("0", msg="success", msg_show="查询成功", bean=jsonable_encoder(record)),
                         status_code=200)
 
@@ -161,16 +160,13 @@ async def get_upgrade_log(
              response_model=Response,
              name="重试组件升级")
 async def retry_upgrade(
-        request: Request,
         record_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
     app_upgrade_record = upgrade_repo.get_by_record_id(session, record_id)
-    upgrade_service.deploy(session, env, region.region_name, user, app_upgrade_record)
+    upgrade_service.deploy(session, env, env.region_code, user, app_upgrade_record)
     return JSONResponse(general_message("0", msg="success", msg_show="部署成功"), status_code=200)
 
 
@@ -178,15 +174,13 @@ async def retry_upgrade(
              response_model=Response,
              name="回滚某一条升级记录")
 async def rollback_upgrade(
-        request: Request,
         group_id: Optional[str] = None,
         record_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env),
         user=Depends(deps.get_current_user)) -> Any:
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
+    region = region_repo.get_region_by_region_name(session, env.region_code)
     app_upgrade_record = upgrade_repo.get_by_record_id(session, record_id)
     application = application_repo.get_by_primary_key(session=session, primary_key=group_id)
     record, _ = upgrade_service.restore(session, env, region, user, application, app_upgrade_record)

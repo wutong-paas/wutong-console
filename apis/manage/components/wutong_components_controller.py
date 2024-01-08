@@ -36,6 +36,7 @@ from service.plugin.app_plugin_service import app_plugin_service
 from service.region_service import region_services
 from service.upgrade_service import upgrade_service
 from service.alarm.alarm_strategy_service import alarm_strategy_service
+from repository.region.region_info_repo import region_repo
 
 router = APIRouter()
 
@@ -574,7 +575,8 @@ async def market_service_upgrade(
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
+
+    region = region_repo.get_region_by_region_name(session, region_name)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     # get app
@@ -607,10 +609,7 @@ async def get_container_log(request: Request,
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     pod_name = request.query_params.get("pod_name")
     if not pod_name:
         raise AbortRequest("the field 'pod_name' is required")
@@ -803,10 +802,7 @@ async def delete_components_version(
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     remote_build_client.delete_service_build_version(session, response_region, env,
                                                      service.service_alias,
                                                      version_id)

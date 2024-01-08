@@ -25,11 +25,9 @@ async def get_domain_info(request: Request,
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
+
     # todo 简化查询
-    region = region_repo.get_region_by_region_name(session, region.region_name)
+    region = region_repo.get_region_by_region_name(session, env.region_code)
     tenant_tuples, total = domain_service.get_app_service_domain_list(region=region, tenant_env=env, app_id=app_id,
                                                                       search_conditions=search_conditions,
                                                                       page=page,
@@ -90,12 +88,7 @@ async def get_tcp_domain_info(request: Request,
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-
-    # todo 简化查询
-    region = region_repo.get_region_by_region_name(session, region.region_name)
+    region = region_repo.get_region_by_region_name(session, env.region_code)
 
     tenant_tuples, total = domain_service.get_app_service_tcp_domain_list(region=region, tenant_env=env, app_id=app_id,
                                                                           search_conditions=search_conditions,

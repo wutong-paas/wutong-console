@@ -155,10 +155,7 @@ async def code_create_component(
         if service_code_clone_url:
             service_code_clone_url = service_code_clone_url.strip()
 
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+        response_region = env.region_code
         code, msg_show, new_service = application_service.create_source_code_app(
             session,
             response_region,

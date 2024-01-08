@@ -32,10 +32,7 @@ async def get_domain_query(request: Request,
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     region = region_repo.get_region_by_region_name(session, region_name)
     # 查询分页排序
     if search_conditions:
@@ -157,16 +154,13 @@ async def get_domain_query(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/domain/get_port", response_model=Response, name="获取可用的port")
 async def get_port(
-        request: Request,
         env_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+
+    region_name = env.region_code
     ipres, ipdata = remote_build_client.get_ips(session, region_name, env)
     if int(ipres.status) != 200:
         result = general_message(400, "call region error", "请求数据中心异常")
@@ -265,10 +259,7 @@ async def get_domain_query(request: Request,
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
     search_conditions = request.query_params.get("search_conditions", None)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     region = region_repo.get_region_by_region_name(session, region_name)
     try:
         # 查询分页排序

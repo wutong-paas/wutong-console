@@ -243,12 +243,9 @@ async def set_domain_parameter(request: Request,
                                env=Depends(deps.get_current_team_env),
                                session: SessionClass = Depends(deps.get_session)) -> Any:
     data = await request.json()
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     type_name = data.get("type", "http")
     service_id = data.get("service_id", None)
-    response_region = region.region_name
+    response_region = env.region_code
     value = await parse_item(request, 'value', required=True, error='value is a required parameter')
     domain_service.update_rule_config(session=session, tenant_env=env, region_name=response_region, rule_id=rule_id,
                                       configs=value, type=type_name, service_id=service_id)
@@ -381,10 +378,7 @@ async def delete_http_domain(request: Request,
     http_rule_id = data.get("http_rule_id", None)
     if not http_rule_id or not service_id:
         return JSONResponse(general_message(400, "params error", "参数错误"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     domain_service.unbind_httpdomain(session=session, tenant_env=env, region=response_region, http_rule_id=http_rule_id)
     result = general_message("0", "success", "策略删除成功")
     return JSONResponse(result, status_code=200)
@@ -548,10 +542,8 @@ async def delete_tcp_domain(request: Request,
     tcp_rule_id = data.get("tcp_rule_id", None)
     if not tcp_rule_id:
         return JSONResponse(general_message(400, "params error", "参数错误"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     domain_service.unbind_tcpdomain(session=session, tenant_env=env, region=response_region, tcp_rule_id=tcp_rule_id)
     result = general_message("0", "success", "策略删除成功")
     return JSONResponse(result, status_code=200)

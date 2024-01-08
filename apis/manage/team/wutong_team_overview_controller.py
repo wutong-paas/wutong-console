@@ -242,10 +242,8 @@ async def team_env_app_group(request: Request,
              type: string
              paramType: query
    """
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+
+    region_name = env.region_code
 
     query = request.query_params.get("query", "")
     app_type = request.query_params.get("app_type", "")

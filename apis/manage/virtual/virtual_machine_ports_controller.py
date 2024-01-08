@@ -149,7 +149,6 @@ async def create_virtual_port_gateway(
     name="获取虚拟机端口网关",
 )
 async def get_virtual_port_gateway(
-        request: Request,
         vm_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env),
@@ -163,12 +162,8 @@ async def get_virtual_port_gateway(
             general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
         )
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-
     port_gateways = remote_virtual_client.get_virtual_port_gateway(
-        session, region.region_name, env, vm_id
+        session, env.region_code, env, vm_id
     )
     ports = port_gateways["ports"]
     if ports:

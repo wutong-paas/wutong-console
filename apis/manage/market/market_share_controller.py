@@ -152,10 +152,7 @@ async def create_share_info(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
 
     share_record = component_share_repo.get_by_primary_key(session=session, primary_key=share_id)
     if not share_record:
@@ -258,7 +255,6 @@ async def get_share_event(env_id: Optional[str] = None,
 @router.post("/teams/{team_name}/env/{env_id}/share/{share_id}/events/{event_id}", response_model=Response,
              name="分享应用")
 async def share_event(
-        request: Request,
         env_id: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,
@@ -280,10 +276,7 @@ async def share_event(
             result = general_message(404, "not exist", "分享事件不存在")
             return JSONResponse(result, status_code=404)
 
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+        response_region = env.region_code
         record_event = share_service.sync_event(session, user, response_region, env, event)
         bean = jsonable_encoder(record_event) if record_event is not None else None
         result = general_message("0", "sync share event", "分享完成", bean=bean)
@@ -299,7 +292,6 @@ async def share_event(
 @router.get("/teams/{team_name}/env/{env_id}/share/{share_id}/events/{event_id}", response_model=Response,
             name="获取分享进度")
 async def get_share_info(
-        request: Request,
         env_id: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,
@@ -308,10 +300,7 @@ async def get_share_info(
         env = env_repo.get_env_by_env_id(session, env_id)
         if not env:
             return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+        response_region = env.region_code
         share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，请退出重试")
@@ -447,10 +436,7 @@ async def get_object_log(
         if event_id == "":
             result = general_message("0", "error", "event_id is required")
             return JSONResponse(result, status_code=result["code"])
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+        response_region = env.region_code
         log_content = event_service.get_event_log(session, env, response_region, event_id)
         result = general_message("0", "success", "查询成功", list=log_content)
         return JSONResponse(result, status_code=200)
@@ -463,7 +449,6 @@ async def get_object_log(
 @router.post("/teams/{team_name}/env/{env_id}/share/{share_id}/events/{event_id}/plugin", response_model=Response,
              name="分享插件")
 async def share_plugin(
-        request: Request,
         env_id: Optional[str] = None,
         share_id: Optional[str] = None,
         event_id: Optional[str] = None,
@@ -487,10 +472,7 @@ async def share_plugin(
         result = general_message(404, "not exist", "分享事件不存在")
         return JSONResponse(result, status_code=404)
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
 
     bean = share_service.sync_service_plugin_event(session, user, response_region, env, share_id,
                                                    events[0])
@@ -532,10 +514,7 @@ async def get_share_plugin(
     if plugin_events[0].event_status == "success":
         result = general_message("0", "get sync share event result", "查询成功", bean=jsonable_encoder(plugin_events[0]))
         return JSONResponse(result, status_code=200)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     bean = share_service.get_sync_plugin_events(session, response_region, env, plugin_events[0])
     result = general_message("0", "get sync share event result", "查询成功", bean=jsonable_encoder(bean))
     return JSONResponse(result, status_code=200)

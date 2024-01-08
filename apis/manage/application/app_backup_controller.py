@@ -21,17 +21,12 @@ router = APIRouter()
 @router.get("/teams/{team_name}/env/{env_id}/all/groupapp/backup", response_model=Response,
             name="查询当前团队 数据中心下所有备份信息")
 async def get_team_backup_info(
-        request: Request,
-        env_id: Optional[str] = None,
         page: int = Query(default=1, ge=1, le=9999),
         page_size: int = Query(default=10, ge=1, le=500),
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
     try:
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        response_region = region.region_name
+        response_region = env.region_code
         backups = groupapp_backup_service.get_all_group_back_up_info(session, env, response_region)
         params = Params(page=page, size=page_size)
         event_paginator = paginate(backups, params)

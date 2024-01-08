@@ -53,7 +53,6 @@ def validate_request(item, name):
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/docker_run", response_model=Response, name="添加组件-指定镜像")
 async def docker_run(
-        request: Request,
         params: DockerRunParams,
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
@@ -80,10 +79,8 @@ async def docker_run(
             return JSONResponse(general_message(400, "image_type cannot be null", "参数错误"), status_code=400)
         if not params.docker_cmd:
             return JSONResponse(general_message(400, "docker_cmd cannot be null", "参数错误"), status_code=400)
-        region = await region_services.get_region_by_request(session, request)
-        if not region:
-            return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-        region_name = region.region_name
+
+        region_name = env.region_code
 
         code, msg_show, new_service = application_service.create_docker_run_app(session=session,
                                                                                 region_name=region_name,
@@ -465,15 +462,12 @@ async def add_component_monitor(request: Request,
 
 @router.get("/teams/{team_name}/env/{env_id}/apps/{service_alias}/metrics", response_model=Response, name="查询组件指标")
 async def component_metrics(
-        request: Request,
         service_alias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
+
     service = service_info_repo.get_service(session, service_alias, env.env_id)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     metrics = monitor_service.get_monitor_metrics(
         session, region_name, env, "component", component_id=service.service_id)
     return JSONResponse(general_message("0", "OK", "获取成功", list=metrics), status_code=200)
@@ -613,10 +607,7 @@ async def get_check_detail(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     services = multi_app_service.list_services(session, response_region, env, check_uuid)
     result = general_message("0", "successfully entered the multi-service creation process", "成功进入多组件创建流程",
                              list=services)
@@ -642,10 +633,7 @@ async def multi_create(
     if resp:
         return resp
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     group_id, service_ids = multi_app_service.create_services(
         session=session,
         region_name=response_region,

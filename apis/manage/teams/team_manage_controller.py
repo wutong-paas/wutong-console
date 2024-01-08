@@ -87,11 +87,7 @@ async def overview_env_app_info(request: Request,
         "": 0
     }
     total = 0
-
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     groups = application_repo.get_tenant_region_groups(session, env.env_id, region_name, query, project_ids=project_ids)
     start = (page - 1) * page_size
     end = page * page_size

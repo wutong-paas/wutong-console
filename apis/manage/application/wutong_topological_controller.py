@@ -72,10 +72,8 @@ async def open_topological_port(
     close_outer = data.get("close_outer", False)
     container_port = data.get("container_port", None)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     # 开启对外端口
     if open_outer:
         tenant_service_port = port_service.get_service_port_by_port(session, service, int(container_port))
@@ -141,10 +139,7 @@ async def get_topological_internet_info(
     """
     拓扑图中Internet详情
     """
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     if group_id == "-1":
         code = 200
         no_service_list = service_info_repo.get_no_group_service_status_by_group_id(

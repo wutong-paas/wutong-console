@@ -71,10 +71,7 @@ async def set_xparuler(request: Request,
     data = await request.json()
     await validate_parameter(data)
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     data["service_id"] = service.service_id
     res = autoscaler_service.create_autoscaler_rule(session, region_name, env,
                                                     service.service_alias,
@@ -90,10 +87,7 @@ async def get_xparecords(request: Request,
                          session: SessionClass = Depends(deps.get_session)) -> Any:
     page = int(request.query_params.get("page", 1))
     page_size = int(request.query_params.get("page_size", 10))
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     data = scaling_records_service.list_scaling_records(session=session, region_name=region_name,
                                                         tenant_env=env,
@@ -162,10 +156,7 @@ async def set_xparules_index(request: Request,
                              user=Depends(deps.get_current_user)) -> Any:
     data = await request.json()
     await validate_parameter(data)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    region_name = region.region_name
+    region_name = env.region_code
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     res = autoscaler_service.update_autoscaler_rule(session, region_name, env,
                                                     service.service_alias,

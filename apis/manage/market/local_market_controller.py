@@ -31,7 +31,6 @@ router = APIRouter()
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/market_create", response_model=Response, name="安装市场应用")
 async def market_create(
-        request: Request,
         params: Optional[MarketAppCreateParam] = MarketAppCreateParam(),
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
@@ -39,12 +38,9 @@ async def market_create(
     """
     创建应用市场应用
     """
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     region_info = region_config_repo.get_one_by_model(session=session,
-                                                      query_model=RegionConfig(region_name=region.region_name))
+                                                      query_model=RegionConfig(region_name=env.region_code))
     market_app_service.install_app(session=session, tenant_env=env, region=region_info, user=user,
                                    app_id=params.group_id,
                                    app_model_key=params.app_id, version=params.app_version,

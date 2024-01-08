@@ -150,6 +150,8 @@ async def get_alarm_robot(
         robots_json = []
         robots = alarm_robot_repo.get_all_alarm_robot(session, team_code)
         if robots:
+            for robot in robots:
+                robot.create_time = str(robot.create_time)
             robots_json = jsonable_encoder(robots)
     except Exception as err:
         logger.error(err)

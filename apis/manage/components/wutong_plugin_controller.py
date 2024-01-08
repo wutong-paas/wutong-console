@@ -141,10 +141,8 @@ async def install_sys_plugin(request: Request,
     err_msg = []
     if not plugin_id:
         return JSONResponse(general_message(400, "not found plugin_id", "参数错误"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
 
     for service_id in service_ids:
         service = service_info_repo.get_service_by_tenant_and_id(session, env.env_id, service_id)
@@ -173,12 +171,12 @@ async def install_sys_plugin(request: Request,
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/plugins/sys/install", response_model=Response,
              name="安装并开通系统插件")
-async def install_sys_plugin(request: Request,
-                             params: Optional[InstallPlugin] = InstallPlugin(),
-                             env=Depends(deps.get_current_team_env),
-                             serviceAlias: Optional[str] = None,
-                             session: SessionClass = Depends(deps.get_session),
-                             user=Depends(deps.get_current_user)) -> Any:
+async def install_sys_plugin(
+        params: Optional[InstallPlugin] = InstallPlugin(),
+        env=Depends(deps.get_current_team_env),
+        serviceAlias: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        user=Depends(deps.get_current_user)) -> Any:
     plugin_type = params.plugin_type
     build_version = params.build_version
     configs = params.configs
@@ -188,10 +186,7 @@ async def install_sys_plugin(request: Request,
     if plugin_type not in default_plugins:
         return JSONResponse(general_message(400, "plugin type not support", "插件类型不支持"), status_code=400)
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     plugins = plugin_service.get_by_type_plugins(session, plugin_type, "sys", service.service_region)
     if not plugins:
@@ -317,13 +312,10 @@ async def install_plugin(request: Request,
     configs = params.configs
     build_version = params.build_version
 
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(400, "not found env", "环境不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
 
     if not plugin_id:
@@ -392,10 +384,8 @@ async def delete_plugin(
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
-    response_region = region.region_name
+
+    response_region = env.region_code
     service = service_info_repo.get_service(session, serviceAlias, env.env_id)
     body = dict()
     body["operator"] = user.nick_name

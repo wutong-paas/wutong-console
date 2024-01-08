@@ -200,13 +200,10 @@ async def get_events_info(request: Request,
     page_size = request.query_params.get("page_size", 6)
     target = request.query_params.get("target", "")
     targetAlias = request.query_params.get("targetAlias", "")
-    region = await region_services.get_region_by_request(session, request)
-    if not region:
-        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     env = env_repo.get_env_by_env_id(session, env_id)
     if not env:
         return JSONResponse(general_message(404, "env not exist", "环境不存在"), status_code=400)
-    response_region = region.region_name
+    response_region = env.region_code
     if targetAlias == "":
         target = "team"
         targetAlias = env.tenant_name
