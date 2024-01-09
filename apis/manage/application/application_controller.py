@@ -116,7 +116,6 @@ async def get_app_detail(
         app_id: Optional[int] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     region_name = env.region_code
     app = application_service.get_app_detail(session=session, tenant_env=env, region_name=region_name, app_id=app_id)
     result = general_message("0", "success", "success", bean=jsonable_encoder(app))
@@ -197,9 +196,9 @@ async def delete_app(
     try:
         # application_service.delete_app(session=session, tenant_env=env, region_name=region_name, app_id=app_id,
         #                                app_type=app_type)
-        await application_delete_service.logic_delete_application(request=request, session=session, app_id=app_id,
-                                                                  region_name=region_name,
-                                                                  user=user, env=env)
+        application_delete_service.logic_delete_application(request=request, session=session, app_id=app_id,
+                                                            region_name=region_name,
+                                                            user=user, env=env)
         result = general_message("0", "success", "删除成功")
     except AbortRequest as e:
         result = general_message(e.status_code, e.msg, e.msg_show)
@@ -261,7 +260,6 @@ async def modify_storage_dir(
         app_id: Optional[str] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     region_name = env.region_code
 
     region_app_id = region_app_repo.get_region_app_id(session, region_name, app_id)
@@ -446,7 +444,6 @@ async def get_app_model(
         group_id: Optional[str] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     response_region = env.region_code
     group_id = int(group_id)
     group = application_service.get_group_service(session=session, tenant_env_id=env.env_id,
@@ -470,7 +467,6 @@ async def get_config_groups(request: Request,
                             group_id: Optional[str] = None,
                             env=Depends(deps.get_current_team_env),
                             session: SessionClass = Depends(deps.get_session)) -> Any:
-
     region_name = env.region_code
     query = request.query_params.get("query", None)
     acg, total = app_config_group_service.list_config_groups(session=session, region_name=region_name, app_id=group_id,
@@ -508,7 +504,6 @@ async def get_config_group(
         name: Optional[str] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     region_name = env.region_code
     acg = app_config_group_service.get_config_group(session=session, region_name=region_name, app_id=group_id,
                                                     config_group_name=name)
@@ -541,7 +536,6 @@ async def delete_config_group(
         name: Optional[str] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     region_name = env.region_code
     acg = app_config_group_service.delete_config_group(session=session, region_name=region_name, team_env=env,
                                                        app_id=group_id, config_group_name=name)
@@ -590,7 +584,6 @@ async def app_governance_mode(
         app_id: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
-
     region_name = env.region_code
     res = application_service.list_kubernetes_services(session, env.env_id, region_name, app_id)
     result = general_message("0", "success", "查询成功", list=res)
@@ -602,7 +595,6 @@ async def set_governance_mode(request: Request,
                               app_id: Optional[str] = None,
                               session: SessionClass = Depends(deps.get_session),
                               env=Depends(deps.get_current_team_env)) -> Any:
-
     region_name = env.region_code
     k8s_services = await request.json()
     # data validation
@@ -629,7 +621,6 @@ async def get_helm_app_components(
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         env=Depends(deps.get_current_team_env)) -> Any:
-
     app = application_repo.get_group_by_id(session, app_id)
     region_name = env.region_code
     components, err = helm_app_service.list_components(session, env, region_name, user, app)
@@ -642,7 +633,6 @@ async def get_app_releases(
         app_id: Optional[str] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     region_name = env.region_code
     releases = application_service.list_releases(session, region_name, env, app_id)
     return JSONResponse(general_message("0", "success", "查询成功", list=releases), status_code=200)
@@ -667,7 +657,6 @@ async def get_pod_view(
         pod_name: Optional[str] = None,
         env=Depends(deps.get_current_team_env),
         session: SessionClass = Depends(deps.get_session)) -> Any:
-
     region_name = env.region_code
     pod = application_service.get_pod(session, env, region_name, pod_name)
     result = general_message("0", "success", "查询成功", bean=pod)

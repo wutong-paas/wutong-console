@@ -6,7 +6,7 @@ from service.alarm.alarm_service import alarm_service
 
 class AlarmRegionService:
 
-    async def add_or_update_alarm_region(self, session, request, users_info, group_id, alarm_group, contacts):
+    def add_or_update_alarm_region(self, session, request, users_info, group_id, alarm_group, contacts):
         address = []
         err_message = None
         status = False
@@ -25,7 +25,7 @@ class AlarmRegionService:
             region_code = region.region_name
             try:
                 alarm_region_rel = alarm_region_repo.get_alarm_region(session, group_id, region_code, "email")
-                body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
+                body = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
             except Exception as err:
                 logger.warning(err)
                 continue

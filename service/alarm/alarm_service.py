@@ -5,9 +5,9 @@ from exceptions.main import ServiceHandleException
 
 class AlarmService:
 
-    async def obs_service_alarm(self, request, url, body, region, method=None):
+    def obs_service_alarm(self, request, url, body, region, method=None):
         remoteurl = "{}/obs{}".format(region.url, url)
-        response = await remote_app_client.proxy(
+        response = remote_app_client.proxy(
             request,
             remoteurl,
             region,

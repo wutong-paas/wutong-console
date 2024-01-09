@@ -17,7 +17,7 @@ class AlarmRobotService:
             regions = team_region_repo.get_regions(session)
             for region in regions:
                 try:
-                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/test", body, region,
+                    body = alarm_service.obs_service_alarm(request, "/v1/alert/contact/test", body, region,
                                                                  method="POST")
                 except Exception as err:
                     logger.error(err)

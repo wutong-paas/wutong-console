@@ -33,7 +33,7 @@ async def get_alarm_message(
     data_list = []
     for region in regions:
         try:
-            res = await alarm_service.obs_service_alarm(request,
+            res = alarm_service.obs_service_alarm(request,
                                                         "/v1/alert/alerts?type=" + query + "&team=" + team_code, {},
                                                         region)
         except Exception as err:
@@ -79,7 +79,6 @@ async def get_alarm_message(
                 if not alarm_strategy:
                     continue
 
-                title = alarm_strategy.strategy_name + " | " + strategy_code
                 result.append({
                     "team_name": team_name,
                     "env_name": env_name,
@@ -87,8 +86,12 @@ async def get_alarm_message(
                     "service_name": service_name,
                     "message": data.get("content"),
                     "status": data.get("status"),
-                    "title": title,
+                    "title": alarm_strategy.strategy_name,
+                    "code": strategy_code,
                     "time": data.get("time"),
                 })
+
+    # 按时间降序排序
+    result = sorted(result, key=lambda x: x['time'], reverse=True)
 
     return JSONResponse(general_message(200, "get alarm message success", "查询成功", list=result), status_code=200)

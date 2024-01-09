@@ -1152,7 +1152,7 @@ class AppManageService(object):
         return False
 
     # 批量删除组件
-    async def batch_delete(self, session: SessionClass, user, tenant_env, service, request):
+    def batch_delete(self, session: SessionClass, user, tenant_env, service, request):
         # 判断组件是否是运行状态
         if self.__is_service_running(session=session, tenant_env=tenant_env,
                                      service=service) and service.service_source != "third_party":
@@ -1190,7 +1190,7 @@ class AppManageService(object):
                 return code, msg
             else:
                 # 更新obs告警策略
-                await alarm_strategy_service.update_alarm_strategy_service(request, session, tenant_env, service)
+                alarm_strategy_service.update_alarm_strategy_service(request, session, tenant_env, service)
                 msg = "success"
                 return code, msg
         except Exception as e:

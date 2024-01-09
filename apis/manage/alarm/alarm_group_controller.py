@@ -145,8 +145,8 @@ async def delete_alarm_group(
                         if alarm_strategys:
                             return JSONResponse(general_message(500, "delete failed", "当前分组已绑定告警策略，需取消绑定后再进行删除操作"),
                                                 status_code=200)
-                        body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/email_" + code, {},
-                                                                     region)
+                        body = alarm_service.obs_service_alarm(request, "/v1/alert/contact/email_" + code, {},
+                                                               region)
                 except ServiceHandleException as err:
                     return JSONResponse(general_message(err.error_code, "delete group failed", err.msg),
                                         status_code=200)
@@ -195,7 +195,7 @@ async def put_alarm_group(
             users_info = team_api.get_users_info(contacts, user.token)
 
         alarm_group.group_name = group_name
-        status, err_message = await alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
+        status, err_message = alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
         if not status:
             session.rollback()
             return JSONResponse(general_message(500, "put group failed", err_message if err_message else "编辑OBS通知分组失败"),
@@ -238,10 +238,10 @@ async def add_alarm_group_user(
             contacts = user_names
         contacts = contacts.split(",")
         users_info = team_api.get_users_info(contacts, current_user.token)
-        status, err_message = await alarm_region_service.add_or_update_alarm_region(session, request, users_info,
-                                                                                    group_id,
-                                                                                    alarm_group,
-                                                                                    contacts)
+        status, err_message = alarm_region_service.add_or_update_alarm_region(session, request, users_info,
+                                                                              group_id,
+                                                                              alarm_group,
+                                                                              contacts)
         if not status:
             return JSONResponse(general_message(500, "add user failed", err_message if err_message else "添加联系人失败"),
                                 status_code=200)
@@ -306,10 +306,12 @@ async def get_alarm_group_user(
         if new_contacts:
             users_info = team_api.get_users_info(new_contacts, user.token)
 
-            status, err_message = await alarm_group_service.update_alarm_group(session, request, users_info, alarm_group)
+            status, err_message = alarm_group_service.update_alarm_group(session, request, users_info,
+                                                                         alarm_group)
             if not status:
-                return JSONResponse(general_message(500, "delete user failed", err_message if err_message else "删除联系人失败"),
-                                    status_code=200)
+                return JSONResponse(
+                    general_message(500, "delete user failed", err_message if err_message else "删除联系人失败"),
+                    status_code=200)
             alarm_group.contacts = ','.join(new_contacts)
         else:
             alarm_region_rels = alarm_region_repo.get_alarm_regions(session, alarm_group.ID, "email")
@@ -323,8 +325,8 @@ async def get_alarm_group_user(
                             if alarm_strategys:
                                 return JSONResponse(general_message(500, "delete failed", "当前分组已绑定告警策略，组内成员数必须大于0"),
                                                     status_code=200)
-                            body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/email_" + code, {},
-                                                                         region)
+                            body = alarm_service.obs_service_alarm(request, "/v1/alert/contact/email_" + code, {},
+                                                                   region)
                     except ServiceHandleException as err:
                         logger.error(err)
                         return JSONResponse(general_message(err.error_code, "delete user failed", "删除OBS联系人失败"),

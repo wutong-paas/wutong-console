@@ -7,7 +7,7 @@ from service.alarm.alarm_service import alarm_service
 
 class AlarmGroupService:
 
-    async def update_alarm_group(self, session, request, users_info, alarm_group):
+    def update_alarm_group(self, session, request, users_info, alarm_group):
         address = []
         err_message = None
         for user_info in users_info:
@@ -30,7 +30,7 @@ class AlarmGroupService:
             region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
             try:
                 if alarm_region_rel:
-                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body,
+                    body = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body,
                                                                  region,
                                                                  method="POST")
                     if body and body["code"] == 200:

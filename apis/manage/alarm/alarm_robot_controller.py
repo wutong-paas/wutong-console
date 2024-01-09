@@ -78,7 +78,7 @@ async def add_alarm_robot(
             region_code = region.region_name
             try:
                 alarm_region_rel = alarm_region_repo.get_alarm_region(session, alarm_robot.ID, region_code, "wechat")
-                body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
+                body = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
             except Exception as err:
                 logger.warning(err)
                 continue
@@ -125,7 +125,7 @@ async def delete_alarm_robot(
             try:
                 if alarm_region_rel:
                     code = alarm_region_rel.code
-                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact/wechat_" + code, {},
+                    body = alarm_service.obs_service_alarm(request, "/v1/alert/contact/wechat_" + code, {},
                                                                  region)
             except ServiceHandleException as err:
                 return JSONResponse(general_message(err.error_code, "delete robot failed", err.msg), status_code=200)
@@ -194,7 +194,7 @@ async def put_alarm_robot(
             region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
             try:
                 if alarm_region_rel:
-                    body = await alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region,
+                    body = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region,
                                                                  method="POST")
                     if body and body["code"] == 200:
                         status = 1

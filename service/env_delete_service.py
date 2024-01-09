@@ -9,13 +9,13 @@ from service.application_service import application_visit_service
 from service.alarm.alarm_strategy_service import alarm_strategy_service
 
 
-async def logic_delete_by_env_id(request, session, user, env, region_code):
+def logic_delete_by_env_id(request, session, user, env, region_code):
     # 查询环境下全部应用，停用全部组件
     # 环境、应用、组件 标记为逻辑删除
-    await stop_env_resource(request=request, session=session, env=env, region_code=region_code, user=user)
+    stop_env_resource(request=request, session=session, env=env, region_code=region_code, user=user)
 
 
-async def stop_env_resource(request, session, env, region_code, user):
+def stop_env_resource(request, session, env, region_code, user):
     action = "stop"
     apps = application_repo.get_tenant_region_groups(session, env.env_id, region_code)
     for app in apps:
@@ -48,7 +48,7 @@ async def stop_env_resource(request, session, env, region_code, user):
             service_obj.is_delete = True
             service_obj.delete_time = datetime.datetime.now()
             service_obj.delete_operator = user.nick_name
-            await alarm_strategy_service.update_alarm_strategy_service(request, session, env, service_obj)
+            alarm_strategy_service.update_alarm_strategy_service(request, session, env, service_obj)
             if service_obj and service_obj.service_source == "third_party":
                 service_ids.remove(service_id)
 

@@ -460,7 +460,7 @@ async def delete_component(
     service = service_info_repo.get_service(session, component_alias, env.env_id)
 
     # 更新obs告警策略
-    await alarm_strategy_service.update_alarm_strategy_service(request, session, env, service)
+    alarm_strategy_service.update_alarm_strategy_service(request, session, env, service)
 
     code, msg = component_delete_service.logic_delete(session=session, tenant_env=env, service=service, user=user,
                                                       is_force=True)

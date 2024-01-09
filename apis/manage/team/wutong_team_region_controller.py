@@ -255,7 +255,7 @@ async def manager(
         if not region:
             raise ServiceHandleException("region {0} not found".format(service.service_region), error_code=10412)
         remoteurl = "{}{}".format(region.url, url_path)
-        response = await remote_app_client.proxy(
+        response = remote_app_client.proxy(
             request,
             remoteurl,
             region,

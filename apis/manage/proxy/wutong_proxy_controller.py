@@ -36,7 +36,7 @@ async def proxy(
 
     params = str(request.query_params)
     remoteurl = "{}/{}?{}".format(region.url, url, params)
-    response = await remote_app_client.proxy(
+    response = remote_app_client.proxy(
         request,
         remoteurl,
         region,

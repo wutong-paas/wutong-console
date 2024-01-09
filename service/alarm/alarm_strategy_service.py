@@ -105,7 +105,7 @@ class AlarmStrategyService:
             alarm_objects.append(alarm_object)
         return alarm_objects
 
-    async def update_alarm_strategy_service(self, request, session, env, service):
+    def update_alarm_strategy_service(self, request, session, env, service):
         strategy_code_data = service.obs_strategy_code
         is_update = False
         if strategy_code_data:
@@ -145,12 +145,12 @@ class AlarmStrategyService:
                                 "type": alarm_strategy.object_type,
                             },
                         }
-                        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region, method="PUT")
+                        res = alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region, method="PUT")
                         if res["code"] != 200:
                             logger.warning(res["message"])
                     else:
                         # 删除告警策略
-                        res = await alarm_service.obs_service_alarm(request,
+                        res = alarm_service.obs_service_alarm(request,
                                                                     "/v1/alert/rule/" + alarm_strategy.strategy_code, {},
                                                                     region)
                         if res["code"] != 200:

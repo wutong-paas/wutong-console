@@ -13,12 +13,12 @@ from service.app_actions.app_manage import app_manage_service
 from service.application_service import application_visit_service
 
 
-async def logic_delete_application(request, session, app_id, region_name, user, env):
+def logic_delete_application(request, session, app_id, region_name, user, env):
     # 停止当前组件
-    await _stop_app(request=request, session=session, app_id=app_id, region_name=region_name, user=user, env=env)
+    _stop_app(request=request, session=session, app_id=app_id, region_name=region_name, user=user, env=env)
 
 
-async def _stop_app(request, session, app_id, region_name, user, env):
+def _stop_app(request, session, app_id, region_name, user, env):
 
     app = application_repo.get_group_by_id(session, app_id)
     if not app:
@@ -48,7 +48,7 @@ async def _stop_app(request, session, app_id, region_name, user, env):
         service_obj.is_delete = True
         service_obj.delete_time = datetime.datetime.now()
         service_obj.delete_operator = user.nick_name
-        await alarm_strategy_service.update_alarm_strategy_service(request, session, env, service_obj)
+        alarm_strategy_service.update_alarm_strategy_service(request, session, env, service_obj)
         if service_obj and service_obj.service_source == "third_party":
             service_ids.remove(service_id)
 

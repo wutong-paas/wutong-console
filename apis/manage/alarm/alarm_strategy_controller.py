@@ -72,7 +72,7 @@ async def create_alarm_strategy(
     region_code = env.region_code
     try:
         region = region_repo.get_region_by_region_name(session, region_code)
-        res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
+        res = alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
     except ServiceHandleException as err:
         return JSONResponse(general_message(err.error_code, "create strategy error", err.msg), status_code=200)
     except Exception as err:
@@ -229,7 +229,7 @@ async def update_alarm_strategy(
                 "notifies": params.alarm_notice,
             }
             region = region_repo.get_region_by_region_name(session, region_code)
-            res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
+            res = alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region)
         except Exception as err:
             logger.error(err)
             return JSONResponse(general_message(500, "update strategy error", "更新obs策略失败"), status_code=200)
@@ -301,7 +301,7 @@ async def delete_alarm_strategy(
     if alarm_strategy.enable:
         try:
             region = region_repo.get_region_by_region_name(session, region_code)
-            res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {},
+            res = alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {},
                                                         region)
             if res["code"] != 200:
                 return JSONResponse(general_message(res["code"], "update strategy error", res["message"]),
@@ -329,7 +329,7 @@ async def delete_alarm_strategy(
 
 
 @router.put("/plat/alarm/strategy/enable", response_model=Response, name="开关告警策略")
-async def put_alarm_strategy(
+def put_alarm_strategy(
         request: Request,
         params: Optional[StrategyEnableParam] = StrategyEnableParam(),
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -354,13 +354,15 @@ async def put_alarm_strategy(
     try:
         region = region_repo.get_region_by_region_name(session, region_code)
         if not enable:
-            res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {},
+            res = alarm_service.obs_service_alarm(request, "/v1/alert/rule/" + alarm_strategy.strategy_code, {},
                                                         region,
                                                         method="DELETE")
         else:
             body = {
                 "title": alarm_strategy.strategy_name,
                 "team": team_code,
+                "teamName": env.team_alias,
+                "envName": env.env_alias,
                 "code": alarm_strategy.strategy_code,
                 "env": env_code,
                 "envId": env.env_id,
@@ -375,7 +377,7 @@ async def put_alarm_strategy(
             region_code = env.region_code
             try:
                 region = region_repo.get_region_by_region_name(session, region_code)
-                res = await alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region, method="POST")
+                res = alarm_service.obs_service_alarm(request, "/v1/alert/rule", body, region, method="POST")
             except Exception as err:
                 logger.error(err)
                 return JSONResponse(general_message(500, "enable strategy error", "开关策略失败"), status_code=200)
