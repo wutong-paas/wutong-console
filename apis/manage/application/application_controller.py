@@ -160,6 +160,12 @@ async def update_app(
         logo=logo,
         app_code=app_code,
         k8s_app=k8s_app)
+
+    # 更新应用访问记录
+    app_vists = application_visit_service.get_app_visit_record_by_app_id(session, app_id)
+    if app_vists:
+        for app_vist in app_vists:
+            app_vist.app_alias = app_alias
     result = general_message("0", "success", "修改成功")
     return JSONResponse(result, status_code=200)
 

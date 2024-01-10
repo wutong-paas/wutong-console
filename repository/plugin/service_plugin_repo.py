@@ -482,7 +482,7 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                     "category": category,
                     "build_version": build_version,
                     "min_cpu": 0,
-                    "min_memory": config_groups["memory"]
+                    "min_memory": config_groups.get("memory", 512)
                 }
 
                 install_plugins_rel = app_plugin_relation_repo.get_service_plugin_relation(session, service.service_id)
