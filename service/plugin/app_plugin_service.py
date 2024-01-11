@@ -617,14 +617,15 @@ class AppPluginService(object):
                                        plugin_id,
                                        build_version,
                                        service_meta_type="",
-                                       plugin_status=True):
+                                       plugin_status=True,
+                                       memory=512,
+                                       cpu=0):
         sprs = app_plugin_relation_repo.get_relation_by_service_and_plugin(session=session, service_id=service_id,
                                                                            plugin_id=plugin_id)
         if sprs:
             raise ServiceHandleException(msg="plugin has installed", status_code=409, msg_show="组件已安装该插件")
-        plugin_version_info = plugin_version_repo.get_by_id_and_version(session, plugin_id, build_version)
-        min_memory = plugin_version_info.min_memory
-        min_cpu = plugin_version_info.min_cpu
+        min_memory = memory
+        min_cpu = cpu
         params = {
             "service_id": service_id,
             "build_version": build_version,
@@ -637,7 +638,7 @@ class AppPluginService(object):
         return app_plugin_relation_repo.create_service_plugin_relation(session, **params)
 
     def install_new_plugin(self, session: SessionClass, region, tenant_env, service, plugin_id, plugin_version=None,
-                           user=None):
+                           user=None, memory=512, cpu=0):
         if not plugin_version:
             plugin_version = plugin_version_service.get_newest_usable_plugin_version(session=session,
                                                                                      tenant_env_id=tenant_env.env_id,
@@ -662,7 +663,7 @@ class AppPluginService(object):
         data.update(region_config)
         plugin_rel = self.create_service_plugin_relation(session=session, tenant_env_id=tenant_env.env_id,
                                                          service_id=service.service_id, plugin_id=plugin_id,
-                                                         build_version=plugin_version)
+                                                         build_version=plugin_version, memory=memory, cpu=cpu)
         data["plugin_cpu"] = plugin_rel.min_cpu
         data["plugin_memory"] = plugin_rel.min_memory
         try:
@@ -804,8 +805,7 @@ class AppPluginService(object):
             result_list.append(data)
         return result_list, total
 
-    def update_plugin_configs(self, session: SessionClass, env, service, plugin_id, config, user, build_version, memory,
-                              cpu, plugin_info):
+    def update_plugin_configs(self, session: SessionClass, env, service, plugin_id, config, user, build_version, plugin_info):
         # 更新配置项attr_value值
         self.update_config_attr_value(config)
 
@@ -880,10 +880,10 @@ class AppPluginService(object):
                         pass
 
         # 配置插件cpu和内存
-        self.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id,
-                                   memory=memory, cpu=cpu, plugin_info=plugin_info,
-                                   build_version=build_version,
-                                   user=user, env=env)
+        # self.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id,
+        #                            memory=memory, cpu=cpu, plugin_info=plugin_info,
+        #                            build_version=build_version,
+        #                            user=user, env=env)
 
     def update_plugin_cpu_mem(self, session: SessionClass, env, service, plugin_id, memory, cpu, user, build_version,
                               plugin_info,

@@ -253,8 +253,13 @@ async def install_sys_plugin(
         return JSONResponse(general_message(400, "not found plugin", "未找到插件"), status_code=400)
     app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_env_id=None,
                                              service_id=service.service_id)
-    app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
-                                          plugin_id=plugin_id, plugin_version=build_version, user=user)
+    try:
+        app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
+                                              plugin_id=plugin_id, plugin_version=build_version, user=user,
+                                              memory=params.min_memory, cpu=params.min_cpu)
+    except Exception as e:
+        logger.error(e)
+        return JSONResponse(general_message(500, "failed", "开通失败"), status_code=501)
 
     plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
     app_plugin_service.add_filemanage_port(session=session, tenant_env=env, service=service, plugin_info=plugin_info,
@@ -269,7 +274,7 @@ async def install_sys_plugin(
     # 配置插件环境变量
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service, plugin_info=plugin_info,
                                              plugin_id=plugin_id, build_version=build_version, config=configs,
-                                             user=user, memory=params.min_memory, cpu=params.min_cpu)
+                                             user=user)
 
     result = general_message("0", "success", "安装成功")
     return JSONResponse(result, status_code=200)
