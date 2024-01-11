@@ -322,6 +322,7 @@ async def delete_alarm_strategy(
         for service in services:
             service.obs_strategy_code = None
         alarm_strategy_repo.delete_alarm_strategy(session, alarm_strategy.ID)
+        session.commit()
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "update strategy error", "删除策略失败"), status_code=200)
