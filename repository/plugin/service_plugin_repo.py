@@ -159,7 +159,6 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
 
     def update_sys_plugin(self, session, plugin, tenant_env, plugin_type, user, region, needed_plugin_config,
                           build_version):
-        build_cmd = ""
         if plugin_type == "mysql_dbgate_plugin" or plugin_type == "redis_dbgate_plugin":
             min_memory = 512
         elif plugin_type == "filebrowser_plugin":
@@ -167,11 +166,9 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
         else:
             min_memory = 64
 
-        if plugin_type == "java_agent_plugin":
-            build_cmd = "cp agent.jar /agent/agent.jar"
-
         image = needed_plugin_config.get("image", "")
         build_source = needed_plugin_config.get("build_source", "")
+        build_cmd = needed_plugin_config.get("cmd", "")
         image_tag = "latest"
         if image and build_source and build_source == "image":
             ref = image.split(":")
