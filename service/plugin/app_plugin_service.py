@@ -805,7 +805,8 @@ class AppPluginService(object):
             result_list.append(data)
         return result_list, total
 
-    def update_plugin_configs(self, session: SessionClass, env, service, plugin_id, config, user, build_version, plugin_info):
+    def update_plugin_configs(self, session: SessionClass, env, service, plugin_id, config, user, build_version,
+                              plugin_info, memory=512, cpu=0, type=None):
         # 更新配置项attr_value值
         self.update_config_attr_value(config)
 
@@ -879,11 +880,12 @@ class AppPluginService(object):
                     except:
                         pass
 
-        # 配置插件cpu和内存
-        # self.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id,
-        #                            memory=memory, cpu=cpu, plugin_info=plugin_info,
-        #                            build_version=build_version,
-        #                            user=user, env=env)
+        if type:
+            # 配置插件cpu和内存
+            self.update_plugin_cpu_mem(session=session, service=service, plugin_id=plugin_id,
+                                       memory=memory, cpu=cpu, plugin_info=plugin_info,
+                                       build_version=build_version,
+                                       user=user, env=env)
 
     def update_plugin_cpu_mem(self, session: SessionClass, env, service, plugin_id, memory, cpu, user, build_version,
                               plugin_info,

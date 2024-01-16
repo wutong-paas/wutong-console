@@ -598,7 +598,7 @@ async def update_plugin_config(
     # 配置插件环境变量
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service, plugin_info=plugin_info,
                                              plugin_id=plugin_id, build_version=pbv.build_version, config=configs,
-                                             user=user, memory=params.min_memory, cpu=params.min_cpu, )
+                                             user=user, memory=params.min_memory, cpu=params.min_cpu, type="update")
 
     # 更新组件
     is_dep_running = app_manage_service.is_dep_service_running(session, env, service)
