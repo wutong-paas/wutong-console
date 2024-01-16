@@ -249,6 +249,7 @@ class MarketAppService(object):
         )
         session.add(app)
         session.flush()
+        session.commit()
         # save app and tag relation
         if app_info.get("tag_ids"):
             app_tag_repo.create_app_tags_relation(session, app, app_info.get("tag_ids"))
@@ -287,10 +288,10 @@ class MarketAppService(object):
                     app.create_team = create_team
 
     def delete_wutong_app_all_info_by_id(self, session: SessionClass, app_id):
-        # todo 事务
         session.execute(delete(CenterAppTagsRelation).where(CenterAppTagsRelation.app_id == app_id))
         session.execute(delete(CenterAppVersion).where(CenterAppVersion.app_id == app_id))
         session.execute(delete(CenterApp).where(CenterApp.app_id == app_id))
+        session.commit()
 
     def get_wutong_app_and_versions(self, session: SessionClass, app_id, page, page_size):
         app = (

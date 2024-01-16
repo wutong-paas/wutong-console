@@ -336,6 +336,8 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             config_groups["build_info"] = pbv.update_info
             config_groups[
                 "memory"] = svc_plugin_relation.min_memory if svc_plugin_relation else pbv.min_memory
+            config_groups[
+                "cpu"] = svc_plugin_relation.min_cpu if svc_plugin_relation else pbv.min_cpu
         return config_groups
 
     def get_plugin_config_as_tenant(self, session, installed_plugins, uninstalled_plugins, tenant_env, service):
@@ -523,6 +525,12 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                                                                                                 installed_plugins,
                                                                                                 uninstalled_plugins,
                                                                                                 tenant_env, service)
+
+            for un_plugin in uninstalled_plugins_list:
+                configs = un_plugin.get("configs")
+                if configs:
+                    un_plugin.update({"min_memory": configs.get("memory", 512)})
+                    un_plugin.update({"min_cpu": configs.get("cpu", 0)})
             return installed_plugins_list, uninstalled_plugins_list
 
         else:
@@ -537,6 +545,11 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
                                                                                                 installed_plugins,
                                                                                                 uninstalled_plugins,
                                                                                                 tenant_env, service)
+            for un_plugin in uninstalled_plugins_list:
+                configs = un_plugin.get("configs")
+                if configs:
+                    un_plugin.update({"min_memory": configs.get("memory", 512)})
+                    un_plugin.update({"min_cpu": configs.get("cpu", 0)})
             return installed_plugins_list, uninstalled_plugins_list
         return installed_plugins, uninstalled_plugins
 

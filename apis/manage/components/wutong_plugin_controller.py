@@ -257,8 +257,11 @@ async def install_sys_plugin(
         app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
                                               plugin_id=plugin_id, plugin_version=build_version, user=user,
                                               memory=params.min_memory, cpu=params.min_cpu)
-    except Exception as e:
-        logger.error(e)
+    except ServiceHandleException as err:
+        return JSONResponse(general_message(err.error_code, "failed", err.msg_show),
+                            status_code=501)
+    except Exception as err:
+        logger.error(err)
         return JSONResponse(general_message(500, "failed", "开通失败"), status_code=501)
 
     plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
@@ -344,13 +347,14 @@ async def install_plugin(request: Request,
     app_plugin_service.check_the_same_plugin(session=session, plugin_id=plugin_id, tenant_env_id=env.env_id,
                                              service_id=service.service_id)
     app_plugin_service.install_new_plugin(session=session, region=response_region, tenant_env=env, service=service,
-                                          plugin_id=plugin_id, plugin_version=build_version, user=user)
+                                          plugin_id=plugin_id, plugin_version=build_version, user=user,
+                                          memory=params.min_memory, cpu=params.min_cpu)
 
     plugin_info = plugin_repo.get_plugin_by_plugin_id(session, env.env_id, plugin_id)
     # 配置插件环境变量
     app_plugin_service.update_plugin_configs(session=session, env=env, service=service, plugin_info=plugin_info,
                                              plugin_id=plugin_id, build_version=build_version, config=configs,
-                                             user=user, memory=params.min_memory, cpu=params.min_cpu)
+                                             user=user)
 
     result = general_message("0", "success", "安装成功")
     return JSONResponse(result, status_code=200)

@@ -204,7 +204,7 @@ async def add_app_models(request: Request,
     }
     market_app_service.create_wutong_app(session, app_info, make_uuid())
 
-    result = general_message("0", "success", None)
+    result = general_message("0", "success", "创建成功")
     return JSONResponse(result, status_code=200)
 
 

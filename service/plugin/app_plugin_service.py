@@ -916,13 +916,21 @@ class AppPluginService(object):
 
     def update_config_attr_value(self, configs):
         for config_type in ["undefine_env", "downstream_env", "upstream_env"]:
-            config_env = configs[config_type]
-            if config_env:
-                config_list = config_env["config"]
-                for config_info in config_list:
-                    attr_value = config_info.get("attr_value")
-                    if not attr_value:
-                        config_info.update({"attr_value": config_info.get("attr_default_value")})
+            config_envs = configs[config_type]
+            if config_envs:
+                if config_type != "undefine_env":
+                    for config_env in config_envs:
+                        config_list = config_env["config"]
+                        for config_info in config_list:
+                            attr_value = config_info.get("attr_value")
+                            if not attr_value:
+                                config_info.update({"attr_value": config_info.get("attr_default_value")})
+                else:
+                    config_list = config_envs["config"]
+                    for config_info in config_list:
+                        attr_value = config_info.get("attr_value")
+                        if not attr_value:
+                            config_info.update({"attr_value": config_info.get("attr_default_value")})
 
 
 app_plugin_service = AppPluginService()
