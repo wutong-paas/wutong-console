@@ -355,15 +355,16 @@ async def delete_share_info(
         share_record = share_service.get_service_share_record_by_ID(session=session, ID=share_id, env_name=env.env_name)
         if not share_record:
             result = general_message(404, "share record not found", "分享流程不存在，不能放弃")
-            return JSONResponse(result, status_code=404)
+            return JSONResponse(result, status_code=200)
         if share_record.is_success or share_record.step >= 3:
             result = general_message(400, "share record is complete", "分享流程已经完成，无法放弃")
-            return JSONResponse(result, status_code=400)
+            return JSONResponse(result, status_code=200)
         app = share_service.get_app_by_key(session=session, key=share_record.group_share_id)
         if app and not app.is_complete:
             share_service.delete_app(session=session, key=share_record.group_share_id)
         share_service.delete_record(session=session, ID=share_id, env_name=env.env_name)
         share_service.delete_version(session=session, record_id=share_id)
+        session.commit()
         result = general_message("0", "delete success", "放弃成功")
         return JSONResponse(result, status_code=200)
     except ServiceHandleException as e:

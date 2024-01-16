@@ -369,8 +369,9 @@ class UpgradeService(object):
             data = record.to_dict()
             key = record.group_key
             app = component_share_repo.get_app_by_key(session, key)
-            data.update({"app_model_name": app.app_name})
-            data_list.append(data)
+            if app:
+                data.update({"app_model_name": app.app_name})
+                data_list.append(data)
         return data_list, event_paginator.total
 
     def get_latest_upgrade_record(self, session: SessionClass, tenant_env: TeamEnvInfo, app: Application,
