@@ -32,9 +32,11 @@ class Component(Base):
     cmd = Column(String(2048), comment="启动参数", nullable=True)
     min_node = Column(Integer, comment="实例数量", nullable=False, default=1)
     min_cpu = Column(Integer, comment="cpu分配额 1000=1core", nullable=False, default=500)
+    request_cpu = Column(Integer, comment="cpu最小分配额 1000=1core", nullable=False, default=0)
     container_gpu = Column(Integer, comment="gpu显存数量", nullable=False, default=0)
     gpu_type = Column(String(32), comment="gpu类型", nullable=True)
-    min_memory = Column(Integer, comment="内存大小单位（M）", nullable=False, default=256)
+    min_memory = Column(Integer, comment="内存大小单位（M）", nullable=False, default=512)
+    request_memory = Column(Integer, comment="内存最小分配额", nullable=False, default=0)
     image_hub = Column(String(32), comment="镜像源类型", nullable=True)
 
     # deprecated
@@ -95,7 +97,7 @@ class Component(Base):
     git_full_name = Column(String(64), comment="git项目的fullname", nullable=True, default=None)
     k8s_component_name = Column(String(100), comment="集群组件名称", nullable=True)
 
-    monitor = Column(String(32), comment="组件监控类型(devops、plugin、None)", nullable=True, default=None)
+    monitor = Column(String(32), comment="组件监控类型", nullable=True, default=None)
     obs_strategy_code = Column(LONGTEXT, comment="告警策略标识", nullable=True, default=None)
 
     is_delete = Column(Boolean, comment="是否删除", nullable=False, default=False)

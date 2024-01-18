@@ -1,6 +1,6 @@
 from typing import Optional, List
-
-from pydantic import BaseModel
+from pydantic.fields import Annotated
+from pydantic import BaseModel, Field
 
 
 class EnvVariablesParam(BaseModel):
@@ -87,3 +87,15 @@ class ServiceBackupParam(BaseModel):
     ttl: Optional[str] = None
     # 描述信息
     desc: Optional[str] = None
+
+
+class ServiceVerticalParam(BaseModel):
+    """
+    组件垂直伸缩参数
+    """
+    new_memory: Annotated[str, Field(title="最大内存")] = "512"
+    new_gpu_type: Annotated[str, Field(title="gpu类型")] = None
+    new_gpu: Annotated[str, Field(title="gpu大小")] = None
+    new_cpu: Annotated[int, Field(title="最大cpu")] = 500
+    request_cpu: Annotated[int, Field(title="最小cpu")] = 0
+    request_memory: Annotated[int, Field(title="最小内存")] = 0

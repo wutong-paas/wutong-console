@@ -23,7 +23,7 @@ from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import service_info_repo
 from repository.teams.env_repo import env_repo
 from repository.teams.team_component_repo import team_component_repo
-from schemas.components import DockerRunParams, DockerRunCheckParam, BuildParam
+from schemas.components import DockerRunParams, DockerRunCheckParam, BuildParam, ServiceVerticalParam
 from schemas.response import Response
 from service.app_actions.app_log import event_service, log_service, ws_service
 from service.app_actions.app_manage import app_manage_service
@@ -332,17 +332,19 @@ async def pod_detail(
 
 
 @router.post("/teams/{team_name}/env/{env_id}/apps/{service_alias}/vertical", response_model=Response, name="垂直升级组件")
-async def component_vertical(request: Request,
-                             service_alias: Optional[str] = None,
-                             session: SessionClass = Depends(deps.get_session),
-                             env=Depends(deps.get_current_team_env),
-                             user=Depends(deps.get_current_user)) -> Any:
+async def component_vertical(
+        service_alias: Optional[str] = None,
+        params: Optional[ServiceVerticalParam] = ServiceVerticalParam(),
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+        user=Depends(deps.get_current_user)) -> Any:
     try:
-        data = await request.json()
-        new_memory = data.get("new_memory", 0)
-        new_gpu_type = data.get("new_gpu_type", None)
-        new_gpu = data.get("new_gpu", None)
-        new_cpu = data.get("new_cpu", None)
+        new_memory = params.new_memory
+        new_gpu_type = params.new_gpu_type
+        new_gpu = params.new_gpu
+        new_cpu = params.new_cpu
+        request_cpu = params.request_cpu
+        request_memory = params.request_memory
         service = service_info_repo.get_service(session, service_alias, env.env_id)
         code, msg = app_manage_service.vertical_upgrade(
             session,
@@ -352,7 +354,9 @@ async def component_vertical(request: Request,
             int(new_memory),
             new_gpu_type=new_gpu_type,
             new_gpu=new_gpu,
-            new_cpu=new_cpu)
+            new_cpu=new_cpu,
+            request_cpu=request_cpu,
+            request_memory=request_memory)
         bean = {}
         if code != 200:
             return JSONResponse(general_message(code, "vertical upgrade error", msg, bean=bean), status_code=code)
@@ -465,7 +469,6 @@ async def component_metrics(
         service_alias: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
         env=Depends(deps.get_current_team_env)) -> Any:
-
     service = service_info_repo.get_service(session, service_alias, env.env_id)
     region_name = env.region_code
     metrics = monitor_service.get_monitor_metrics(

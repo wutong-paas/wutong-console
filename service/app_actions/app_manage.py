@@ -1325,7 +1325,7 @@ class AppManageService(object):
         tenant_service.env = ""
         tenant_service.min_node = 0
         tenant_service.min_memory = 512
-        tenant_service.min_cpu = 0
+        tenant_service.min_cpu = 500
         tenant_service.version = "81701"
         tenant_service.namespace = "third_party"
         tenant_service.update_version = 1
@@ -1474,7 +1474,7 @@ class AppManageService(object):
             raise ErrThirdComponentStartFailed()
 
     def vertical_upgrade(self, session, tenant_env, service, user, new_memory, new_gpu_type=None, new_gpu=None,
-                         new_cpu=None):
+                         new_cpu=None, request_cpu=0, request_memory=0):
         """组件垂直升级"""
         new_memory = int(new_memory)
         if new_memory > 65536 or new_memory < 0:
@@ -1493,6 +1493,8 @@ class AppManageService(object):
                 body["container_gpu"] = new_gpu
             if new_gpu_type is not None and new_gpu_type != '':
                 body["container_gpu_type"] = new_gpu_type
+            body["container_request_cpu"] = request_cpu
+            body["container_request_memory"] = request_memory
             body["operator"] = str(user.nick_name)
             try:
                 remote_component_client.vertical_upgrade(session,
