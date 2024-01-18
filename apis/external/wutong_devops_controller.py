@@ -196,6 +196,10 @@ async def deploy_business_component(
         logger.exception(re)
         session.rollback()
         return JSONResponse(general_message(10410, "resource is not enough", re), status_code=200)
+    except Exception as re:
+        logger.exception(re)
+        session.rollback()
+        return JSONResponse(general_message(500, "service create fail", "部署组件失败"), status_code=200)
     return JSONResponse(result, status_code=200)
 
 

@@ -2,6 +2,7 @@ from typing import Any, Optional
 from clients.remote_build_client import remote_build_client
 from fastapi import APIRouter, Depends, Request
 from starlette.responses import JSONResponse
+from repository.region.region_info_repo import region_repo
 from service.region_service import region_services
 from clients.remote_virtual_client import remote_virtual_client
 from core import deps
@@ -161,6 +162,10 @@ async def get_virtual_port_gateway(
         return JSONResponse(
             general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
         )
+
+    region = region_repo.get_region_by_region_name(session, env.region_code)
+    if not region:
+        return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
 
     port_gateways = remote_virtual_client.get_virtual_port_gateway(
         session, env.region_code, env, vm_id
