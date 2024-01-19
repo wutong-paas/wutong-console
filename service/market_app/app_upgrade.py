@@ -97,9 +97,9 @@ class AppUpgrade(MarketApp):
 
         super(AppUpgrade, self).__init__(session, self.original_app, self.new_app)
 
-    def install(self, session):
+    def install(self, session, env_id=None):
         # install plugins
-        self.install_plugins(session)
+        self.install_plugins(session, env_id)
 
         # Sync the new application to the data center first
         self.sync_new_app(session)
@@ -194,9 +194,9 @@ class AppUpgrade(MarketApp):
 
         return result
 
-    def install_plugins(self, session):
+    def install_plugins(self, session, env_id=None):
         # save plugins
-        self.save_new_plugins(session)
+        self.save_new_plugins(session, env_id)
         # sync plugins
         self._sync_plugins(session, self.new_app.new_plugins)
         # deploy plugins

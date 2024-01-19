@@ -1,8 +1,8 @@
 # -*- coding: utf8 -*-
 import json
-
+from sqlalchemy import select
 from fastapi.encoders import jsonable_encoder
-
+from models.application.plugin import PluginBuildVersion
 from clients.remote_app_client import remote_app_client
 from clients.remote_build_client import remote_build_client
 from core.enum.enterprise_enum import ActionType
@@ -337,14 +337,21 @@ class MarketApp(object):
         plugin_versions = plugin_version_repo.list_by_plugin_ids(session, plugin_ids)
         return {plugin_version.plugin_id: plugin_version for plugin_version in plugin_versions}
 
-    def save_new_plugins(self, session):
+    def save_new_plugins(self, session, env_id):
         plugins = []
         build_versions = []
         config_groups = []
         config_items = []
         for plugin in self.new_app.new_plugins:
             origin = plugin.plugin.origin
-            if origin != "sys":
+            build_version = plugin.build_version.build_version
+            plugin_version = None
+            if env_id and build_version:
+                plugin_version = (
+                    session.execute(select(PluginBuildVersion).where(PluginBuildVersion.build_version == build_version,
+                                                                     PluginBuildVersion.tenant_env_id == env_id))
+                ).scalars().first()
+            if origin != "sys" and not plugin_version:
                 plugins.append(plugin.plugin)
                 build_versions.append(plugin.build_version)
                 config_groups.extend(plugin.config_groups)

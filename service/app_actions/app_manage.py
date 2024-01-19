@@ -1504,6 +1504,8 @@ class AppManageService(object):
                 service.min_memory = new_memory
                 service.gpu_type = new_gpu_type
                 service.container_gpu = new_gpu
+                service.request_cpu = request_cpu
+                service.request_memory = request_memory
                 service.update_time = datetime.datetime.now()
             except remote_component_client.CallApiError as e:
                 logger.exception(e)

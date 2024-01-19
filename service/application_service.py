@@ -1930,9 +1930,10 @@ class ApplicationVisitService(object):
             record_dict = jsonable_encoder(app_record)
             app_id = record_dict["app_id"]
             app = application_repo.get_group_by_id(session, app_id)
-            project_id = app.project_id
-            record_dict.update({"project_id": project_id})
-            data.append(record_dict)
+            if app:
+                project_id = app.project_id
+                record_dict.update({"project_id": project_id})
+                data.append(record_dict)
         return data
 
     def get_app_visit_record_by_app_id(self, session, app_id):

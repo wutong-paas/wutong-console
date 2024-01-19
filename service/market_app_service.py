@@ -400,7 +400,7 @@ class MarketAppService(object):
             install_from_cloud,
             market_name,
             is_deploy=is_deploy)
-        app_upgrade.install(session)
+        app_upgrade.install(session, tenant_env.env_id)
         return market_app.app_name
 
     def _create_tenant_service_group(self, session: SessionClass, region_name, tenant_env_id, group_id, app_key,
