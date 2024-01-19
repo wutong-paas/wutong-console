@@ -12,15 +12,15 @@ class RegionConfigRepository(BaseRepository[RegionConfig]):
 
     """
 
-    def get_region_config_by_region_name(self, session: SessionClass, region_name):
+    def get_region_config_by_region_code(self, session: SessionClass, region_code):
         """
-        get_region_config_by_region_name
+        get_region_config_by_region_code
         :param session:
-        :param region_name:
+        :param region_code:
         :return:
         """
-        logger.info("get_region_config_by_region_name,param:{}", region_name)
-        sql = select(RegionConfig).where(RegionConfig.region_name == region_name)
+        logger.info("get_region_config_by_region_code,param:{}", region_code)
+        sql = select(RegionConfig).where(RegionConfig.region_name == region_code)
         results = session.execute(sql)
         data = results.scalars().first()
         return data

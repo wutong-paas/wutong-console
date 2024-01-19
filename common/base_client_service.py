@@ -8,14 +8,14 @@ from repository.region.region_config_repo import region_config_repo
 from repository.teams.team_region_repo import team_region_repo
 
 
-def get_region_access_info(region, session):
+def get_region_access_info(region_code, session):
     """
     :param session:
     :param region:
     :return:
     """
     # 管理后台数据需要及时生效，对于数据中心的信息查询使用直接查询原始数据库
-    region_info = region_config_repo.get_region_config_by_region_name(session, region)
+    region_info = region_config_repo.get_region_config_by_region_code(session, region_code)
     if not region_info:
         raise ServiceHandleException("region not found")
     url = region_info.url
@@ -29,7 +29,7 @@ def get_enterprise_region_info(region, session):
     :param region:
     :return:
     """
-    region_config = region_config_repo.get_region_config_by_region_name(session=session, region_name=region)
+    region_config = region_config_repo.get_region_config_by_region_code(session=session, region_code=region)
     if region_config:
         return region_config
     else:

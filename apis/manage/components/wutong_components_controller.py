@@ -576,7 +576,7 @@ async def market_service_upgrade(
     if not service:
         return JSONResponse(general_message(400, "not service", "组件不存在"), status_code=400)
 
-    region = region_repo.get_region_by_region_name(session, region_name)
+    region = region_repo.get_region_by_region_name(session, env.region_code)
     if not region:
         return JSONResponse(general_message(400, "not found region", "数据中心不存在"), status_code=400)
     # get app

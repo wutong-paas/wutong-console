@@ -265,7 +265,7 @@ class ApiBaseHttpClient(object):
             region = region_name
             region_name = region.region_name
         else:
-            region = region_config_repo.get_region_config_by_region_name(session, region_name)
+            region = region_config_repo.get_region_config_by_region_code(session, region_name)
         if not region:
             raise ServiceHandleException("region {0} not found".format(region_name), error_code=10412)
         client = self.get_client(region_config=region)
