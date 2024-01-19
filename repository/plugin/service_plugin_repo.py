@@ -534,9 +534,9 @@ class ServicePluginConfigVarRepository(BaseRepository[ComponentPluginConfigVar])
             return installed_plugins_list, uninstalled_plugins_list
 
         else:
-            query_installed_plugin = """{0} AND tp.origin="{1}" """.format(QUERY_INSTALLED_SQL, origin)
+            query_installed_plugin = """{0} AND tp.origin IN ('tenant', 'source_code') """.format(QUERY_INSTALLED_SQL)
 
-            query_uninstalled_plugin = """{0} AND tp.origin="{1}" """.format(QUERI_UNINSTALLED_SQL, origin)
+            query_uninstalled_plugin = """{0} AND tp.origin IN ('tenant', 'source_code') """.format(QUERI_UNINSTALLED_SQL)
 
             installed_plugins = (session.execute(query_installed_plugin)).fetchall()
             uninstalled_plugins = (session.execute(query_uninstalled_plugin)).fetchall()

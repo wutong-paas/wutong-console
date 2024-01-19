@@ -124,10 +124,12 @@ async def get_extend_method(serviceAlias: Optional[str] = None,
         "memory_list": memory_list,
         "current_node": service.min_node,
         "current_memory": service.min_memory,
+        "request_memory": service.request_memory,
         "current_gpu": service.container_gpu,
         "current_gpu_type": service.gpu_type,
         "extend_method": service.extend_method,
         "current_cpu": service.min_cpu,
+        "request_cpu": service.request_cpu,
         "gpu_type_list": [
             "nvidia.com/gpu",
             "amd.com/gpu"

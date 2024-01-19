@@ -237,7 +237,7 @@ class TenantPluginRepository(BaseRepository[TeamPlugin]):
         return session.execute(select(TeamPlugin).where(
             TeamPlugin.tenant_env_id == tenant_env_id,
             TeamPlugin.region == region,
-            TeamPlugin.origin == "tenant")).scalars().all()
+            TeamPlugin.origin.in_(["tenant", "source_code"]))).scalars().all()
 
     def get_def_tenant_plugins(self, session: SessionClass, tenant_env_id, region, origin_share_ids):
         return session.execute(select(TeamPlugin).where(

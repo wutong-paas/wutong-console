@@ -26,6 +26,7 @@ from models.component.models import ComponentEvent, ComponentProbe, \
     ComponentGraph, \
     ComponentMonitor, Component, TeamComponentEnv, ComponentExtendMethod, TeamApplication, \
     ThirdPartyComponentEndpoints
+from models.application.plugin import TeamComponentPluginRelation
 from models.region.models import RegionApp
 from models.relate.models import TeamComponentRelation
 from models.teams import ServiceDomain, ServiceTcpDomain, TeamEnvInfo
@@ -341,6 +342,10 @@ class AppManageService(object):
 
         session.execute(
             delete(ComponentMonitor).where(ComponentMonitor.service_id == service_id)
+        )
+
+        session.execute(
+            delete(TeamComponentPluginRelation).where(TeamComponentPluginRelation.service_id == service_id)
         )
 
         self.__create_service_delete_event(session=session, tenant_env=tenant_env, service=service,
