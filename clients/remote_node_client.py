@@ -1,3 +1,4 @@
+import json
 import os
 from loguru import logger
 from common.api_base_http_client import ApiBaseHttpClient
@@ -43,6 +44,67 @@ class RemoteNodeClient(ApiBaseHttpClient):
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_code)
         return body["bean"]
+
+    def set_node_cordon(self, session, region_code, node_name, cordon, evict_pods):
+        """设置节点调度"""
+
+        body = {}
+        if not cordon:
+            body = {"evict_pods": evict_pods}
+        url, token = get_region_access_info(region_code, session)
+
+        if cordon:
+            url = url + "/v2/cluster/nodes/{0}/cordon".format(node_name)
+        else:
+            url = url + "/v2/cluster/nodes/{0}/uncordon".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._put(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body
+
+    def add_node_label(self, session, region_code, node_name, body):
+        """新增节点标签"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/label".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._put(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body
+
+    def delete_node_label(self, session, region_code, node_name, body):
+        """删除节点标签"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/label".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._delete(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body
+
+    def add_node_vm_label(self, session, region_code, node_name, body):
+        """新增虚拟机节点标签"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/scheduling/vm/label".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._put(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body
+
+    def delete_node_vm_label(self, session, region_code, node_name, body):
+        """删除虚拟机节点标签"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/scheduling/vm/label".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._delete(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body
 
 
 remote_node_client_api = RemoteNodeClient()

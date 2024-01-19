@@ -35,8 +35,8 @@ class TeamPlugin(Base):
     create_time = Column(DateTime(), nullable=False, default=datetime.now, comment="创建时间")
     origin = Column(String(256), comment="插件来源", nullable=False, default="tenant")
     origin_share_id = Column(String(32), comment="分享的插件的id", nullable=False, default="new_create")
-    username = Column(String(32), comment="镜像仓库或代码仓库用户名", nullable=True)
-    password = Column(String(32), comment="镜像仓库或代码仓库秘密", nullable=True)
+    username = Column(String(128), comment="镜像仓库或代码仓库用户名", nullable=True)
+    password = Column(String(128), comment="镜像仓库或代码仓库秘密", nullable=True)
 
 
 class PluginBuildVersion(Base):
