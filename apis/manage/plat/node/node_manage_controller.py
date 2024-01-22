@@ -1,17 +1,16 @@
-from typing import Any, Optional
-
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from starlette import status
+from typing import Any, Optional
 
 from clients.remote_node_client import remote_node_client_api
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.region.region_info_repo import region_repo
-from schemas.node import NodeCordonParam, AddNodeLabelParam, DeleteNodeLabelParam
+from schemas.node import NodeCordonParam
 from schemas.response import Response
 
 router = APIRouter()
@@ -68,73 +67,3 @@ async def set_plat_nodes(
         return JSONResponse(general_message(500, "set node cordon error", "设置节点调度失败"), status_code=200)
 
     return JSONResponse(general_message(200, "success", "设置成功"), status_code=200)
-
-
-@router.post("/plat/region/query/node/{node_name}/label", response_model=Response, name="新增节点标签")
-async def add_node_label(
-        node_name: Optional[str] = None,
-        params: Optional[AddNodeLabelParam] = AddNodeLabelParam(),
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    """
-    新增节点标签
-    """
-    key = params.key
-    value = params.value
-    region_code = params.region_code
-    label_type = params.label_type
-    if not key:
-        return JSONResponse(general_message(500, "not found key", "标签键不能为空"), status_code=200)
-
-    region = region_repo.get_region_by_region_name(session, region_code)
-    if not region:
-        return JSONResponse(general_message(500, "not found region", "集群 {0} 不存在".format(region_code)), status_code=200)
-
-    body = {
-        "key": key,
-        "value": value
-    }
-    try:
-        if label_type == "common_label":
-            remote_node_client_api.add_node_label(session, region_code, node_name, body)
-        elif label_type == "vm_label":
-            remote_node_client_api.add_node_vm_label(session, region_code, node_name, body)
-        else:
-            return JSONResponse(general_message(500, "not found label_type", "标签类型错误"), status_code=200)
-    except Exception as e:
-        logger.error(e)
-        return JSONResponse(general_message(500, "add node label error", "新增节点标签失败"), status_code=200)
-    return JSONResponse(general_message(200, "success", "新增成功"), status_code=200)
-
-
-@router.delete("/plat/region/query/node/{node_name}/label", response_model=Response, name="删除节点标签")
-async def delete_node_label(
-        node_name: Optional[str] = None,
-        params: Optional[DeleteNodeLabelParam] = DeleteNodeLabelParam(),
-        session: SessionClass = Depends(deps.get_session)) -> Any:
-    """
-    删除节点标签
-    """
-    key = params.key
-    region_code = params.region_code
-    label_type = params.label_type
-    if not key:
-        return JSONResponse(general_message(500, "not found key", "标签键不能为空"), status_code=200)
-
-    region = region_repo.get_region_by_region_name(session, region_code)
-    if not region:
-        return JSONResponse(general_message(500, "not found region", "集群 {0} 不存在".format(region_code)), status_code=200)
-
-    body = {
-        "key": key,
-    }
-    try:
-        if label_type == "common_label":
-            remote_node_client_api.delete_node_label(session, region_code, node_name, body)
-        elif label_type == "vm_label":
-            remote_node_client_api.delete_node_vm_label(session, region_code, node_name, body)
-        else:
-            return JSONResponse(general_message(500, "not found label_type", "标签类型错误"), status_code=200)
-    except Exception as e:
-        logger.error(e)
-        return JSONResponse(general_message(500, "add node label error", "删除节点标签失败"), status_code=200)
-    return JSONResponse(general_message(200, "success", "删除成功"), status_code=200)

@@ -104,6 +104,94 @@ class RemoteNodeClient(ApiBaseHttpClient):
 
         self._set_headers(token)
         res, body = self._delete(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body["list"]
+
+    def get_node_label(self, session, region_code, node_name):
+        """查询节点标签"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/common/label".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._get(session, url, self.default_headers, region=region_code)
+        return body["list"]
+
+    def get_node_vm_label(self, session, region_code, node_name):
+        """查询虚拟机节点标签"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/scheduling/vm/label".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._get(session, url, self.default_headers, region=region_code)
+        return body["list"]
+
+    def get_node_annotations(self, session, region_code, node_name):
+        """查询节点注解"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/annotation".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._get(session, url, self.default_headers, region=region_code)
+        return body["list"]
+
+    def add_node_annotation(self, session, region_code, node_name, body):
+        """新增节点注解"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/annotation".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._put(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body
+
+    def delete_node_annotation(self, session, region_code, node_name, body):
+        """删除节点注解"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/annotation".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._delete(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body
+
+    def get_node_taint(self, session, region_code, node_name):
+        """查询节点污点"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/taint".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._get(session, url, self.default_headers, region=region_code)
+        return body["list"]
+
+    def add_node_taint(self, session, region_code, node_name, body):
+        """新增节点污点"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/taint".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._put(session, url, self.default_headers, region=region_code, body=json.dumps(body))
+        return body
+
+    def delete_node_taint(self, session, region_code, node_name, body):
+        """删除节点污点"""
+
+        url, token = get_region_access_info(region_code, session)
+
+        url = url + "/v2/cluster/nodes/{0}/taint".format(node_name)
+
+        self._set_headers(token)
+        res, body = self._delete(session, url, self.default_headers, region=region_code, body=json.dumps(body))
         return body
 
 

@@ -27,7 +27,8 @@ from apis.manage.yaml import yaml_manage_controller
 from apis.manage.components import backup_restore_controller
 from apis.manage.virtual import virtual_machine_manage_controller, virtual_machine_ports_controller, \
     virtual_image_manage_controller, virtual_os_manage_controller
-from apis.manage.plat.node import node_manage_controller
+from apis.manage.plat.node import node_manage_controller, label_manage_controller, annotation_manage_controller, \
+    taint_manage_controller
 
 api_router = APIRouter()
 
@@ -115,5 +116,8 @@ api_router.include_router(alarm_group_controller.router, tags=["告警分组管�
 api_router.include_router(alarm_robot_controller.router, tags=["告警机器人管理"])
 api_router.include_router(alarm_message_controller.router, tags=["告警消息管理"])
 api_router.include_router(alarm_strategy_controller.router, tags=["告警策略管理"])
-# plat
+# node
 api_router.include_router(node_manage_controller.router, tags=["节点管理"])
+api_router.include_router(label_manage_controller.router, tags=["标签管理"])
+api_router.include_router(annotation_manage_controller.router, tags=["注解管理"])
+api_router.include_router(taint_manage_controller.router, tags=["污点管理"])
