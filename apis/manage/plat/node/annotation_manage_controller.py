@@ -11,7 +11,6 @@ from database.session import SessionClass
 from repository.region.region_info_repo import region_repo
 from schemas.response import Response
 from schemas.node import AddNodeAnnotationParam, DeleteNodeAnnotationParam
-from core.utils.validation import node_validate_name
 
 router = APIRouter()
 
@@ -45,26 +44,22 @@ async def add_node_label(
     """
     新增节点注解
     """
-    key = params.key
-    value = params.value
+    key = params.annotation_key
+    value = params.annotation_value
     region_code = params.region_code
     if not key:
         return JSONResponse(general_message(500, "not found key", "注解键不能为空"), status_code=200)
 
-    if len(key) > 32:
-        return JSONResponse(general_message(400, "error params", "注解键不能超过32个字符”“值不能超过32个字符"), status_code=200)
-
-    if not node_validate_name(key):
-        return JSONResponse(general_message(400, "error params", "注解键只支持英文、数字、中横线、下划线组合，只能以英文开头且中横线、下划线不能位于首尾"),
-                            status_code=200)
+    if len(key) > 64:
+        return JSONResponse(general_message(400, "error params", "注解键不能超过64个字符"), status_code=200)
 
     region = region_repo.get_region_by_region_name(session, region_code)
     if not region:
         return JSONResponse(general_message(500, "not found region", "集群 {0} 不存在".format(region_code)), status_code=200)
 
     body = {
-        "key": key,
-        "value": value
+        "annotation_key": key,
+        "annotation_value": value
     }
     try:
         remote_node_client_api.add_node_annotation(session, region_code, node_name, body)
@@ -82,7 +77,7 @@ async def delete_node_label(
     """
     删除节点注解
     """
-    key = params.key
+    key = params.annotation_key
     region_code = params.region_code
     if not key:
         return JSONResponse(general_message(500, "not found key", "注解键不能为空"), status_code=200)
@@ -92,7 +87,7 @@ async def delete_node_label(
         return JSONResponse(general_message(500, "not found region", "集群 {0} 不存在".format(region_code)), status_code=200)
 
     body = {
-        "key": key
+        "annotation_key": key
     }
     try:
         remote_node_client_api.delete_node_annotation(session, region_code, node_name, body)

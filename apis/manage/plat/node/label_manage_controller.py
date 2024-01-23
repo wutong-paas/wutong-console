@@ -4,7 +4,6 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 from starlette import status
 from typing import Any, Optional
-from core.utils.validation import node_validate_name
 from clients.remote_node_client import remote_node_client_api
 from core import deps
 from core.utils.return_message import general_message
@@ -24,27 +23,23 @@ async def add_node_label(
     """
     新增节点标签
     """
-    key = params.key
-    value = params.value
+    key = params.label_key
+    value = params.label_value
     region_code = params.region_code
     label_type = params.label_type
     if not key:
         return JSONResponse(general_message(500, "not found key", "标签键不能为空"), status_code=200)
 
-    if len(key) > 32:
-        return JSONResponse(general_message(400, "error params", "标签键不能超过32个字符”“值不能超过32个字符"), status_code=200)
-
-    if not node_validate_name(key):
-        return JSONResponse(general_message(400, "error params", "标签键只支持英文、数字、中横线、下划线组合，只能以英文开头且中横线、下划线不能位于首尾"),
-                            status_code=200)
+    if len(key) > 64:
+        return JSONResponse(general_message(400, "error params", "标签键不能超过64个字符"), status_code=200)
 
     region = region_repo.get_region_by_region_name(session, region_code)
     if not region:
         return JSONResponse(general_message(500, "not found region", "集群 {0} 不存在".format(region_code)), status_code=200)
 
     body = {
-        "key": key,
-        "value": value
+        "label_key": key,
+        "label_value": value
     }
     try:
         if label_type == "common_label":
@@ -67,7 +62,7 @@ async def delete_node_label(
     """
     删除节点标签
     """
-    key = params.key
+    key = params.label_key
     region_code = params.region_code
     label_type = params.label_type
     if not key:
@@ -78,7 +73,7 @@ async def delete_node_label(
         return JSONResponse(general_message(500, "not found region", "集群 {0} 不存在".format(region_code)), status_code=200)
 
     body = {
-        "key": key,
+        "label_key": key,
     }
     try:
         if label_type == "common_label":

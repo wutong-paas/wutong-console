@@ -72,13 +72,6 @@ def validate_name(name):
     return False
 
 
-def node_validate_name(name):
-    # 只支持英文、数字、中横线、下划线组合，只能以英文开头且中横线、下划线不能位于首尾。
-    if re.match(r'^[a-zA-Z]([a-zA-Z0-9_\-]*[a-z0-9A-Z])?$', name):
-        return True
-    return False
-
-
 # 验证名称
 def is_qualified_name(name):
     # 只支持英文、数字、中横线、下划线、空格组合

@@ -25,11 +25,12 @@ class RemoteNodeClient(ApiBaseHttpClient):
             self.default_headers.update({"Authorization": token})
         logger.debug('Default headers: {0}'.format(self.default_headers))
 
-    def get_nodes(self, session, region_code):
+    def get_nodes(self, session, region_code, query):
         """查询集群节点列表"""
         url, token = get_region_access_info(region_code, session)
 
-        url = url + "/v2/cluster/nodes"
+        query = "?query={0}".format(query) if query else ""
+        url = url + "/v2/cluster/nodes" + query
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_code)

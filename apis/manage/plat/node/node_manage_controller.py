@@ -19,6 +19,7 @@ router = APIRouter()
 @router.get("/plat/region/query/nodes", response_model=Response, name="查询节点列表")
 async def get_plat_nodes(
         region_code: Optional[str] = None,
+        query: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     查询节点列表
@@ -26,7 +27,7 @@ async def get_plat_nodes(
     region = region_repo.get_region_by_region_name(session, region_code)
     if not region:
         return JSONResponse(general_message(500, "not found region", "集群不存在"), status_code=200)
-    nodes = remote_node_client_api.get_nodes(session, region_code)
+    nodes = remote_node_client_api.get_nodes(session, region_code, query)
     result = general_message(200, "success", "获取成功", list=jsonable_encoder(nodes))
     return JSONResponse(result, status_code=status.HTTP_200_OK)
 

@@ -81,7 +81,7 @@ async def monitor(session: SessionClass = Depends(deps.get_session)) -> Any:
 async def regions(status: Optional[str] = "", check_status: Optional[str] = "",
                   session: SessionClass = Depends(deps.get_session),
                   user=Depends(deps.get_current_user)) -> Any:
-    data = region_services.get_enterprise_regions(session=session, level="safe",
+    data = region_services.get_enterprise_regions(session=session, level="open",
                                                   status=status,
                                                   check_status=check_status)
     region_infos = jsonable_encoder(data)

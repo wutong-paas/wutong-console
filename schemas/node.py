@@ -17,8 +17,8 @@ class AddNodeLabelParam(BaseModel):
     """
     region_code: Annotated[str, Field(title="集群标识")] = None
     label_type: Annotated[str, Field(title="标签类型(common_label/vm_label)")] = "common_label"
-    key: Annotated[str, Field(title="标签名")] = None
-    value: Annotated[str, Field(title="标签值")] = None
+    label_key: Annotated[str, Field(title="标签名")] = None
+    label_value: Annotated[str, Field(title="标签值")] = None
 
 
 class DeleteNodeLabelParam(BaseModel):
@@ -27,7 +27,7 @@ class DeleteNodeLabelParam(BaseModel):
     """
     region_code: Annotated[str, Field(title="集群标识")] = None
     label_type: Annotated[str, Field(title="标签类型(common_label/vm_label)")] = "common_label"
-    key: Annotated[str, Field(title="标签名")] = None
+    label_key: Annotated[str, Field(title="标签名")] = None
 
 
 class AddNodeAnnotationParam(BaseModel):
@@ -35,8 +35,8 @@ class AddNodeAnnotationParam(BaseModel):
     新增节点注解
     """
     region_code: Annotated[str, Field(title="集群标识")] = None
-    key: Annotated[str, Field(title="标签名")] = None
-    value: Annotated[str, Field(title="标签值")] = None
+    annotation_key: Annotated[str, Field(title="标签名")] = None
+    annotation_value: Annotated[str, Field(title="标签值")] = None
 
 
 class DeleteNodeAnnotationParam(BaseModel):
@@ -44,7 +44,7 @@ class DeleteNodeAnnotationParam(BaseModel):
     删除节点注解
     """
     region_code: Annotated[str, Field(title="集群标识")] = None
-    key: Annotated[str, Field(title="标签名")] = None
+    annotation_key: Annotated[str, Field(title="标签名")] = None
 
 
 class AddNodeTaintParam(BaseModel):
@@ -52,8 +52,8 @@ class AddNodeTaintParam(BaseModel):
     新增节点污点
     """
     region_code: Annotated[str, Field(title="集群标识")] = None
-    key: Annotated[str, Field(title="标签名")] = None
-    value: Annotated[str, Field(title="标签值")] = None
+    taint_key: Annotated[str, Field(title="标签名")] = None
+    taint_value: Annotated[str, Field(title="标签值")] = None
     effect: Annotated[str, Field(title="效果值")] = "NoSchedule"
 
 
@@ -62,4 +62,4 @@ class DeleteNodeTaintParam(BaseModel):
     删除节点污点
     """
     region_code: Annotated[str, Field(title="集群标识")] = None
-    key: Annotated[str, Field(title="标签名")] = None
+    taint_key: Annotated[str, Field(title="标签名")] = None
