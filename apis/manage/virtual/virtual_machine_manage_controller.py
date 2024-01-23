@@ -13,6 +13,7 @@ from schemas.response import Response
 from schemas.virtual import (
     CreateVirtualParam,
     UpdateVirtualParam,
+    VirtualMachineVolumeParam,
 )
 
 router = APIRouter()
@@ -335,5 +336,168 @@ async def restart_virtual_machine(
     )
     return JSONResponse(
         general_message(200, "restart virtual machine success", "重启虚拟机成功", bean=data),
+        status_code=200,
+    )
+
+
+@router.get(
+    "/teams/{team_name}/env/{env_id}/vms/{vm_id}/events",
+    response_model=Response,
+    name="获取虚拟机事件",
+)
+async def get_virtual_machine_events(
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+) -> Any:
+    """
+    获取虚拟机存储
+    """
+
+    if not vm_id:
+        return JSONResponse(
+            general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
+        )
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=400
+        )
+
+    data = remote_virtual_client.get_virtual_events(
+        session, region.region_name, env, vm_id
+    )
+    return JSONResponse(
+        general_message(200, "restart virtual machine success", "获取成功", list=data),
+        status_code=200,
+    )
+
+
+@router.get(
+    "/teams/{team_name}/env/{env_id}/vms/{vm_id}/volumes",
+    response_model=Response,
+    name="获取虚拟机存储",
+)
+async def get_virtual_machine_volume(
+        vm_id: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+) -> Any:
+    """
+    获取虚拟机存储
+    """
+
+    if not vm_id:
+        return JSONResponse(
+            general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
+        )
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=400
+        )
+
+    data = remote_virtual_client.get_virtual_volumes(
+        session, region.region_name, env, vm_id
+    )
+    return JSONResponse(
+        general_message(200, "restart virtual machine success", "获取成功", list=data),
+        status_code=200,
+    )
+
+
+@router.post(
+    "/teams/{team_name}/env/{env_id}/vms/{vm_id}/volumes",
+    response_model=Response,
+    name="添加虚拟机存储",
+)
+async def add_virtual_machine_volume(
+        vm_id: Optional[str] = None,
+        params: Optional[VirtualMachineVolumeParam] = VirtualMachineVolumeParam(),
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+) -> Any:
+    """
+    添加虚拟机存储
+    """
+
+    if not vm_id:
+        return JSONResponse(
+            general_message(400, "not found vm", "虚拟机id不存在"), status_code=400
+        )
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=400
+        )
+
+    body = {
+        "volumeName": params.volume_name,
+        "storageClass": params.storage_class,
+        "volumeSize": params.volume_size,
+    }
+
+    try:
+        remote_virtual_client.add_virtual_volumes(
+            session, region.region_name, env, vm_id, body
+        )
+    except Exception as e:
+        logger.error(e)
+        return JSONResponse(
+            general_message(400, "add virtual machine volume error", "添加失败"),
+            status_code=200,
+        )
+    return JSONResponse(
+        general_message(200, "restart virtual machine success", "添加成功"),
+        status_code=200,
+    )
+
+
+@router.delete(
+    "/teams/{team_name}/env/{env_id}/vms/{vm_id}/volumes",
+    response_model=Response,
+    name="删除虚拟机存储",
+)
+async def delete_virtual_machine_volume(
+        vm_id: Optional[str] = None,
+        volume_name: Optional[str] = None,
+        session: SessionClass = Depends(deps.get_session),
+        env=Depends(deps.get_current_team_env),
+) -> Any:
+    """
+    添加虚拟机存储
+    """
+
+    if not vm_id:
+        return JSONResponse(
+            general_message(400, "not found vm", "虚拟机id不存在"), status_code=200
+        )
+
+    if not volume_name:
+        return JSONResponse(
+            general_message(400, "not found volume", "存储名称不能为空"), status_code=200
+        )
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=200
+        )
+
+    try:
+        remote_virtual_client.delete_virtual_volumes(
+            session, region.region_name, env, vm_id, volume_name
+        )
+    except Exception as e:
+        logger.error(e)
+        return JSONResponse(
+            general_message(400, "add virtual machine volume error", "删除失败"),
+            status_code=200,
+        )
+    return JSONResponse(
+        general_message(200, "restart virtual machine success", "删除成功"),
         status_code=200,
     )

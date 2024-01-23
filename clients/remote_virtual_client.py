@@ -500,5 +500,118 @@ class RemoteVirtualClient(ApiBaseHttpClient):
         )
         return body["list"]
 
+    def get_virtual_events(self, session, region_name, tenant_env, vm_id):
+        """
+        获取虚拟机事件
+        :param session:
+        :param region_name:
+        :param tenant_env:
+        :param vm_id:
+        :return:
+        """
+        url, token = get_region_access_info(region_name, session)
+
+        url = (
+                url
+                + "/v2/tenants/"
+                + tenant_env.tenant_name
+                + "/envs/"
+                + tenant_env.env_name
+                + "/vms/"
+                + vm_id
+                + "/conditions"
+        )
+
+        self._set_headers(token)
+        res, body = self._get(
+            session, url, self.default_headers, region=region_name
+        )
+        return body["bean"]["conditions"]
+
+    def get_virtual_volumes(self, session, region_name, tenant_env, vm_id):
+        """
+        获取虚拟机存储
+        :param session:
+        :param region_name:
+        :param tenant_env:
+        :param vm_id:
+        :return:
+        """
+        url, token = get_region_access_info(region_name, session)
+
+        url = (
+                url
+                + "/v2/tenants/"
+                + tenant_env.tenant_name
+                + "/envs/"
+                + tenant_env.env_name
+                + "/vms/"
+                + vm_id
+                + "/volumes"
+        )
+
+        self._set_headers(token)
+        res, body = self._get(
+            session, url, self.default_headers, region=region_name
+        )
+        return body["bean"]["volumes"]
+
+    def add_virtual_volumes(self, session, region_name, tenant_env, vm_id, body):
+        """
+        添加虚拟机存储
+        :param session:
+        :param region_name:
+        :param tenant_env:
+        :param vm_id:
+        :param body:
+        :return:
+        """
+        url, token = get_region_access_info(region_name, session)
+
+        url = (
+                url
+                + "/v2/tenants/"
+                + tenant_env.tenant_name
+                + "/envs/"
+                + tenant_env.env_name
+                + "/vms/"
+                + vm_id
+                + "/volumes"
+        )
+
+        self._set_headers(token)
+        self._post(
+            session, url, self.default_headers, region=region_name, body=json.dumps(body)
+        )
+
+    def delete_virtual_volumes(self, session, region_name, tenant_env, vm_id, volume_name):
+        """
+        删除虚拟机存储
+        :param session:
+        :param region_name:
+        :param tenant_env:
+        :param vm_id:
+        :param volume_name:
+        :return:
+        """
+        url, token = get_region_access_info(region_name, session)
+
+        url = (
+                url
+                + "/v2/tenants/"
+                + tenant_env.tenant_name
+                + "/envs/"
+                + tenant_env.env_name
+                + "/vms/"
+                + vm_id
+                + "/volumes/"
+                + volume_name
+        )
+
+        self._set_headers(token)
+        self._delete(
+            session, url, self.default_headers, region=region_name
+        )
+
 
 remote_virtual_client = RemoteVirtualClient()

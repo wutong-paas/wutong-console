@@ -140,3 +140,12 @@ class CreateImageOSParam(BaseModel):
     """
     os_name: Annotated[str, Field(title="系统名称")] = None
     logo: Annotated[str, Field(title="系统logo")] = None
+
+
+class VirtualMachineVolumeParam(BaseModel):
+    """
+    创建虚拟机镜像系统参数
+    """
+    volume_name: Annotated[str, Field(title="存储名称")] = None
+    storage_class: Annotated[str, Field(title="存储类型")] = None
+    volume_size: Annotated[int, Field(title="存储卷大小")] = None
