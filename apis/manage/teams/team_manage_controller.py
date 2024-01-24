@@ -83,6 +83,7 @@ async def overview_env_app_info(request: Request,
         "NIL": 0,
         "STARTING": 0,
         "DEPLOYED": 0,
+        "STOPPING": 0,
         "UNKNOWN": 0,
         "": 0
     }
@@ -107,6 +108,7 @@ async def overview_env_app_info(request: Request,
     if pages == 0:
         pages = 1
     apps = apps[start:end]
+    count.update({"ABNORMAL": count["ABNORMAL"] + count["STOPPING"]})
     app_num_dict.update(count)
     return JSONResponse(
         general_message("0", "success", "查询成功", list=jsonable_encoder(apps), bean=app_num_dict, total=total,

@@ -1351,6 +1351,7 @@ class ApplicationService(object):
             "NIL": 0,
             "STARTING": 0,
             "DEPLOYED": 0,
+            "STOPPING": 0,
             "UNKNOWN": 0,
             "": 0
         }
@@ -1363,12 +1364,13 @@ class ApplicationService(object):
         apps = dict()
         for app in app_list:
             if (app.project_id and (app.project_id in project_ids)) or (
-            not app.project_id) or is_team_admin or is_super_admin:
+                    not app.project_id) or is_team_admin or is_super_admin:
                 auth_app_ids.append(app.ID)
                 app_status = app_id_statuses.get(app.ID)
                 if app_status:
                     count[app_status["status"]] += 1
-                    if status == "all" or app_status["status"] == status.upper():
+                    if status == "all" or app_status["status"] == status.upper() or (
+                            status == "ABNORMAL" and app_status["status"] == "STOPPING"):
                         used_cpu = app_status.get("cpu", 0)
                         used_mem = app_status.get("memory", 0)
                         apps[app.ID] = {

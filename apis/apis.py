@@ -5,13 +5,12 @@ from apis.manage.alarm import alarm_group_controller, alarm_robot_controller, al
 from apis.manage.application import application_controller, wutong_topological_controller, wutong_temas_controller, \
     domain_controller, app_backup_controller, app_upgrade_controller
 from apis.manage.common import common_controller
-from apis.manage.components import operation_controller, batch_operation_controller, third_party_controller
-from apis.manage.components import wutong_components_controller
 from apis.manage.components import wutong_monitor_controller, wutong_log_controller, wutong_version_controller, \
     wutong_xparules_controller, wutong_env_controller, wutong_mnt_controller, wutong_volumes_controller, \
     wutong_dependency_controller, wutong_ports_controller, wutong_domain_controller, wutong_plugin_controller, \
     wutong_webhooks_controller, wutong_probe_controller, wutong_label_controller, wutong_buildsource_controller, \
-    wutong_deploy_controller
+    wutong_deploy_controller, operation_controller, batch_operation_controller, third_party_controller, \
+    wutong_components_controller, scheduling_rule_controller
 from apis.manage.enterprise import wutong_enterprise_controller, enterprise_base_controller
 from apis.manage.market import local_market_controller, market_share_controller, \
     wutong_market_controller
@@ -121,3 +120,5 @@ api_router.include_router(node_manage_controller.router, tags=["节点管理"])
 api_router.include_router(label_manage_controller.router, tags=["标签管理"])
 api_router.include_router(annotation_manage_controller.router, tags=["注解管理"])
 api_router.include_router(taint_manage_controller.router, tags=["污点管理"])
+# scheduling
+api_router.include_router(scheduling_rule_controller.router, tags=["调度规则"])

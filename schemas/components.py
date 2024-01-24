@@ -99,3 +99,11 @@ class ServiceVerticalParam(BaseModel):
     new_cpu: Annotated[int, Field(title="最大cpu")] = 500
     request_cpu: Annotated[int, Field(title="最小cpu")] = 0
     request_memory: Annotated[int, Field(title="最小内存")] = 0
+
+
+class LabelSchedulingParam(BaseModel):
+    """
+    组件标签调度规则
+    """
+    label_key: Annotated[str, Field(title="标签键")] = None
+    label_value: Annotated[str, Field(title="标签值")] = None
