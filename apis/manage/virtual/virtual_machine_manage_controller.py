@@ -15,6 +15,7 @@ from schemas.virtual import (
     UpdateVirtualParam,
     VirtualMachineVolumeParam,
 )
+from loguru import logger
 
 router = APIRouter()
 
@@ -351,7 +352,7 @@ async def get_virtual_machine_events(
         env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
-    获取虚拟机存储
+    获取虚拟机事件
     """
 
     if not vm_id:
@@ -369,7 +370,7 @@ async def get_virtual_machine_events(
         session, region.region_name, env, vm_id
     )
     return JSONResponse(
-        general_message(200, "restart virtual machine success", "获取成功", list=data),
+        general_message(200, "get success", "获取成功", list=data),
         status_code=200,
     )
 
@@ -403,7 +404,7 @@ async def get_virtual_machine_volume(
         session, region.region_name, env, vm_id
     )
     return JSONResponse(
-        general_message(200, "restart virtual machine success", "获取成功", list=data),
+        general_message(200, "get success", "获取成功", list=data),
         status_code=200,
     )
 
@@ -444,14 +445,19 @@ async def add_virtual_machine_volume(
         remote_virtual_client.add_virtual_volumes(
             session, region.region_name, env, vm_id, body
         )
+    except remote_virtual_client.CallApiError as e:
+        return JSONResponse(
+            general_message(e.message['http_code'], "delete error", e.message['body']['msg']),
+            status_code=200,
+        )
     except Exception as e:
         logger.error(e)
         return JSONResponse(
-            general_message(400, "add virtual machine volume error", "添加失败"),
+            general_message(400, "add error", "添加失败"),
             status_code=200,
         )
     return JSONResponse(
-        general_message(200, "restart virtual machine success", "添加成功"),
+        general_message(200, "add success", "添加成功"),
         status_code=200,
     )
 
@@ -468,7 +474,7 @@ async def delete_virtual_machine_volume(
         env=Depends(deps.get_current_team_env),
 ) -> Any:
     """
-    添加虚拟机存储
+    删除虚拟机存储
     """
 
     if not vm_id:
@@ -491,13 +497,46 @@ async def delete_virtual_machine_volume(
         remote_virtual_client.delete_virtual_volumes(
             session, region.region_name, env, vm_id, volume_name
         )
+    except remote_virtual_client.CallApiError as e:
+        return JSONResponse(
+            general_message(e.message['http_code'], "delete error", e.message['body']['msg']),
+            status_code=200,
+        )
     except Exception as e:
         logger.error(e)
         return JSONResponse(
-            general_message(400, "add virtual machine volume error", "删除失败"),
+            general_message(500, "delete error", "删除失败"),
             status_code=200,
         )
     return JSONResponse(
-        general_message(200, "restart virtual machine success", "删除成功"),
+        general_message(200, "delete success", "删除成功"),
+        status_code=200,
+    )
+
+
+@router.get(
+    "/teams/{team_name}/env/{env_id}/vms/{vm_id}/volumes/types",
+    response_model=Response,
+    name="获取虚拟机存储类型列表",
+)
+async def get_virtual_machine_volume(
+        env=Depends(deps.get_current_team_env),
+        session: SessionClass = Depends(deps.get_session),
+) -> Any:
+    """
+    获取虚拟机存储类型列表
+    """
+
+    region = team_region_repo.get_region_by_env_id(session, env.env_id)
+    if not region:
+        return JSONResponse(
+            general_message(400, "not found region", "数据中心不存在"), status_code=400
+        )
+
+    data = remote_virtual_client.get_virtual_volumes_types(
+        session, region.region_name
+    )
+    return JSONResponse(
+        general_message(200, "get success", "获取成功", list=data),
         status_code=200,
     )

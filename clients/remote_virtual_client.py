@@ -613,5 +613,25 @@ class RemoteVirtualClient(ApiBaseHttpClient):
             session, url, self.default_headers, region=region_name
         )
 
+    def get_virtual_volumes_types(self, session, region_name):
+        """
+        获取虚拟机存储类型列表
+        :param session:
+        :param region_name:
+        :return:
+        """
+        url, token = get_region_access_info(region_name, session)
+
+        url = (
+                url
+                + "/v2/cluster/storageclasses"
+        )
+
+        self._set_headers(token)
+        res, body = self._get(
+            session, url, self.default_headers, region=region_name
+        )
+        return body["list"]
+
 
 remote_virtual_client = RemoteVirtualClient()
