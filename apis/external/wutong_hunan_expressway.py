@@ -22,10 +22,10 @@ router = APIRouter()
 
 @router.get("/v1.0/metrics/cluster", response_model=Response, name="获取集群节点信息")
 async def get_store(
+        region_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     result_bean = {}
     node_info = []
-    pod = []
     store = {
         "total_cpu": 0,
         "used_cpu": 0,
@@ -39,40 +39,13 @@ async def get_store(
         "used_pod": 0,
         "free_pod": 0
     }
-    usable_regions = region_repo.get_new_usable_regions(session=session)
-    for r in usable_regions:
-        region_name = r.region_name
-        try:
-            res, body = hunan_expressway_client.get_region_cluster(session, region_name)
-            result_bean = body["bean"]
-            status = res["status"]
-            if status != 200:
-                return JSONResponse(general_message(400, "failed", "获取集群节点信息失败"), status_code=400)
-        except Exception as e:
-            logger.exception(e)
 
-        for node in result_bean['node_resources']:
-            # node_info.append(node)
-            node_info.append({
-                "name": node["node_name"],
-                "total_cpu": node["capacity_cpu"],
-                "used_cpu": node["used_cpu"],
-                "total_memory": node["capacity_mem"],
-                "used_memory": node["used_mem"],
-                "total_pod": node["capacity_pod"],
-                "used_pod": node["used_pod"]
-            })
-
-        store["total_cpu"] += result_bean["cap_cpu"]
-        store["used_cpu"] += result_bean["req_cpu"]
-        store["total_memory"] += result_bean["cap_mem"]
-        store["used_memory"] += result_bean["req_mem"]
-        store["total_disk"] += result_bean["total_capacity_storage"]
-        store["used_disk"] += result_bean["total_used_storage"]
-
-        pod["total"] += result_bean['total_capacity_pods']
-        pod["used_pod"] += result_bean['total_used_pods']
-        pod["free_pod"] += result_bean['total_capacity_pods'] - result_bean['total_used_pods']
+    if not region_code:
+        usable_regions = region_repo.get_new_usable_regions(session=session)
+        for region in usable_regions:
+            hunan_expressway_service.get_all_region_info(session, region.region_name, result_bean, node_info, store, pod)
+    else:
+        hunan_expressway_service.get_all_region_info(session, region_code, result_bean, node_info, store, pod)
 
     store["used_disk"] = round(store["used_disk"], 2)
     store["total_memory"] = round(store["total_memory"], 2)
@@ -89,11 +62,12 @@ async def get_store(
         }
     }
 
-    return JSONResponse(general_message("0", "success", "获取成功", bean=info), status_code=200)
+    return JSONResponse(general_message(200, "success", "获取成功", bean=info), status_code=200)
 
 
 @router.get("/v1.0/metrics/overview/app", response_model=Response, name="总览-应用信息")
 async def overview_app(
+        region_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     service_info = {
@@ -108,15 +82,20 @@ async def overview_app(
         "unrunning": 0,
         "abnormal": 0
     }
-    usable_regions = region_repo.get_new_usable_regions(session=session)
-    for r in usable_regions:
-        region_name = r.region_name
-        apps = hunan_expressway_service.get_all_app(session, region_name)
+
+    if region_code:
+        region_codes = [region_code]
+    else:
+        usable_regions = region_repo.get_new_usable_regions(session=session)
+        region_codes = [region.region_name for region in usable_regions]
+
+    for region_code in region_codes:
+        apps = hunan_expressway_service.get_all_app(session, region_code)
         app_total_num = len(apps)
 
         try:
             data = remote_component_client.get_all_services_status(session,
-                                                                   region_name,
+                                                                   region_code,
                                                                    test=True)
             if data:
                 service_abnormal_ids = data["abnormal_services"]
@@ -144,14 +123,14 @@ async def overview_app(
                 group_info["abnormal"] += app_abnormal_num
 
         except (remote_component_client.CallApiError, ServiceHandleException) as e:
-            logger.exception("get region services_status:'{0}' running failed: {1}".format(region_name, e))
+            logger.exception("get region services_status:'{0}' running failed: {1}".format(region_code, e))
 
     info = {
         "group_info": group_info,
         "service_info": service_info
     }
 
-    result = general_message("0", "success", "查询成功", bean=info)
+    result = general_message(200, "success", "查询成功", bean=info)
     return JSONResponse(result, status_code=200)
 
 
@@ -170,7 +149,7 @@ async def overview_tenant(
             tenant_pods = body["bean"]["tenant_pods"]
             status = res["status"]
             if status != 200 and tenant_pods:
-                return JSONResponse(general_message(400, "failed", "获取集群团队信息失败"), status_code=400)
+                return JSONResponse(general_message(500, "failed", "获取集群团队信息失败"), status_code=200)
         except Exception as e:
             logger.exception(e)
 
@@ -193,35 +172,41 @@ async def overview_tenant(
             "pods": pods_num
         })
 
-    result = general_message("0", "success", "查询成功", bean=tenant_info)
+    result = general_message(200, "success", "查询成功", bean=tenant_info)
     return JSONResponse(result, status_code=200)
 
 
 @router.get("/v1.0/metrics/event", response_model=Response, name="集群事件统计")
 async def get_region_event(
+        region_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)
 ) -> Any:
     events = []
     event_list = []
     result_bean = {}
-    usable_regions = region_repo.get_new_usable_regions(session=session)
-    for r in usable_regions:
-        region_name = r.region_name
+
+    if region_code:
+        region_codes = [region_code]
+    else:
+        usable_regions = region_repo.get_new_usable_regions(session=session)
+        region_codes = [region.region_name for region in usable_regions]
+
+    for region_code in region_codes:
         try:
-            res, body = hunan_expressway_client.get_region_cluster(session, region_name)
+            res, body = hunan_expressway_client.get_region_cluster(session, region_code)
             result_bean = body["bean"]
             status = res["status"]
             if status != 200:
-                return JSONResponse(general_message(400, "failed", "获取集群节点信息失败"), status_code=400)
+                return JSONResponse(general_message(500, "failed", "获取集群节点信息失败"), status_code=200)
         except Exception as e:
             logger.exception(e)
 
         try:
-            res, body = hunan_expressway_client.get_region_event(session, region_name)
+            res, body = hunan_expressway_client.get_region_event(session, region_code)
             event_list = body["list"]
             status = res["status"]
             if status != 200:
-                return JSONResponse(general_message(400, "failed", "获取集群事件失败"), status_code=400)
+                return JSONResponse(general_message(500, "failed", "获取集群事件失败"), status_code=200)
         except Exception as e:
             logger.exception(e)
 
@@ -294,5 +279,5 @@ async def get_region_event(
                     "level": "紧急",
                 })
 
-    result = general_message("0", "success", "查询成功", bean=events)
+    result = general_message(200, "success", "查询成功", bean=events)
     return JSONResponse(result, status_code=200)

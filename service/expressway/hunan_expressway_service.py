@@ -1,6 +1,9 @@
 from clients.remote_app_client import remote_app_client
 from repository.expressway.hunan_expressway_repo import hunan_expressway_repo
 from repository.region.region_app_repo import region_app_repo
+from loguru import logger
+from exceptions.main import ServiceHandleException
+from clients.remote_expressway_client import hunan_expressway_client
 
 
 class HunanExpresswayService(object):
@@ -28,6 +31,40 @@ class HunanExpresswayService(object):
 
     def get_services_by_tenant_env_id(self, session, tenant_env_id):
         return hunan_expressway_repo.get_services_by_tenant_env_id(session, tenant_env_id)
+
+    def get_all_region_info(self, session, region_code, result_bean, node_info, store, pod):
+
+        try:
+            res, body = hunan_expressway_client.get_region_cluster(session, region_code)
+            result_bean = body["bean"]
+            status = res["status"]
+            if status != 200:
+                raise ServiceHandleException("failed", "获取集群节点信息失败", status, status)
+        except Exception as e:
+            logger.exception(e)
+
+        for node in result_bean['node_resources']:
+            # node_info.append(node)
+            node_info.append({
+                "name": node["node_name"],
+                "total_cpu": node["capacity_cpu"],
+                "used_cpu": node["used_cpu"],
+                "total_memory": node["capacity_mem"],
+                "used_memory": node["used_mem"],
+                "total_pod": node["capacity_pod"],
+                "used_pod": node["used_pod"]
+            })
+
+        store["total_cpu"] += result_bean["cap_cpu"]
+        store["used_cpu"] += result_bean["req_cpu"]
+        store["total_memory"] += result_bean["cap_mem"]
+        store["used_memory"] += result_bean["req_mem"]
+        store["total_disk"] += result_bean["total_capacity_storage"]
+        store["used_disk"] += result_bean["total_used_storage"]
+
+        pod["total"] += result_bean['total_capacity_pods']
+        pod["used_pod"] += result_bean['total_used_pods']
+        pod["free_pod"] += result_bean['total_capacity_pods'] - result_bean['total_used_pods']
 
 
 hunan_expressway_service = HunanExpresswayService()

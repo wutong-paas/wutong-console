@@ -48,7 +48,7 @@ class RegionRepo(BaseRepository[RegionConfig]):
 
     def get_region_by_id(self, session, region_id):
         return session.execute(select(RegionConfig).where(
-                RegionConfig.region_id == region_id
+            RegionConfig.region_id == region_id
         )).scalars().first()
 
     def get_region_by_region_names(self, session: SessionClass, region_names):
@@ -104,8 +104,9 @@ class RegionRepo(BaseRepository[RegionConfig]):
 
     def get_new_usable_regions(self, session: SessionClass):
         """获取可使用的数据中心"""
-        return (session.execute(select(RegionConfig).where(
+        regions = (session.execute(select(RegionConfig).where(
             RegionConfig.status == "1"))).scalars().all()
+        return regions if regions else []
 
     def get_by_region_name(self, session: SessionClass, region_name):
         return (

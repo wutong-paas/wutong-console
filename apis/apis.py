@@ -15,7 +15,7 @@ from apis.manage.enterprise import wutong_enterprise_controller, enterprise_base
 from apis.manage.market import local_market_controller, market_share_controller, \
     wutong_market_controller
 from apis.manage.obs import wutong_obs_controller
-from apis.manage.plat import plat_manage_controller
+from apis.manage.plat import plat_manage_controller, monitor_screen_controller
 from apis.manage.proxy import wutong_proxy_controller
 from apis.manage.team import wutong_team_overview_controller, \
     wutong_team_plugins_controller, wutong_team_domain_controller, \
@@ -122,3 +122,5 @@ api_router.include_router(annotation_manage_controller.router, tags=["注解管�
 api_router.include_router(taint_manage_controller.router, tags=["污点管理"])
 # scheduling
 api_router.include_router(scheduling_rule_controller.router, tags=["调度规则"])
+# monitor screen
+api_router.include_router(monitor_screen_controller.router, tags=["监控大屏"])
