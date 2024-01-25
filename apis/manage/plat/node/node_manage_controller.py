@@ -33,7 +33,7 @@ async def get_plat_nodes(
 
 
 @router.get("/plat/region/query/node/{node_name}", response_model=Response, name="查询某个节点详情")
-async def get_plat_nodes(
+async def get_plat_node(
         region_code: Optional[str] = None,
         node_name: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
@@ -49,7 +49,7 @@ async def get_plat_nodes(
 
 
 @router.put("/plat/region/query/node/{node_name}/cordon", response_model=Response, name="设置节点调度")
-async def set_plat_nodes(
+async def update_node_cordon(
         node_name: Optional[str] = None,
         params: Optional[NodeCordonParam] = NodeCordonParam(),
         session: SessionClass = Depends(deps.get_session)) -> Any:

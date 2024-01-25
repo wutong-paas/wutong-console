@@ -117,3 +117,10 @@ class TaintTolerationsParam(BaseModel):
     taint_value: Annotated[str, Field(title="污点值")] = None
     op: Annotated[str, Field(title="操作符(Exists、Equal)")] = None
     effect: Annotated[str, Field(title="效果值")] = None
+
+
+class AddNodeSchedulingParam(BaseModel):
+    """
+    新增组件节点调度
+    """
+    node_name: Annotated[str, Field(title="节点名称")] = None

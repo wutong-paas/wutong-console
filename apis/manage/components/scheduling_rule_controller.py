@@ -8,7 +8,7 @@ from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from schemas.response import Response
-from schemas.components import LabelSchedulingParam, TaintTolerationsParam
+from schemas.components import LabelSchedulingParam, TaintTolerationsParam, AddNodeSchedulingParam
 
 router = APIRouter()
 
@@ -41,7 +41,7 @@ async def get_service_scheduling_rule(
 
 @router.post("/teams/{team_name}/env/{env_id}/services/{service_alias}/scheduling/label", response_model=Response,
              name="新增组件标签调度")
-async def get_service_scheduling_rule(
+async def add_service_label_scheduling(
         service_alias: Optional[str] = None,
         params: Optional[LabelSchedulingParam] = LabelSchedulingParam(),
         session: SessionClass = Depends(deps.get_session),
@@ -81,7 +81,7 @@ async def get_service_scheduling_rule(
 
 @router.put("/teams/{team_name}/env/{env_id}/services/{service_alias}/scheduling/label", response_model=Response,
             name="更新组件标签调度")
-async def get_service_scheduling_rule(
+async def update_service_label_scheduling(
         service_alias: Optional[str] = None,
         params: Optional[LabelSchedulingParam] = LabelSchedulingParam(),
         session: SessionClass = Depends(deps.get_session),
@@ -121,7 +121,7 @@ async def get_service_scheduling_rule(
 
 @router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/scheduling/label", response_model=Response,
                name="删除组件标签调度")
-async def get_service_scheduling_rule(
+async def delete_service_label_scheduling(
         service_alias: Optional[str] = None,
         label_key: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session),
@@ -160,13 +160,14 @@ async def get_service_scheduling_rule(
              name="新增组件节点调度")
 async def add_service_node_scheduling(
         service_alias: Optional[str] = None,
-        node_name: Optional[str] = None,
+        params: Optional[AddNodeSchedulingParam] = AddNodeSchedulingParam(),
         session: SessionClass = Depends(deps.get_session),
         user=Depends(deps.get_current_user),
         env=Depends(deps.get_current_team_env)) -> Any:
     """
     新增组件节点调度
     """
+    node_name = params.node_name
     body = {
         "node_name": node_name,
         "operator": user.nick_name
