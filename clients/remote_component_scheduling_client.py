@@ -33,8 +33,8 @@ class RemoteSchedulingClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region_name, session)
         url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/details".format(tenant_env.tenant_name,
-                                                                                       tenant_env.env_name,
-                                                                                       service_alias)
+                                                                                      tenant_env.env_name,
+                                                                                      service_alias)
 
         self._set_headers(token)
         res, body = self._get(session, url, self.default_headers, region=region_name)
@@ -45,8 +45,8 @@ class RemoteSchedulingClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region_name, session)
         url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/labels".format(tenant_env.tenant_name,
-                                                                                       tenant_env.env_name,
-                                                                                       service_alias)
+                                                                                     tenant_env.env_name,
+                                                                                     service_alias)
 
         self._set_headers(token)
         self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
@@ -56,8 +56,8 @@ class RemoteSchedulingClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region_name, session)
         url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/labels".format(tenant_env.tenant_name,
-                                                                                       tenant_env.env_name,
-                                                                                       service_alias)
+                                                                                     tenant_env.env_name,
+                                                                                     service_alias)
 
         self._set_headers(token)
         self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
@@ -67,8 +67,52 @@ class RemoteSchedulingClient(ApiBaseHttpClient):
 
         url, token = get_region_access_info(region_name, session)
         url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/labels".format(tenant_env.tenant_name,
-                                                                                       tenant_env.env_name,
-                                                                                       service_alias)
+                                                                                     tenant_env.env_name,
+                                                                                     service_alias)
+
+        self._set_headers(token)
+        self._delete(session, url, self.default_headers, region=region_name, body=json.dumps(body))
+
+    def add_service_node_scheduling(self, session, region_name, tenant_env, service_alias, body):
+        """新增组件节点调度"""
+
+        url, token = get_region_access_info(region_name, session)
+        url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/node".format(tenant_env.tenant_name,
+                                                                                   tenant_env.env_name,
+                                                                                   service_alias)
+
+        self._set_headers(token)
+        self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
+
+    def add_service_taint_scheduling(self, session, region_name, tenant_env, service_alias, body):
+        """新增组件污点容忍"""
+
+        url, token = get_region_access_info(region_name, session)
+        url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/tolerations".format(tenant_env.tenant_name,
+                                                                                          tenant_env.env_name,
+                                                                                          service_alias)
+
+        self._set_headers(token)
+        self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))
+
+    def update_service_taint_scheduling(self, session, region_name, tenant_env, service_alias, body):
+        """更新组件污点容忍"""
+
+        url, token = get_region_access_info(region_name, session)
+        url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/tolerations".format(tenant_env.tenant_name,
+                                                                                          tenant_env.env_name,
+                                                                                          service_alias)
+
+        self._set_headers(token)
+        self._put(session, url, self.default_headers, region=region_name, body=json.dumps(body))
+
+    def delete_service_taint_scheduling(self, session, region_name, tenant_env, service_alias, body):
+        """删除组件污点容忍"""
+
+        url, token = get_region_access_info(region_name, session)
+        url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/tolerations".format(tenant_env.tenant_name,
+                                                                                          tenant_env.env_name,
+                                                                                          service_alias)
 
         self._set_headers(token)
         self._delete(session, url, self.default_headers, region=region_name, body=json.dumps(body))

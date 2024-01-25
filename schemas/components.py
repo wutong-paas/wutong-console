@@ -107,3 +107,13 @@ class LabelSchedulingParam(BaseModel):
     """
     label_key: Annotated[str, Field(title="标签键")] = None
     label_value: Annotated[str, Field(title="标签值")] = None
+
+
+class TaintTolerationsParam(BaseModel):
+    """
+    组件污点容忍
+    """
+    taint_key: Annotated[str, Field(title="污点键")] = None
+    taint_value: Annotated[str, Field(title="污点值")] = None
+    op: Annotated[str, Field(title="操作符(Exists、Equal)")] = None
+    effect: Annotated[str, Field(title="效果值")] = None

@@ -49,6 +49,12 @@ async def add_node_taint(
     region_code = params.region_code
     effect = params.effect
 
+    if not effect:
+        return JSONResponse(
+            general_message(400, "effect not null", "效果不能为空"),
+            status_code=200,
+        )
+
     if effect not in ["NoSchedule", "PreferNoSchedule", "NoExecute"]:
         return JSONResponse(general_message(400, "error params", "效果只支持NoSchedule、PreferNoSchedule、NoExecute"),
                             status_code=200)
