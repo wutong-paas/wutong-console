@@ -29,14 +29,23 @@ async def get_current_user(request: Request, authorization: Optional[str] = Head
     try:
         from urllib import parse
         data = dict(request.headers.raw)
+        # user = {
+        #     "user_id": str(data.get(b"userid"), "utf-8"),
+        #     "user_name": str(data.get(b"username"), "utf-8"),
+        #     "real_name": parse.unquote(str(data.get(b"userrealname", b''), "utf-8")),
+        #     "nick_name": parse.unquote(str(data.get(b"usernickname"), "utf-8")),
+        #     "email": str(data.get(b"useremail"), "utf-8"),
+        #     "phone": str(data.get(b"usermobile", b''), "utf-8"),
+        #     "token": authorization
+        # }
         user = {
-            "user_id": str(data.get(b"userid"), "utf-8"),
-            "user_name": str(data.get(b"username"), "utf-8"),
-            "real_name": parse.unquote(str(data.get(b"userrealname", b''), "utf-8")),
-            "nick_name": parse.unquote(str(data.get(b"usernickname"), "utf-8")),
-            "email": str(data.get(b"useremail", b''), "utf-8"),
-            "phone": str(data.get(b"usermobile", b''), "utf-8"),
-            "token": authorization
+            "user_id": "1",
+            "user_name": "zdl",
+            "real_name": "zdl",
+            "nick_name": "zdl",
+            "email": "test",
+            "phone": "1333333333",
+            "token": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiI4MWYzMjhmMjU2NmM2NjViNGZmODZjMjM0YmMxMWU3NCIsInN1YiI6IjkwNTI4IiwiYXVkIjoidGVuYW50IiwidW5hbWUiOiI5MDUyOCIsImlzcyI6ImN1YmUiLCJybmQiOiI4endlNTdxMyIsImV4cCI6MTcwNDA2OTc0NiwiaWF0IjoxNzAzNDY0OTQ2fQ.iLdPCQXH22KCtOTJ4QTutLXCpPFW8R_esNsDPwW2prI"
         }
         user = UserInfo(**user)
         return user

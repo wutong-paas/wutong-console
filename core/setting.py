@@ -9,10 +9,10 @@ logger.remove()
 
 
 class Settings(BaseSettings):
-    DEBUG = False
+    DEBUG = True
     ENV = os.environ.get("wutong_env", "DEV")
     APP_NAME = "wutong-console"
-    API_PREFIX = "/console"
+    API_PREFIX = "/paas-console/console"
     # 文件上传配置
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
     HOME_DIR = os.getenv("HOME_DIR", BASE_DIR)
@@ -41,10 +41,7 @@ class Settings(BaseSettings):
     MYSQL_USER = os.environ.get("MYSQL_USER", "admin")
     MYSQL_PASS = os.environ.get("MYSQL_PASS", "admin")
 
-    if not DEBUG:
-        SQLALCHEMY_DATABASE_URI: str = 'mysql://' + MYSQL_USER + ':' + MYSQL_PASS + '@' + MYSQL_HOST + ':' + MYSQL_PORT + '/console'
-    else:
-        SQLALCHEMY_DATABASE_URI: str = 'mysql://root:0O9zvQ00@192.168.36.74:64248/console'
+    SQLALCHEMY_DATABASE_URI: str = 'mysql://root:0O9zvQ00@192.168.36.74:64248/console'
 
     # 日志级别
     # CRITICAL = 50
@@ -75,7 +72,7 @@ class Settings(BaseSettings):
     PORT = os.environ.get("PORT", 8888)
 
     # 是否热加载
-    RELOAD = False
+    RELOAD = True
     SSO_LOGIN = True
     TENANT_VALID_TIME = 7
 

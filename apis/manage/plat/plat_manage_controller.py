@@ -1,15 +1,15 @@
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, Query, Request
+
+from fastapi import APIRouter, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
 from starlette import status
+
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
-from models.market.models import CenterAppTag
 from repository.application.app_repository import app_tag_repo
-from repository.market.center_app_tag_repo import center_app_tag_repo
 from schemas.app_model_tag import PutTagParam, DeleteTagParam, AddTagParam
 from schemas.response import Response
 from service.application_service import application_service

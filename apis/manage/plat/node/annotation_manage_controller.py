@@ -1,16 +1,16 @@
+from typing import Any, Optional
+
 from fastapi import APIRouter, Depends
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-from starlette import status
-from typing import Any, Optional
+
 from clients.remote_node_client import remote_node_client_api
 from core import deps
 from core.utils.return_message import general_message
 from database.session import SessionClass
 from repository.region.region_info_repo import region_repo
-from schemas.response import Response
 from schemas.node import AddNodeAnnotationParam, DeleteNodeAnnotationParam
+from schemas.response import Response
 
 router = APIRouter()
 

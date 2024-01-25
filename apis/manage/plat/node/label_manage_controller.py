@@ -1,9 +1,9 @@
+from typing import Any, Optional
+
 from fastapi import APIRouter, Depends
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from loguru import logger
-from starlette import status
-from typing import Any, Optional
+
 from clients.remote_node_client import remote_node_client_api
 from core import deps
 from core.utils.return_message import general_message
