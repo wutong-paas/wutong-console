@@ -78,36 +78,37 @@ async def monitor(session: SessionClass = Depends(deps.get_session)) -> Any:
 
 
 @router.get("/enterprise/regions", response_model=Response, name="获取集群列表")
-async def regions(status: Optional[str] = "", check_status: Optional[str] = "",
-                  session: SessionClass = Depends(deps.get_session),
-                  user=Depends(deps.get_current_user)) -> Any:
+async def regions(
+        status: Optional[str] = "",
+        check_status: Optional[str] = "",
+        is_team_info: Optional[bool] = True,
+        session: SessionClass = Depends(deps.get_session)
+) -> Any:
     data = region_services.get_enterprise_regions(session=session, level="open",
                                                   status=status,
                                                   check_status=check_status)
     region_infos = jsonable_encoder(data)
-    for region_info in region_infos:
-        region_code = region_info["region_name"]
-        envs = env_repo.get_envs_by_region_code(session, region_code)
-        region_use_info = {}
-        for env in envs:
-            team_code = env.tenant_name
-            team_name = env.team_alias
-            current_team_info = region_use_info.get(team_code, {})
-            current_use_cpu = 0
-            current_use_memory = 0
-            if current_team_info:
-                current_use_cpu = current_team_info.get("use_cpu", 0)
-                current_use_memory = current_team_info.get("use_memory", 0)
-            env_info = common_services.get_current_region_used_resource(session, env, region_code)
-            if env_info:
-                use_cpu = env_info.get("cpu", 0)
-                use_memory = env_info.get("memory", 0)
-                region_use_info.update({team_code: {
-                    "use_cpu": round(current_use_cpu + use_cpu, 2),
-                    "use_memory": round(current_use_memory + use_memory, 2),
-                    "team_name": team_name
-                }})
-        region_info.update({"region_team_info": region_use_info})
+    if is_team_info:
+        for region_info in region_infos:
+            region_id = region_info["region_id"]
+            envs, total = env_repo.get_envs_list_by_region(session, region_id, None, None, 1, 9999)
+            team_infos = {}
+            for env in envs:
+                team_name = env.get("team_name")
+                team_code = env.get("team_code")
+                current_memory = 0
+                current_cpu = 0
+                if team_code in team_infos.keys():
+                    current_memory = team_infos[team_code]["use_memory"]
+                    current_cpu = team_infos[team_code]["use_cpu"]
+                team_infos.update({
+                    team_code: {
+                        "team_name": team_name,
+                        "use_memory": env.get("memory_request", 0) + current_memory,
+                        "use_cpu": env.get("cpu_request", 0) + current_cpu
+                    }
+                })
+            region_info.update({"region_team_info": team_infos})
     result = general_message("0", "success", "获取成功", list=region_infos)
     return JSONResponse(result, status_code=200)
 

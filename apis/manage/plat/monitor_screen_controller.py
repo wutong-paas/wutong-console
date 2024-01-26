@@ -73,7 +73,7 @@ async def get_store(
     return JSONResponse(general_message(200, "success", "获取成功", bean=info), status_code=200)
 
 
-@router.get("/plat/monitor/{region_id}/teams", response_model=Response, name="获取团队资源使用量排行")
+@router.get("/plat/monitor/{region_id}/teams/resource", response_model=Response, name="获取团队资源使用量排行")
 async def get_team_memory_config(
         query: Optional[str] = "memory_request",
         region_id: Optional[str] = None,

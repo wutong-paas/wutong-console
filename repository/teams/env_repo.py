@@ -53,7 +53,8 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
                                 "running_app_third_num": env["running_app_third_num"],
                                 "set_limit_memory": env["LimitMemory"],
                                 "app_num": app_num,
-                                "team_name": team_name
+                                "team_name": team_name,
+                                "team_code": env["TenantName"],
                             })
         else:
             logger.error(body)
