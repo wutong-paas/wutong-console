@@ -90,17 +90,29 @@ class AppImportService(object):
         return ""
 
     def __save_enterprise_import_info(self, session, import_record, metadata):
+        if not metadata:
+            return
+
         wutong_apps = []
         wutong_app_versions = []
         metadata = json.loads(metadata)
         key_and_version_list = []
-        if not metadata:
-            return
         for app_template in metadata:
             annotations = app_template.get("annotations", {})
             app_describe = app_template.pop("describe", "")
             if annotations.get("describe", ""):
                 app_describe = annotations.pop("describe", "")
+
+            image_base64_string = app_template.pop("image_base64_string", "")
+            if annotations.get("image_base64_string"):
+                image_base64_string = annotations.pop("image_base64_string", "")
+            pic_url = ""
+            if image_base64_string:
+                suffix = app_template.pop("suffix", "jpg")
+                if annotations.get("suffix"):
+                    suffix = annotations.pop("suffix", "jpg")
+                pic_url = self.decode_image(image_base64_string, suffix)
+
             app = center_app_repo.get_wutong_app_by_app_id(session,
                                                            app_template["group_key"])
             # if app exists, update it
@@ -108,6 +120,7 @@ class AppImportService(object):
                 app.scope = import_record.scope
                 app.describe = app_describe
                 app.create_team = import_record.team_name
+                app.pic = pic_url
                 # app.save()
                 app_version = app_repo.get_wutong_app_version_by_app_id_and_version(
                     session, app.app_id, app_template["group_version"])
@@ -128,15 +141,6 @@ class AppImportService(object):
                     # create a new version
                     wutong_app_versions.append(self.create_app_version(session, app, import_record, app_template))
             else:
-                image_base64_string = app_template.pop("image_base64_string", "")
-                if annotations.get("image_base64_string"):
-                    image_base64_string = annotations.pop("image_base64_string", "")
-                pic_url = ""
-                if image_base64_string:
-                    suffix = app_template.pop("suffix", "jpg")
-                    if annotations.get("suffix"):
-                        suffix = annotations.pop("suffix", "jpg")
-                    pic_url = self.decode_image(image_base64_string, suffix)
                 key_and_version = "{0}:{1}".format(app_template["group_key"], app_template['group_version'])
                 if key_and_version in key_and_version_list:
                     continue
