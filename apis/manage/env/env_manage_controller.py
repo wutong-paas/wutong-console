@@ -118,7 +118,7 @@ async def delete_env(
         return JSONResponse(general_message(400, "env name error", "环境名不匹配"), status_code=400)
     try:
         # env_services.delete_by_env_id(session=session, user_nickname=user.nick_name, env=env)
-        await stop_env_resource(request=request, session=session, user=user, env=env, region_code=env.region_code)
+        stop_env_resource(request=request, session=session, user=user, env=env, region_code=env.region_code)
         # 删除环境用户关系表
         env_repo.delete_env_rel(session, env.env_id)
         result = general_message("0", "delete a team successfully", "删除环境成功")
