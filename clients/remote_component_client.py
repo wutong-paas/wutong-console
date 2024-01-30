@@ -76,7 +76,7 @@ class RemoteComponentClient(ApiBaseHttpClient):
               "/services/" + service_alias + "/build"
 
         self._set_headers(token)
-        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body))
+        res, body = self._post(session, url, self.default_headers, region=region, body=json.dumps(body), timeout=30)
         return body
 
     def add_service_dependency(self, session, region, tenant_env, service_alias, body):
