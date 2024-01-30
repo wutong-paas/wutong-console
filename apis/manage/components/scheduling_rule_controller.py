@@ -202,16 +202,6 @@ async def add_service_tolerations(
     """
     key = params.taint_key
     effect = params.effect
-    if not key:
-        return JSONResponse(
-            general_message(400, "key not null", "污点键不能为空"),
-            status_code=200,
-        )
-    if not effect:
-        return JSONResponse(
-            general_message(400, "effect not null", "效果不能为空"),
-            status_code=200,
-        )
 
     body = {
         "taint_key": key,
@@ -249,16 +239,6 @@ async def update_service_tolerations(
     """
     key = params.taint_key
     effect = params.effect
-    if not key:
-        return JSONResponse(
-            general_message(400, "key not null", "污点键不能为空"),
-            status_code=200,
-        )
-    if not effect:
-        return JSONResponse(
-            general_message(400, "effect not null", "效果不能为空"),
-            status_code=200,
-        )
 
     body = {
         "taint_key": key,
