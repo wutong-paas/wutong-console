@@ -73,15 +73,22 @@ async def get_store(
     return JSONResponse(general_message(200, "success", "获取成功", bean=info), status_code=200)
 
 
-@router.get("/plat/monitor/{region_id}/teams/resource", response_model=Response, name="获取团队资源使用量排行")
+@router.get("/plat/monitor/teams/resource", response_model=Response, name="获取团队资源使用量排行")
 async def get_team_memory_config(
-        query: Optional[str] = "memory_request",
-        region_id: Optional[str] = None,
+        region_code: Optional[str] = None,
         session: SessionClass = Depends(deps.get_session)) -> Any:
     """
     获取团队资源使用量排行
     """
 
+    if not region_code:
+        return JSONResponse(general_message(400, "region code not null", "集群标识不能为空"), status_code=200)
+
+    region = region_repo.get_region_by_region_name(session, region_code)
+    if not region:
+        return JSONResponse(general_message(500, "region not found", "集群不存在"), status_code=200)
+
+    region_id = region.region_id
     team_infos = {}
     team_info_list = []
     envs, total = env_repo.get_envs_list_by_region(session, region_id, None, None, 1, 9999)
@@ -106,6 +113,9 @@ async def get_team_memory_config(
             "memory_request": value["memory_request"],
             "cpu_request": value["cpu_request"]
         })
-    team_info_list = sorted(team_info_list, key=lambda x: x[query], reverse=True)
-    result = general_message(200, "success", "获取成功", list=team_info_list[:10])
+    team_info_list = sorted(team_info_list, key=lambda x: x["memory_request"], reverse=True)
+    data = {"memory": team_info_list[:10]}
+    team_info_list = sorted(team_info_list, key=lambda x: x["cpu_request"], reverse=True)
+    data.update({"cpu": team_info_list[:10]})
+    result = general_message(200, "success", "获取成功", bean=data)
     return JSONResponse(result, status_code=200)
