@@ -17,15 +17,15 @@ class AlarmRobotService:
             regions = team_region_repo.get_regions(session)
             for region in regions:
                 try:
-                    body = alarm_service.obs_service_alarm(request, "/v1/alert/contact/test", body, region,
+                    data = alarm_service.obs_service_alarm(request, "/v1/alert/contact/test", body, region,
                                                                  method="POST")
                 except Exception as err:
                     logger.error(err)
                     continue
-                if body and body["code"] == 200:
+                if data and data["code"] == 200:
                     status = True
-                if body and body["code"] != 200 and body["code"] != 404:
-                    err_message = body["message"]
+                if data and data["code"] != 200 and data["code"] != 404:
+                    err_message = data["message"]
         except Exception as err:
             logger.error(err)
             return False, None

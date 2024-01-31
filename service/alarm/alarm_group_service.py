@@ -30,16 +30,16 @@ class AlarmGroupService:
             region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
             try:
                 if alarm_region_rel:
-                    body = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body,
+                    res = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body,
                                                                  region,
                                                                  method="POST")
-                    if body and body["code"] == 200:
+                    if res and res["code"] == 200:
                         status = True
-                    if body and body["code"] != 200 and body["code"] != 404:
-                        logger.warning(body["message"])
-                        err_message = body["message"]
-                    if body and body["code"] != 200:
-                        logger.warning(body["message"])
+                    if res and res["code"] != 200 and res["code"] != 404:
+                        logger.warning(res["message"])
+                        err_message = res["message"]
+                    if res and res["code"] != 200:
+                        logger.warning(res["message"])
             except Exception as err:
                 logger.warning(err)
                 continue

@@ -25,11 +25,11 @@ class AlarmRegionService:
             region_code = region.region_name
             try:
                 alarm_region_rel = alarm_region_repo.get_alarm_region(session, group_id, region_code, "email")
-                body = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
+                res = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
             except Exception as err:
                 logger.warning(err)
                 continue
-            if body and body["code"] == 200:
+            if res and res["code"] == 200:
                 data = {
                     "group_id": group_id,
                     "alarm_type": "email",
@@ -43,7 +43,7 @@ class AlarmRegionService:
                 alarm_group.contacts = contacts
                 status = True
             else:
-                err_message = body["message"]
+                err_message = res["message"]
                 logger.warning(err_message)
 
         return status, err_message

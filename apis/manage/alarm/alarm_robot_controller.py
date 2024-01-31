@@ -78,11 +78,11 @@ async def add_alarm_robot(
             region_code = region.region_name
             try:
                 alarm_region_rel = alarm_region_repo.get_alarm_region(session, alarm_robot.ID, region_code, "wechat")
-                body = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
+                res = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region)
             except Exception as err:
                 logger.warning(err)
                 continue
-            if body and body["code"] == 200:
+            if res and res["code"] == 200:
                 data = {
                     "group_id": alarm_robot.ID,
                     "alarm_type": "wechat",
@@ -92,8 +92,8 @@ async def add_alarm_robot(
                 status = 1
                 if not alarm_region_rel:
                     alarm_region_repo.create_alarm_region(session, data)
-            if body and body["code"] != 200:
-                err_message = body["message"]
+            if res and res["code"] != 200:
+                err_message = res["message"]
     except Exception as err:
         logger.error(err)
         return JSONResponse(general_message(500, "add robot failed", "添加机器人失败"), status_code=200)
@@ -194,9 +194,9 @@ async def put_alarm_robot(
             region = region_repo.get_region_by_region_name(session, alarm_region_rel.region_code)
             try:
                 if alarm_region_rel:
-                    body = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region,
+                    data = alarm_service.obs_service_alarm(request, "/v1/alert/contact", body, region,
                                                                  method="POST")
-                    if body and body["code"] == 200:
+                    if data and data["code"] == 200:
                         status = 1
             except Exception as err:
                 logger.warning(err)
