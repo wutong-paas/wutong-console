@@ -97,25 +97,40 @@ async def get_team_memory_config(
         team_name = env.get("team_name")
         current_memory = 0
         current_cpu = 0
+        current_cpu_limit = 0
+        current_memory_limit = 0
         if team_name in team_infos.keys():
             current_memory = team_infos[team_name]["memory_request"]
             current_cpu = team_infos[team_name]["cpu_request"]
+            current_cpu_limit = team_infos[team_name]["cpu_limit"]
+            current_memory_limit = team_infos[team_name]["memory_limit"]
         team_infos.update({
             team_name: {
                 "memory_request": env.get("memory_request", 0) + current_memory,
-                "cpu_request": env.get("cpu_request", 0) + current_cpu
+                "cpu_request": env.get("cpu_request", 0) + current_cpu,
+                "cpu_limit": env.get("cpu_limit", 0) + current_cpu_limit,
+                "memory_limit": env.get("memory_limit", 0) + current_memory_limit,
             }
         })
+
+    cpu_max = 0
+    memory_max = 0
     for team_name in team_infos.keys():
         value = team_infos[team_name]
+        if cpu_max < value["cpu_limit"]:
+            cpu_max = value["cpu_limit"]
+        if memory_max < value["memory_limit"]:
+            memory_max = value["memory_limit"]
         team_info_list.append({
             "team_name": team_name,
             "memory_request": value["memory_request"],
-            "cpu_request": value["cpu_request"]
+            "cpu_request": value["cpu_request"],
+            "cpu_limit": value["cpu_limit"],
+            "memory_limit": value["memory_limit"]
         })
     team_info_list = sorted(team_info_list, key=lambda x: x["memory_request"], reverse=True)
     data = {"memory": team_info_list[:10]}
     team_info_list = sorted(team_info_list, key=lambda x: x["cpu_request"], reverse=True)
     data.update({"cpu": team_info_list[:10]})
-    result = general_message(200, "success", "获取成功", bean=data)
+    result = general_message(200, "success", "获取成功", bean=data, cpu_max=cpu_max, memory_max=memory_max)
     return JSONResponse(result, status_code=200)
