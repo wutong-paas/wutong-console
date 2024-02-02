@@ -75,7 +75,7 @@ class ApplicationService(object):
         tenant_service.env = ""
         tenant_service.min_node = 1
         tenant_service.min_memory = 512
-        tenant_service.min_cpu = 500
+        tenant_service.min_cpu = 1000
         tenant_service.inner_port = 5000
         tenant_service.version = "81701"
         tenant_service.namespace = "wutong"
@@ -249,7 +249,7 @@ class ApplicationService(object):
         if isinstance(min_cpu, str):
             min_cpu = int(min_cpu)
         if type(min_cpu) != int or min_cpu < 0:
-            min_cpu = 500
+            min_cpu = 1000
 
         extend_method = data.get("extend_method", service.extend_method)
 
@@ -647,7 +647,7 @@ class ApplicationService(object):
         tenant_service.min_node = 1
         tenant_service.min_memory = 512
         tenant_service.request_memory = 0
-        tenant_service.min_cpu = 500
+        tenant_service.min_cpu = 1000
         tenant_service.request_cpu = 0
         tenant_service.inner_port = 0
         tenant_service.version = "latest"
@@ -1295,7 +1295,7 @@ class ApplicationService(object):
         tenant_service.env = ""
         tenant_service.min_node = 0
         tenant_service.min_memory = 512
-        tenant_service.min_cpu = 500
+        tenant_service.min_cpu = 1000
         tenant_service.version = "81701"
         tenant_service.namespace = "third_party"
         tenant_service.update_version = 1

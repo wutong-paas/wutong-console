@@ -345,7 +345,7 @@ async def modify_plugin_version(request: Request,
         min_memory = data.get("min_memory", plugin_version.min_memory)
         min_cpu = data.get("min_cpu", 0)
         if type(min_cpu) != int or min_cpu < 0:
-            min_cpu = 0
+            min_cpu = 500
         # if get username and password is "", means user remove the username and password
         username = data.get("username", "")
         password = data.get("password", "")

@@ -219,7 +219,7 @@ class ComponentCheckService(object):
         service.language = service_info.get("language", "")
         # memory = service_info.get("memory", 128)
         service.min_memory = 512
-        service.min_cpu = 500
+        service.min_cpu = 1000
         # Set the deployment type based on the test results
         logger.debug("save svc extend_method {0}".format(
             service_info.get("service_type", ComponentType.stateless_multiple.value)))

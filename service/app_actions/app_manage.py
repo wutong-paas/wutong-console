@@ -1330,7 +1330,7 @@ class AppManageService(object):
         tenant_service.env = ""
         tenant_service.min_node = 0
         tenant_service.min_memory = 512
-        tenant_service.min_cpu = 500
+        tenant_service.min_cpu = 1000
         tenant_service.version = "81701"
         tenant_service.namespace = "third_party"
         tenant_service.update_version = 1
