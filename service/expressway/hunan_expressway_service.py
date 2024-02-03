@@ -47,12 +47,12 @@ class HunanExpresswayService(object):
             # node_info.append(node)
             node_info.append({
                 "name": node["node_name"],
-                "total_cpu": node["capacity_cpu"],
-                "used_cpu": node["used_cpu"],
-                "total_memory": node["capacity_mem"],
-                "used_memory": node["used_mem"],
-                "total_pod": node["capacity_pod"],
-                "used_pod": node["used_pod"]
+                "total_cpu": round(node["capacity_cpu"], 0),
+                "used_cpu": round(node["used_cpu"], 0),
+                "total_memory": round(node["capacity_mem"], 0),
+                "used_memory": round(node["used_mem"], 0),
+                "total_pod": round(node["capacity_pod"], 0),
+                "used_pod": round(node["used_pod"], 0)
             })
 
         store["total_cpu"] += result_bean["cap_cpu"]

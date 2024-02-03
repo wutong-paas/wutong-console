@@ -47,11 +47,15 @@ async def get_store(
     else:
         hunan_expressway_service.get_all_region_info(session, region_code, result_bean, node_info, store, pod)
 
-    store["used_disk"] = round(store["used_disk"], 2)
-    store["total_memory"] = round(store["total_memory"], 2)
-    store["total_disk"] = round(store["total_disk"], 2)
-    store["used_cpu"] = round(store["used_cpu"], 2)
-    store["used_memory"] = round(store["used_memory"], 2)
+    store["used_disk"] = round(store["used_disk"], 0)
+    store["total_memory"] = round(store["total_memory"], 0)
+    store["total_disk"] = round(store["total_disk"], 0)
+    store["used_cpu"] = round(store["used_cpu"], 0)
+    store["used_memory"] = round(store["used_memory"], 0)
+
+    pod["total"] = round(pod["total"], 0)
+    pod["used_pod"] = round(pod["used_pod"], 0)
+    pod["free_pod"] = round(pod["free_pod"], 0)
 
     info = {
         "store": store,

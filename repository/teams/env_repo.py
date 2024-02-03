@@ -61,7 +61,9 @@ class EnvRepository(BaseRepository[TeamEnvInfo]):
         return env_list, len(env_list)
 
     def get_all_envs(self, session):
-        return session.execute(select(TeamEnvInfo)).scalars().all()
+        return session.execute(select(TeamEnvInfo).where(
+            TeamEnvInfo.is_delete == 0
+        )).scalars().all()
 
     def get_envs_by_region_code(self, session, region_code):
         return session.execute(select(TeamEnvInfo).where(
