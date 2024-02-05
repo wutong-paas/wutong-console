@@ -12,6 +12,7 @@ from schemas.response import Response
 from service.app_config.app_relation_service import dependency_service
 from service.app_config.port_service import port_service
 from service.application_service import application_service
+from repository.component.service_config_repo import port_repo
 
 router = APIRouter()
 
@@ -56,7 +57,9 @@ async def get_dependency_component(request: Request,
     service_group_map = application_service.get_services_group_name(session=session, service_ids=service_ids)
     dep_list = []
     for dep in dependencies:
-        tenant_service_ports = port_service.get_service_ports(session=session, service=dep)
+        tenant_service_ports = port_repo.get_service_ports_by_is_inner_service(session=session,
+                                                                               tenant_env_id=dep.tenant_env_id,
+                                                                               service_id=dep.service_id)
         ports_list = []
         if tenant_service_ports:
             for port in tenant_service_ports:
@@ -91,7 +94,8 @@ async def get_dependency_component(request: Request,
     return JSONResponse(result, status_code=200)
 
 
-@router.patch("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/dependency", response_model=Response, name="为组件添加依赖组件")
+@router.patch("/teams/{team_name}/env/{env_id}/apps/{serviceAlias}/dependency", response_model=Response,
+              name="为组件添加依赖组件")
 async def add_dependency_component(request: Request,
                                    serviceAlias: Optional[str] = None,
                                    session: SessionClass = Depends(deps.get_session),
