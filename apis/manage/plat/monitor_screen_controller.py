@@ -95,6 +95,8 @@ async def get_team_memory_config(
     region_id = region.region_id
     team_infos = {}
     team_info_list = []
+    cpu_is_show = False
+    memory_is_show = False
     envs, total = env_repo.get_envs_list_by_region(session, region_id, None, None, 1, 9999)
 
     for env in envs:
@@ -108,6 +110,10 @@ async def get_team_memory_config(
             current_cpu = team_infos[team_name]["cpu_request"]
             current_cpu_limit = team_infos[team_name]["cpu_limit"]
             current_memory_limit = team_infos[team_name]["memory_limit"]
+            if not cpu_is_show and current_cpu > 0:
+                cpu_is_show = True
+            if not memory_is_show and current_memory > 0:
+                memory_is_show = True
         team_infos.update({
             team_name: {
                 "memory_request": env.get("memory_request", 0) + current_memory,
@@ -133,8 +139,8 @@ async def get_team_memory_config(
             "memory_limit": value["memory_limit"]
         })
     team_info_list = sorted(team_info_list, key=lambda x: x["memory_request"], reverse=True)
-    data = {"memory": team_info_list[:10]}
+    data = {"memory": team_info_list[:10] if memory_is_show else []}
     team_info_list = sorted(team_info_list, key=lambda x: x["cpu_request"], reverse=True)
-    data.update({"cpu": team_info_list[:10]})
+    data.update({"cpu": team_info_list[:10] if cpu_is_show else []})
     result = general_message(200, "success", "获取成功", bean=data, cpu_max=cpu_max, memory_max=memory_max)
     return JSONResponse(result, status_code=200)
