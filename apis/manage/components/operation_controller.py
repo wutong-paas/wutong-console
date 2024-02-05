@@ -17,7 +17,7 @@ from core.utils.validation import is_qualified_code
 from database.session import SessionClass
 from exceptions.bcode import ErrComponentBuildFailed, ErrQualifiedName
 from exceptions.main import AccountOverdueException, ResourceNotEnoughException, ErrInsufficientResource, \
-    ServiceHandleException
+    ServiceHandleException, ErrClusterLackOfMemory
 from models.component.models import Component
 from repository.component.graph_repo import component_graph_repo
 from repository.component.group_service_repo import service_info_repo
@@ -275,11 +275,13 @@ async def component_build(params: Optional[BuildParam] = BuildParam(),
             try:
                 app_manage_service.deploy(session=session, tenant_env=env, service=service, user=user)
             except ErrInsufficientResource as e:
-                return JSONResponse(general_message(e.error_code, e.msg, e.msg_show), e.error_code)
+                return JSONResponse(general_message(e.error_code, e.msg, e.msg_show), 200)
+            except ErrClusterLackOfMemory as e:
+                return JSONResponse(general_message(e.error_code, e.msg, e.msg_show), 200)
             except Exception as e:
                 logger.exception(e)
                 err = ErrComponentBuildFailed()
-                return JSONResponse(general_message(err.error_code, e, err.msg_show), err.error_code)
+                return JSONResponse(general_message(err.error_code, e, err.msg_show), 200)
             # 添加组件部署关系
             application_service.create_deploy_relation_by_service_id(session=session, service_id=service.service_id)
         return JSONResponse(general_message("0", "success", "构建成功"), status_code=200)
