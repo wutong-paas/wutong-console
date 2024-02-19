@@ -170,7 +170,7 @@ class ApiBaseHttpClient(object):
                 raise ServiceHandleException(msg="request region api body is nil", msg_show="集群请求网络异常",
                                              status_code=status)
             if "code" in body:
-                raise ServiceHandleException(msg=body.get("msg"), status_code=status,
+                raise ServiceHandleException(msg=body.get("msg"), msg_show=body.get("msg"), status_code=status,
                                              error_code=body.get("code"))
             if status == 409:
                 raise self.CallApiFrequentError(self.api_type, url, method, res, body)

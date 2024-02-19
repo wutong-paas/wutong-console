@@ -31,7 +31,7 @@ class Component(Base):
     image = Column(String(200), comment="镜像", nullable=False)
     cmd = Column(String(2048), comment="启动参数", nullable=True)
     min_node = Column(Integer, comment="实例数量", nullable=False, default=1)
-    min_cpu = Column(Integer, comment="cpu分配额 1000=1core", nullable=False, default=1000)
+    min_cpu = Column(Integer, comment="cpu分配额 1000=1core", nullable=False, default=2000)
     request_cpu = Column(Integer, comment="cpu最小分配额 1000=1core", nullable=False, default=0)
     container_gpu = Column(Integer, comment="gpu显存数量", nullable=False, default=0)
     gpu_type = Column(String(32), comment="gpu类型", nullable=True)

@@ -193,11 +193,6 @@ class BaseService:
                         memory += int(service.min_memory) * int(service.min_node)
         return memory
 
-    def calculate_service_cpu(self, min_memory):
-        # The algorithm is obsolete
-        min_cpu = int(min_memory) / 128 * 20
-        return int(min_cpu)
-
     def get_apps_deploy_versions(self, session, region, tenant_env, service_ids):
         data = {"service_ids": service_ids}
         try:
@@ -211,7 +206,8 @@ class BaseService:
 class BaseTenantService(object):
     def calculate_service_cpu(self, region, min_memory):
         # The algorithm is obsolete
-        min_cpu = int(min_memory) / 128 * 20
+        # min_cpu = int(min_memory) / 128 * 20
+        min_cpu = 2000
         return int(min_cpu)
 
 
