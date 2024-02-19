@@ -99,7 +99,9 @@ async def overview_env_app_info(request: Request,
                                                                   region=region_name,
                                                                   tenant_env=env,
                                                                   user=user,
-                                                                  status=status)
+                                                                  status=status,
+                                                                  start=start,
+                                                                  end=end)
 
     for value in count.values():
         total += value
@@ -107,7 +109,6 @@ async def overview_env_app_info(request: Request,
     pages = int(total / page_size)
     if pages == 0:
         pages = 1
-    apps = apps[start:end]
     count.update({"ABNORMAL": count["ABNORMAL"] + count["STOPPING"]})
     app_num_dict.update(count)
     return JSONResponse(

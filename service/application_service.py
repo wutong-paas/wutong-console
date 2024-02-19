@@ -75,7 +75,7 @@ class ApplicationService(object):
         tenant_service.env = ""
         tenant_service.min_node = 1
         tenant_service.min_memory = 512
-        tenant_service.min_cpu = 1000
+        tenant_service.min_cpu = 2000
         tenant_service.inner_port = 5000
         tenant_service.version = "81701"
         tenant_service.namespace = "wutong"
@@ -249,7 +249,7 @@ class ApplicationService(object):
         if isinstance(min_cpu, str):
             min_cpu = int(min_cpu)
         if type(min_cpu) != int or min_cpu < 0:
-            min_cpu = 1000
+            min_cpu = 2000
 
         extend_method = data.get("extend_method", service.extend_method)
 
@@ -647,7 +647,7 @@ class ApplicationService(object):
         tenant_service.min_node = 1
         tenant_service.min_memory = 512
         tenant_service.request_memory = 0
-        tenant_service.min_cpu = 1000
+        tenant_service.min_cpu = 2000
         tenant_service.request_cpu = 0
         tenant_service.inner_port = 0
         tenant_service.version = "latest"
@@ -1295,7 +1295,7 @@ class ApplicationService(object):
         tenant_service.env = ""
         tenant_service.min_node = 0
         tenant_service.min_memory = 512
-        tenant_service.min_cpu = 1000
+        tenant_service.min_cpu = 2000
         tenant_service.version = "81701"
         tenant_service.namespace = "third_party"
         tenant_service.update_version = 1
@@ -1342,7 +1342,8 @@ class ApplicationService(object):
             app_id_status_rels[app_id] = region_app_id_status_rels.get(app_id_rels[app_id])
         return app_id_status_rels
 
-    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_env, user, status="all"):
+    def get_multi_apps_all_info(self, session: SessionClass, app_ids, region, tenant_env, user, start, end,
+                                status="all"):
         auth_app_ids = []
         count = {
             "RUNNING": 0,
@@ -1355,16 +1356,21 @@ class ApplicationService(object):
             "UNKNOWN": 0,
             "": 0
         }
-        is_team_admin = team_api.get_user_env_auth(user, tenant_env.tenant_id, "3")
+
+        is_team_admin = False
+        project_ids = []
         is_super_admin = team_api.get_user_env_auth(user, None, "1")
-        project_ids = team_api.get_user_project_ids(user.user_id, tenant_env.tenant_id, user.token)
+        if not is_super_admin:
+            is_team_admin = team_api.get_user_env_auth(user, tenant_env.tenant_id, "3")
+            if not is_team_admin:
+                project_ids = team_api.get_user_project_ids(user.user_id, tenant_env.tenant_id, user.token)
         app_list = application_repo.get_multi_app_info(session, app_ids)
         app_id_statuses = self.get_region_app_statuses(session=session, tenant_env=tenant_env, region_name=region,
                                                        app_ids=app_ids)
         apps = dict()
         for app in app_list:
-            if (app.project_id and (app.project_id in project_ids)) or (
-                    not app.project_id) or is_team_admin or is_super_admin:
+            if is_super_admin or is_team_admin or (app.project_id and (app.project_id in project_ids)) or (
+                    not app.project_id):
                 auth_app_ids.append(app.ID)
                 app_status = app_id_statuses.get(app.ID)
                 if app_status:
@@ -1387,7 +1393,7 @@ class ApplicationService(object):
                             "logo": app.logo,
                             "accesses": [],
                         }
-        service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, auth_app_ids)
+        service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, auth_app_ids[start:end])
         service_ids = [service.service_id for service in service_list]
         status_list = base_service.status_multi_service(session=session, region=region, tenant_env=tenant_env,
                                                         service_ids=service_ids)
@@ -1407,7 +1413,9 @@ class ApplicationService(object):
                 apps[service.group_id]["accesses"].append(accesses[service.service_id])
 
         re_app_list = []
-        for a in app_list:
+
+        temp_app = app_list[start:end]
+        for a in temp_app:
             app = apps.get(a.ID)
             if app:
                 app["project_name"] = a.project_name

@@ -126,57 +126,29 @@ async def overview_team_env_info(
 
     # 同步应用到集群
     groups = application_repo.get_tenant_region_groups(session, env.env_id, region.region_name, project_ids=project_ids)
-    batch_create_app_body = []
     region_app_ids = []
     app_auth_ids = []
     # 查询用户权限
-    is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
+    is_team_admin = False
+    project_ids = []
     is_super_admin = team_api.get_user_env_auth(user, None, "1")
-    project_ids = team_api.get_user_project_ids(user.user_id, env.tenant_id, user.token)
+    if not is_super_admin:
+        is_team_admin = team_api.get_user_env_auth(user, tenant_env.tenant_id, "3")
+        if not is_team_admin:
+            project_ids = team_api.get_user_project_ids(user.user_id, tenant_env.tenant_id, user.token)
     if groups:
         app_ids = [group.ID for group in groups]
         region_apps = region_app_repo.list_by_app_ids(session, region.region_name, app_ids)
         app_id_rels = {rapp.app_id: rapp.region_app_id for rapp in region_apps}
         for group in groups:
-            if (group.project_id and (group.project_id in project_ids)) or (
-                    not group.project_id) or is_team_admin or is_super_admin:
+            if is_team_admin or is_super_admin or (group.project_id and (group.project_id in project_ids)) or (
+                    not group.project_id):
                 app_auth_ids.append(group.ID)
                 if app_id_rels.get(group.ID):
                     region_app_ids.append(app_id_rels[group.ID])
-                    continue
-                create_app_body = dict()
-                group_services = base_service.get_group_services_list(session=session, env_id=env.env_id,
-                                                                      region_name=region.region_name, group_id=group.ID)
-                service_ids = []
-                if group_services:
-                    service_ids = [service["service_id"] for service in group_services]
-                create_app_body["app_name"] = group.group_name
-                create_app_body["console_app_id"] = group.ID
-                create_app_body["service_ids"] = service_ids
-                if group.k8s_app:
-                    create_app_body["k8s_app"] = group.k8s_app
-                batch_create_app_body.append(create_app_body)
 
     service_list = service_info_repo.get_services_in_multi_apps_with_app_info(session, app_auth_ids)
     team_service_num = len(service_list)
-
-    if len(batch_create_app_body) > 0:
-        try:
-            body = {"apps_info": batch_create_app_body}
-            applist = remote_app_client.batch_create_application(session, region.region_name, env, body)
-            app_list = []
-            if applist:
-                for app in applist:
-                    group = application_service.get_app_by_app_id(session, app["app_id"])
-                    if (group.project_id and (group.project_id in project_ids)) or (
-                            not group.project_id) or is_team_admin or is_super_admin:
-                        data = RegionApp(
-                            app_id=app["app_id"], region_app_id=app["region_app_id"], region_name=region.region_name)
-                        app_list.append(data)
-                        region_app_ids.append(app["region_app_id"])
-            region_app_repo.bulk_create(session=session, app_list=app_list)
-        except Exception as e:
-            logger.exception(e)
 
     running_app_num = 0
     service_running_num = 0
