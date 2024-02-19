@@ -283,5 +283,7 @@ async def get_region_event(
                     "level": "紧急",
                 })
 
+    events = sorted(events, key=lambda x: x['time'], reverse=True)
+
     result = general_message(200, "success", "查询成功", bean=events)
     return JSONResponse(result, status_code=200)
