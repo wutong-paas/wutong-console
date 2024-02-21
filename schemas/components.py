@@ -123,4 +123,4 @@ class AddNodeSchedulingParam(BaseModel):
     """
     新增组件节点调度
     """
-    node_name: Annotated[str, Field(title="节点名称")] = None
+    node_names: Annotated[list, Field(title="节点名称")] = None

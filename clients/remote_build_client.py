@@ -397,7 +397,7 @@ class RemoteBuildClient(ApiBaseHttpClient):
         url += "/v2/tenants/{tenant_name}/envs/{env_name}/appstatuses".format(tenant_name=tenant_env.tenant_name,
                                                                               env_name=tenant_env.env_name)
         self._set_headers(token)
-        res, body = self._get(session, url, self.default_headers, body=json.dumps(body), region=region_name)
+        res, body = self._get(session, url, self.default_headers, body=json.dumps(body), region=region_name, timeout=10)
         return body
 
     def list_scaling_records(self, session, region, tenant_env, service_alias, page=None, page_size=None):

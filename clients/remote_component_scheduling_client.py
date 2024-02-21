@@ -77,9 +77,9 @@ class RemoteSchedulingClient(ApiBaseHttpClient):
         """新增组件节点调度"""
 
         url, token = get_region_access_info(region_name, session)
-        url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/node".format(tenant_env.tenant_name,
-                                                                                   tenant_env.env_name,
-                                                                                   service_alias)
+        url = url + "/v2/tenants/{0}/envs/{1}/services/{2}/scheduling/nodes".format(tenant_env.tenant_name,
+                                                                                    tenant_env.env_name,
+                                                                                    service_alias)
 
         self._set_headers(token)
         self._post(session, url, self.default_headers, region=region_name, body=json.dumps(body))

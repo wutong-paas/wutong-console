@@ -156,9 +156,9 @@ async def delete_service_label_scheduling(
     return JSONResponse(general_message(200, "delete success", "删除成功"), status_code=200)
 
 
-@router.post("/teams/{team_name}/env/{env_id}/services/{service_alias}/scheduling/node", response_model=Response,
+@router.post("/teams/{team_name}/env/{env_id}/services/{service_alias}/scheduling/nodes", response_model=Response,
              name="新增组件节点调度")
-async def add_service_node_scheduling(
+async def add_service_nodes_scheduling(
         service_alias: Optional[str] = None,
         params: Optional[AddNodeSchedulingParam] = AddNodeSchedulingParam(),
         session: SessionClass = Depends(deps.get_session),
@@ -167,9 +167,9 @@ async def add_service_node_scheduling(
     """
     新增组件节点调度
     """
-    node_name = params.node_name
+    node_names = params.node_names
     body = {
-        "node_name": node_name,
+        "nodes": node_names,
         "operator": user.nick_name
     }
     try:
@@ -275,12 +275,6 @@ async def delete_service_tolerations(
     """
     删除组件污点容忍
     """
-
-    if not taint_key:
-        return JSONResponse(
-            general_message(400, "key not null", "污点键不能为空"),
-            status_code=200,
-        )
 
     body = {
         "taint_key": taint_key,

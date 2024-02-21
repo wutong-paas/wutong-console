@@ -133,9 +133,9 @@ async def overview_team_env_info(
     project_ids = []
     is_super_admin = team_api.get_user_env_auth(user, None, "1")
     if not is_super_admin:
-        is_team_admin = team_api.get_user_env_auth(user, tenant_env.tenant_id, "3")
+        is_team_admin = team_api.get_user_env_auth(user, env.tenant_id, "3")
         if not is_team_admin:
-            project_ids = team_api.get_user_project_ids(user.user_id, tenant_env.tenant_id, user.token)
+            project_ids = team_api.get_user_project_ids(user.user_id, env.tenant_id, user.token)
     if groups:
         app_ids = [group.ID for group in groups]
         region_apps = region_app_repo.list_by_app_ids(session, region.region_name, app_ids)
