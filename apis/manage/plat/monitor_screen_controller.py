@@ -110,14 +110,18 @@ async def get_team_memory_config(
             current_cpu = team_infos[team_name]["cpu_request"]
             current_cpu_limit = team_infos[team_name]["cpu_limit"]
             current_memory_limit = team_infos[team_name]["memory_limit"]
-            if not cpu_is_show and current_cpu > 0:
-                cpu_is_show = True
-            if not memory_is_show and current_memory > 0:
-                memory_is_show = True
+
+        memory = env.get("memory_request", 0) + current_memory
+        cpu = env.get("cpu_request", 0) + current_cpu
+        if not cpu_is_show and cpu > 0:
+            cpu_is_show = True
+        if not memory_is_show and memory > 0:
+            memory_is_show = True
+
         team_infos.update({
             team_name: {
-                "memory_request": env.get("memory_request", 0) + current_memory,
-                "cpu_request": env.get("cpu_request", 0) + current_cpu,
+                "memory_request": memory,
+                "cpu_request": cpu,
                 "cpu_limit": env.get("cpu_limit", 0) + current_cpu_limit,
                 "memory_limit": env.get("memory_limit", 0) + current_memory_limit,
             }
@@ -138,6 +142,7 @@ async def get_team_memory_config(
             "cpu_limit": value["cpu_limit"],
             "memory_limit": value["memory_limit"]
         })
+
     team_info_list = sorted(team_info_list, key=lambda x: x["memory_request"], reverse=True)
     data = {"memory": team_info_list[:10] if memory_is_show else []}
     team_info_list = sorted(team_info_list, key=lambda x: x["cpu_request"], reverse=True)

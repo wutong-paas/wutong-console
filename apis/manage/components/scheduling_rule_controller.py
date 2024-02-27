@@ -251,16 +251,16 @@ async def update_service_tolerations(
         remote_scheduling_client.update_service_taint_scheduling(session, env.region_code, env, service_alias, body)
     except remote_scheduling_client.CallApiError as e:
         return JSONResponse(
-            general_message(e.message['http_code'], "add error", e.message['body']['msg']),
+            general_message(e.message['http_code'], "update error", e.message['body']['msg']),
             status_code=200,
         )
     except Exception as e:
         logger.error(e)
         return JSONResponse(
-            general_message(500, "add error", "更新失败"),
+            general_message(500, "update error", "更新失败"),
             status_code=200,
         )
-    return JSONResponse(general_message(200, "add success", "更新成功"), status_code=200)
+    return JSONResponse(general_message(200, "update success", "更新成功"), status_code=200)
 
 
 @router.delete("/teams/{team_name}/env/{env_id}/services/{service_alias}/scheduling/tolerations",
@@ -284,13 +284,13 @@ async def delete_service_tolerations(
         remote_scheduling_client.delete_service_taint_scheduling(session, env.region_code, env, service_alias, body)
     except remote_scheduling_client.CallApiError as e:
         return JSONResponse(
-            general_message(e.message['http_code'], "add error", e.message['body']['msg']),
+            general_message(e.message['http_code'], "delete error", e.message['body']['msg']),
             status_code=200,
         )
     except Exception as e:
         logger.error(e)
         return JSONResponse(
-            general_message(500, "add error", "删除失败"),
+            general_message(500, "delete error", "删除失败"),
             status_code=200,
         )
-    return JSONResponse(general_message(200, "add success", "删除成功"), status_code=200)
+    return JSONResponse(general_message(200, "delete success", "删除成功"), status_code=200)
