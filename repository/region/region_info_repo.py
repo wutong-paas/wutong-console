@@ -33,7 +33,16 @@ class RegionRepo(BaseRepository[RegionConfig]):
         region = self.get_region_by_id(session, region_id)
         if not region:
             raise RegionNotFound("region no found")
-        region.region_alias = data.get("region_alias")
+
+        region_alias = data.get("region_alias")
+        # 更新环境信息
+        if region.region_alias != region_alias:
+            envs = env_repo.get_envs_by_region_code(session, region.region_name)
+            for env in envs:
+                if env.region_name != region_alias:
+                    env.region_name = region_alias
+
+        region.region_alias = region_alias
         region.url = data.get("url")
         region.wsurl = data.get("wsurl")
         region.httpdomain = data.get("httpdomain")
