@@ -478,10 +478,11 @@ async def share_plugin(
     bean = share_service.sync_service_plugin_event(session, user, response_region, env, share_id,
                                                    events[0])
     if not bean:
-        result = general_message(400, "sync share event", "插件不存在无需发布")
-        return JSONResponse(result, status_code=result["code"])
+        result = general_message("0", "sync share event", "插件不存在无需发布")
     else:
         result = general_message("0", "sync share event", "分享成功", bean=jsonable_encoder(bean))
+
+    session.commit()
     return JSONResponse(result, status_code=200)
 
 
