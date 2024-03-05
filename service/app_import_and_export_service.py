@@ -189,13 +189,15 @@ class AppImportService(object):
         for i in apps_status:
             if i.get("status") == "success":
                 success_num += 1
-                import_record.status = "partial_success"
+                # import_record.status = "partial_success"
             elif i.get("status") == "failed":
                 failed_num += 1
         if success_num == len(apps_status):
             import_record.status = "success"
         elif failed_num == len(apps_status):
             import_record.status = "failed"
+        if success_num + failed_num == len(apps_status) and failed_num != 0:
+            import_record.status = "partial_success"
         if status == "uploading":
             import_record.status = status
 
