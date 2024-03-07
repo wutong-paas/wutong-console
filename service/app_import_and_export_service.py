@@ -82,6 +82,8 @@ class AppImportService(object):
             filename = 'uploads/{0}.{1}'.format(make_uuid(), suffix)
             savefilename = os.path.join(settings.MEDIA_ROOT, filename)
             queryfilename = os.path.join(settings.MEDIA_URL, filename)
+            if not os.path.exists(os.path.dirname(savefilename)):
+                os.makedirs(os.path.dirname(savefilename))
             with open(savefilename, "wb") as f:
                 f.write(base64.decodebytes(image_base64_string.encode('utf-8')))
             return queryfilename
