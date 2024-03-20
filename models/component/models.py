@@ -406,7 +406,7 @@ class TeamServiceBackup(Base):
     tenant_env_id = Column(String(32))
     service_id = Column(String(32))
     backup_id = Column(String(32), unique=True)
-    backup_data = Column(Text, comment="内容")
+    backup_data = Column(LONGTEXT, comment="内容")
     create_time = Column(DateTime(), default=datetime.now, comment="创建时间", nullable=False)
     update_time = Column(DateTime(), default=datetime.now, onupdate=datetime.now, comment="更新时间", nullable=False)
 
