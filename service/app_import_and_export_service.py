@@ -156,11 +156,11 @@ class AppImportService(object):
                     describe=app_describe,
                     pic=pic_url,
                 )
-                wutong_apps.append(wutong_app)
                 # create a new app version
                 wutong_app_versions.append(self.create_app_version(session, wutong_app, import_record, app_template))
+                session.add(wutong_app)
+                session.flush()
         session.add_all(wutong_app_versions)
-        session.add_all(wutong_apps)
 
     def __wrapp_app_import_status(self, app_status):
         """
