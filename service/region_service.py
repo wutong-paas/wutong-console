@@ -69,11 +69,11 @@ def get_team_env_list(session, envs, user, is_auth):
         for env in envs:
             # 判断是否拥有权限
             if not is_auth:
-                is_auth = team_api.get_user_env_auth(user, env.tenant_id, "3")
-            if not is_auth:
-                is_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
-            if not is_auth:
-                continue
+                is_team_auth = team_api.get_user_env_auth(user, env.tenant_id, "3")
+                if not is_team_auth:
+                    is_env_auth = user_env_auth_repo.is_auth_in_env(session, env.env_id, user.user_name)
+                    if not is_env_auth:
+                        continue
             env_info = {
                 "env_id": env.env_id,
                 "env_code": env.env_name,
